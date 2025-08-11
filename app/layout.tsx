@@ -1,15 +1,14 @@
 
-import { HMSRoomProvider } from "@100mslive/react-sdk";
 import "../styles/globals.css";
-import { MiniKitProvider } from "@coinbase/onchainkit/minikit";
-import { base } from "wagmi/chains";
+import { ReactNode } from "react";
 import { Metadata } from "next";
+import Providers from "./providers";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const URL = process.env.NEXT_PUBLIC_URL;
+  const URL = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
   return {
     title: "Fireside 100ms",
-    description: "This is Fireside 100ms",
+    description: "This is Fireside 100ms - Drop-in audio chat with interesting people",
     other: {
       "fc:frame": JSON.stringify({
         version: "next",
@@ -29,23 +28,21 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+interface RootLayoutProps {
+  children: ReactNode;
+}
+
+export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en">
-     
+      <head>
+        <meta charSet="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      </head>
       <body>
-        <MiniKitProvider
-      apiKey={process.env.NEXT_PUBLIC_CDP_CLIENT_API_KEY}
-      chain={base}
-    >
-        <HMSRoomProvider>
+        <Providers>
           {children}
-        </HMSRoomProvider>
-        </MiniKitProvider>
+        </Providers>
       </body>
     </html>
   );
