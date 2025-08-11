@@ -55,5 +55,26 @@
   .room-card {
     @apply bg-white rounded-3xl p-6 shadow-clubhouse-lg border border-gray-100 hover:shadow-xl transition-all duration-300;
   }
+  
+  .speaking-ring {
+    animation: speaking-pulse 1s ease-in-out infinite;
+    transition: opacity 0.3s ease-out;
+  }
+  
+  .speaking-ring.fade-out {
+    opacity: 0;
+    animation: none;
+  }
+  
+  @keyframes speaking-pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.05);
+      opacity: 0.8;
+    }
+  }
 }
   
