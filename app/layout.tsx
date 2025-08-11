@@ -1,15 +1,9 @@
-'use client'
 
 import { HMSRoomProvider } from "@100mslive/react-sdk";
 import "../styles/globals.css";
-import { ReactNode } from "react";
 import { MiniKitProvider } from "@coinbase/onchainkit/minikit";
 import { base } from "wagmi/chains";
 import { Metadata } from "next";
-
-interface RootLayoutProps {
-  children: ReactNode;
-}
 
 export async function generateMetadata(): Promise<Metadata> {
   const URL = process.env.NEXT_PUBLIC_URL;
@@ -35,14 +29,14 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function RootLayout({ children }: RootLayoutProps) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html lang="en">
-      <head>
-        <meta charSet="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>100ms Quickstart</title>
-      </head>
+     
       <body>
         <MiniKitProvider
       apiKey={process.env.NEXT_PUBLIC_CDP_CLIENT_API_KEY}
