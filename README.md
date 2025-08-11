@@ -1,6 +1,6 @@
-# Clubhouse Clone in React
+# Clubhouse Clone in Next.js
 
-A modern Clubhouse-style audio room application built with React 18 and the latest 100ms SDK.
+A modern Clubhouse-style audio room application built with Next.js 14, React 18 and the latest 100ms SDK.
 
 ## Features
 
@@ -10,14 +10,42 @@ A modern Clubhouse-style audio room application built with React 18 and the late
 - 🔊 Audio controls (mute/unmute)
 - 📱 Responsive design with Tailwind CSS
 
-## Updated to Modern 100ms SDK
+## Updated to Next.js 14 with TypeScript
 
-This project has been updated to use the latest `@100mslive/react-sdk` instead of the deprecated packages. Key improvements:
+This project has been fully migrated from Vite to Next.js 14 with TypeScript and uses the latest `@100mslive/react-sdk`. Key improvements:
 
+- ✅ Next.js 14 with App Router
+- ✅ Full TypeScript support with proper typing
 - ✅ React 18 compatibility
 - ✅ Modern 100ms React SDK (`@100mslive/react-sdk`)
 - ✅ Better performance and stability
 - ✅ Latest 100ms features and APIs
+- ✅ Server-side rendering capabilities
+- ✅ Proper Next.js project structure
+
+## Project Structure
+
+```
+clubhouse-clone-react/
+├── app/                    # Next.js App Router
+│   ├── layout.tsx         # Root layout with HMS provider
+│   └── page.tsx           # Main page component
+├── components/            # React components (TypeScript)
+│   ├── Conference.tsx
+│   ├── Header.tsx
+│   ├── Footer.tsx
+│   ├── JoinForm.tsx
+│   ├── Peer.tsx
+│   ├── ScreenTile.tsx
+│   ├── Loader.tsx
+│   └── DeviceSettings.tsx
+├── styles/               # Global styles
+│   └── globals.css
+├── public/               # Static assets
+├── next.config.js        # Next.js configuration
+├── tsconfig.json         # TypeScript configuration
+└── package.json          # Dependencies and scripts
+```
 
 ## Getting Started
 
@@ -48,7 +76,7 @@ This project has been updated to use the latest `@100mslive/react-sdk` instead o
 
 4. **Start the development server**
    ```bash
-   npm start
+   npm run dev
    ```
 
 ## 100ms Setup (Actual Modern Dashboard)
