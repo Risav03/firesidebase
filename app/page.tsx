@@ -40,6 +40,12 @@ export default function Home() {
     };
   }, [hmsActions, isConnected]);
 
+    useEffect(() => {
+    if (!isFrameReady) {
+      setFrameReady();
+    }
+  }, [setFrameReady, isFrameReady]);
+
   // Prevent hydration mismatch by not rendering until mounted
   if (!mounted) {
     return <Loader />;
@@ -48,13 +54,6 @@ export default function Home() {
   if (loadingStates.includes(roomState) || !roomState) {
     return <Loader />;
   }
-
-  // The setFrameReady() function is called when your mini-app is ready to be shown
-  useEffect(() => {
-    if (!isFrameReady) {
-      setFrameReady();
-    }
-  }, [setFrameReady, isFrameReady]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-clubhouse-beige to-amber-50">
