@@ -1,25 +1,48 @@
+import JoinForm from "./JoinForm";
+import "./styles.css";
+import Conference from "./Conference";
+import { useEffect } from "react";
 import {
-  HMSRoomProvider,
-  useHMSStore,
+  HMSRoomState,
   selectIsConnectedToRoom,
-} from '@100mslive/hms-video-react';
-import Join from './components/Join';
-import Room from './components/Room';
-import './App.css';
+  selectRoomState,
+  useHMSActions,
+  useHMSStore,
+} from "@100mslive/react-sdk";
+import Footer from "./Footer";
+import { Loader } from "./Loader";
+import Header from "./Header";
 
-const SpacesApp = () => {
+const loadingStates = [HMSRoomState.Connecting, HMSRoomState.Disconnecting];
+
+export default function App() {
   const isConnected = useHMSStore(selectIsConnectedToRoom);
-  return <>{isConnected ? <Room /> : <Join />}</>;
-};
+  const roomState = useHMSStore(selectRoomState);
+  const hmsActions = useHMSActions();
 
-function App() {
+  useEffect(() => {
+    window.onunload = () => {
+      if (isConnected) {
+        hmsActions.leave();
+      }
+    };
+  }, [hmsActions, isConnected]);
+
+  if (loadingStates.includes(roomState) || !roomState) {
+    return <Loader />;
+  }
+
   return (
-    <HMSRoomProvider>
-      <div className='page'>
-        <SpacesApp />
-      </div>
-    </HMSRoomProvider>
+    <div className="App">
+      {isConnected ? (
+        <>
+          <Header />
+          <Conference />
+          <Footer />
+        </>
+      ) : (
+        <JoinForm />
+      )}
+    </div>
   );
 }
-
-export default App;
