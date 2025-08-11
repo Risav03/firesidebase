@@ -10,11 +10,13 @@
     "@100mslive/hms-video-store": "^0.12.36",
     "@100mslive/react-icons": "^0.10.36",
     "@100mslive/react-sdk": "^0.10.36",
+    "@coinbase/onchainkit": "^0.38.19",
     "boring-avatars": "^1.5.8",
     "iconv-lite": "^0.6.3",
     "next": "^14.0.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "wagmi": "^2.16.2"
   },
   "scripts": {
     "dev": "next dev",
