@@ -2,7 +2,7 @@
 
 import JoinForm from "../components/JoinForm";
 import Conference from "../components/Conference";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   HMSRoomState,
   selectIsConnectedToRoom,
@@ -17,17 +17,31 @@ import Header from "../components/Header";
 const loadingStates = [HMSRoomState.Connecting, HMSRoomState.Disconnecting];
 
 export default function Home() {
+  const [mounted, setMounted] = useState(false);
   const isConnected = useHMSStore(selectIsConnectedToRoom);
   const roomState = useHMSStore(selectRoomState);
   const hmsActions = useHMSActions();
 
   useEffect(() => {
-    window.onunload = () => {
+    setMounted(true);
+    
+    const handleUnload = () => {
       if (isConnected) {
         hmsActions.leave();
       }
     };
+
+    window.onunload = handleUnload;
+    
+    return () => {
+      window.onunload = null;
+    };
   }, [hmsActions, isConnected]);
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return <Loader />;
+  }
 
   if (loadingStates.includes(roomState) || !roomState) {
     return <Loader />;

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   AudioLevelIcon,
   MicOffIcon,
@@ -17,9 +17,8 @@ import {
   useHMSActions,
   useHMSStore,
 } from "@100mslive/react-sdk";
-import { HMSKrispPlugin } from "@100mslive/hms-noise-cancellation";
-
-const plugin = new HMSKrispPlugin();
+// Dynamic import to avoid SSR issues
+let plugin: any = null;
 
 export default function Footer() {
   const { isLocalAudioEnabled, isLocalVideoEnabled, toggleAudio, toggleVideo } =
@@ -27,10 +26,24 @@ export default function Footer() {
   const amIScreenSharing = useHMSStore(selectIsLocalScreenShared);
   const actions = useHMSActions();
   const room = useHMSStore(selectRoom);
-  const isAudioPluginAdded = useHMSStore(
-    selectIsLocalAudioPluginPresent(plugin.getName())
-  );
   const [isPluginActive, setIsPluginActive] = useState(false);
+  const [isPluginReady, setIsPluginReady] = useState(false);
+
+  // Initialize plugin only on client side with dynamic import
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !plugin) {
+      import('@100mslive/hms-noise-cancellation').then(({ HMSKrispPlugin }) => {
+        plugin = new HMSKrispPlugin();
+        setIsPluginReady(true);
+      }).catch(error => {
+        console.error('Failed to load noise cancellation plugin:', error);
+      });
+    }
+  }, []);
+
+  const isAudioPluginAdded = useHMSStore(
+    selectIsLocalAudioPluginPresent(plugin?.getName() || '')
+  );
 
   return (
     <div className="control-bar">
@@ -53,11 +66,13 @@ export default function Footer() {
       >
         <ShareScreenIcon />
       </button>
-      {room?.isNoiseCancellationEnabled ? (
+      {room?.isNoiseCancellationEnabled && isPluginReady && plugin ? (
         <button
           title="Noise cancellation"
           className={`btn-control ${isPluginActive ? "" : "highlight"}`}
           onClick={async () => {
+            if (!plugin) return;
+            
             if (isAudioPluginAdded) {
               plugin.toggle();
               setIsPluginActive((prev) => !prev);
