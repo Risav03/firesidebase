@@ -12,21 +12,25 @@ export default function Header() {
   const hmsActions = useHMSActions();
 
   return (
-    <header>
-      <img
-        className="logo"
-        src="https://www.100ms.live/assets/logo.svg"
-        alt="logo"
-      />
-      {isConnected && (
-        <button
-          id="leave-btn"
-          className="btn btn-danger"
-          onClick={() => hmsActions.leave()}
-        >
-          <ExitIcon style={{ marginLeft: "0.25rem" }} /> Leave Room
-        </button>
-      )}
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-200 px-6 py-4">
+      <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <div className="w-10 h-10 bg-clubhouse-green rounded-2xl flex items-center justify-center">
+            <span className="text-white font-bold text-lg">🏠</span>
+          </div>
+          <h1 className="text-xl font-bold text-gray-900">Clubhouse</h1>
+        </div>
+        {isConnected && (
+          <button
+            id="leave-btn"
+            className="clubhouse-button clubhouse-button-danger flex items-center space-x-2"
+            onClick={() => hmsActions.leave()}
+          >
+            <ExitIcon className="w-4 h-4" />
+            <span>Leave Room</span>
+          </button>
+        )}
+      </div>
     </header>
   );
 }

@@ -28,45 +28,52 @@ export default function JoinForm() {
   };
 
   return (
-    <div className="home">
-      <img
-        className="logo"
-        src="https://www.100ms.live/assets/logo.svg"
-        alt="logo"
-        height={48}
-        width={150}
-      />
-      <h2 style={{ marginTop: "2rem" }}>Join Room</h2>
-      <p>Enter your room code and name before joining</p>
-      <form onSubmit={handleSubmit}>
-        <div className="input-container">
-          <input
-            ref={roomCodeRef}
-            id="room-code"
-            type="text"
-            name="roomCode"
-            placeholder="Your Room Code"
-          />
+    <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="w-full max-w-md">
+        <div className="clubhouse-card p-8 text-center">
+          <div className="mb-8">
+            <div className="w-16 h-16 bg-clubhouse-green rounded-3xl flex items-center justify-center mx-auto mb-4">
+              <span className="text-white font-bold text-2xl">🏠</span>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome to Clubhouse</h1>
+            <p className="text-gray-600">Join the conversation</p>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <input
+                ref={roomCodeRef}
+                id="room-code"
+                type="text"
+                name="roomCode"
+                placeholder="Room Code"
+                className="clubhouse-input"
+              />
+            </div>
+            <div>
+              <input
+                required
+                ref={userNameRef}
+                id="name"
+                type="text"
+                name="name"
+                placeholder="Your Name"
+                className="clubhouse-input"
+              />
+            </div>
+            <button className="clubhouse-button clubhouse-button-primary w-full flex items-center justify-center space-x-2">
+              <span>Join Room</span>
+              <ArrowRightIcon className="w-5 h-5" />
+            </button>
+          </form>
+          
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <p className="text-sm text-gray-500">
+              Drop-in audio chat with interesting people
+            </p>
+          </div>
         </div>
-        <div className="input-container">
-          <input
-            required
-            ref={userNameRef}
-            id="name"
-            type="text"
-            name="name"
-            placeholder="Your Name"
-          />
-        </div>
-        <button className="btn btn-primary" style={{ margin: "0 auto" }}>
-          Join Now
-          <ArrowRightIcon
-            height={16}
-            width={16}
-            style={{ marginLeft: "0.25rem" }}
-          />
-        </button>
-      </form>
+      </div>
     </div>
   );
 }

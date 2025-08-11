@@ -48,7 +48,7 @@ export default function Home() {
   }
 
   return (
-    <div className="App">
+    <div className="min-h-screen bg-gradient-to-br from-clubhouse-beige to-amber-50">
       {isConnected ? (
         <>
           <Header />

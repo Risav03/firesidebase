@@ -1,4 +1,9 @@
-* {
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -7,195 +12,48 @@
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
       Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-    background-color: #010101;
-    color: #c5c6d0;
+    background: linear-gradient(135deg, #F1EFE7 0%, #E8E5DC 100%);
+    color: #2D3748;
+    min-height: 100vh;
   }
   
-  h1,
-  h2,
-  h3,
-  h4,
-  h5 {
-    color: #eff0fa;
-    margin-bottom: 0.5rem;
+  h1, h2, h3, h4, h5 {
+    color: #1A202C;
+    font-weight: 600;
+  }
+}
+
+@layer components {
+  .clubhouse-card {
+    @apply bg-white rounded-3xl shadow-clubhouse border border-gray-100;
   }
   
-  .App {
-    height: 100vh;
+  .clubhouse-button {
+    @apply px-6 py-3 rounded-2xl font-semibold transition-all duration-200 transform hover:scale-105 active:scale-95;
   }
   
-  header {
-    position: fixed;
-    top: 0;
-    width: 100%;
-    padding: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+  .clubhouse-button-primary {
+    @apply bg-clubhouse-green text-white shadow-lg hover:bg-green-600;
   }
   
-  form {
-    margin-top: 2rem;
-    width: 100%;
-    max-width: 450px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  .clubhouse-button-secondary {
+    @apply bg-white text-gray-700 border border-gray-300 hover:bg-gray-50;
   }
   
-  input {
-    display: block;
-    width: 100%;
-    border-radius: 8px;
-    border: 2px solid transparent;
-    height: 48px;
-    box-sizing: border-box;
-    padding: 12px 16px;
-    background: #191b23;
-    color: inherit;
-    font-family: inherit;
+  .clubhouse-button-danger {
+    @apply bg-red-500 text-white hover:bg-red-600;
   }
   
-  input::placeholder {
-    color: #aaa;
+  .clubhouse-input {
+    @apply w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-clubhouse-green focus:ring-2 focus:ring-clubhouse-green focus:ring-opacity-20 outline-none transition-all duration-200;
   }
   
-  .input-container {
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: baseline;
-    gap: 5px;
+  .peer-avatar {
+    @apply w-20 h-20 rounded-full border-4 border-white shadow-lg bg-gradient-to-br from-clubhouse-blue to-clubhouse-purple flex items-center justify-center text-white font-bold text-xl;
   }
   
-  .btn {
-    border: 1px solid transparent;
-    display: flex;
-    align-items: center;
-    border-radius: 8px;
-    padding: 8px 16px;
-    font-weight: 500;
-    height: 48px;
-    box-sizing: border-box;
-    font-size: 15px;
-    color: white;
-    cursor: pointer;
+  .room-card {
+    @apply bg-white rounded-3xl p-6 shadow-clubhouse-lg border border-gray-100 hover:shadow-xl transition-all duration-300;
   }
-  
-  .btn-primary {
-    background-color: #2572ed;
-  }
-  
-  .btn-danger {
-    padding: 8px;
-    background-color: #c74e5b;
-  }
-  
-  .conference-section {
-    padding: 20px 30px;
-    max-width: 1000px;
-    height: 100%;
-    margin: 0 auto;
-  }
-  
-  .conference-section h2 {
-    text-align: center;
-    font-size: 32px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #546e7a;
-  }
-  
-  .peers-container {
-    display: flex;
-    flex-wrap: wrap;
-    width: 100%;
-    max-width: 1000px;
-    height: 100%;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .peer-video {
-    height: 250px;
-    width: 450px;
-    border-radius: 0.5rem;
-    object-fit: cover;
-    margin: 10px;
-    border: 1px solid #191b23;
-  }
-  
-  .video-cover {
-    position: absolute;
-    top: 0;
-    left: 0;
-    background-color: #191b23;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .local.peer-video {
-    transform: scaleX(-1);
-  }
-  
-  .peer-name {
-    font-size: 14px;
-    text-align: center;
-  }
-  
-  .peer-container {
-    position: relative;
-  }
-  
-  .control-bar {
-    display: flex;
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-    padding: 15px;
-    justify-content: center;
-    z-index: 10;
-  }
-  
-  .control-bar > *:not(:first-child) {
-    margin-left: 8px;
-  }
-  
-  .btn-control {
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    border: 1px solid #37474f;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    text-align: center;
-    background: none;
-    color: white;
-    cursor: pointer;
-  }
-  
-  .hide {
-    display: none;
-  }
-  
-  .separator {
-    font-size: 12px;
-  }
-  
-  .home {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    width: 80%;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-  
-  .center {
-    align-items: center;
-  }
-  
-  .highlight {
-    background: #2e3038;
-  }
+}
   

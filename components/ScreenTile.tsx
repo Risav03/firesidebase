@@ -18,10 +18,18 @@ export const ScreenTile = ({ peer }: ScreenTileProps) => {
   });
 
   return (
-    <div className="peer-container">
-      <video ref={videoRef} className="peer-video" autoPlay muted playsInline />
-      <div className="peer-name">
-        Screen shared by {peer.name} {peer.isLocal ? "(You)" : ""}
+    <div className="relative bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
+      <video 
+        ref={videoRef} 
+        className="w-full h-64 object-cover" 
+        autoPlay 
+        muted 
+        playsInline 
+      />
+      <div className="p-3 bg-white">
+        <p className="text-sm font-medium text-gray-900 text-center">
+          Screen shared by {peer.name} {peer.isLocal ? "(You)" : ""}
+        </p>
       </div>
     </div>
   );

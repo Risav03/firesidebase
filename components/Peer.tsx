@@ -3,8 +3,6 @@
 import { MicOffIcon, PersonIcon } from "@100mslive/react-icons";
 import {
   selectIsPeerAudioEnabled,
-  selectIsPeerVideoEnabled,
-  useVideo,
   useHMSStore,
   HMSPeer,
 } from "@100mslive/react-sdk";
@@ -14,46 +12,35 @@ interface PeerProps {
 }
 
 export default function Peer({ peer }: PeerProps) {
-  const { videoRef } = useVideo({
-    trackId: peer.videoTrack,
-  });
 
   const isPeerAudioEnabled = useHMSStore(selectIsPeerAudioEnabled(peer.id));
-  const isPeerVideoEnabled = useHMSStore(selectIsPeerVideoEnabled(peer.id));
 
   return (
-    <div className="peer-container">
-      {!isPeerAudioEnabled && (
-        <div
-          style={{
-            position: "absolute",
-            top: "1rem",
-            right: "1rem",
-            zIndex: 100,
-            backgroundColor: "#293042",
-            padding: "0.5rem",
-            borderRadius: "0.75rem",
-            height: "2rem",
-            width: "2rem",
-          }}
-        >
-          <MicOffIcon height={16} width={16} />
-        </div>
-      )}
-      <video
-        ref={videoRef}
-        className={`peer-video ${peer.isLocal ? "local" : ""}`}
-        autoPlay
-        muted
-        playsInline
-      />
-      {!isPeerVideoEnabled ? (
-        <div className="peer-video video-cover">
-          <PersonIcon height={48} width={48} />
-        </div>
-      ) : null}
-      <div className="peer-name">
-        {peer.name} {peer.isLocal ? "(You)" : ""}
+    <div className="relative flex flex-col items-center group">
+      <div className="peer-avatar relative">
+        {/* Avatar with first letter of name */}
+        <span>{peer.name.charAt(0).toUpperCase()}</span>
+        
+        {/* Mute indicator */}
+        {!isPeerAudioEnabled && (
+          <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center border-2 border-white">
+            <MicOffIcon className="w-3 h-3 text-white" />
+          </div>
+        )}
+        
+        {/* Speaking indicator */}
+        {isPeerAudioEnabled && (
+          <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-clubhouse-green rounded-full animate-pulse"></div>
+        )}
+      </div>
+      
+      <div className="mt-2 text-center">
+        <p className="text-sm font-medium text-gray-900 truncate max-w-20">
+          {peer.name}
+        </p>
+        {peer.isLocal && (
+          <span className="text-xs text-clubhouse-green font-semibold">(You)</span>
+        )}
       </div>
     </div>
   );
