@@ -13,10 +13,12 @@ import {
 import Footer from "../components/Footer";
 import { Loader } from "../components/Loader";
 import Header from "../components/Header";
+import { useMiniKit } from "@coinbase/onchainkit/minikit";
 
 const loadingStates = [HMSRoomState.Connecting, HMSRoomState.Disconnecting];
 
 export default function Home() {
+    const { setFrameReady, isFrameReady } = useMiniKit();
   const [mounted, setMounted] = useState(false);
   const isConnected = useHMSStore(selectIsConnectedToRoom);
   const roomState = useHMSStore(selectRoomState);
@@ -46,6 +48,13 @@ export default function Home() {
   if (loadingStates.includes(roomState) || !roomState) {
     return <Loader />;
   }
+
+  // The setFrameReady() function is called when your mini-app is ready to be shown
+  useEffect(() => {
+    if (!isFrameReady) {
+      setFrameReady();
+    }
+  }, [setFrameReady, isFrameReady]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-clubhouse-beige to-amber-50">
