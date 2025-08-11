@@ -2,6 +2,7 @@
 
 import JoinForm from "../components/JoinForm";
 import Conference from "../components/Conference";
+import Chat from "../components/Chat";
 import { useEffect, useState } from "react";
 import {
   HMSRoomState,
@@ -20,6 +21,7 @@ const loadingStates = [HMSRoomState.Connecting, HMSRoomState.Disconnecting];
 export default function Home() {
     const { setFrameReady, isFrameReady } = useMiniKit();
   const [mounted, setMounted] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const isConnected = useHMSStore(selectIsConnectedToRoom);
   const roomState = useHMSStore(selectRoomState);
   const hmsActions = useHMSActions();
@@ -59,9 +61,16 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-clubhouse-beige to-amber-50">
       {isConnected ? (
         <>
-          <Header />
+          <Header 
+            onToggleChat={() => setIsChatOpen(!isChatOpen)}
+            isChatOpen={isChatOpen}
+          />
           <Conference />
           <Footer />
+          <Chat 
+            isOpen={isChatOpen} 
+            onClose={() => setIsChatOpen(false)}
+          />
         </>
       ) : (
         <JoinForm />
