@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import sdk from '@farcaster/miniapp-sdk';
 
 // This middleware runs on every request
-export default async function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
 
     console.log("Middleware called for path:", request.nextUrl.pathname);
   

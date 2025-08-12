@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import User from '../../../../utils/schemas/User';
 import { connectToDB } from '@/utils/db';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
 	try {
+		console.log("Handling user creation...");
 		await connectToDB();
 		// Get fid from x-user-fid header
 		const fid = req.headers.get('x-user-fid');
