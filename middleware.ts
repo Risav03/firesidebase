@@ -20,12 +20,14 @@ export async function middleware(request: NextRequest) {
         headers: {
           "Authorization": `Bearer ${authorization}`,
         },
-      }).then(res => res.json())
+      });
+
+      const userJson = await user.json();
 
       console.log("User from /api/me in middleware:", user);
 
     const requestHeaders = new Headers(request.headers);
-    requestHeaders.set('x-user-fid', user.fid.toString());
+    requestHeaders.set('x-user-fid', userJson.fid.toString());
 
     // Create a new response with modified headers
     return NextResponse.next({
