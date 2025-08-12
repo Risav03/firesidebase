@@ -11,6 +11,7 @@
     "@100mslive/react-icons": "^0.10.36",
     "@100mslive/react-sdk": "^0.10.36",
     "@coinbase/onchainkit": "^0.38.19",
+    "@farcaster/auth-client": "^0.7.0",
     "@farcaster/miniapp-sdk": "^0.1.8",
     "@farcaster/quick-auth": "^0.0.7",
     "@rainbow-me/rainbowkit": "^2.2.8",

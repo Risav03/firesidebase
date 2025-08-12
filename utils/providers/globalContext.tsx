@@ -8,7 +8,9 @@ import React, {
   useState,
   ReactNode,
   useEffect,
+  useCallback,
 } from "react";
+import { generateNonce } from "@farcaster/auth-client";
 
 interface GlobalContextProps {
   user: any;
@@ -18,7 +20,7 @@ interface GlobalContextProps {
 const GlobalContext = createContext<GlobalContextProps | undefined>(undefined);
 
 export function GlobalProvider({ children }: { children: ReactNode }) {
-  const { setFrameReady, isFrameReady } = useMiniKit();
+
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
@@ -26,30 +28,62 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       const sessionUser = sessionStorage.getItem("user");
 
       if (!sessionUser) {
-        const res = await sdk.quickAuth.fetch(`/api/me`);
-        if (res.ok) {
-          setUser((await res.json()).user);
-          sessionStorage.setItem(
-            "user",
-            JSON.stringify((await res.json()).user)
-          );
-
-          await sdk.quickAuth.fetch("/api/protected/handleUser", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            }
-          });
-
-        }
+        await handleSignIn();
       } else {
         setUser(JSON.parse(sessionUser));
       }
-      
-        sdk.actions.ready();
-      
+
+      sdk.actions.ready();
     })();
   }, []);
+
+  const getNonce = useCallback(async (): Promise<string> => {
+    console.log("getNonce called");
+    try {
+      const nonce = await generateNonce();
+      if (!nonce) throw new Error("Unable to generate nonce");
+      console.log("Nonce generated:", nonce);
+      return nonce;
+    } catch (error) {
+      console.error("Error in getNonce:", error);
+      throw error;
+    }
+  }, []);
+
+  const handleSignIn = useCallback(async (): Promise<void> => {
+    try {
+      const nonce = await getNonce();
+
+      await sdk.actions.signIn({ nonce });
+
+      const res = await sdk.quickAuth.fetch("/api/me");
+      const jsonResponse = await res.json();
+      console.log("ME response:", jsonResponse);
+
+      if (res.ok && jsonResponse.user) {
+        setUser(jsonResponse.user);
+
+        sessionStorage.setItem("user", JSON.stringify((await res.json()).user));
+
+        const createUserRes = await sdk.quickAuth.fetch(
+          "/api/protected/handleUser",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-user-fid": String(jsonResponse.fid),
+            },
+          }
+        );
+
+        if (!createUserRes.ok) {
+          console.error("Failed to create user:", await createUserRes.text());
+        }
+      }
+    } catch (error) {
+      console.error("Sign in error:", error);
+    }
+  }, [getNonce]);
 
   return (
     <GlobalContext.Provider value={{ user, setUser }}>
