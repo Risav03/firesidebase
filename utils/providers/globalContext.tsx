@@ -68,6 +68,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
 
       if (res.ok && jsonResponse.user) {
         setUser(jsonResponse.user);
+        // localStorage.setItem("user", JSON.stringify(jsonResponse.user));
       }
       const createUserRes = await fetch(
           `https://100msfireside-kolt.vercel.app/api/protected/handleUser`,
