@@ -25,7 +25,7 @@ export default function JoinForm() {
         userName: user.username || "Joinee",
         authToken,
         metaData: JSON.stringify({
-          profile_picture_url: user.pfp_url
+          avatar: user.pfp_url
         })
       });
     } catch (e) {
