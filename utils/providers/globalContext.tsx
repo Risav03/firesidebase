@@ -56,7 +56,13 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
 
       await sdk.actions.signIn({ nonce });
 
-      const res = await sdk.quickAuth.fetch("/api/me");
+      const {token} = await sdk.quickAuth.getToken()
+
+      const res = await fetch("/api/me", {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
       const jsonResponse = await res.json();
       console.log("ME response:", jsonResponse);
 
@@ -65,13 +71,13 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
 
         sessionStorage.setItem("user", JSON.stringify((await res.json()).user));
 
-        const createUserRes = await sdk.quickAuth.fetch(
+        const createUserRes = await fetch(
           "/api/protected/handleUser",
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "x-user-fid": String(jsonResponse.fid),
+              "Authorization": `Bearer ${token}`,
             },
           }
         );
