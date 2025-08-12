@@ -34,7 +34,12 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
             JSON.stringify((await res.json()).user)
           );
 
-          await sdk.quickAuth.fetch("/api/protected/handleUser")
+          await sdk.quickAuth.fetch("/api/protected/handleUser", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            }
+          });
 
         }
       } else {
