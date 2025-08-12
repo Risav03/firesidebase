@@ -184,8 +184,7 @@ export default function Chat({ isOpen, onClose }: ChatProps) {
               <>
                 {messages.map((msg: HMSMessage) => {
                   // Try multiple ways to get sender name for comparison
-                  const msgSenderName = msg.senderName || 
-                                       msg.sender?.name || 
+                  const msgSenderName = msg.senderName ||
                                        msg.sender || 
                                        (msg as any).senderUserId;
                   

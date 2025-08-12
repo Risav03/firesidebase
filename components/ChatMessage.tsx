@@ -15,7 +15,6 @@ export function ChatMessage({ message, isOwnMessage }: ChatMessageProps) {
   // Try multiple possible ways to get the sender name
   const getSenderName = () => {
     return message.senderName || 
-           message.sender?.name || 
            message.sender || 
            (message as any).senderUserId ||
            'Anonymous';
