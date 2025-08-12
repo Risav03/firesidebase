@@ -33,10 +33,10 @@ export async function POST(req: NextRequest) {
 				);
 			}
 			const jsonRes = await res.json();
-			console.log("This is the json response:", jsonRes);
 			const neynarRes = jsonRes.users?.[0];
+			console.log("This is the json response:", neynarRes);
 
-			user = await User.create({ fid: fid, username: neynarRes?.username, displayName: neynarRes?.displayName, pfp_url: neynarRes?.pfp_url });
+			user = await User.create({ fid: fid, username: neynarRes?.username, displayName: neynarRes?.display_name, pfp_url: neynarRes?.pfp_url });
 		}
 
 		return NextResponse.json({ user });
