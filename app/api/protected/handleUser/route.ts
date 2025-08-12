@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 			console.log("This is the json response:", jsonRes);
 			const neynarRes = jsonRes.users?.[0];
 
-			user = await User.create({ fid: fid, username: neynarRes?.user.username, displayName: neynarRes?.user.displayName, pfp_url: neynarRes?.user.pfp_url });
+			user = await User.create({ fid: fid, username: neynarRes?.username, displayName: neynarRes?.displayName, pfp_url: neynarRes?.pfp_url });
 		}
 
 		return NextResponse.json({ user });
