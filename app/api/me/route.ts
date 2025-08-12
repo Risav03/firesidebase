@@ -34,22 +34,11 @@ export async function GET(request: Request) {
   }
 
   const res = await fetch(
-    `https://api.neynar.com/v2/farcaster/user/bulk?fids=${fid}`,
-    {
-      headers: {
-        "x-api-key": process.env.NEYNAR_API_KEY as string,
-      },
+      `https://api.farcaster.xyz/fc/primary-address?fid=${fid}&protocol=ethereum`,
+    )
+    if (res.ok) {
+      const { result } = await res.json()
+ 
+      return NextResponse.json({ user : result.address })
     }
-  );
-  console.log("This is the raw response:", res);
-  if (!res.ok) {
-    return NextResponse.json(
-      { error: "Error fetching user from external API" },
-      { status: res.status }
-    );
-  }
-  const jsonRes = await res.json();
-  console.log("This is the json response:", jsonRes);
-  const user = jsonRes.users?.[0];
-  return NextResponse.json({ fid, user });
 }

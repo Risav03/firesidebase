@@ -5,7 +5,10 @@ export interface IUser extends Document {
 }
 
 const User: Schema = new Schema({
-  fid: { type: String, required: true, unique: true }
+  fid: { type: String, required: true, unique: true },
+  username: { type: String, required: true },
+  displayName: { type: String, required: true },
+  pfp_url: { type: String, required: true },
 });
 
 export default mongoose.models.User || mongoose.model('User', User);

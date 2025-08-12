@@ -58,31 +58,20 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
 
       const {token} = await sdk.quickAuth.getToken()
 
-      const res = await fetch("/api/me", {
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
-      });
-      const jsonResponse = await res.json();
-      console.log("ME response:", jsonResponse);
-
-      if (res.ok && jsonResponse.user) {
-        setUser(jsonResponse.user);
-        // localStorage.setItem("user", JSON.stringify(jsonResponse.user));
-      }
       const createUserRes = await fetch(
-          `https://100msfireside-kolt.vercel.app/api/protected/handleUser`,
+          `/api/protected/handleUser`,
           {
             method: "POST",
             headers: {
               "Authorization": `Bearer ${token}`,
-            },
+            }
           }
         );
 
         if (!createUserRes.ok) {
           console.error("Failed to create user:", await createUserRes.text());
         }
+        setUser((await createUserRes.json()).user);
     } catch (error) {
       console.error("Sign in error:", error);
     }
