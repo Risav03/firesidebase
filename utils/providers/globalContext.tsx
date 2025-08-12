@@ -25,14 +25,14 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     (async () => {
-      const sessionUser = sessionStorage.getItem("user");
+      // const sessionUser = sessionStorage.getItem("user");
 
-      if (!sessionUser) {
-        await handleSignIn();
-      } else {
-        setUser(JSON.parse(sessionUser));
-      }
-
+      // if (!sessionUser) {
+      //   await handleSignIn();
+      // } else {
+      //   setUser(JSON.parse(sessionUser));
+      // }
+      await handleSignIn()
       sdk.actions.ready();
     })();
   }, []);
@@ -70,13 +70,12 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
         setUser(jsonResponse.user);
 
         sessionStorage.setItem("user", JSON.stringify((await res.json()).user));
-
-        const createUserRes = await fetch(
-          "/api/protected/handleUser",
+      }
+      const createUserRes = await fetch(
+          `https://100msfireside-kolt.vercel.app/api/protected/handleUser`,
           {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
               "Authorization": `Bearer ${token}`,
             },
           }
@@ -85,7 +84,6 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
         if (!createUserRes.ok) {
           console.error("Failed to create user:", await createUserRes.text());
         }
-      }
     } catch (error) {
       console.error("Sign in error:", error);
     }
