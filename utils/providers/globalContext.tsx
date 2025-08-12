@@ -40,11 +40,11 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       } else {
         setUser(JSON.parse(sessionUser));
       }
-      if (!isFrameReady) {
-        setFrameReady();
-      }
+      
+        sdk.actions.ready();
+      
     })();
-  }, [setFrameReady, isFrameReady]);
+  }, []);
 
   return (
     <GlobalContext.Provider value={{ user, setUser }}>
