@@ -53,7 +53,13 @@ export default function Peer({ peer }: PeerProps) {
         
         <div className="peer-avatar relative">
           {/* Avatar with first letter of name */}
-          <span>{peer.name.charAt(0).toUpperCase()}</span>
+          <div className={`w-16 h-16 rounded-full bg-clubhouse-green flex items-center justify-center text-white text-2xl font-bold ${!isPeerAudioEnabled ? 'opacity-50' : ''}`}>
+            {peer.metadata && JSON.parse(peer.metadata).avatar ? (
+              <img src={JSON.parse(peer.metadata).avatar} alt={peer.name} className="w-full h-full rounded-full object-cover" />
+            ) : (
+              <span>{peer.name.charAt(0).toUpperCase()}</span>
+            )}
+          </div>
           
           {/* Mute indicator */}
           {!isPeerAudioEnabled && (

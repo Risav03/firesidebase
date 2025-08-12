@@ -10,7 +10,6 @@ export default function JoinForm() {
   const { user, setUser } = useGlobalContext();
   const hmsActions = useHMSActions();
   const roomCodeRef = useRef<HTMLInputElement>(null);
-  const userNameRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -25,7 +24,7 @@ export default function JoinForm() {
         userName: user.username || "Joinee",
         authToken,
         metaData: JSON.stringify({
-          avatar: user.pfp_url
+          avatar: user.pfp_url,
         })
       });
     } catch (e) {
@@ -72,7 +71,7 @@ export default function JoinForm() {
               </>}
               
             </div>
-            <button className="clubhouse-button clubhouse-button-primary w-full flex items-center justify-center space-x-2">
+            <button disabled={!user} className="clubhouse-button clubhouse-button-primary w-full flex items-center justify-center space-x-2">
               <span>Join Room</span>
               <ArrowRightIcon className="w-5 h-5" />
             </button>
