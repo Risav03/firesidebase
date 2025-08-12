@@ -24,6 +24,9 @@ export default function JoinForm() {
       await hmsActions.join({
         userName: user.username || "Joinee",
         authToken,
+        metaData: JSON.stringify({
+          profile_picture_url: user.pfp_url
+        })
       });
     } catch (e) {
       console.error(e);
