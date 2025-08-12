@@ -3,9 +3,8 @@ import type { NextRequest } from 'next/server';
 import sdk from '@farcaster/miniapp-sdk';
 
 // This middleware runs on every request
-export async function middleware(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
 
-    
     console.log("Middleware called for path:", request.nextUrl.pathname);
   
     const res = await sdk.quickAuth.fetch("/api/me");
