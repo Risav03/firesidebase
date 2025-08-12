@@ -18,7 +18,7 @@ export async function middleware(request: NextRequest) {
     
       const user = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/me`, {
         headers: {
-          "Authorization": `Bearer ${authorization}`,
+          "Authorization": authorization,
         },
       });
 

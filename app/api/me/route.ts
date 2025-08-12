@@ -36,6 +36,8 @@ export async function GET(request: Request) {
   const res = await fetch(
       `https://api.farcaster.xyz/fc/primary-address?fid=${fid}&protocol=ethereum`,
     )
+
+    console.log("Response from Farcaster API:", res);
     if (res.ok) {
       const { result } = await res.json()
  
