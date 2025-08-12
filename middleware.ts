@@ -8,18 +8,21 @@ export async function middleware(request: NextRequest) {
 
     console.log("Middleware called for path:", request.nextUrl.pathname);
   
-    const client = createClient();
       const authorization = request.headers.get("Authorization");
+
+      console.log("Authorization header in middleware:", authorization);
     
       if (!authorization) {
         return NextResponse.json({ status: 401, statusText: "Unauthorized" });
       }
     
-      const user = await fetch("/api/me", {
+      const user = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/me`, {
         headers: {
           "Authorization": `Bearer ${authorization}`,
         },
       }).then(res => res.json())
+
+      console.log("User from /api/me in middleware:", user);
 
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-user-fid', user.fid.toString());

@@ -59,7 +59,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       const {token} = await sdk.quickAuth.getToken()
 
       const createUserRes = await fetch(
-          `/api/protected/handleUser`,
+          `${process.env.NEXT_PUBLIC_URL}/api/protected/handleUser`,
           {
             method: "POST",
             headers: {
