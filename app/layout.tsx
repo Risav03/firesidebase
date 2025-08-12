@@ -2,7 +2,7 @@
 import "../styles/globals.css";
 import { ReactNode } from "react";
 import { Metadata } from "next";
-import Providers from "./providers";
+import Providers from "@/utils/providers/providers";
 
 export async function generateMetadata(): Promise<Metadata> {
   const URL = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
