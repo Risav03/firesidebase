@@ -40,7 +40,7 @@ export async function GET(request: Request) {
     console.log("Response from Farcaster API:", res);
     if (res.ok) {
       const { result } = await res.json()
- 
+      console.log("Primary address result:", result);
       return NextResponse.json({ user : result.address })
     }
 }

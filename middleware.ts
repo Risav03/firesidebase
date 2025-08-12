@@ -24,10 +24,10 @@ export async function middleware(request: NextRequest) {
 
       const userJson = await user.json();
 
-      console.log("User from /api/me in middleware:", user);
+      console.log("User from /api/me in middleware:", userJson);
 
     const requestHeaders = new Headers(request.headers);
-    requestHeaders.set('x-user-fid', userJson.fid.toString());
+    requestHeaders.set('x-user-fid', userJson.user.fid.toString());
 
     // Create a new response with modified headers
     return NextResponse.next({
