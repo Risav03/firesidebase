@@ -2,11 +2,9 @@ import { createClient } from "@farcaster/quick-auth";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
-  console.log("GET /api/me called");
   const client = createClient();
   const authorization = request.headers.get("Authorization");
 
-  console.log("Authorization header:", authorization);
   if (!authorization) {
     return NextResponse.json({ status: 401, statusText: "Unauthorized" });
   }
@@ -15,8 +13,6 @@ export async function GET(request: Request) {
     token: authorization?.split(" ")[1] as string,
     domain: process.env.HOSTNAME as string,
   });
-
-  console.log("JWT payload:", payload);
 
   const fidParam = payload.sub;
   if (!fidParam) {
@@ -37,7 +33,6 @@ export async function GET(request: Request) {
       `https://api.farcaster.xyz/fc/primary-address?fid=${fid}&protocol=ethereum`,
     )
 
-    console.log("Response from Farcaster API:", res);
     if (res.ok) {
       const { result } = await res.json()
       console.log("Primary address result:", result);

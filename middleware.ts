@@ -5,12 +5,8 @@ import { createClient } from '@farcaster/quick-auth';
 
 // This middleware runs on every request
 export async function middleware(request: NextRequest) {
-
-    console.log("Middleware called for path:", request.nextUrl.pathname);
   
       const authorization = request.headers.get("Authorization");
-
-      console.log("Authorization header in middleware:", authorization);
     
       if (!authorization) {
         return NextResponse.json({ status: 401, statusText: "Unauthorized" });
@@ -23,8 +19,6 @@ export async function middleware(request: NextRequest) {
       });
 
       const userJson = await user.json();
-
-      console.log("User from /api/me in middleware:", userJson);
 
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-user-fid', userJson.user.fid.toString());

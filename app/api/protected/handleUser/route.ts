@@ -4,11 +4,9 @@ import { connectToDB } from '@/utils/db';
 
 export async function POST(req: NextRequest) {
 	try {
-		console.log("Handling user creation...");
 		await connectToDB();
 		// Get fid from x-user-fid header
 		const fid = req.headers.get('x-user-fid');
-		console.log("User fid", fid);
 		if (!fid) {
 			return NextResponse.json({ error: 'Missing x-user-fid header' }, { status: 400 });
 		}
@@ -25,7 +23,6 @@ export async function POST(req: NextRequest) {
 					},
 				}
 			);
-			console.log("This is the raw response:", res);
 			if (!res.ok) {
 				return NextResponse.json(
 					{ error: "Error fetching user from external API" },
@@ -34,7 +31,6 @@ export async function POST(req: NextRequest) {
 			}
 			const jsonRes = await res.json();
 			const neynarRes = jsonRes.users?.[0];
-			console.log("This is the json response:", neynarRes);
 
 			user = await User.create({ fid: fid, username: neynarRes?.username, displayName: neynarRes?.display_name, pfp_url: neynarRes?.pfp_url });
 		}
