@@ -12,7 +12,6 @@ interface HeaderProps {
   onToggleChat?: () => void;
   isChatOpen?: boolean;
 }
-import logo from "@/public/fireside-logo.svg"
 import Image from "next/image";
 
 export default function Header({ onToggleChat, isChatOpen = false }: HeaderProps) {
@@ -25,7 +24,7 @@ export default function Header({ onToggleChat, isChatOpen = false }: HeaderProps
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <div className="w-10 h-10  rounded-2xl flex items-center justify-center">
-            <Image src={logo} alt="Fireside Logo" className="text-white font-bold text-lg" />
+            <Image src={`${process.env.NEXT_PUBLIC_URL}/fireside-logo.svg`} width={512} height={512} alt="Fireside Logo" className="text-white font-bold text-lg" />
           </div>
           <h1 className="text-xl font-bold text-white -translate-x-4">Fireside</h1>
         </div>
