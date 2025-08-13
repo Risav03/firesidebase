@@ -91,6 +91,7 @@ dist
 .cache/
 public/*
 !public/pfp.png
+!public/fireside-logo.svg
 
 # Storybook build outputs
 .out
