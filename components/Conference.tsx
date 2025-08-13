@@ -15,7 +15,7 @@ export default function Conference() {
   return (
     <div className="pt-24 pb-32 px-6">
       <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-8">
+        <div className="text-center mb-4 mt-10">
           <h2 className="text-3xl font-bold text-white mb-2">BaseJunkie&apos;s room</h2>
           <p className="text-gray-400">This is the beginning for Fireside! We are about to make history.</p>
         </div>

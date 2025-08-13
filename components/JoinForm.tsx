@@ -71,9 +71,8 @@ export default function JoinForm() {
               </>}
               
             </div>
-            <button disabled={!user} className="clubhouse-button clubhouse-button-primary w-full flex items-center justify-center space-x-2">
-              <span>Join Room</span>
-              <ArrowRightIcon className="w-5 h-5" />
+            <button disabled={!user} className="clubhouse-button disabled:bg-clubhouse-orange/80 clubhouse-button-primary w-full flex items-center justify-center space-x-2">
+              <span>{!user ? "Fetching profile..." : "Join Room "}</span>
             </button>
           </form>
 

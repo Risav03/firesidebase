@@ -40,11 +40,11 @@ export default function Chat({ isOpen, onClose }: ChatProps) {
   }, [messages, localPeer]);
 
   // Focus input when chat opens
-  useEffect(() => {
-    if (isOpen && !isMinimized) {
-      inputRef.current?.focus();
-    }
-  }, [isOpen, isMinimized]);
+  // useEffect(() => {
+  //   if (isOpen && !isMinimized) {
+  //     inputRef.current?.focus();
+  //   }
+  // }, [isOpen, isMinimized]);
 
   // Drag functionality
   const handleMouseDown = (e: React.MouseEvent) => {
