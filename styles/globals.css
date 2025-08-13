@@ -33,7 +33,7 @@
   }
   
   .clubhouse-button-primary {
-    @apply bg-clubhouse-green text-white shadow-lg hover:bg-green-600;
+    @apply bg-fireside-orange text-white shadow-lg hover:bg-green-600;
   }
   
   .clubhouse-button-secondary {
@@ -45,15 +45,15 @@
   }
   
   .clubhouse-input {
-    @apply w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-clubhouse-green focus:ring-2 focus:ring-clubhouse-green focus:ring-opacity-20 outline-none transition-all duration-200;
+    @apply w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-fireside-orange focus:ring-2 focus:ring-fireside-orange focus:ring-opacity-20 outline-none transition-all duration-200;
   }
   
   .peer-avatar {
-    @apply w-20 h-20 rounded-full border-4 border-white shadow-lg bg-gradient-to-br from-clubhouse-blue to-clubhouse-purple flex items-center justify-center text-white font-bold text-xl;
+    @apply w-20 h-20 rounded-full border-4 border-white shadow-lg bg-gradient-to-br from-fireside-blue to-fireside-purple flex items-center justify-center text-white font-bold text-xl;
   }
   
   .room-card {
-    @apply bg-white rounded-3xl p-6 shadow-clubhouse-lg border border-gray-100 hover:shadow-xl transition-all duration-300;
+    @apply bg-white rounded-3xl p-6 shadow-fireside-lg border border-gray-100 hover:shadow-xl transition-all duration-300;
   }
   
   .speaking-ring {
@@ -163,7 +163,7 @@
   }
   
   .chat-message-bubble.own-bubble {
-    @apply bg-clubhouse-green text-white ml-auto;
+    @apply bg-fireside-orange text-white ml-auto;
   }
   
   .chat-message.own-message .chat-message-content {

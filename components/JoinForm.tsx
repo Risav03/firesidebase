@@ -37,11 +37,11 @@ export default function JoinForm() {
       <div className="w-full max-w-md">
         <div className="clubhouse-card p-8 text-center">
           <div className="mb-8">
-            <div className="w-16 h-16 bg-clubhouse-green rounded-3xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-fireside-orange rounded-3xl flex items-center justify-center mx-auto mb-4">
               <span className="text-white font-bold text-2xl">🏠</span>
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Welcome to Clubhouse
+              Welcome to Fireside
             </h1>
             <p className="text-gray-600">Join the conversation</p>
           </div>

@@ -16,12 +16,12 @@ export default function Conference() {
     <div className="pt-24 pb-32 px-6">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Audio Room</h2>
-          <p className="text-gray-600">Drop-in and listen to interesting conversations</p>
+          <h2 className="text-3xl font-bold text-white mb-2">BaseJunkie's room</h2>
+          <p className="text-gray-400">This is the beginning for Fireside! We are about to make history.</p>
         </div>
         
-        <div className="room-card">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 justify-items-center">
+        <div className="">
+          <div className="grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 justify-items-center">
             {peers.map((peer) => (
               <Peer key={peer.id} peer={peer} />
             ))}

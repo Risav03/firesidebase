@@ -1,9 +1,9 @@
 'use client'
 
 export const Loader = () => (
-  <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-clubhouse-beige to-amber-50">
+  <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-fireside-beige to-amber-50">
     <div className="clubhouse-card p-8 text-center">
-      <div className="w-16 h-16 bg-clubhouse-green rounded-3xl flex items-center justify-center mx-auto mb-6">
+      <div className="w-16 h-16 bg-fireside-orange rounded-3xl flex items-center justify-center mx-auto mb-6">
         <span className="text-white font-bold text-2xl">🏠</span>
       </div>
       

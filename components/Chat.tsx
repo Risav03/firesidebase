@@ -118,18 +118,18 @@ export default function Chat({ isOpen, onClose }: ChatProps) {
   return (
     <div 
       ref={chatRef}
-      className={`chat-container ${isMinimized ? 'minimized' : ''}`}
+      className={`chat-container bg-gray-900 border-0 ${isMinimized ? 'minimized' : ''}`}
       style={chatStyle}
     >
       {/* Chat Header */}
       <div 
-        className={`chat-header ${isDragging ? 'dragging' : ''}`}
+        className={`chat-header bg-gray-800 border-0 ${isDragging ? 'dragging' : ''}`}
         onMouseDown={handleMouseDown}
       >
         <div className="flex items-center space-x-3">
-          <div className="w-3 h-3 bg-clubhouse-green rounded-full animate-pulse"></div>
-          <h3 className="font-semibold text-gray-900">Room Chat</h3>
-          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+          <div className="w-3 h-3 bg-fireside-orange rounded-full animate-pulse"></div>
+          <h3 className="font-semibold text-white">Room Chat</h3>
+          <span className="text-xs text-white bg-gray-700 px-2 py-1 rounded-full">
             {messages.length}
           </span>
           {/* Drag handle indicator */}
@@ -177,7 +177,7 @@ export default function Chat({ isOpen, onClose }: ChatProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                 </div>
-                <p className="text-sm text-gray-500 mb-1">No messages yet</p>
+                <p className="text-sm text-white mb-1">No messages yet</p>
                 <p className="text-xs text-gray-400">Start the conversation!</p>
               </div>
             ) : (
@@ -202,7 +202,7 @@ export default function Chat({ isOpen, onClose }: ChatProps) {
           </div>
 
           {/* Chat Input */}
-          <div className="chat-input">
+          <div className="chat-input bg-gray-800 border-0 00">
             <div className="flex items-end space-x-3">
               <div className="flex-1">
                 <input
@@ -212,14 +212,14 @@ export default function Chat({ isOpen, onClose }: ChatProps) {
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Type a message..."
-                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-clubhouse-green focus:ring-2 focus:ring-clubhouse-green focus:ring-opacity-20 outline-none transition-all duration-200 text-sm resize-none"
+                  className="w-full px-4 py-3 bg-white/10 text-white rounded-2xl border border-white/50 focus:border-fireside-orange focus:ring-2 focus:ring-fireside-orange focus:ring-opacity-20 outline-none transition-all duration-200 text-sm resize-none"
                   maxLength={500}
                 />
               </div>
               <button
                 onClick={handleSendMessage}
                 disabled={!message.trim()}
-                className="w-10 h-10 bg-clubhouse-green text-white rounded-full flex items-center justify-center transition-all duration-200 hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95"
+                className="w-10 h-10 bg-fireside-orange text-white rounded-full flex items-center justify-center transition-all duration-200 hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95"
                 title="Send message"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -34,10 +34,10 @@ module.exports = {
           800: '#1e293b',
           900: '#0f172a',
         },
-        clubhouse: {
+        fireside: {
           beige: '#F1EFE7',
           green: '#55AB55',
-          orange: '#F18F01',
+          orange: '#eb6b34',
           blue: '#5B9BD5',
           purple: '#8B5A96',
           brown: '#8B4513',

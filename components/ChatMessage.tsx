@@ -33,10 +33,10 @@ export function ChatMessage({ message, isOwnMessage }: ChatMessageProps) {
 
   const getAvatarColor = (name: string) => {
     const colors = [
-      'bg-gradient-to-br from-clubhouse-blue to-clubhouse-purple',
-      'bg-gradient-to-br from-clubhouse-green to-clubhouse-blue',
-      'bg-gradient-to-br from-clubhouse-orange to-clubhouse-green',
-      'bg-gradient-to-br from-clubhouse-purple to-clubhouse-orange',
+      'bg-gradient-to-br from-fireside-blue to-fireside-purple',
+      'bg-gradient-to-br from-fireside-orange to-fireside-blue',
+      'bg-gradient-to-br from-fireside-orange to-fireside-orange',
+      'bg-gradient-to-br from-fireside-purple to-fireside-orange',
       'bg-gradient-to-br from-pink-400 to-purple-500',
       'bg-gradient-to-br from-blue-400 to-indigo-500',
     ];
