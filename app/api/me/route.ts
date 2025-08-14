@@ -9,6 +9,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ status: 401, statusText: "Unauthorized" });
   }
 
+  console.log("Authorization header from me:", authorization?.split(" ")[1] as string);
+
   const payload = await client.verifyJwt({
     token: authorization?.split(" ")[1] as string,
     domain: process.env.HOSTNAME as string,
