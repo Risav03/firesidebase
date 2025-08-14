@@ -62,7 +62,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
 
         await sdk.actions.signIn({ nonce });
 
-        token = await sdk.quickAuth.getToken();
+        token = ((await sdk.quickAuth.getToken()).token);
       }
 
       console.log("Authorization token:", token);
