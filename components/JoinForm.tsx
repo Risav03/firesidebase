@@ -63,6 +63,8 @@ export default function JoinForm() {
                 src={user.pfp_url}
                 alt={`${user.username} profile`}
                 className="rounded-full w-10 aspect-square"
+                width={1080}
+                height={1080}
               />
               <h2 className="text-lg font-bold text-gray-900">{user.username}</h2>
               </> : <>

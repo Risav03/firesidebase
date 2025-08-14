@@ -1,13 +1,24 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import sdk from '@farcaster/miniapp-sdk';
-import { createClient } from '@farcaster/quick-auth';
 
 // This middleware runs on every request
 export async function middleware(request: NextRequest) {
   
-      const authorization = request.headers.get("Authorization");
-    
+      let authorization;
+
+      const env = process.env.NEXT_PUBLIC_ENV;
+
+      console.log("Environment:", env);
+
+      if(env == "DEV"){
+        authorization = `Bearer ${process.env.DEV_HEADER as string}`;
+      }
+      else{
+        authorization = request.headers.get("Authorization");
+      }
+
+      console.log("Authorization header from middleware:", authorization);
+
       if (!authorization) {
         return NextResponse.json({ status: 401, statusText: "Unauthorized" });
       }

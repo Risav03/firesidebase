@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
   const client = createClient();
-  const authorization = request.headers.get("Authorization");
+  const authorization = request.headers.get("Authorization") || process.env.DEV_HEADER;
 
   if (!authorization) {
     return NextResponse.json({ status: 401, statusText: "Unauthorized" });

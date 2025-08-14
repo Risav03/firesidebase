@@ -20,7 +20,6 @@ interface GlobalContextProps {
 const GlobalContext = createContext<GlobalContextProps | undefined>(undefined);
 
 export function GlobalProvider({ children }: { children: ReactNode }) {
-
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
@@ -32,8 +31,10 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       // } else {
       //   setUser(JSON.parse(sessionUser));
       // }
-      await handleSignIn()
-      sdk.actions.ready();
+      await handleSignIn();
+      if(process.env.NEXT_PUBLIC_ENV !== "DEV"){
+        sdk.actions.ready();
+      }
     })();
   }, []);
 
@@ -52,27 +53,34 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
 
   const handleSignIn = useCallback(async (): Promise<void> => {
     try {
-      const nonce = await getNonce();
 
-      await sdk.actions.signIn({ nonce });
+      const env = process.env.NEXT_PUBLIC_ENV;
+      console.log("Environment:", env);
+      var token:any = "";
+      if (env !== "DEV") {
+        const nonce = await getNonce();
 
-      const {token} = await sdk.quickAuth.getToken()
+        await sdk.actions.signIn({ nonce });
+
+        token = await sdk.quickAuth.getToken();
+      }
+
+      console.log("Authorization token:", token);
 
       const createUserRes = await fetch(
-          `${process.env.NEXT_PUBLIC_URL}/api/protected/handleUser`,
-          {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${token}`,
-            }
-          }
-        );
-        
-
-        if (!createUserRes.ok) {
-          console.error("Failed to create user:", await createUserRes.text());
+        `${process.env.NEXT_PUBLIC_URL}/api/protected/handleUser`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
-        setUser((await createUserRes.json()).user);
+      );
+
+      if (!createUserRes.ok) {
+        console.error("Failed to create user:", await createUserRes.text());
+      }
+      setUser((await createUserRes.json()).user);
     } catch (error) {
       console.error("Sign in error:", error);
     }
