@@ -8,12 +8,16 @@ export async function middleware(request: NextRequest) {
 
       const env = process.env.NEXT_PUBLIC_ENV;
 
+      
+
       if(env == "DEV"){
         authorization = `Bearer ${process.env.DEV_HEADER as string}`;
       }
       else{
         authorization = request.headers.get("Authorization");
       }
+
+      console.log("Authorization header:", authorization);
 
       if (!authorization) {
         return NextResponse.json({ status: 401, statusText: "Unauthorized" });
