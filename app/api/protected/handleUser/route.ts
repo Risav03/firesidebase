@@ -8,14 +8,12 @@ export async function POST(req: NextRequest) {
 		// Get fid from x-user-fid header
 		const fid = req.headers.get('x-user-fid');
 
-		console.log("Fid from x-user-fid header:", fid);
 		if (!fid) {
 			return NextResponse.json({ error: 'Missing x-user-fid header' }, { status: 400 });
 		}
 
 		// Try to find the user
 		let user = await User.findOne({ fid });
-		console.log("User found:", user);
 		if (!user) {
 
 			const res = await fetch(
