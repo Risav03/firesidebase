@@ -2,6 +2,10 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IUser extends Document {
   fid: string;
+  username: string;
+  displayName: string;
+  pfp_url: string;
+  bio?: string;
 }
 
 const User: Schema = new Schema({

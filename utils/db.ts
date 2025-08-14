@@ -14,12 +14,14 @@ export const connectToDB = async () => {
 
     if (mongoURI) {
       await mongoose.connect(mongoURI)
-
+      console.log('MongoDB connected successfully!');
       isConnected = true;
-      // console.log('MongoDB connected!');
+    } else {
+      console.error('MONGO_URI is not defined in environment variables');
     }
   }
   catch (error) {
-    console.error(error);
+    console.error('Failed to connect to MongoDB:', error);
+    throw error;
   }
 }

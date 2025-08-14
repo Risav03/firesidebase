@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface Room {
   _id: string;
@@ -14,16 +15,13 @@ interface Room {
   };
   status: string;
   startTime: string;
-  roomCodes: {
-    host: string;
-    speaker: string;
-    listener: string;
-  };
+
 }
 
 export default function RoomTest() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -75,6 +73,11 @@ export default function RoomTest() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle room click
+  const handleRoomClick = (room: Room) => {
+    router.push(`/call/${room._id}`);
   };
 
   useEffect(() => {
@@ -167,13 +170,18 @@ export default function RoomTest() {
         ) : (
           <div className="space-y-4">
             {rooms.map((room) => (
-              <div key={room._id} className="border border-gray-600 rounded-lg p-4">
+              <div 
+                key={room._id} 
+                className="border border-gray-600 rounded-lg p-4 cursor-pointer hover:bg-gray-700 transition-colors"
+                onClick={() => handleRoomClick(room)}
+              >
                 <h3 className="text-lg font-medium text-white">{room.name}</h3>
                 <p className="text-gray-300 mt-1">{room.description}</p>
                 <div className="mt-2 text-sm text-gray-400">
                   <p>Host: {room.host?.displayName || room.host?.username || room.host?.fid}</p>
                   <p>Status: {room.status}</p>
                   <p>Start Time: {new Date(room.startTime).toLocaleString()}</p>
+                  <p className="text-blue-400 mt-2">Click to join room →</p>
                 </div>
               </div>
             ))}

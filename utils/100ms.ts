@@ -67,4 +67,8 @@ export class HMSAPI {
   async generateRoomCodes(roomId: string): Promise<RoomCodeResponse[]> {
     return this.makeRequest<RoomCodeResponse[]>(`/room-codes/room/${roomId}`, 'POST');
   }
+
+  async getRoomCodes(roomId: string): Promise<{ data: RoomCodeResponse[] }> {
+    return this.makeRequest<{ data: RoomCodeResponse[] }>(`/room-codes/room/${roomId}`, 'GET');
+  }
 }

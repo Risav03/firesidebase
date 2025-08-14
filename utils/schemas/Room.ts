@@ -1,12 +1,9 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IRoom extends Document {
-  id: string;
   name: string;
   enabled: boolean;
   description: string;
-  createdAt: Date;
-  updatedAt: Date;
   host: string; // userId
   participants: string[]; // userIds
   startTime: Date;
@@ -28,11 +25,9 @@ const Room: Schema = new Schema({
     enum: ['upcoming', 'ongoing', 'ended'], 
     default: 'upcoming' 
   },
-  roomId: { type: String, required: true, unique: true },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
+  roomId: { type: String, required: true, unique: true }
 }, {
-  timestamps: false
+  timestamps: true
 });
 
 export default mongoose.models.Room || mongoose.model('Room', Room);

@@ -1,24 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDB } from '@/utils/db';
-import Room from '@/utils/schemas/Room';
+import mongoose from 'mongoose';
 
 export async function GET(request: NextRequest) {
   try {
     await connectToDB();
     
-    const rooms = await Room.find({ enabled: true })
-      .sort({ createdAt: -1 });
+    // Check if we can access the database
+    const collections = await mongoose?.connection?.db?.listCollections().toArray();
     
     return NextResponse.json({ 
       success: true, 
-      rooms 
+      message: 'Database connection successful',
+      collections: collections?.map((col: any) => col.name),
+      connectionState: mongoose.connection.readyState
     });
   } catch (error) {
-    console.error('Error fetching rooms:', error);
+    console.error('Database test error:', error);
     return NextResponse.json(
       { 
         success: false, 
-        error: 'Failed to fetch rooms',
+        error: 'Database connection failed',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }

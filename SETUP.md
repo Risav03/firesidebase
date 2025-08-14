@@ -9,8 +9,6 @@ Create a `.env.local` file in your project root with the following variables:
 MONGO_URI=your_mongodb_connection_string
 
 # 100ms Configuration
-HUNDRED_MS_API_ACCESS_KEY=your_100ms_api_access_key
-HUNDRED_MS_APP_SECRET=your_100ms_app_secret
 HUNDRED_MS_MANAGEMENT_TOKEN=your_100ms_management_token
 HUNDRED_MS_TEMPLATE_ID=your_100ms_template_id
 ```
@@ -25,13 +23,17 @@ HUNDRED_MS_TEMPLATE_ID=your_100ms_template_id
 - **POST** `/api/rooms/create`
 - Body: `{ name, description, host, startTime }`
 - Creates room in 100ms and saves to database
-- Generates room codes for all roles (host, speaker, listener)
+- Generates room codes in 100ms (not stored in DB)
 
 ### 3. Get Room by ID
 - **GET** `/api/rooms/[id]`
 - Returns specific room with populated data
 
-### 4. Update Room
+### 4. Get Room Codes
+- **GET** `/api/rooms/[id]/codes`
+- Returns room codes from 100ms for joining
+
+### 5. Update Room
 - **PUT** `/api/rooms/[id]/update`
 - Body: `{ status?, endTime?, participants?, action? }`
 - Updates room status, end time, and manages participants
@@ -41,6 +43,7 @@ HUNDRED_MS_TEMPLATE_ID=your_100ms_template_id
 Visit `/test/rooms` to access the test interface for:
 - Creating new rooms
 - Viewing existing rooms
+- Clicking on rooms to join them automatically
 - Testing room management functionality
 
 ## Database Schemas
@@ -68,18 +71,34 @@ Visit `/test/rooms` to access the test interface for:
   endTime: Date | null;
   status: 'upcoming' | 'ongoing' | 'ended';
   roomId: string; // 100ms room ID
-  roomCodes: {
-    host: string;
-    speaker: string;
-    listener: string;
-  };
 }
 ```
 
 ## Next Steps
 
 1. Set up your environment variables
-2. Test the room creation API
-3. Integrate with your frontend components
-4. Add authentication and authorization
-5. Implement real-time updates for room status
+2. Test the 100ms connection at `/api/test-100ms`
+3. Test the database connection at `/api/test-db`
+4. Test the room creation API
+5. Test room joining by clicking on rooms in the test interface
+6. Integrate with your frontend components
+7. Add authentication and authorization
+8. Implement real-time updates for room status
+
+## Troubleshooting
+
+### 100ms Token Issues
+If you get a "Token validation error" from 100ms:
+1. Check that your `HUNDRED_MS_MANAGEMENT_TOKEN` is valid and not expired
+2. The token should be a valid JWT token from 100ms dashboard
+3. Test the connection at `/api/test-100ms` first
+4. Make sure your 100ms account has the correct permissions
+
+## Room Joining Flow
+
+1. User clicks on a room in `/test/rooms`
+2. Redirects to `/call/[roomId]`
+3. Page automatically fetches room codes from 100ms
+4. Determines user role (host if user created the room, listener otherwise)
+5. Joins room with appropriate role using 100ms room code
+6. Shows Conference component with Header and Footer
