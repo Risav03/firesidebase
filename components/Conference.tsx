@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import {
   selectPeers,
@@ -7,29 +7,52 @@ import {
 } from "@100mslive/react-sdk";
 import Peer from "./Peer";
 import { ScreenTile } from "./ScreenTile";
+import { useEffect } from "react";
+import sdk from "@farcaster/miniapp-sdk";
 
 export default function Conference() {
   const peers = useHMSStore(selectPeers);
   const presenters = useHMSStore(selectPeersScreenSharing);
 
+  useEffect(() => {
+    async function getPermission() {
+      try {
+        await sdk.actions.requestCameraAndMicrophoneAccess();
+        console.log("Camera and microphone access granted");
+        // You can now use camera and microphone in your mini app
+      } catch (error) {
+        console.log("Camera and microphone access denied");
+        // Handle the denial gracefully
+      }
+    }
+
+    getPermission();
+  }, []);
+
   return (
     <div className="pt-24 pb-32 px-6">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-4 mt-10">
-          <h2 className="text-3xl font-bold text-white mb-2">BaseJunkie&apos;s room</h2>
-          <p className="text-gray-400">This is the beginning for Fireside! We are about to make history.</p>
+          <h2 className="text-3xl font-bold text-white mb-2">
+            BaseJunkie&apos;s room
+          </h2>
+          <p className="text-gray-400">
+            This is the beginning for Fireside! We are about to make history.
+          </p>
         </div>
-        
+
         <div className="">
           <div className="grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 justify-items-center">
             {peers.map((peer) => (
               <Peer key={peer.id} peer={peer} />
             ))}
           </div>
-          
+
           {presenters.length > 0 && (
             <div className="mt-8 pt-8 border-t border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">Screen Share</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
+                Screen Share
+              </h3>
               <div className="flex flex-wrap justify-center gap-4">
                 {presenters.map((peer) => (
                   <ScreenTile key={"screen" + peer.id} peer={peer} />
