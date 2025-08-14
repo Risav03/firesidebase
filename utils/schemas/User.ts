@@ -9,6 +9,7 @@ const User: Schema = new Schema({
   username: { type: String, required: true },
   displayName: { type: String, required: true },
   pfp_url: { type: String, required: true },
+  bio: { type: String, required: false },
 });
 
 export default mongoose.models.User || mongoose.model('User', User);
