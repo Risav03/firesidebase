@@ -13,11 +13,13 @@ interface HeaderProps {
   isChatOpen?: boolean;
 }
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 export default function Header({ onToggleChat, isChatOpen = false }: HeaderProps) {
   const isConnected = useHMSStore(selectIsConnectedToRoom);
   const messages = useHMSStore(selectHMSMessages);
   const hmsActions = useHMSActions();
+  const router = useRouter();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-gray-900 px-6 py-2">
@@ -33,7 +35,9 @@ export default function Header({ onToggleChat, isChatOpen = false }: HeaderProps
             <button
               id="leave-btn"
               className="px-4 py-2 rounded-lg clubhouse-button-danger flex items-center"
-              onClick={() => hmsActions.leave()}
+              onClick={() => {hmsActions.leave();
+                router.push('/');
+              }}
             >
               <ExitIcon className="w-6 h-6" />
               <span></span>

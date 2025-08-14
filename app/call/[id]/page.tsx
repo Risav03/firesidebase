@@ -54,7 +54,10 @@ export default function CallPage() {
         const roomResponse = await fetch(`/api/rooms/${roomId}`);
         const roomData = await roomResponse.json();
         
-        if (roomData.success && roomData.room.host === user.fid) {
+        console.log("roomCodes", roomCodes);
+        console.log("user", user);
+        console.log("roomData", roomData);
+        if (roomData.success && roomData.room.host._id === user._id) {
           // User is host, find host code
           const hostCode = roomCodes.find(code => code.role === 'host');
           if (hostCode) {
