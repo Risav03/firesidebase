@@ -24,6 +24,13 @@
 }
 
 @layer components {
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
   .clubhouse-card {
     @apply bg-white rounded-3xl shadow-clubhouse border border-gray-100;
   }

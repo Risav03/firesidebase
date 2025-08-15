@@ -145,7 +145,6 @@ export default function CallPage({params}:{params:{id:string}}) {
       <div className="min-h-screen bg-gradient-to-br from-gray-950 to-gray-900 flex items-center justify-center">
         <div className="text-center">
           <Loader />
-          <p className="text-white mt-4">Joining room...</p>
         </div>
       </div>
     );
