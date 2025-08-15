@@ -28,6 +28,7 @@ import { TbShare3 } from "react-icons/tb";
 import { sdk } from "@farcaster/miniapp-sdk";
 import EmojiPicker, { Theme } from "emoji-picker-react";
 import { IoIosArrowDown } from "react-icons/io";
+import { useGlobalContext } from "../utils/providers/globalContext";
 
 // Dynamic import to avoid SSR issues
 let plugin: any = null;
@@ -50,24 +51,28 @@ export default function Footer({ roomId }: { roomId: string }) {
   const publishPermissions = useHMSStore(selectIsAllowedToPublish);
   const localRoleName = useHMSStore(selectLocalPeerRoleName);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
-  const [floatingEmoji, setFloatingEmoji] = useState<string | null>(null);
+  const [floatingEmojis, setFloatingEmojis] = useState<Array<{ emoji: string; sender: string }>>([]);
+  const { user } = useGlobalContext();
 
   const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
 
   const { sendEvent } = useCustomEvent({
     type: "EMOJI_REACTION",
-    onEvent: (msg: { emoji: string }) => {
-      console.log("Custom event received:", msg);
-      setFloatingEmoji(msg.emoji);
-      setTimeout(() => setFloatingEmoji(null), 3000); // Clear emoji after 3 seconds
+    onEvent: (msg: { emoji: string; sender: string }) => {
+        console.log("Custom event received:", msg);
+        setFloatingEmojis((prev) => [...prev, msg]);
+        setTimeout(() => {
+            setFloatingEmojis((prev) => prev.filter((e) => e !== msg));
+        }, 5000); // Clear emoji after 5 seconds
     },
   });
 
   const handleEmojiSelect = (emoji: any) => {
     console.log("Selected emoji:", emoji);
-    sendEvent({ emoji: emoji.emoji });
+    const newEmoji = { emoji: emoji.emoji, sender: user?.username };
+    sendEvent(newEmoji);
     setIsEmojiPickerOpen(false);
-    setFloatingEmoji(emoji.emoji); // State to trigger floating emoji
+    
   };
 
   // Listen for role change events to show re-joining state
@@ -145,7 +150,7 @@ export default function Footer({ roomId }: { roomId: string }) {
       transform: translateY(0);
     }
     100% {
-      transform: translateY(-100%);
+      transform: translateY(-200vh); // Move to the top of the screen
     }
   }
 
@@ -169,26 +174,6 @@ export default function Footer({ roomId }: { roomId: string }) {
       document.head.removeChild(styleSheet);
     };
   }, []);
-
-  const broadcastMessages = useHMSStore(selectBroadcastMessages);
-
-  console.log("Broadcast messages:", broadcastMessages);
-  useEffect(() => {
-    const handleBroadcastMessages = () => {
-      const emojiMessage = broadcastMessages.find(
-        (msg) => msg.type === "EMOJI_REACTION"
-      );
-      if (emojiMessage) {
-        console.log("Broadcast emoji reaction received:", emojiMessage);
-        setFloatingEmoji(emojiMessage.message);
-        setTimeout(() => setFloatingEmoji(null), 3000); // Clear emoji after 3 seconds
-      }
-    };
-
-    console.log(broadcastMessages);
-
-    handleBroadcastMessages();
-  }, [broadcastMessages]);
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900">
@@ -376,24 +361,31 @@ export default function Footer({ roomId }: { roomId: string }) {
         <Chat isOpen={isChatOpen} setIsChatOpen={setIsChatOpen} />
 
         {/* Floating emoji rendering */}
-        {floatingEmoji && (
+        {floatingEmojis.map((floatingEmoji, index) => (
           <div
+            key={index}
             className="absolute bottom-0 left-1/2 transform -translate-x-1/2 animate-float"
             style={{
-              animation: "float 3s ease-in-out forwards",
+              animation: "float 5s ease-out forwards",
             }}
           >
+            <div className="flex flex-col items-center justify-center">
             <span
               style={{
-                fontSize: "2rem",
+                fontSize: "1.5rem",
                 opacity: 1,
-                animation: "fade 3s ease-in-out forwards",
+                animation: "fade 5s ease-out forwards",
               }}
             >
-              {floatingEmoji}
+              {floatingEmoji.emoji}
             </span>
+            <p style={{
+                opacity: 1,
+                animation: "fade 5s ease-out forwards",
+              }} className="text-xs text-center text-white">{floatingEmoji.sender}</p>
           </div>
-        )}
+          </div>
+        ))}
       </div>
     </div>
   );
