@@ -58,9 +58,7 @@ export default function Chat({ isOpen, setIsChatOpen }: ChatProps) {
     }
   };
 
-  // Don't render if not open and not closing
-  if (!isOpen && !isClosing) return null;
-
+  // Always render, but control visibility through CSS classes
   const modalClass = `chat-modal ${isOpen ? 'open' : ''} ${isClosing ? 'closing' : ''}`;
 
   return (
@@ -145,7 +143,7 @@ export default function Chat({ isOpen, setIsChatOpen }: ChatProps) {
       {/* Chat Input */}
       <div className="chat-content chat-input rounded-b-none bg-gray-800 border-0">
         <div className="flex items-end space-x-3">
-          <div className="flex-1">
+          <div className="flex-1 items-center justify-center">
             <input
               type="text"
               value={message}
