@@ -51,7 +51,7 @@ export default function Footer({ roomId }: { roomId: string }) {
   const publishPermissions = useHMSStore(selectIsAllowedToPublish);
   const localRoleName = useHMSStore(selectLocalPeerRoleName);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
-  const [floatingEmojis, setFloatingEmojis] = useState<Array<{ emoji: string; sender: string; id: number }>>([]);
+  const [floatingEmojis, setFloatingEmojis] = useState<Array<{ emoji: string; sender: string; id: number; position: number }>>([]);
   const { user } = useGlobalContext();
 
   const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
@@ -59,7 +59,7 @@ export default function Footer({ roomId }: { roomId: string }) {
   const { sendEvent } = useCustomEvent({
     type: "EMOJI_REACTION",
     onEvent: (msg: { emoji: string; sender: string }) => {
-      const uniqueMsg = { ...msg, id: Date.now() }; // Add unique identifier
+      const uniqueMsg = { ...msg, id: Date.now(), position: Math.random() * 100 }; // Add unique identifier and position
       setFloatingEmojis((prev) => [...prev, uniqueMsg]);
 
       // Ensure emojis are cleared only after their dedicated timeout
@@ -150,7 +150,7 @@ export default function Footer({ roomId }: { roomId: string }) {
       transform: translateY(0);
     }
     100% {
-      transform: translateY(-200vh); // Move to the top of the screen
+      transform: translateY(-200vh);
     }
   }
 
@@ -361,13 +361,14 @@ export default function Footer({ roomId }: { roomId: string }) {
         <Chat isOpen={isChatOpen} setIsChatOpen={setIsChatOpen} />
 
         {/* Floating emoji rendering */}
-        {floatingEmojis.map((floatingEmoji, index) => (
+        {floatingEmojis.map((floatingEmoji) => (
           <div
             key={floatingEmoji.id}
-            className="absolute bottom-0 left-1/2 transform -translate-x-1/2 animate-float"
+            className="absolute bottom-0 animate-float"
             style={{
+              left: `${floatingEmoji.position}%`, // Use stored position
+              transform: "translateX(-50%)",
               animation: "float 5s ease-out forwards",
-              marginLeft: `${index * 30}px`, // Dynamic positioning to avoid overlap
             }}
           >
             <div className="flex flex-col items-center justify-center">
