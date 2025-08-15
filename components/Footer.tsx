@@ -13,6 +13,7 @@ import {
   selectIsLocalScreenShared,
   selectRoom,
   selectHMSMessages,
+  selectLocalPeer,
   useAVToggle,
   useHMSActions,
   useHMSStore,
@@ -30,11 +31,16 @@ export default function Footer() {
   const amIScreenSharing = useHMSStore(selectIsLocalScreenShared);
   const actions = useHMSActions();
   const room = useHMSStore(selectRoom);
+  const localPeer = useHMSStore(selectLocalPeer);
   const [isPluginActive, setIsPluginActive] = useState(false);
   const [isPluginReady, setIsPluginReady] = useState(false);
   const messages = useHMSStore(selectHMSMessages) as Array<any>;
   // Chat state
   const [isChatOpen, setIsChatOpen] = useState(false);
+  
+  // Role-based permission state
+  const [canToggleAudio, setCanToggleAudio] = useState(true);
+  const [currentRole, setCurrentRole] = useState<string>('');
 
   // Initialize plugin only on client side with dynamic import
   useEffect(() => {
@@ -54,18 +60,83 @@ export default function Footer() {
     selectIsLocalAudioPluginPresent(plugin?.getName() || "")
   );
 
+  // Update permissions when local peer changes
+  useEffect(() => {
+    if (localPeer) {
+      const role = localPeer.roleName || '';
+      setCurrentRole(role);
+      updatePermissionsForRole(role);
+      console.log("Local peer role:", role);
+    }
+  }, [localPeer]);
+
+  // Function to update permissions based on role
+  const updatePermissionsForRole = (role: string) => {
+    let canToggle = false;
+    
+    switch (role.toLowerCase()) {
+      case 'host':
+      case 'speaker':
+        canToggle = true;
+        break;
+      case 'listener':
+        canToggle = false;
+        break;
+      default:
+        canToggle = false;
+    }
+    
+    setCanToggleAudio(canToggle);
+    console.log(`Role: ${role}, Can toggle audio: ${canToggle}`);
+    
+    // If we regained permissions and audio was muted, re-enable it
+    if (canToggle && !isLocalAudioEnabled && localPeer && actions) {
+      console.log("Re-enabling audio after role change");
+      // Small delay to ensure permissions are properly set
+      setTimeout(() => {
+        actions.setLocalAudioEnabled(true);
+      }, 100);
+    }
+  };
+
+  // Enhanced toggle audio function with permission check
+  const handleToggleAudio = async () => {
+    if (!canToggleAudio || !toggleAudio) {
+      console.log("Cannot toggle audio - insufficient permissions or toggle function not available");
+      return;
+    }
+    
+    try {
+      await toggleAudio();
+    } catch (error) {
+      console.error("Error toggling audio:", error);
+    }
+  };
+
+  // Check if we can actually publish audio
+  const hasAudioPermission = canToggleAudio;
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900">
       <div className="max-w-4xl mx-auto px-6 py-4 flex">
         <div className="flex flex-col items-start justify-center w-[30%]">
           <button
             className={`w-14 h-14 translate-x-[0.6rem] rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
-              isLocalAudioEnabled
+              !hasAudioPermission
+                ? "bg-gray-500 text-gray-300 cursor-not-allowed"
+                : isLocalAudioEnabled
                 ? "bg-fireside-orange text-white shadow-lg"
                 : "bg-red-500 text-white shadow-lg"
             }`}
-            onClick={toggleAudio}
-            title={isLocalAudioEnabled ? "Mute" : "Unmute"}
+            onClick={handleToggleAudio}
+            disabled={!hasAudioPermission}
+            title={
+              !hasAudioPermission
+                ? `Cannot toggle audio (${currentRole})`
+                : isLocalAudioEnabled
+                ? "Tap to mute"
+                : "Tap to unmute"
+            }
           >
             {isLocalAudioEnabled ? (
               <MicOnIcon className="w-6 h-6" />
@@ -74,10 +145,14 @@ export default function Footer() {
             )}
           </button>
           <div className="mt-3 text-center">
-          <p className="text-xs text-gray-500">
-            {isLocalAudioEnabled ? "Tap to mute" : "Tap to unmute"}
-          </p>
-        </div>
+            <p className="text-xs text-gray-500">
+              {!hasAudioPermission
+                ? `${currentRole} - no audio`
+                : isLocalAudioEnabled
+                ? "Tap to mute"
+                : "Tap to unmute"}
+            </p>
+          </div>
 
           {/* <button
             title="Screen share"
@@ -86,12 +161,12 @@ export default function Footer() {
                 ? 'bg-fireside-blue text-white shadow-lg' 
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
-            onClick={() => actions.setScreenShareEnabled(!amIScreenSharing)}
+            onClick={() => actions?.setScreenShareEnabled(!amIScreenSharing)}
           >
             <ShareScreenIcon className="w-6 h-6" />
           </button> */}
 
-          {room?.isNoiseCancellationEnabled && isPluginReady && plugin && (
+          {room?.isNoiseCancellationEnabled && isPluginReady && plugin && hasAudioPermission && (
             <button
               title="Noise cancellation"
               className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
@@ -105,7 +180,7 @@ export default function Footer() {
                   plugin.toggle();
                   setIsPluginActive((prev) => !prev);
                 } else {
-                  await actions.addPluginToAudioTrack(plugin);
+                  await actions?.addPluginToAudioTrack(plugin);
                   setIsPluginActive(true);
                 }
               }}
@@ -138,7 +213,7 @@ export default function Footer() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
                 />
               </svg>
               {messages.length > 0 && !isChatOpen && (
