@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { useHMSActions, useHMSStore, selectLocalPeer } from '@100mslive/react-sdk';
+import { useHMSActions } from '@100mslive/react-sdk';
 import { useGlobalContext } from '@/utils/providers/globalContext';
 import Conference from '@/components/Conference';
 import Header from '@/components/Header';
@@ -24,94 +24,9 @@ export default function CallPage() {
   const roomId = params.id as string;
   const { user } = useGlobalContext();
   const hmsActions = useHMSActions();
-  const localPeer = useHMSStore(selectLocalPeer);
   const [isJoining, setIsJoining] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentRole, setCurrentRole] = useState<string>('');
-  const [roomCodes, setRoomCodes] = useState<RoomCode[]>([]);
-  const lastRoleCheck = useRef<number>(0);
-  const roleCheckInterval = useRef<NodeJS.Timeout | null>(null);
 
-  // Function to join room with specific role
-  const joinRoomWithRole = async (role: string) => {
-    try {
-      const targetCode = roomCodes.find(code => code.role === role);
-      if (!targetCode) {
-        throw new Error(`No room code found for role: ${role}`);
-      }
-
-      console.log(`Joining room with role: ${role}`);
-      
-      // Get auth token using room code
-      const authToken = await hmsActions.getAuthTokenByRoomCode({
-        roomCode: targetCode.code,
-      });
-
-      // Join the room
-      await hmsActions.join({
-        userName: user.username || user.displayName || 'Anonymous',
-        authToken,
-        metaData: JSON.stringify({
-          avatar: user.pfp_url,
-          role: role,
-          fid: user.fid
-        })
-      });
-
-      setCurrentRole(role);
-      console.log(`Successfully joined with role: ${role}`);
-    } catch (err) {
-      console.error(`Error joining room with role ${role}:`, err);
-      throw err;
-    }
-  };
-
-  // Function to check and update role if needed
-  const checkAndUpdateRole = async () => {
-    try {
-      // Throttle role checks to avoid too many API calls
-      const now = Date.now();
-      if (now - lastRoleCheck.current < 5000) { // 5 second throttle
-        return;
-      }
-      lastRoleCheck.current = now;
-
-      console.log("Checking for role updates...");
-      
-      // Fetch current room details to check user's role
-      const roomResponse = await fetch(`/api/rooms/${roomId}`);
-      const roomData = await roomResponse.json();
-      
-      if (!roomData.success) {
-        console.log("Failed to fetch room data for role check");
-        return;
-      }
-
-      // Determine what role the user should have
-      let targetRole = 'listener';
-      if (roomData.room.host._id === user._id) {
-        targetRole = 'host';
-      }
-
-      // If role changed, re-join with new role
-      if (targetRole !== currentRole && targetRole !== '') {
-        console.log(`Role changed from ${currentRole} to ${targetRole}, re-joining...`);
-        
-        // Leave current room
-        await hmsActions.leave();
-        
-        // Small delay to ensure clean disconnect
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Re-join with new role
-        await joinRoomWithRole(targetRole);
-      }
-    } catch (err) {
-      console.error('Error checking role updates:', err);
-    }
-  };
-
-  // Initial room join
   useEffect(() => {
     const joinRoom = async () => {
       try {
@@ -129,8 +44,7 @@ export default function CallPage() {
           throw new Error(data.error || 'Failed to fetch room codes');
         }
 
-        const fetchedRoomCodes: RoomCode[] = data.roomCodes;
-        setRoomCodes(fetchedRoomCodes);
+        const roomCodes: RoomCode[] = data.roomCodes;
         
         // Determine user role - if user is host, use host code, otherwise use listener code
         let roomCode = '';
@@ -140,12 +54,12 @@ export default function CallPage() {
         const roomResponse = await fetch(`/api/rooms/${roomId}`);
         const roomData = await roomResponse.json();
         
-        console.log("roomCodes", fetchedRoomCodes);
+        console.log("roomCodes", roomCodes);
         console.log("user", user);
         console.log("roomData", roomData);
         if (roomData.success && roomData.room.host._id === user._id) {
           // User is host, find host code
-          const hostCode = fetchedRoomCodes.find(code => code.role === 'host');
+          const hostCode = roomCodes.find(code => code.role === 'host');
           if (hostCode) {
             roomCode = hostCode.code;
             role = 'host';
@@ -154,7 +68,7 @@ export default function CallPage() {
         
         // If not host or host code not found, use listener code
         if (!roomCode) {
-          const listenerCode = fetchedRoomCodes.find(code => code.role === 'listener');
+          const listenerCode = roomCodes.find(code => code.role === 'listener');
           if (listenerCode) {
             roomCode = listenerCode.code;
             role = 'listener';
@@ -181,7 +95,6 @@ export default function CallPage() {
           })
         });
 
-        setCurrentRole(role);
         setIsJoining(false);
       } catch (err) {
         console.error('Error joining room:', err);
@@ -192,27 +105,6 @@ export default function CallPage() {
 
     joinRoom();
   }, [roomId, user, hmsActions]);
-
-  // Set up periodic role checking
-  useEffect(() => {
-    if (!isJoining && roomCodes.length > 0) {
-      // Check for role updates every 10 seconds
-      roleCheckInterval.current = setInterval(checkAndUpdateRole, 10000);
-      
-      return () => {
-        if (roleCheckInterval.current) {
-          clearInterval(roleCheckInterval.current);
-        }
-      };
-    }
-  }, [isJoining, roomCodes]);
-
-  // Update current role when local peer changes
-  useEffect(() => {
-    if (localPeer && localPeer.roleName) {
-      setCurrentRole(localPeer.roleName);
-    }
-  }, [localPeer]);
 
   if (error) {
     return (
