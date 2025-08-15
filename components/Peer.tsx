@@ -74,12 +74,21 @@ export default function Peer({ peer }: PeerProps) {
         <p className="text-sm font-medium text-white truncate max-w-20">
           {peer.name}
         </p>
-        {peer.roleName && (
-          <span className="text-xs text-gray-500 font-semibold">{peer.roleName}</span>
-        )}
-        {peer.isLocal && (
-          <span className="text-xs text-fireside-orange font-semibold">(You)</span>
-        )}
+        <div className="flex items-center justify-center space-x-1">
+          {peer.roleName && (
+            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+              peer.roleName === 'host' ? 'bg-red-500 text-white' :
+              peer.roleName === 'co-host' ? 'bg-orange-500 text-white' :
+              peer.roleName === 'speaker' ? 'bg-blue-500 text-white' :
+              'bg-gray-500 text-white'
+            }`}>
+              {peer.roleName}
+            </span>
+          )}
+          {peer.isLocal && (
+            <span className="text-xs text-fireside-orange font-semibold">(You)</span>
+          )}
+        </div>
       </div>
     </div>
   );

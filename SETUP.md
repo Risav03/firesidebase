@@ -102,3 +102,23 @@ If you get a "Token validation error" from 100ms:
 4. Determines user role (host if user created the room, listener otherwise)
 5. Joins room with appropriate role using 100ms room code
 6. Shows Conference component with Header and Footer
+
+## User Management Features
+
+### Host Controls
+- **Role Management**: Hosts can change user roles (speaker, co-host, listener)
+- **User Removal**: Hosts can remove users from the room
+- **Context Menu**: Right-click or tap on any user to see management options
+
+### Role Hierarchy
+- **Host**: Full control over room and users
+- **Co-host**: Can manage other users but cannot remove host
+- **Speaker**: Can speak and be heard
+- **Listener**: Can only listen (muted by default)
+
+### How to Use
+1. Join a room as host or co-host
+2. Click on any user's avatar
+3. Context menu appears with available actions
+4. Select desired action (change role, mute, remove)
+5. Changes are applied immediately via 100ms API

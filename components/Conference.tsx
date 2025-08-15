@@ -5,14 +5,51 @@ import {
   selectPeersScreenSharing,
   useHMSStore,
 } from "@100mslive/react-sdk";
-import Peer from "./Peer";
+import PeerWithContextMenu from "./PeerWithContextMenu";
 import { ScreenTile } from "./ScreenTile";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import sdk from "@farcaster/miniapp-sdk";
 
 export default function Conference() {
-  const peers = useHMSStore(selectPeers);
+  const allPeers = useHMSStore(selectPeers);
   const presenters = useHMSStore(selectPeersScreenSharing);
+  
+  // Local state for optimistic updates
+  const [peers, setPeers] = useState(allPeers);
+  const [removedPeers, setRemovedPeers] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    // Update local peers when 100ms peers change
+    setPeers(allPeers.filter(peer => !removedPeers.has(peer.id)));
+  }, [allPeers, removedPeers]);
+
+  useEffect(() => {
+    // Handle optimistic peer removal
+    const handlePeerRemoved = (event: CustomEvent) => {
+      const { peerId } = event.detail;
+      setRemovedPeers(prev => new Set(prev).add(peerId));
+    };
+
+    // Handle peer restoration if removal failed
+    const handlePeerRestored = (event: CustomEvent) => {
+      const { peerId } = event.detail;
+      setRemovedPeers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(peerId);
+        return newSet;
+      });
+    };
+
+    // Add event listeners
+    window.addEventListener('peerRemoved', handlePeerRemoved as EventListener);
+    window.addEventListener('peerRestored', handlePeerRestored as EventListener);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('peerRemoved', handlePeerRemoved as EventListener);
+      window.removeEventListener('peerRestored', handlePeerRestored as EventListener);
+    };
+  }, []);
 
   useEffect(() => {
     async function getPermission() {
@@ -44,7 +81,7 @@ export default function Conference() {
         <div className="">
           <div className="grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 justify-items-center">
             {peers.map((peer) => (
-              <Peer key={peer.id} peer={peer} />
+              <PeerWithContextMenu key={peer.id} peer={peer} />
             ))}
           </div>
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react';
-import { useHMSActions } from '@100mslive/react-sdk';
+import { useHMSActions, useHMSStore, selectLocalPeer, selectIsConnectedToRoom } from '@100mslive/react-sdk';
 import { useGlobalContext } from '@/utils/providers/globalContext';
 import Conference from '@/components/Conference';
 import Header from '@/components/Header';
@@ -24,6 +24,11 @@ export default function CallPage({params}:{params:{id:string}}) {
   const roomId = params.id as string;
   const { user } = useGlobalContext();
   const hmsActions = useHMSActions();
+  
+  // Add these hooks
+  const localPeer = useHMSStore(selectLocalPeer);
+  const isConnected = useHMSStore(selectIsConnectedToRoom);
+  
   const [isJoining, setIsJoining] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -106,6 +111,17 @@ export default function CallPage({params}:{params:{id:string}}) {
     if(user && roomId)
     joinRoom();
   }, [roomId, user, hmsActions]);
+
+  // After joining the room, check if user has speakable role and mute them
+  useEffect(() => {
+    if (isConnected && localPeer) {
+      const role = localPeer.roleName;
+      if (role === 'host' || role === 'co-host' || role === 'speaker') {
+        // Mute the user's own audio track
+        hmsActions.setLocalAudioEnabled(false);
+      }
+    }
+  }, [isConnected, localPeer, hmsActions]);
 
   if (error) {
     return (

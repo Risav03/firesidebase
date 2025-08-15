@@ -1,0 +1,56 @@
+'use client'
+
+import { useState, useRef } from 'react';
+import { useHMSStore, selectLocalPeer } from '@100mslive/react-sdk';
+import Peer from './Peer';
+import UserContextMenu from './UserContextMenu';
+
+interface PeerWithContextMenuProps {
+  peer: any;
+}
+
+export default function PeerWithContextMenu({ peer }: PeerWithContextMenuProps) {
+  const [showContextMenu, setShowContextMenu] = useState(false);
+  const localPeer = useHMSStore(selectLocalPeer);
+  const peerRef = useRef<HTMLDivElement>(null);
+
+  // Check if local user is host or co-host
+  const isHostOrCoHost = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
+  
+  // Check if this is the local user
+  const isLocalUser = peer.id === localPeer?.id;
+
+  const handlePeerClick = (event: React.MouseEvent) => {
+    if (!isHostOrCoHost || isLocalUser) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    setShowContextMenu(true);
+  };
+
+  const handleContextMenuClose = () => {
+    setShowContextMenu(false);
+  };
+
+  return (
+    <div ref={peerRef} className="relative">
+      <div onClick={handlePeerClick}>
+        <Peer peer={peer} />
+      </div>
+      
+      {isHostOrCoHost && !isLocalUser && (
+        <div className="absolute top-2 right-2">
+          <div className="w-3 h-3 bg-blue-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" 
+               title="Click to manage user" />
+        </div>
+      )}
+
+      <UserContextMenu
+        peer={peer}
+        isVisible={showContextMenu}
+        onClose={handleContextMenuClose}
+        position={{ x: 0, y: 0 }} // Not used anymore but keeping for compatibility
+      />
+    </div>
+  );
+}
