@@ -59,10 +59,10 @@ export function ChatMessage({ message, isOwnMessage }: ChatMessageProps) {
       <div className="chat-message-content">
         {!isOwnMessage && (
           <div className="chat-message-header">
-            <span className="font-medium text-gray-900 text-sm">
+            <span className="font-medium text-white text-sm">
               {senderName}
             </span>
-            <span className="text-xs text-gray-500 ml-2">
+            <span className="text-xs text-gray-400 ml-2">
               {formatDistanceToNow(message.time)}
             </span>
           </div>
@@ -73,7 +73,7 @@ export function ChatMessage({ message, isOwnMessage }: ChatMessageProps) {
             {message.message}
           </p>
           {isOwnMessage && (
-            <div className="text-xs text-gray-500 mt-1 text-right">
+            <div className="text-xs text-gray-300 mt-1 text-right">
               {formatDistanceToNow(message.time)}
             </div>
           )}

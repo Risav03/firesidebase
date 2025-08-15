@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
 import { useHMSActions } from '@100mslive/react-sdk';
 import { useGlobalContext } from '@/utils/providers/globalContext';
 import Conference from '@/components/Conference';
@@ -19,8 +18,8 @@ interface RoomCode {
   updated_at: string;
 }
 
-export default function CallPage() {
-  const params = useParams();
+export default function CallPage({params}:{params:{id:string}}) {
+  
   const roomId = params.id as string;
   const { user } = useGlobalContext();
   const hmsActions = useHMSActions();
@@ -103,6 +102,7 @@ export default function CallPage() {
       }
     };
 
+    if(user && roomId)
     joinRoom();
   }, [roomId, user, hmsActions]);
 
@@ -138,7 +138,7 @@ export default function CallPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-950 to-gray-900">
       <Header />
       <Conference />
-      <Footer />
+      <Footer roomId={roomId} />
     </div>
   );
 }

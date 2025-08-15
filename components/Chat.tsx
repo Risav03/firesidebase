@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import { useState, useRef, useEffect } from "react";
 import {
@@ -12,19 +12,14 @@ import { ChatMessage } from "./ChatMessage";
 
 interface ChatProps {
   isOpen: boolean;
-  onClose: () => void;
+  setIsChatOpen: (isOpen: boolean) => void;
 }
 
-export default function Chat({ isOpen, onClose }: ChatProps) {
+export default function Chat({ isOpen, setIsChatOpen }: ChatProps) {
   const [message, setMessage] = useState("");
-  const [isMinimized, setIsMinimized] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
-  
+
   const messages = useHMSStore(selectHMSMessages);
   const localPeer = useHMSStore(selectLocalPeer);
   const hmsActions = useHMSActions();
@@ -34,64 +29,10 @@ export default function Chat({ isOpen, onClose }: ChatProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     // Debug: Log message structure
     if (messages.length > 0) {
-      console.log('Latest message structure:', messages[messages.length - 1]);
-      console.log('Local peer:', localPeer);
+      console.log("Latest message structure:", messages[messages.length - 1]);
+      console.log("Local peer:", localPeer);
     }
   }, [messages, localPeer]);
-
-  // Focus input when chat opens
-  // useEffect(() => {
-  //   if (isOpen && !isMinimized) {
-  //     inputRef.current?.focus();
-  //   }
-  // }, [isOpen, isMinimized]);
-
-  // Drag functionality
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    setDragStart({
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
-    });
-  };
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging) return;
-      
-      const newX = e.clientX - dragStart.x;
-      const newY = e.clientY - dragStart.y;
-      
-      // Keep chat within viewport bounds
-      const chatElement = chatRef.current;
-      if (chatElement) {
-        const rect = chatElement.getBoundingClientRect();
-        const maxX = window.innerWidth - rect.width;
-        const maxY = window.innerHeight - rect.height;
-        
-        setPosition({
-          x: Math.max(0, Math.min(newX, maxX)),
-          y: Math.max(0, Math.min(newY, maxY)),
-        });
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-    };
-
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.userSelect = 'none';
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.userSelect = '';
-    };
-  }, [isDragging, dragStart, position]);
 
   const handleSendMessage = () => {
     if (message.trim()) {
@@ -110,71 +51,84 @@ export default function Chat({ isOpen, onClose }: ChatProps) {
   if (!isOpen) return null;
 
   const chatStyle = {
-    transform: `translate(${position.x}px, ${position.y}px)`,
-    right: position.x === 0 && position.y === 0 ? '1rem' : 'auto',
-    top: position.x === 0 && position.y === 0 ? '5rem' : 'auto',
+    width: "100%",
+    position: "fixed" as const,
+    bottom: 0,
+    left: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.9)",
+    zIndex: 1000,
+    display: isOpen ? "block" : "none",
   };
 
   return (
-    <div 
+    <div
       ref={chatRef}
-      className={`chat-container bg-gray-900 border-0 ${isMinimized ? 'minimized' : ''}`}
+      className={`w-full border-0 duration-500 transition-all ${
+        !isOpen ? "translate-y-full" : "translate-y-0"
+      }`}
       style={chatStyle}
     >
       {/* Chat Header */}
-      <div 
-        className={`chat-header bg-gray-800 border-0 ${isDragging ? 'dragging' : ''}`}
-        onMouseDown={handleMouseDown}
-      >
-        <div className="flex items-center space-x-3">
+      <div className=" bg-gray-800 border-0 px-4 py-4 rounded-t-lg flex">
+        <div className="flex items-center space-x-3 w-[50%]">
           <div className="w-3 h-3 bg-fireside-orange rounded-full animate-pulse"></div>
           <h3 className="font-semibold text-white">Room Chat</h3>
           <span className="text-xs text-white bg-gray-700 px-2 py-1 rounded-full">
             {messages.length}
           </span>
-          {/* Drag handle indicator */}
-          <div className="flex items-center space-x-1 opacity-40 ml-2">
-            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-          </div>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 justify-end w-[50%]">
           <button
-            onClick={() => setIsMinimized(!isMinimized)}
+            onClick={() => setIsChatOpen(!isOpen)}
             className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
-            title={isMinimized ? "Expand chat" : "Minimize chat"}
+            title={isOpen ? "Expand chat" : "Minimize chat"}
           >
-            <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              {isMinimized ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            <svg
+              className="w-4 h-4 text-gray-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              {isOpen ? (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 15l7-7 7 7"
+                />
               ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
               )}
             </svg>
           </button>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Close chat"
-          >
-            <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          
         </div>
       </div>
 
       {/* Chat Messages */}
-      {!isMinimized && (
+      
         <>
-          <div className="chat-messages">
+          <div className="chat-messages bg-gray-950 min-h-[70vh] max-h-[70vh]">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center py-8">
                 <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
-                  <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  <svg
+                    className="w-6 h-6 text-gray-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                    />
                   </svg>
                 </div>
                 <p className="text-sm text-white mb-1">No messages yet</p>
@@ -184,14 +138,13 @@ export default function Chat({ isOpen, onClose }: ChatProps) {
               <>
                 {messages.map((msg: HMSMessage) => {
                   // Try multiple ways to get sender name for comparison
-                  const msgSenderName = msg.senderName ||
-                                       msg.sender || 
-                                       (msg as any).senderUserId;
-                  
+                  const msgSenderName =
+                    msg.senderName || msg.sender || (msg as any).senderUserId;
+
                   return (
-                    <ChatMessage 
-                      key={msg.id} 
-                      message={msg} 
+                    <ChatMessage
+                      key={msg.id}
+                      message={msg}
                       isOwnMessage={msgSenderName === localPeer?.name}
                     />
                   );
@@ -202,15 +155,13 @@ export default function Chat({ isOpen, onClose }: ChatProps) {
           </div>
 
           {/* Chat Input */}
-          <div className="chat-input bg-gray-800 border-0 00">
+          <div className="chat-input rounded-b-none bg-gray-800 border-0">
             <div className="flex items-end space-x-3">
               <div className="flex-1">
                 <input
-                  ref={inputRef}
                   type="text"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
                   placeholder="Type a message..."
                   className="w-full px-4 py-3 bg-white/10 text-white rounded-2xl border border-white/50 focus:border-fireside-orange focus:ring-2 focus:ring-fireside-orange focus:ring-opacity-20 outline-none transition-all duration-200 text-sm resize-none"
                   maxLength={500}
@@ -222,8 +173,18 @@ export default function Chat({ isOpen, onClose }: ChatProps) {
                 className="w-10 h-10 bg-fireside-orange text-white rounded-full flex items-center justify-center transition-all duration-200 hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95"
                 title="Send message"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                  />
                 </svg>
               </button>
             </div>
@@ -234,7 +195,7 @@ export default function Chat({ isOpen, onClose }: ChatProps) {
             )}
           </div>
         </>
-      )}
+      
     </div>
   );
 }

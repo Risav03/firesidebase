@@ -21,13 +21,13 @@ import {
 } from "@100mslive/react-sdk";
 import { FaGratipay } from "react-icons/fa";
 import { TbShare3 } from "react-icons/tb";
-
+import { sdk } from "@farcaster/miniapp-sdk";
 // Dynamic import to avoid SSR issues
 let plugin: any = null;
 
 // FooterProps removed since chat state is now internal
 
-export default function Footer() {
+export default function Footer({ roomId }: { roomId: string }) {
   const { isLocalAudioEnabled, toggleAudio } = useAVToggle((err) => {
     console.error("useAVToggle error:", err);
   });
@@ -69,13 +69,26 @@ export default function Footer() {
     selectIsLocalAudioPluginPresent(plugin?.getName() || "")
   );
 
+  async function composeCast() {
+    try {
+      await sdk.actions.composeCast({
+        text: `Join this awesome room! ${process.env.NEXT_PUBLIC_URL}/call/${roomId}`,
+        embeds: [`${process.env.NEXT_PUBLIC_URL}/call/${roomId}`],
+      });
+    } catch (e) {
+      console.error("Error composing cast:", e);
+    }
+  }
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900">
       <div className="max-w-4xl mx-auto px-6 py-4 flex">
         <div className="flex flex-col items-start justify-center w-[30%]">
           <button
             className={`w-14 h-14 translate-x-[0.6rem] rounded-full flex items-center justify-center transition-all duration-200 transform ${
-              canUnmute ? "hover:scale-105 active:scale-95" : "opacity-60 cursor-not-allowed"
+              canUnmute
+                ? "hover:scale-105 active:scale-95"
+                : "opacity-60 cursor-not-allowed"
             } ${
               isLocalAudioEnabled
                 ? "bg-fireside-orange text-white shadow-lg"
@@ -83,7 +96,15 @@ export default function Footer() {
             }`}
             onClick={canUnmute ? toggleAudio : undefined}
             disabled={!canUnmute}
-            title={canUnmute ? (isLocalAudioEnabled ? "Mute" : "Unmute") : `No permission to publish audio${localRoleName ? ` (${localRoleName})` : ""}`}
+            title={
+              canUnmute
+                ? isLocalAudioEnabled
+                  ? "Mute"
+                  : "Unmute"
+                : `No permission to publish audio${
+                    localRoleName ? ` (${localRoleName})` : ""
+                  }`
+            }
           >
             {isLocalAudioEnabled ? (
               <MicOnIcon className="w-6 h-6" />
@@ -92,14 +113,14 @@ export default function Footer() {
             )}
           </button>
           <div className="mt-3 text-center">
-          <p className="text-xs text-gray-500">
-            {canUnmute
-              ? isLocalAudioEnabled
-                ? "Tap to mute"
-                : "Tap to unmute"
-              : "Role cannot unmute"}
-          </p>
-        </div>
+            <p className="text-xs text-gray-500">
+              {canUnmute
+                ? isLocalAudioEnabled
+                  ? "Tap to mute"
+                  : "Tap to unmute"
+                : "Role cannot unmute"}
+            </p>
+          </div>
 
           {/* <button
             title="Screen share"
@@ -137,85 +158,84 @@ export default function Footer() {
           )}
 
           {/* Chat toggle button */}
-          
         </div>
 
         <div className="flex items-center space-x-2 justify-end w-[70%]">
-            <button
-              onClick={() => setIsChatOpen((prev) => !prev)}
-              className={`relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
-                isChatOpen
-                  ? "bg-fireside-orange text-white shadow-lg"
-                  : "bg-white/10 text-white hover:bg-white/20"
-              }`}
-              title="Toggle chat"
+          <button
+            onClick={() => setIsChatOpen((prev) => !prev)}
+            className={`relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
+              isChatOpen
+                ? "bg-fireside-orange text-white shadow-lg"
+                : "bg-white/10 text-white hover:bg-white/20"
+            }`}
+            title="Toggle chat"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                />
-              </svg>
-              {messages.length > 0 && !isChatOpen && (
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                  {messages.length > 9 ? "9+" : messages.length}
-                </div>
-              )}
-            </button>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+              />
+            </svg>
+            {messages.length > 0 && !isChatOpen && (
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                {messages.length > 9 ? "9+" : messages.length}
+              </div>
+            )}
+          </button>
 
-            {/* Emoji reactions button */}
-            <button
-              onClick={() => console.log("Emoji reactions clicked")}
-              className="relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 bg-white/10 text-white hover:white/20"
-              title="Emoji reactions"
+          {/* Emoji reactions button */}
+          <button
+            onClick={() => console.log("Emoji reactions clicked")}
+            className="relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 bg-white/10 text-white hover:white/20"
+            title="Emoji reactions"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 20.5c4.142 0 7.5-3.358 7.5-7.5S16.142 5.5 12 5.5 4.5 8.858 4.5 12s3.358 7.5 7.5 7.5z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 11h.01M15 11h.01M8 15h8"
-                />
-              </svg>
-            </button>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 20.5c4.142 0 7.5-3.358 7.5-7.5S16.142 5.5 12 5.5 4.5 8.858 4.5 12s3.358 7.5 7.5 7.5z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 11h.01M15 11h.01M8 15h8"
+              />
+            </svg>
+          </button>
 
-            {/* Tipping button */}
-            <button
-              onClick={() => console.log("Tipping clicked")}
-              className="relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 bg-white/10 text-white hover:bg-white/20"
-              title="Send a tip"
-            >
-              <FaGratipay className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => console.log("Sharing")}
-              className="text-white pl-4"
-              title="Share"
-            >
-              <TbShare3 className="w-5 h-5" />
-            </button>
-          </div>
+          {/* Tipping button */}
+          <button
+            onClick={() => console.log("Tipping clicked")}
+            className="relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 bg-white/10 text-white hover:bg-white/20"
+            title="Send a tip"
+          >
+            <FaGratipay className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => composeCast()}
+            className="text-white pl-4"
+            title="Share"
+          >
+            <TbShare3 className="w-5 h-5" />
+          </button>
+        </div>
 
-          {/* Chat component rendered here */}
-          <Chat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+        {/* Chat component rendered here */}
+        <Chat isOpen={isChatOpen} setIsChatOpen={setIsChatOpen} />
       </div>
     </div>
   );
