@@ -11,11 +11,15 @@
     "@100mslive/react-icons": "^0.10.36",
     "@100mslive/react-sdk": "^0.10.36",
     "@coinbase/onchainkit": "^0.38.19",
+    "@emoji-mart/data": "^1.2.1",
+    "@emoji-mart/react": "^1.1.1",
     "@farcaster/auth-client": "^0.7.0",
     "@farcaster/miniapp-sdk": "^0.1.8",
     "@farcaster/quick-auth": "^0.0.7",
     "@rainbow-me/rainbowkit": "^2.2.8",
     "boring-avatars": "^1.5.8",
+    "emoji-mart": "^5.6.0",
+    "emoji-picker-react": "^4.13.2",
     "ethers": "^5.7.2",
     "iconv-lite": "^0.6.3",
     "mongoose": "^8.17.1",
@@ -51,6 +55,7 @@
     ]
   },
   "devDependencies": {
+    "@types/emoji-mart": "^3.0.14",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",

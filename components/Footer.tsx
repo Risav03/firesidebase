@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Chat from "./Chat";
 import {
   AudioLevelIcon,
@@ -18,10 +18,17 @@ import {
   useAVToggle,
   useHMSActions,
   useHMSStore,
+  useCustomEvent,
+  HMSNotificationTypes,
+  useHMSNotifications,
+  selectBroadcastMessages,
 } from "@100mslive/react-sdk";
 import { FaGratipay } from "react-icons/fa";
 import { TbShare3 } from "react-icons/tb";
 import { sdk } from "@farcaster/miniapp-sdk";
+import EmojiPicker, { Theme } from "emoji-picker-react";
+import { IoIosArrowDown } from "react-icons/io";
+
 // Dynamic import to avoid SSR issues
 let plugin: any = null;
 
@@ -42,22 +49,46 @@ export default function Footer({ roomId }: { roomId: string }) {
   const [isRejoining, setIsRejoining] = useState(false);
   const publishPermissions = useHMSStore(selectIsAllowedToPublish);
   const localRoleName = useHMSStore(selectLocalPeerRoleName);
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+  const [floatingEmoji, setFloatingEmoji] = useState<string | null>(null);
 
   const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
+
+  const { sendEvent } = useCustomEvent({
+    type: "EMOJI_REACTION",
+    onEvent: (msg: { emoji: string }) => {
+      console.log("Custom event received:", msg);
+      setFloatingEmoji(msg.emoji);
+      setTimeout(() => setFloatingEmoji(null), 3000); // Clear emoji after 3 seconds
+    },
+  });
+
+  const handleEmojiSelect = (emoji: any) => {
+    console.log("Selected emoji:", emoji);
+    sendEvent({ emoji: emoji.emoji });
+    setIsEmojiPickerOpen(false);
+    setFloatingEmoji(emoji.emoji); // State to trigger floating emoji
+  };
 
   // Listen for role change events to show re-joining state
   useEffect(() => {
     const handleRoleChange = (event: CustomEvent) => {
-      if (event.detail?.type === 'role_change_start') {
+      if (event.detail?.type === "role_change_start") {
         setIsRejoining(true);
-      } else if (event.detail?.type === 'role_change_complete') {
+      } else if (event.detail?.type === "role_change_complete") {
         setIsRejoining(false);
       }
     };
 
-    window.addEventListener('role_change_event', handleRoleChange as EventListener);
+    window.addEventListener(
+      "role_change_event",
+      handleRoleChange as EventListener
+    );
     return () => {
-      window.removeEventListener('role_change_event', handleRoleChange as EventListener);
+      window.removeEventListener(
+        "role_change_event",
+        handleRoleChange as EventListener
+      );
     };
   }, []);
 
@@ -99,13 +130,75 @@ export default function Footer({ roomId }: { roomId: string }) {
     }
   }
 
+  const emojiPickerStyles = {
+    "--epr-bg-color": "oklch(13% 0.028 261.692)",
+    "--epr-category-label-bg-color": "oklch(13% 0.028 261.692)",
+    "--epr-input-bg-color": "oklch(13% 0.028 261.692)",
+    borderRadius: "0.5rem",
+    border: "0px",
+  };
+
+  // Add CSS for animations
+  const styles = `
+  @keyframes float {
+    0% {
+      transform: translateY(0);
+    }
+    100% {
+      transform: translateY(-100%);
+    }
+  }
+
+  @keyframes fade {
+    0% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  `;
+
+  // Inject styles into the document
+  useEffect(() => {
+    const styleSheet = document.createElement("style");
+    styleSheet.type = "text/css";
+    styleSheet.innerText = styles;
+    document.head.appendChild(styleSheet);
+    return () => {
+      document.head.removeChild(styleSheet);
+    };
+  }, []);
+
+  const broadcastMessages = useHMSStore(selectBroadcastMessages);
+
+  console.log("Broadcast messages:", broadcastMessages);
+  useEffect(() => {
+    const handleBroadcastMessages = () => {
+      const emojiMessage = broadcastMessages.find(
+        (msg) => msg.type === "EMOJI_REACTION"
+      );
+      if (emojiMessage) {
+        console.log("Broadcast emoji reaction received:", emojiMessage);
+        setFloatingEmoji(emojiMessage.message);
+        setTimeout(() => setFloatingEmoji(null), 3000); // Clear emoji after 3 seconds
+      }
+    };
+
+    console.log(broadcastMessages);
+
+    handleBroadcastMessages();
+  }, [broadcastMessages]);
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900">
       <div className="max-w-4xl mx-auto px-6 py-4 flex">
         <div className="flex flex-col items-start justify-center w-[30%]">
           <button
             className={`w-14 h-14 translate-x-[0.6rem] rounded-full flex items-center justify-center transition-all duration-200 transform ${
-              canUnmute && !isRejoining ? "hover:scale-105 active:scale-95" : "opacity-60 cursor-not-allowed"
+              canUnmute && !isRejoining
+                ? "hover:scale-105 active:scale-95"
+                : "opacity-60 cursor-not-allowed"
             } ${
               isLocalAudioEnabled
                 ? "bg-fireside-orange text-white shadow-lg"
@@ -114,11 +207,15 @@ export default function Footer({ roomId }: { roomId: string }) {
             onClick={canUnmute && !isRejoining ? toggleAudio : undefined}
             disabled={!canUnmute || isRejoining}
             title={
-              isRejoining 
-                ? "Re-joining with new role..." 
-                : canUnmute 
-                  ? (isLocalAudioEnabled ? "Mute" : "Unmute")
-                  : `No permission to publish audio${localRoleName ? ` (${localRoleName})` : ""}`
+              isRejoining
+                ? "Re-joining with new role..."
+                : canUnmute
+                ? isLocalAudioEnabled
+                  ? "Mute"
+                  : "Unmute"
+                : `No permission to publish audio${
+                    localRoleName ? ` (${localRoleName})` : ""
+                  }`
             }
           >
             {isRejoining ? (
@@ -134,10 +231,10 @@ export default function Footer({ roomId }: { roomId: string }) {
               {isRejoining
                 ? "Re-joining with new role..."
                 : canUnmute
-                  ? isLocalAudioEnabled
-                    ? "Tap to mute"
-                    : "Tap to unmute"
-                  : "Role cannot unmute"}
+                ? isLocalAudioEnabled
+                  ? "Tap to mute"
+                  : "Tap to unmute"
+                : "Role cannot unmute"}
             </p>
           </div>
 
@@ -209,9 +306,31 @@ export default function Footer({ roomId }: { roomId: string }) {
             )}
           </button>
 
+          {/* Emoji Picker Drawer */}
+
+          <div
+            className={`fixed bottom-0 -left-2 z-50 w-screen mx-auto ${
+              isEmojiPickerOpen ? "" : "translate-y-full"
+            } bg-gray-950 rounded-t-xl pt-4 transition-all duration-200`}
+          >
+            <div className="w-full flex flex-col gap-2 items-center justify-center">
+              <button
+                onClick={() => setIsEmojiPickerOpen(false)}
+                className="w-[30%] bg-white/10 text-white py-0 rounded-full "
+              >
+                <IoIosArrowDown className="mx-auto" />
+              </button>
+              <EmojiPicker
+                theme={Theme.DARK}
+                onEmojiClick={handleEmojiSelect}
+                style={emojiPickerStyles}
+              />
+            </div>
+          </div>
+
           {/* Emoji reactions button */}
           <button
-            onClick={() => console.log("Emoji reactions clicked")}
+            onClick={() => setIsEmojiPickerOpen((prev) => !prev)}
             className="relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 bg-white/10 text-white hover:white/20"
             title="Emoji reactions"
           >
@@ -255,6 +374,26 @@ export default function Footer({ roomId }: { roomId: string }) {
 
         {/* Chat component rendered here */}
         <Chat isOpen={isChatOpen} setIsChatOpen={setIsChatOpen} />
+
+        {/* Floating emoji rendering */}
+        {floatingEmoji && (
+          <div
+            className="absolute bottom-0 left-1/2 transform -translate-x-1/2 animate-float"
+            style={{
+              animation: "float 3s ease-in-out forwards",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "2rem",
+                opacity: 1,
+                animation: "fade 3s ease-in-out forwards",
+              }}
+            >
+              {floatingEmoji}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
