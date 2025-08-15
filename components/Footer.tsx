@@ -39,17 +39,36 @@ export default function Footer() {
   const messages = useHMSStore(selectHMSMessages) as Array<any>;
   // Chat state
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isRejoining, setIsRejoining] = useState(false);
   const publishPermissions = useHMSStore(selectIsAllowedToPublish);
   const localRoleName = useHMSStore(selectLocalPeerRoleName);
 
   const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
+
+  // Listen for role change events to show re-joining state
+  useEffect(() => {
+    const handleRoleChange = (event: CustomEvent) => {
+      if (event.detail?.type === 'role_change_start') {
+        setIsRejoining(true);
+      } else if (event.detail?.type === 'role_change_complete') {
+        setIsRejoining(false);
+      }
+    };
+
+    window.addEventListener('role_change_event', handleRoleChange as EventListener);
+    return () => {
+      window.removeEventListener('role_change_event', handleRoleChange as EventListener);
+    };
+  }, []);
 
   useEffect(() => {
     // Helpful for debugging role/permission changes after promotions/demotions
     console.log("[100ms] Local role:", localRoleName);
     console.log("[100ms] Allowed to publish:", publishPermissions);
     console.log("[100ms] canUnmute:", canUnmute);
-  }, [localRoleName, publishPermissions, canUnmute]);
+    console.log("[100ms] toggleAudio function exists:", !!toggleAudio);
+    console.log("[100ms] Component re-rendered due to permission change");
+  }, [localRoleName, publishPermissions, canUnmute, toggleAudio]);
 
   // Initialize plugin only on client side with dynamic import
   useEffect(() => {
@@ -75,31 +94,41 @@ export default function Footer() {
         <div className="flex flex-col items-start justify-center w-[30%]">
           <button
             className={`w-14 h-14 translate-x-[0.6rem] rounded-full flex items-center justify-center transition-all duration-200 transform ${
-              canUnmute ? "hover:scale-105 active:scale-95" : "opacity-60 cursor-not-allowed"
+              canUnmute && !isRejoining ? "hover:scale-105 active:scale-95" : "opacity-60 cursor-not-allowed"
             } ${
               isLocalAudioEnabled
                 ? "bg-fireside-orange text-white shadow-lg"
                 : "bg-red-500 text-white shadow-lg"
             }`}
-            onClick={canUnmute ? toggleAudio : undefined}
-            disabled={!canUnmute}
-            title={canUnmute ? (isLocalAudioEnabled ? "Mute" : "Unmute") : `No permission to publish audio${localRoleName ? ` (${localRoleName})` : ""}`}
+            onClick={canUnmute && !isRejoining ? toggleAudio : undefined}
+            disabled={!canUnmute || isRejoining}
+            title={
+              isRejoining 
+                ? "Re-joining with new role..." 
+                : canUnmute 
+                  ? (isLocalAudioEnabled ? "Mute" : "Unmute")
+                  : `No permission to publish audio${localRoleName ? ` (${localRoleName})` : ""}`
+            }
           >
-            {isLocalAudioEnabled ? (
+            {isRejoining ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : isLocalAudioEnabled ? (
               <MicOnIcon className="w-6 h-6" />
             ) : (
               <MicOffIcon className="w-6 h-6" />
             )}
           </button>
           <div className="mt-3 text-center">
-          <p className="text-xs text-gray-500">
-            {canUnmute
-              ? isLocalAudioEnabled
-                ? "Tap to mute"
-                : "Tap to unmute"
-              : "Role cannot unmute"}
-          </p>
-        </div>
+            <p className="text-xs text-gray-500">
+              {isRejoining
+                ? "Re-joining with new role..."
+                : canUnmute
+                  ? isLocalAudioEnabled
+                    ? "Tap to mute"
+                    : "Tap to unmute"
+                  : "Role cannot unmute"}
+            </p>
+          </div>
 
           {/* <button
             title="Screen share"

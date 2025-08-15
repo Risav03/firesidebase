@@ -7,6 +7,7 @@ import { useGlobalContext } from '@/utils/providers/globalContext';
 import Conference from '@/components/Conference';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import RoleChangeHandler from '@/components/RoleChangeHandler';
 import { Loader } from '@/components/Loader';
 
 interface RoomCode {
@@ -136,6 +137,7 @@ export default function CallPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 to-gray-900">
+      <RoleChangeHandler />
       <Header />
       <Conference />
       <Footer />
