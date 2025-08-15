@@ -59,7 +59,11 @@ export default function Footer({ roomId }: { roomId: string }) {
   const { sendEvent } = useCustomEvent({
     type: "EMOJI_REACTION",
     onEvent: (msg: { emoji: string; sender: string }) => {
-      const uniqueMsg = { ...msg, id: Date.now(), position: Math.random() * 100 }; // Add unique identifier and position
+      const uniqueMsg = {
+        ...msg,
+        id: Date.now(),
+        position: Math.random() * 15, // Random position within 150px from the right
+      };
       setFloatingEmojis((prev) => [...prev, uniqueMsg]);
 
       // Ensure emojis are cleared only after their dedicated timeout
@@ -150,7 +154,7 @@ export default function Footer({ roomId }: { roomId: string }) {
       transform: translateY(0);
     }
     100% {
-      transform: translateY(-200vh);
+      transform: translateY(-100vh);
     }
   }
 
@@ -366,9 +370,9 @@ export default function Footer({ roomId }: { roomId: string }) {
             key={floatingEmoji.id}
             className="absolute bottom-0 animate-float"
             style={{
-              left: `${floatingEmoji.position}%`, // Use stored position
+              right: `${floatingEmoji.position}%`, // Use stored position
               transform: "translateX(-50%)",
-              animation: "float 5s ease-out forwards",
+              animation: "float 7s ease-out forwards",
             }}
           >
             <div className="flex flex-col items-center justify-center">
@@ -376,7 +380,7 @@ export default function Footer({ roomId }: { roomId: string }) {
                 style={{
                   fontSize: "1.5rem",
                   opacity: 1,
-                  animation: "fade 5s ease-out forwards",
+                  animation: "fade 7s ease-out forwards",
                 }}
               >
                 {floatingEmoji.emoji}
@@ -384,7 +388,7 @@ export default function Footer({ roomId }: { roomId: string }) {
               <p
                 style={{
                   opacity: 1,
-                  animation: "fade 5s ease-out forwards",
+                  animation: "fade 7s ease-out forwards",
                 }}
                 className="text-xs text-center text-white"
               >
