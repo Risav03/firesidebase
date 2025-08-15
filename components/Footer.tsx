@@ -51,7 +51,7 @@ export default function Footer({ roomId }: { roomId: string }) {
   const publishPermissions = useHMSStore(selectIsAllowedToPublish);
   const localRoleName = useHMSStore(selectLocalPeerRoleName);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
-  const [floatingEmojis, setFloatingEmojis] = useState<Array<{ emoji: string; sender: string }>>([]);
+  const [floatingEmojis, setFloatingEmojis] = useState<Array<{ emoji: string; sender: string; id: number }>>([]);
   const { user } = useGlobalContext();
 
   const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
@@ -59,20 +59,20 @@ export default function Footer({ roomId }: { roomId: string }) {
   const { sendEvent } = useCustomEvent({
     type: "EMOJI_REACTION",
     onEvent: (msg: { emoji: string; sender: string }) => {
-        console.log("Custom event received:", msg);
-        setFloatingEmojis((prev) => [...prev, msg]);
-        setTimeout(() => {
-            setFloatingEmojis((prev) => prev.filter((e) => e !== msg));
-        }, 5000); // Clear emoji after 5 seconds
+      const uniqueMsg = { ...msg, id: Date.now() }; // Add unique identifier
+      setFloatingEmojis((prev) => [...prev, uniqueMsg]);
+
+      // Ensure emojis are cleared only after their dedicated timeout
+      setTimeout(() => {
+        setFloatingEmojis((prev) => prev.filter((e) => e.id !== uniqueMsg.id));
+      }, 5000);
     },
   });
 
   const handleEmojiSelect = (emoji: any) => {
-    console.log("Selected emoji:", emoji);
     const newEmoji = { emoji: emoji.emoji, sender: user?.username };
     sendEvent(newEmoji);
     setIsEmojiPickerOpen(false);
-    
   };
 
   // Listen for role change events to show re-joining state
@@ -363,27 +363,33 @@ export default function Footer({ roomId }: { roomId: string }) {
         {/* Floating emoji rendering */}
         {floatingEmojis.map((floatingEmoji, index) => (
           <div
-            key={index}
+            key={floatingEmoji.id}
             className="absolute bottom-0 left-1/2 transform -translate-x-1/2 animate-float"
             style={{
               animation: "float 5s ease-out forwards",
+              marginLeft: `${index * 30}px`, // Dynamic positioning to avoid overlap
             }}
           >
             <div className="flex flex-col items-center justify-center">
-            <span
-              style={{
-                fontSize: "1.5rem",
-                opacity: 1,
-                animation: "fade 5s ease-out forwards",
-              }}
-            >
-              {floatingEmoji.emoji}
-            </span>
-            <p style={{
-                opacity: 1,
-                animation: "fade 5s ease-out forwards",
-              }} className="text-xs text-center text-white">{floatingEmoji.sender}</p>
-          </div>
+              <span
+                style={{
+                  fontSize: "1.5rem",
+                  opacity: 1,
+                  animation: "fade 5s ease-out forwards",
+                }}
+              >
+                {floatingEmoji.emoji}
+              </span>
+              <p
+                style={{
+                  opacity: 1,
+                  animation: "fade 5s ease-out forwards",
+                }}
+                className="text-xs text-center text-white"
+              >
+                {floatingEmoji.sender}
+              </p>
+            </div>
           </div>
         ))}
       </div>
