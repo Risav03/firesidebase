@@ -9,8 +9,6 @@ interface ChatMessageProps {
 }
 
 export function ChatMessage({ message, isOwnMessage }: ChatMessageProps) {
-  // Debug: Log the message object to see its structure
-  console.log('Message object:', message);
   
   // Try multiple possible ways to get the sender name
   const getSenderName = () => {
