@@ -140,7 +140,8 @@ export default function Footer({ roomId }: { roomId: string }) {
   }
 
   const emojiPickerStyles = {
-    "--epr-bg-color": "oklch(13% 0.028 261.692)",
+    backgroundColor: "oklch(13% 0.028 261.692)",
+    background: "oklch(13% 0.028 261.692)",
     "--epr-category-label-bg-color": "oklch(13% 0.028 261.692)",
     "--epr-input-bg-color": "oklch(13% 0.028 261.692)",
     borderRadius: "0.5rem",
@@ -298,22 +299,27 @@ export default function Footer({ roomId }: { roomId: string }) {
           {/* Emoji Picker Drawer */}
 
           <div
-            className={`fixed bottom-0 -left-2 z-50 w-screen mx-auto ${
+            className={`fixed bottom-0 -left-2 z-50 w-screen mx-auto py-4 ${
               isEmojiPickerOpen ? "" : "translate-y-full"
             } bg-gray-950 rounded-t-xl pt-4 transition-all duration-200`}
           >
-            <div className="w-full flex flex-col gap-2 items-center justify-center">
+            <div className="w-full flex flex-col gap-2 items-center justify-center ">
               <button
                 onClick={() => setIsEmojiPickerOpen(false)}
-                className="w-[30%] bg-white/10 text-white py-0 rounded-full "
+                className="w-[30%] bg-white/10 text-white py-0 rounded-full my-2"
+                title="Close Emoji Picker"
               >
                 <IoIosArrowDown className="mx-auto" />
               </button>
-              <EmojiPicker
-                theme={Theme.DARK}
-                onEmojiClick={handleEmojiSelect}
-                style={emojiPickerStyles}
-              />
+              {isEmojiPickerOpen && (
+                <EmojiPicker
+                  reactionsDefaultOpen={true}
+                  onReactionClick={handleEmojiSelect}
+                  theme={Theme.DARK}
+                  onEmojiClick={handleEmojiSelect}
+                  style={emojiPickerStyles}
+                />
+              )}
             </div>
           </div>
 
