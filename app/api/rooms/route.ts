@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     revalidatePath('/');
     
     const rooms = await Room.find({ enabled: true })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 }).populate('host', 'fid username displayName pfp_url');
     
     
     return NextResponse.json({ 
