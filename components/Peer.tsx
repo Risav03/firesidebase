@@ -62,7 +62,7 @@ export default function Peer({ peer }: PeerProps) {
           </div>
           
           {/* Mute indicator */}
-          {!isPeerAudioEnabled && (
+          {!isPeerAudioEnabled && peer.roleName !== "listener" && (
             <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center border-2 border-white">
               <MicOffIcon className="w-3 h-3 text-white" />
             </div>

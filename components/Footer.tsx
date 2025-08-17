@@ -76,7 +76,6 @@ export default function Footer({ roomId }: { roomId: string }) {
   const handleEmojiSelect = (emoji: any) => {
     const newEmoji = { emoji: emoji.emoji, sender: user?.username };
     sendEvent(newEmoji);
-    setIsEmojiPickerOpen(false);
   };
 
   // Listen for role change events to show re-joining state
@@ -140,12 +139,13 @@ export default function Footer({ roomId }: { roomId: string }) {
   }
 
   const emojiPickerStyles = {
-    backgroundColor: "oklch(13% 0.028 261.692)",
-    background: "oklch(13% 0.028 261.692)",
-    "--epr-category-label-bg-color": "oklch(13% 0.028 261.692)",
-    "--epr-input-bg-color": "oklch(13% 0.028 261.692)",
+    backgroundColor: "oklch(21% 0.034 264.665)",
+    "--epr-category-label-bg-color": "oklch(21% 0.034 264.665)",
     borderRadius: "0.5rem",
-    border: "0px",
+    border: "1px solid",
+    width: "100%",
+    height: "400px",
+    margin: "auto",
   };
 
   // Add CSS for animations
@@ -177,6 +177,20 @@ export default function Footer({ roomId }: { roomId: string }) {
     document.head.appendChild(styleSheet);
     return () => {
       document.head.removeChild(styleSheet);
+    };
+  }, []);
+
+  const handleClickOutside = (event: MouseEvent) => {
+    const emojiPickerElement = document.querySelector(".emoji-picker-container");
+    if (emojiPickerElement && !emojiPickerElement.contains(event.target as Node)) {
+      setIsEmojiPickerOpen(false);
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -296,33 +310,6 @@ export default function Footer({ roomId }: { roomId: string }) {
             )}
           </button>
 
-          {/* Emoji Picker Drawer */}
-
-          <div
-            className={`fixed bottom-0 -left-2 z-50 w-screen mx-auto py-4 ${
-              isEmojiPickerOpen ? "" : "translate-y-full"
-            } bg-gray-950 rounded-t-xl pt-4 transition-all duration-200`}
-          >
-            <div className="w-full flex flex-col gap-2 items-center justify-center ">
-              <button
-                onClick={() => setIsEmojiPickerOpen(false)}
-                className="w-[30%] bg-white/10 text-white py-0 rounded-full my-2"
-                title="Close Emoji Picker"
-              >
-                <IoIosArrowDown className="mx-auto" />
-              </button>
-              {isEmojiPickerOpen && (
-                <EmojiPicker
-                  reactionsDefaultOpen={true}
-                  onReactionClick={handleEmojiSelect}
-                  theme={Theme.DARK}
-                  onEmojiClick={handleEmojiSelect}
-                  style={emojiPickerStyles}
-                />
-              )}
-            </div>
-          </div>
-
           {/* Emoji reactions button */}
           <button
             onClick={(event) => {
@@ -361,6 +348,7 @@ export default function Footer({ roomId }: { roomId: string }) {
           >
             <FaGratipay className="w-5 h-5" />
           </button>
+
           <button
             onClick={() => composeCast()}
             className="text-white pl-4"
@@ -372,6 +360,28 @@ export default function Footer({ roomId }: { roomId: string }) {
 
         {/* Chat component rendered here */}
         <Chat isOpen={isChatOpen} setIsChatOpen={setIsChatOpen} />
+
+        {/* Emoji Picker Drawer */}
+          <div
+            className={`absolute left-0 bottom-[8.5rem] z-50 w-full mx-auto transition-all flex items-center justify-center duration-200 emoji-picker-container ${
+              isEmojiPickerOpen ? "" : "opacity-0 pointer-events-none"
+            } rounded-t-xl`}
+          >
+
+              {isEmojiPickerOpen && (
+                <EmojiPicker
+                  reactionsDefaultOpen={true}
+                  onReactionClick={handleEmojiSelect}
+                  reactions={['1f525','1f602', '1f4af', '1f44e', '2764-fe0f', '1f44d', '1f622']}
+                  theme={Theme.DARK}
+                  onEmojiClick={handleEmojiSelect}
+                  style={emojiPickerStyles}
+                />
+              )}
+           
+
+
+          </div>
 
         {/* Floating emoji rendering */}
         {floatingEmojis.map((floatingEmoji) => (
