@@ -16,11 +16,17 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
     startTime: ''
   });
   const [loading, setLoading] = useState(false);
+  const [nameError, setNameError] = useState('');
   const router = useRouter();
   const { user } = useGlobalContext();
 
   const createRoom = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!/^[a-zA-Z0-9 ]+$/.test(formData.name)) {
+      setNameError('Room name can only contain alphabets, numbers, and spaces.');
+      return;
+    }
+    setNameError('');
     setLoading(true);
     
     try {
@@ -79,10 +85,18 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
             <input
               type="text"
               value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
+              onChange={(e) => {
+                setFormData({ ...formData, name: e.target.value });
+                if (/^[a-zA-Z0-9 ]+$/.test(e.target.value)) {
+                  setNameError('');
+                } else {
+                  setNameError('Room name can only contain alphabets, numbers, and spaces.');
+                }
+              }}
+              className={`w-full px-3 py-2 bg-gray-700 border ${nameError ? 'border-red-500' : 'border-gray-600'} rounded-md text-white`}
               required
             />
+            {nameError && <p className="text-red-500 text-sm mt-1">{nameError}</p>}
           </div>
           
           <div>
@@ -91,10 +105,9 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
             </label>
             <textarea
               value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
               rows={3}
-              required
             />
           </div>
           

@@ -13,9 +13,9 @@ export async function POST(request: NextRequest) {
     const hostUser = await User.findOne({ fid: host });
 
     // Validate required fields
-    if (!name || !description || !host || !startTime) {
+    if (!name || !host || !startTime) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields: name, description, host, startTime' },
+        { success: false, error: 'Missing required fields: name, host, startTime' },
         { status: 400 }
       );
     }

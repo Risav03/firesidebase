@@ -16,7 +16,7 @@ export interface IRoom extends Document {
 const Room: Schema = new Schema({
   name: { type: String, required: true },
   enabled: { type: Boolean, default: true },
-  description: { type: String, required: true },
+  description: { type: String, required: false },
   host: { type: mongoose.Schema.Types.ObjectId, required: true, ref: 'User' },
   participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   startTime: { type: Date, required: true },
