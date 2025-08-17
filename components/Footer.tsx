@@ -327,10 +327,13 @@ export default function Footer({ roomId }: { roomId: string }) {
           <button
             onClick={(event) => {
               event.preventDefault();
+              event.stopPropagation();
               setIsEmojiPickerOpen((prev) => !prev);
             }}
+            onFocus={(event) => event.target.blur()}
             className="relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 bg-white/10 text-white hover:white/20"
             title="Emoji reactions"
+            type="button"
           >
             <svg
               className="w-5 h-5"
