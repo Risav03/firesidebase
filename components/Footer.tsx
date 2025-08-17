@@ -131,8 +131,8 @@ export default function Footer({ roomId }: { roomId: string }) {
   async function composeCast() {
     try {
       await sdk.actions.composeCast({
-        text: `Join this awesome room! ${process.env.NEXT_PUBLIC_URL}/call/${roomId}`,
-        embeds: [`${process.env.NEXT_PUBLIC_URL}/call/${roomId}`],
+        text: `Join this awesome room! https://farcaster.xyz/miniapps/jWGOUKHeE2fd/fireside-100ms/call/${roomId}`,
+        embeds: [`https://farcaster.xyz/miniapps/jWGOUKHeE2fd/fireside-100ms/call/${roomId}`],
       });
     } catch (e) {
       console.error("Error composing cast:", e);
