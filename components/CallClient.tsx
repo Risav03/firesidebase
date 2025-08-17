@@ -141,7 +141,7 @@ export default function CallClient({ roomId }: CallClientProps) {
     <div className="min-h-screen bg-gradient-to-br from-gray-950 to-gray-900">
       <RoleChangeHandler />
       <Header roomId={roomId} />
-      <Conference />
+      <Conference roomId={roomId} />
       <Footer roomId={roomId} />
     </div>
   );

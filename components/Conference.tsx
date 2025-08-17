@@ -10,13 +10,28 @@ import { ScreenTile } from "./ScreenTile";
 import { useEffect, useState } from "react";
 import sdk from "@farcaster/miniapp-sdk";
 
-export default function Conference() {
+export default function Conference({roomId}:{roomId: string}) {
   const allPeers = useHMSStore(selectPeers);
   const presenters = useHMSStore(selectPeersScreenSharing);
   
   // Local state for optimistic updates
   const [peers, setPeers] = useState(allPeers);
   const [removedPeers, setRemovedPeers] = useState<Set<string>>(new Set());
+
+  //function to fetch room details and save name and description in a useState. Call the function in useEffect
+  const [roomDetails, setRoomDetails] = useState<{ name: string; description: string } | null>(null);
+
+  useEffect(() => {
+    async function fetchRoomDetails() {
+      const response = await fetch(`/api/rooms/${roomId}`);
+      const data = await response.json();
+      if (data.success) {
+        setRoomDetails({ name: data.room.name, description: data.room.description });
+      }
+    }
+
+    fetchRoomDetails();
+  }, [roomId]);
 
   useEffect(() => {
     // Update local peers when 100ms peers change
@@ -69,12 +84,12 @@ export default function Conference() {
   return (
     <div className="pt-24 pb-32 px-6">
       <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-4 mt-10">
+        <div className="text-center mb-4 mt-6">
           <h2 className="text-3xl font-bold text-white mb-2">
-            BaseJunkie&apos;s room
+            {roomDetails?.name || ""} 
           </h2>
           <p className="text-gray-400">
-            This is the beginning for Fireside! We are about to make history.
+            {roomDetails?.description || ""}
           </p>
         </div>
 
