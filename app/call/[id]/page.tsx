@@ -5,18 +5,14 @@ import { Metadata } from 'next';
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const URL = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
 
-  // Fetch room details
-  const room = await Room.findOne({ roomId: params.id }).populate('host');
+  const response = await fetch(`/api/rooms/${params.id}`);
+      const data = await response.json();
 
-  if (!room) {
-    throw new Error('Room not found');
-  }
-
-  const hostName = room.host.displayName;
+  const hostName = data.room.host.displayName;
 
   return {
-    title: `${room.name}`,
-    description: `Hosted by ${hostName}. ${room.description}`,
+    title: `${data.room.name}`,
+    description: `Hosted by ${hostName}. ${data.room.description}`,
     other: {
       "fc:frame": JSON.stringify({
         version: "next",
