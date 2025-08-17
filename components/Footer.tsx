@@ -324,16 +324,22 @@ export default function Footer({ roomId }: { roomId: string }) {
           </div>
 
           {/* Emoji reactions button */}
-          <button
+          <div
             onClick={(event) => {
               event.preventDefault();
               event.stopPropagation();
               setIsEmojiPickerOpen((prev) => !prev);
             }}
-            onFocus={(event) => event.target.blur()}
-            className="relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 bg-white/10 text-white hover:white/20"
+            className="relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 bg-white/10 text-white hover:white/20 cursor-pointer select-none"
             title="Emoji reactions"
-            type="button"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                setIsEmojiPickerOpen((prev) => !prev);
+              }
+            }}
           >
             <svg
               className="w-5 h-5"
@@ -354,7 +360,7 @@ export default function Footer({ roomId }: { roomId: string }) {
                 d="M9 11h.01M15 11h.01M8 15h8"
               />
             </svg>
-          </button>
+          </div>
 
           {/* Tipping button */}
           <button
