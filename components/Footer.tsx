@@ -393,6 +393,7 @@ export default function Footer({ roomId }: { roomId: string }) {
                   theme={Theme.DARK}
                   onEmojiClick={handleEmojiSelect}
                   style={emojiPickerStyles}
+                  autoFocusSearch={false}
                 />
               )}
            
