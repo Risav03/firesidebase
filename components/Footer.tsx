@@ -325,7 +325,10 @@ export default function Footer({ roomId }: { roomId: string }) {
 
           {/* Emoji reactions button */}
           <button
-            onClick={() => setIsEmojiPickerOpen((prev) => !prev)}
+            onClick={(event) => {
+              event.preventDefault();
+              setIsEmojiPickerOpen((prev) => !prev);
+            }}
             className="relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 bg-white/10 text-white hover:white/20"
             title="Emoji reactions"
           >
