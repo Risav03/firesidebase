@@ -5,7 +5,7 @@ import { Metadata } from 'next';
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const URL = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
 
-  const response = await fetch(`/api/rooms/${params.id}`);
+  const response = await fetch(`${URL}/api/rooms/${params.id}`);
       const data = await response.json();
 
   const hostName = data.room.host.displayName;

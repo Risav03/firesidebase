@@ -38,11 +38,11 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
       
       const data = await response.json();
       if (data.success) {
-        alert('Room created successfully!');
+        alert('Room created successfully! Redirecting...');
         setFormData({ name: '', description: '', startTime: '' });
         onClose();
         // Redirect to the explore page to show the new room
-        router.push('/');
+        router.push('/call/' + data.room._id);
       } else {
         alert('Error creating room: ' + data.error);
       }
