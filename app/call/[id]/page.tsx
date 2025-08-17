@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
           action: {
             type: "launch_frame",
             name: "Fireside 100ms",
-            url: URL,
+            url: URL+ '/call/' + params.id,
             splashImageUrl: "https://100msfireside-kolt.vercel.app/fireside-logo.svg",
             splashBackgroundColor: "#000000",
           },
