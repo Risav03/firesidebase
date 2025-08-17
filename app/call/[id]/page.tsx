@@ -153,7 +153,7 @@ export default function CallPage({params}:{params:{id:string}}) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 to-gray-900">
       <RoleChangeHandler />
-      <Header />
+      <Header roomId={roomId} />
       <Conference />
       <Footer roomId={roomId} />
     </div>

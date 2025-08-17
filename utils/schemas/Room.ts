@@ -8,6 +8,7 @@ export interface IRoom extends Document {
   participants: string[]; // userIds
   startTime: Date;
   endTime: Date | null;
+  ended_at?: Date; // When the room was ended by host
   status: 'upcoming' | 'ongoing' | 'ended';
   roomId: string;
 }
@@ -20,6 +21,7 @@ const Room: Schema = new Schema({
   participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   startTime: { type: Date, required: true },
   endTime: { type: Date, default: null },
+  ended_at: { type: Date, default: null }, // When the room was ended by host
   status: { 
     type: String, 
     enum: ['upcoming', 'ongoing', 'ended'], 
