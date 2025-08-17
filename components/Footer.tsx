@@ -29,6 +29,7 @@ import { sdk } from "@farcaster/miniapp-sdk";
 import EmojiPicker, { Theme } from "emoji-picker-react";
 import { IoIosArrowDown } from "react-icons/io";
 import { useGlobalContext } from "../utils/providers/globalContext";
+import { MdCopyAll, MdOutlineIosShare } from "react-icons/md";
 
 // Dynamic import to avoid SSR issues
 let plugin: any = null;
@@ -53,6 +54,7 @@ export default function Footer({ roomId }: { roomId: string }) {
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const [floatingEmojis, setFloatingEmojis] = useState<Array<{ emoji: string; sender: string; id: number; position: number }>>([]);
   const { user } = useGlobalContext();
+  const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
 
   const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
 
@@ -76,6 +78,15 @@ export default function Footer({ roomId }: { roomId: string }) {
   const handleEmojiSelect = (emoji: any) => {
     const newEmoji = { emoji: emoji.emoji, sender: user?.username };
     sendEvent(newEmoji);
+  };
+
+  const handleCopyURL = () => {
+    const roomURL = `https://farcaster.xyz/miniapps/jWGOUKHeE2fd/fireside-100ms/call/${roomId}`;
+    navigator.clipboard.writeText(roomURL).then(() => {
+      alert("Room URL copied to clipboard!");
+    }).catch((error) => {
+      console.error("Failed to copy URL:", error);
+    });
   };
 
   // Listen for role change events to show re-joining state
@@ -358,13 +369,16 @@ export default function Footer({ roomId }: { roomId: string }) {
             <FaGratipay className="w-5 h-5" />
           </button>
 
-          <button
-            onClick={() => composeCast()}
-            className="text-white pl-4"
-            title="Share"
-          >
-            <TbShare3 className="w-5 h-5" />
-          </button>
+          
+            <button
+              onClick={() => setIsShareMenuOpen((prev) => !prev)}
+              className={`text-white pl-4 relative z-50 ${isShareMenuOpen ? "" : ""} `}
+              title="Share"
+            >
+              <TbShare3 className="w-5 h-5" />
+            </button>
+
+            
         </div>
 
         {/* Chat component rendered here */}
@@ -391,6 +405,33 @@ export default function Footer({ roomId }: { roomId: string }) {
 
 
           </div>
+          <div onClick={() => setIsShareMenuOpen(false)} className={` fixed top-0 left-0 h-screen w-screen bg-black/30 duration-200 ${isShareMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"} `}>
+{isShareMenuOpen && (
+              <div className="absolute right-0 bottom-24 border border-white/10 mb-2 w-40 bg-gray-800 text-white rounded-lg shadow-lg">
+                <button
+                  onClick={() => {
+                    setIsShareMenuOpen(false);
+                    composeCast();
+                  }}
+                  className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center space-x-2"
+                >
+                  <MdOutlineIosShare className="w-5 h-5" />
+                  <span>Share on App</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setIsShareMenuOpen(false);
+                    handleCopyURL();
+                  }}
+                  className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center space-x-2"
+                >
+                  <MdCopyAll className="w-5 h-5" />
+                  <span>Copy URL</span>
+                </button>
+              </div>
+            )}
+          </div>
+        
 
         {/* Floating emoji rendering */}
         {floatingEmojis.map((floatingEmoji) => (
