@@ -17,7 +17,7 @@
     "@farcaster/miniapp-sdk": "^0.1.8",
     "@farcaster/quick-auth": "^0.0.7",
     "@rainbow-me/rainbowkit": "^2.2.8",
-    "@types/redis": "^4.0.10",
+    "@types/ioredis": "^4.28.10",
     "boring-avatars": "^1.5.8",
     "emoji-mart": "^5.6.0",
     "emoji-picker-react": "^4.13.2",
@@ -29,7 +29,6 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^5.5.0",
-    "redis": "^5.8.1",
     "viem": "^2.33.3",
     "wagmi": "^2.16.2"
   },

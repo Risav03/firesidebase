@@ -143,9 +143,10 @@ export class RedisChatService {
         await redis.setJSON(`${this.MESSAGE_PREFIX}${messageId}`, chatMessage, 86400);
         
         const client = await redis.getClient();
-        await client.zAdd(
+        await client.zadd(
             this.ROOM_MESSAGES_KEY(roomId),
-            { score: Date.now(), value: messageId }
+            Date.now(),
+            messageId
         );
         
         await redis.expire(this.ROOM_MESSAGES_KEY(roomId), 86400);
@@ -156,11 +157,10 @@ export class RedisChatService {
     static async getRoomMessages(roomId: string, limit: number = 50, offset: number = 0): Promise<RedisChatMessage[]> {
         const client = await redis.getClient();
         
-        const messageIds = await client.zRange(
+        const messageIds = await client.zrevrange(
             this.ROOM_MESSAGES_KEY(roomId),
             offset,
-            offset + limit - 1,
-            { REV: true }
+            offset + limit - 1
         );
 
         const messages: RedisChatMessage[] = [];
@@ -177,13 +177,13 @@ export class RedisChatService {
 
     static async getRoomMessageCount(roomId: string): Promise<number> {
         const client = await redis.getClient();
-        return await client.zCard(this.ROOM_MESSAGES_KEY(roomId));
+        return await client.zcard(this.ROOM_MESSAGES_KEY(roomId));
     }
 
     static async deleteRoomMessages(roomId: string): Promise<void> {
         const client = await redis.getClient();
     
-        const messageIds = await client.zRange(this.ROOM_MESSAGES_KEY(roomId), 0, -1);
+        const messageIds = await client.zrange(this.ROOM_MESSAGES_KEY(roomId), 0, -1);
         
         for (const messageId of messageIds) {
             await redis.del(`${this.MESSAGE_PREFIX}${messageId}`);
