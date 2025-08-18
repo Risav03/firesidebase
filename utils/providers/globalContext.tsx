@@ -1,6 +1,6 @@
 "use client";
 
-import { useMiniKit } from "@coinbase/onchainkit/minikit";
+// import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import sdk from "@farcaster/miniapp-sdk";
 import React, {
   createContext,
@@ -11,6 +11,7 @@ import React, {
   useCallback,
 } from "react";
 import { generateNonce } from "@farcaster/auth-client";
+import { redis } from "../redis";
 
 interface GlobalContextProps {
   user: any;

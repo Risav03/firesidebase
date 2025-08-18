@@ -47,7 +47,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         alert('Room created successfully! Redirecting...');
         setFormData({ name: '', description: '', startTime: '' });
         onClose();
-        // Redirect to the explore page to show the new room
+        // Redirect to the room page
         router.push('/call/' + data.room._id);
       } else {
         alert('Error creating room: ' + data.error);

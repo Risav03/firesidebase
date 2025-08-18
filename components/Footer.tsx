@@ -376,7 +376,7 @@ export default function Footer({ roomId }: { roomId: string }) {
         </div>
 
         {/* Chat component rendered here */}
-        <Chat isOpen={isChatOpen} setIsChatOpen={setIsChatOpen} />
+        <Chat isOpen={isChatOpen} setIsChatOpen={setIsChatOpen} roomId={roomId} />
 
         {/* Emoji Picker Drawer */}
           <div

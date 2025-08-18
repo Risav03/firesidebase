@@ -3,6 +3,7 @@ import { connectToDB } from '@/utils/db';
 import Room from '@/utils/schemas/Room';
 import User from '@/utils/schemas/User';
 import { HMSAPI } from '@/utils/100ms';
+import { RedisRoomService } from '@/utils/redisServices';
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,6 +46,14 @@ export async function POST(request: NextRequest) {
 
     // Populate host and participants for response
     await room.populate('host', 'fid username displayName pfp_url');
+
+    // Store room data in Redis
+    try {
+      await RedisRoomService.createRoom(room, hostUser);
+      console.log('Room and host stored in Redis successfully');
+    } catch (redisError) {
+      console.error('Failed to store room in Redis:', redisError);
+    }
 
     return NextResponse.json({
       success: true,
