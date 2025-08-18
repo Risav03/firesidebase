@@ -15,6 +15,8 @@ export async function GET(request: Request) {
     domain: process.env.HOSTNAME as string,
   });
 
+  console.log("JWT payload:", payload);
+
   const fidParam = payload.sub;
   if (!fidParam) {
     return NextResponse.json(
@@ -30,13 +32,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const res = await fetch(
-      `https://api.farcaster.xyz/fc/primary-address?fid=${fid}&protocol=ethereum`,
-    )
-
-    if (res.ok) {
-      const { result } = await res.json()
-      console.log("Primary address result:", result);
-      return NextResponse.json({ user : result.address })
-    }
+  
+      return NextResponse.json({ user : fid })
+    
 }

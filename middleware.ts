@@ -32,7 +32,7 @@ export async function middleware(request: NextRequest) {
       const userJson = await user.json();
 
     const requestHeaders = new Headers(request.headers);
-    requestHeaders.set('x-user-fid', userJson.user.fid.toString());
+    requestHeaders.set('x-user-fid', userJson.user.toString());
 
     // Create a new response with modified headers
     return NextResponse.next({
