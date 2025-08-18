@@ -17,7 +17,7 @@ export function ChatMessage({ message, isOwnMessage }: ChatMessageProps) {
   const getSenderName = () => {
     if (isRedisMessage) {
       const redisMsg = message as RedisChatMessage;
-      return redisMsg.displayName || redisMsg.username || 'Anonymous';
+      return redisMsg.username || 'Anonymous';
     } else {
       const hmsMsg = message as HMSMessage;
       return hmsMsg.senderName || 

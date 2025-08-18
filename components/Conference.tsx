@@ -94,7 +94,7 @@ export default function Conference({roomId}:{roomId: string}) {
         </div>
 
         <div className="">
-          <div className="grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 justify-items-center">
+          <div className="grid grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 justify-items-center">
             {peers.map((peer) => (
               <PeerWithContextMenu key={peer.id} peer={peer} />
             ))}
