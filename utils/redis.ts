@@ -40,7 +40,7 @@ class RedisManager {
         this.isConnecting = true;
 
         try {
-            const redisUrl = process.env.REDIS_URL || 'redis://default:VujIzJsEkBJuypTIyTHxVwb4AidFF6V9@redis-19615.c100.us-east-1-4.ec2.redns.redis-cloud.com:19615';
+            const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
             this.client = new Redis(redisUrl, {
                 maxRetriesPerRequest: 3,
