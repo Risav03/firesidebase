@@ -51,6 +51,9 @@ class RedisManager {
                 
             });
 
+            await this.client.connect();
+            console.log('Redis connection established successfully');
+
             this.client.on('error', (err) => {
                 console.error('Redis Client Error:', err);
             });
@@ -71,8 +74,6 @@ class RedisManager {
                 console.log('Redis client reconnecting...');
             });
 
-            await this.client.connect();
-            console.log('Redis connection established successfully');
         } catch (error) {
             console.error('Failed to connect to Redis:', error);
             this.client = null;
