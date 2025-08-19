@@ -31,6 +31,7 @@ import { IoIosArrowDown } from "react-icons/io";
 import { useGlobalContext } from "../utils/providers/globalContext";
 import { MdCopyAll, MdOutlineIosShare } from "react-icons/md";
 import { useDebounce } from "use-debounce";
+import TippingModal from "./TippingModal";
 
 // Dynamic import to avoid SSR issues
 let plugin: any = null;
@@ -56,6 +57,7 @@ export default function Footer({ roomId }: { roomId: string }) {
   const [floatingEmojis, setFloatingEmojis] = useState<Array<{ emoji: string; sender: string; id: number; position: number }>>([]);
   const { user } = useGlobalContext();
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
+  const [isTippingModalOpen, setIsTippingModalOpen] = useState(false);
 
   // Corrected state initialization for emojiToSend
   const [emojiToSend, setEmojiToSend] = useState<{ emoji: string; sender: string } | null>(null);
@@ -224,6 +226,10 @@ export default function Footer({ roomId }: { roomId: string }) {
     };
   }, []);
 
+  const handleTippingClick = () => {
+    setIsTippingModalOpen((prev) => !prev);
+  };
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900">
       <div className="max-w-4xl mx-auto px-6 py-4 flex">
@@ -375,7 +381,7 @@ export default function Footer({ roomId }: { roomId: string }) {
 
           {/* Tipping button */}
           <button
-            onClick={() => console.log("Tipping clicked")}
+            onClick={handleTippingClick}
             className="relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 bg-white/10 text-white hover:bg-white/20"
             title="Send a tip"
           >
@@ -481,6 +487,15 @@ export default function Footer({ roomId }: { roomId: string }) {
           </div>
         ))}
       </div>
+
+      {/* Tipping Modal */}
+      {isTippingModalOpen && (
+        <TippingModal
+          isOpen={isTippingModalOpen}
+          onClose={() => setIsTippingModalOpen(false)}
+          roomId={roomId}
+        />
+      )}
     </div>
   );
 }

@@ -34,6 +34,7 @@ export interface RoomParticipant {
     displayName: string;
     pfp_url: string;
     role: string;
+    status: 'active' | 'inactive';
     joinedAt: string;
 }
 
@@ -83,6 +84,7 @@ export class RedisRoomService {
             username: user.username,
             displayName: user.displayName,
             pfp_url: user.pfp_url,
+            status: 'active',
             role: role,
             joinedAt: new Date().toISOString()
         };
@@ -97,6 +99,16 @@ export class RedisRoomService {
         
         if (participant) {
             participant.role = newRole;
+            await redis.setJSON(participantKey, participant, 86400);
+        }
+    }
+
+    static async updateParticipantStatus(roomId: string, userFid: string, newStatus: 'active' | 'inactive'): Promise<void> {
+        const participantKey = `${this.PARTICIPANTS_PREFIX}${roomId}:${userFid}`;
+        const participant = await redis.getJSON<RoomParticipant>(participantKey);
+        
+        if (participant) {
+            participant.status = newStatus;
             await redis.setJSON(participantKey, participant, 86400);
         }
     }

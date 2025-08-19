@@ -20,6 +20,7 @@ export async function POST(
     // // Remove participant from room
     // await RedisRoomService.removeParticipant(params.id, userFid);
 
+    await RedisRoomService.updateParticipantStatus(params.id, userFid, 'inactive');
     return NextResponse.json({
       success: true,
       message: 'Participant left successfully'

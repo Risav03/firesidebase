@@ -39,6 +39,7 @@ export async function POST(
 
     
     if (existingParticipant) {
+      await RedisRoomService.updateParticipantStatus(params.id, userFid, 'active');
       return NextResponse.json({
         success: true,
         message: 'User already a participant',
