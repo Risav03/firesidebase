@@ -30,6 +30,7 @@ import EmojiPicker, { Theme } from "emoji-picker-react";
 import { IoIosArrowDown } from "react-icons/io";
 import { useGlobalContext } from "../utils/providers/globalContext";
 import { MdCopyAll, MdOutlineIosShare } from "react-icons/md";
+import { useDebounce } from "use-debounce";
 
 // Dynamic import to avoid SSR issues
 let plugin: any = null;
@@ -56,6 +57,10 @@ export default function Footer({ roomId }: { roomId: string }) {
   const { user } = useGlobalContext();
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
 
+  // Corrected state initialization for emojiToSend
+  const [emojiToSend, setEmojiToSend] = useState<{ emoji: string; sender: string } | null>(null);
+  const [debouncedEmoji] = useDebounce(emojiToSend, 200);
+
   const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
 
   const { sendEvent } = useCustomEvent({
@@ -75,9 +80,16 @@ export default function Footer({ roomId }: { roomId: string }) {
     },
   });
 
+  // Send emoji event when debounced value changes
+  useEffect(() => {
+    if (debouncedEmoji) {
+      sendEvent(debouncedEmoji);
+    }
+  }, [debouncedEmoji]);
+
   const handleEmojiSelect = (emoji: any) => {
     const newEmoji = { emoji: emoji.emoji, sender: user?.username };
-    sendEvent(newEmoji);
+    setEmojiToSend(newEmoji);
   };
 
   const handleCopyURL = () => {
@@ -376,7 +388,7 @@ export default function Footer({ roomId }: { roomId: string }) {
         </div>
 
         {/* Chat component rendered here */}
-        <Chat isOpen={isChatOpen} setIsChatOpen={setIsChatOpen} />
+        <Chat isOpen={isChatOpen} setIsChatOpen={setIsChatOpen} roomId={roomId} />
 
         {/* Emoji Picker Drawer */}
           <div

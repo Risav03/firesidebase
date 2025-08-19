@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Mongoose } from 'mongoose';
+import User from './User';
 
 export interface IRoom extends Document {
   name: string;
@@ -17,8 +18,8 @@ const Room: Schema = new Schema({
   name: { type: String, required: true },
   enabled: { type: Boolean, default: true },
   description: { type: String, required: false },
-  host: { type: mongoose.Schema.Types.ObjectId, required: true, ref: 'User' },
-  participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  host: { type: mongoose.Schema.Types.ObjectId, required: true, ref: User },
+  participants: [{ type: mongoose.Schema.Types.ObjectId, ref: User }],
   startTime: { type: Date, required: true },
   endTime: { type: Date, default: null },
   ended_at: { type: Date, default: null }, // When the room was ended by host

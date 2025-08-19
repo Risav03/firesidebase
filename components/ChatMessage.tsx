@@ -2,23 +2,50 @@
 
 import { HMSMessage } from "@100mslive/react-sdk";
 import { formatDistanceToNow } from "./utils/timeUtils";
+import { RedisChatMessage } from "@/utils/redisServices";
 
 interface ChatMessageProps {
-  message: HMSMessage;
+  message: HMSMessage | RedisChatMessage;
   isOwnMessage: boolean;
 }
 
 export function ChatMessage({ message, isOwnMessage }: ChatMessageProps) {
   
-  // Try multiple possible ways to get the sender name
+  const isRedisMessage = 'userId' in message;
+  
+  // Get sender name based on message type
   const getSenderName = () => {
-    return message.senderName || 
-           message.sender || 
-           (message as any).senderUserId ||
-           'Anonymous';
+    if (isRedisMessage) {
+      const redisMsg = message as RedisChatMessage;
+      return redisMsg.username || 'Anonymous';
+    } else {
+      const hmsMsg = message as HMSMessage;
+      return hmsMsg.senderName || 
+             hmsMsg.sender || 
+             (hmsMsg as any).senderUserId ||
+             'Anonymous';
+    }
   };
   
   const senderName = getSenderName();
+  
+  // Get message text
+  const getMessageText = () => {
+    if (isRedisMessage) {
+      return (message as RedisChatMessage).message;
+    } else {
+      return (message as HMSMessage).message;
+    }
+  };
+  
+  // Get timestamp
+  const getTimestamp = () => {
+    if (isRedisMessage) {
+      return new Date((message as RedisChatMessage).timestamp);
+    } else {
+      return (message as HMSMessage).time;
+    }
+  };
   
   const getInitials = (name: string) => {
     return name
@@ -61,18 +88,18 @@ export function ChatMessage({ message, isOwnMessage }: ChatMessageProps) {
               {senderName}
             </span>
             <span className="text-xs text-gray-400 ml-2">
-              {formatDistanceToNow(message.time)}
+              {formatDistanceToNow(getTimestamp())}
             </span>
           </div>
         )}
         
         <div className={`chat-message-bubble ${isOwnMessage ? 'own-bubble' : 'other-bubble'}`}>
           <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-            {message.message}
+            {getMessageText()}
           </p>
           {isOwnMessage && (
             <div className="text-xs text-gray-300 mt-1 text-right">
-              {formatDistanceToNow(message.time)}
+              {formatDistanceToNow(getTimestamp())}
             </div>
           )}
         </div>

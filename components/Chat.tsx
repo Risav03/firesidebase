@@ -9,31 +9,54 @@ import {
   HMSMessage,
 } from "@100mslive/react-sdk";
 import { ChatMessage } from "./ChatMessage";
+import { useGlobalContext } from "@/utils/providers/globalContext";
+import { RedisChatMessage } from "@/utils/redisServices";
 
 interface ChatProps {
   isOpen: boolean;
   setIsChatOpen: (isOpen: boolean) => void;
+  roomId: string;
 }
 
-export default function Chat({ isOpen, setIsChatOpen }: ChatProps) {
+export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   const [message, setMessage] = useState("");
   const [isClosing, setIsClosing] = useState(false);
+  const [redisMessages, setRedisMessages] = useState<RedisChatMessage[]>([]);
+  const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
 
   const messages = useHMSStore(selectHMSMessages);
   const localPeer = useHMSStore(selectLocalPeer);
   const hmsActions = useHMSActions();
+  const { user } = useGlobalContext();
+
+  useEffect(() => {
+    const loadMessages = async () => {
+      if (!roomId) return;
+      
+      setLoading(true);
+      try {
+        const response = await fetch(`/api/chat/${roomId}?limit=50`);
+        const data = await response.json();
+        
+        if (data.success) {
+          setRedisMessages(data.messages);
+        }
+      } catch (error) {
+        console.error('Failed to load messages:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadMessages();
+  }, [roomId]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    // Debug: Log message structure
-    if (messages.length > 0) {
-      console.log("Latest message structure:", messages[messages.length - 1]);
-      console.log("Local peer:", localPeer);
-    }
-  }, [messages, localPeer]);
+  }, [messages, redisMessages]);
 
   // Handle closing animation
   const handleClose = () => {
@@ -44,10 +67,39 @@ export default function Chat({ isOpen, setIsChatOpen }: ChatProps) {
     }, 400); // Match the CSS transition duration
   };
 
-  const handleSendMessage = () => {
-    if (message.trim()) {
-      hmsActions.sendBroadcastMessage(message.trim());
-      setMessage("");
+  const handleSendMessage = async () => {
+    if (!message.trim() || !user?.fid) return;
+
+    const messageText = message.trim();
+    setMessage(""); // Clear input immediately
+
+    try {
+      // Send to HMS for real-time broadcast
+      hmsActions.sendBroadcastMessage(messageText);
+
+      // Store in Redis for persistence
+      const response = await fetch(`/api/chat/${roomId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: messageText,
+          userFid: user.fid
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Add the new message to our local state
+        setRedisMessages(prev => [...prev, data.message]);
+      } else {
+        console.error('Failed to store message:', data.error);
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // Could show a retry option here
     }
   };
 
@@ -57,6 +109,28 @@ export default function Chat({ isOpen, setIsChatOpen }: ChatProps) {
       handleSendMessage();
     }
   };
+
+  // Combine HMS messages and Redis messages, with Redis messages as the base
+  const combinedMessages = [
+    ...redisMessages,
+    // Add HMS messages that aren't already in Redis (for real-time updates)
+    ...messages.filter(hmsMsg => 
+      !redisMessages.some(redisMsg => 
+        redisMsg.message === hmsMsg.message && 
+        Math.abs(new Date(redisMsg.timestamp).getTime() - hmsMsg.time.getTime()) < 5000
+      )
+    ).map(hmsMsg => ({
+      id: `hms_${hmsMsg.id}`,
+      roomId: roomId,
+      userId: hmsMsg.senderName || hmsMsg.sender || 'unknown',
+      username: hmsMsg.senderName || hmsMsg.sender || 'Unknown',
+      displayName: hmsMsg.senderName || hmsMsg.sender || 'Unknown',
+      pfp_url: '',
+      message: hmsMsg.message,
+      timestamp: hmsMsg.time.toISOString(),
+      type: 'text' as const
+    }))
+  ].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
   // Always render, but control visibility through CSS classes
   const modalClass = `chat-modal ${isOpen ? 'open' : ''} ${isClosing ? 'closing' : ''}`;
@@ -72,7 +146,7 @@ export default function Chat({ isOpen, setIsChatOpen }: ChatProps) {
           <div className="w-3 h-3 bg-fireside-orange rounded-full animate-pulse"></div>
           <h3 className="font-semibold text-white">Room Chat</h3>
           <span className="text-xs text-white bg-gray-700 px-2 py-1 rounded-full">
-            {messages.length}
+            {combinedMessages.length}
           </span>
         </div>
         <div className="flex items-center space-x-2 justify-end w-[50%]">
@@ -100,7 +174,11 @@ export default function Chat({ isOpen, setIsChatOpen }: ChatProps) {
 
       {/* Chat Messages */}
       <div className="chat-content chat-messages bg-gray-950 min-h-[70vh] max-h-[70vh]">
-        {messages.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-white text-sm">Loading messages...</div>
+          </div>
+        ) : combinedMessages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-8">
             <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
               <svg
@@ -122,16 +200,15 @@ export default function Chat({ isOpen, setIsChatOpen }: ChatProps) {
           </div>
         ) : (
           <>
-            {messages.map((msg: HMSMessage) => {
-              // Try multiple ways to get sender name for comparison
-              const msgSenderName =
-                msg.senderName || msg.sender || (msg as any).senderUserId;
+            {combinedMessages.map((msg) => {
+              // For Redis messages, check against user fid; for HMS messages, check against peer name
+              const isOwn = msg.userId === user?.fid || msg.userId === localPeer?.name;
 
               return (
                 <ChatMessage
                   key={msg.id}
                   message={msg}
-                  isOwnMessage={msgSenderName === localPeer?.name}
+                  isOwnMessage={isOwn}
                 />
               );
             })}
