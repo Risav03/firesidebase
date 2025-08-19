@@ -33,7 +33,9 @@ export async function POST(req: NextRequest) {
 			const jsonRes = await res.json();
 			const neynarRes = jsonRes.users?.[0];
 
-			user = await User.create({ fid: fid, username: neynarRes?.username, displayName: neynarRes?.display_name, pfp_url: neynarRes?.pfp_url });
+			console.log("Neynar response:", neynarRes);
+
+			user = await User.create({ fid: fid, username: neynarRes?.username, displayName: neynarRes?.display_name, pfp_url: neynarRes?.pfp_url, wallet: neynarRes?.verified_addresses?.primary?.eth_address || '' });
 		}
 
 		return NextResponse.json({ user });

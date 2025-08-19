@@ -5,6 +5,7 @@ export interface IUser extends Document {
   username: string;
   displayName: string;
   pfp_url: string;
+  wallet:string;
   bio?: string;
 }
 
@@ -12,6 +13,7 @@ const User: Schema = new Schema({
   fid: { type: String, required: true, unique: true },
   username: { type: String, required: true },
   displayName: { type: String, required: true },
+  wallet: { type: String, required: true },
   pfp_url: { type: String, required: true },
   bio: { type: String, required: false },
 });

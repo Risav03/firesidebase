@@ -114,7 +114,8 @@ export default function CallClient({ roomId }: CallClientProps) {
           metaData: JSON.stringify({
             avatar: user.pfp_url,
             role: role,
-            fid: user.fid
+            fid: user.fid,
+            wallet: user.wallet || '',
           })
         });
 

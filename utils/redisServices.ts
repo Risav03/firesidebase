@@ -33,6 +33,7 @@ export interface RoomParticipant {
     username: string;
     displayName: string;
     pfp_url: string;
+    wallet:string;
     role: string;
     status: 'active' | 'inactive';
     joinedAt: string;
@@ -84,6 +85,7 @@ export class RedisRoomService {
             username: user.username,
             displayName: user.displayName,
             pfp_url: user.pfp_url,
+            wallet: user.wallet || '',
             status: 'active',
             role: role,
             joinedAt: new Date().toISOString()
