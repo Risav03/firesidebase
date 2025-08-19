@@ -44,11 +44,11 @@ class RedisManager {
 
             this.client = new Redis(redisUrl, {
                 maxRetriesPerRequest: 3,
-                lazyConnect: true,
                 reconnectOnError: (err) => {
                     const targetError = 'READONLY';
                     return err.message.includes(targetError);
                 },
+                
             });
 
             this.client.on('error', (err) => {
@@ -116,6 +116,7 @@ class RedisManager {
     public async getJSON<T>(key: string): Promise<T | null> {
         const client = await this.getClient();
         const value = await client.get(key);
+
         if (!value) return null;
         try {
             return JSON.parse(value) as T;

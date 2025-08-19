@@ -65,7 +65,25 @@ export default function CallClient({ roomId }: CallClientProps) {
         }
 
         if (!roomCode) {
-          const listenerCode = roomCodes.find(code => code.role === 'listener');
+          const code = await fetch(`/api/rooms/${roomId}/codes/${user.fid}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          const usableBody = await code.json();
+
+          console.log('Usable body:', usableBody);
+
+          const userCode = usableBody.role || "listener";
+
+          console.log('User code:', userCode);
+
+          const listenerCode = roomCodes.find(code => code.role === userCode);
+
+          console.log('Listener code:', listenerCode);
+
           if (listenerCode) {
             roomCode = listenerCode.code;
             role = 'listener';

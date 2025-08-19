@@ -33,13 +33,21 @@ export interface RoomParticipant {
     username: string;
     displayName: string;
     pfp_url: string;
-    role: 'host' | 'co-host' | 'speaker' | 'listener';
+    role: string;
     joinedAt: string;
 }
 
 export class RedisRoomService {
     private static ROOM_PREFIX = 'room:';
     private static PARTICIPANTS_PREFIX = 'participants:';
+
+    static async getParticipant(roomId: string, fid: string): Promise<RoomParticipant | null> {
+        const participantKey = `${this.PARTICIPANTS_PREFIX}${roomId}:${fid}`;
+        console.log('Fetching participant from Redis:', participantKey);
+        const participant = await redis.getJSON<RoomParticipant>(participantKey);
+        console.log('Fetched participant in services:', participant);
+        return participant;
+    }
 
     static async createRoom(roomData: IRoom, hostUser: IUser): Promise<void> {
         const roomId = (roomData as any)._id.toString();
