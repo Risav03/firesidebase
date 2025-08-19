@@ -59,7 +59,42 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
   const handleRoleChange = async (newRole: string) => {
     try {
       setIsLoading(true);
+      
+      // Change role in HMS
       await hmsActions.changeRole(peer.id, newRole, true);
+      
+      // Sync role change with Redis if we have user metadata
+      try {
+        const metadata = peer.metadata ? JSON.parse(peer.metadata) : null;
+        const userFid = metadata?.fid;
+        
+        if (userFid) {
+          // Get room ID from URL or context
+          const pathParts = window.location.pathname.split('/');
+          const roomId = pathParts[pathParts.length - 1];
+          
+          const response = await fetch(`/api/rooms/${roomId}/participants`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userFid: userFid,
+              newRole: newRole
+            }),
+          });
+          
+          if (response.ok) {
+            console.log('Role updated in Redis successfully');
+          } else {
+            console.error('Failed to update role in Redis');
+          }
+        }
+      } catch (redisError) {
+        console.error('Error syncing role with Redis:', redisError);
+        // Don't fail the main operation if Redis sync fails
+      }
+      
       onClose();
     } catch (error) {
       console.error('Error changing role:', error);

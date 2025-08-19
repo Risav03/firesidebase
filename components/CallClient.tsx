@@ -65,7 +65,25 @@ export default function CallClient({ roomId }: CallClientProps) {
         }
 
         if (!roomCode) {
-          const listenerCode = roomCodes.find(code => code.role === 'listener');
+          const code = await fetch(`/api/rooms/${roomId}/codes/${user.fid}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          const usableBody = await code.json();
+
+          console.log('Usable body:', usableBody);
+
+          const userCode = usableBody.role || "listener";
+
+          console.log('User code:', userCode);
+
+          const listenerCode = roomCodes.find(code => code.role === userCode);
+
+          console.log('Listener code:', listenerCode);
+
           if (listenerCode) {
             roomCode = listenerCode.code;
             role = 'listener';
@@ -102,13 +120,75 @@ export default function CallClient({ roomId }: CallClientProps) {
   }, [roomId, user, hmsActions]);
 
   useEffect(() => {
-    if (isConnected && localPeer) {
+    if (isConnected && localPeer && user) {
       const role = localPeer.roleName;
       if (role === 'host' || role === 'co-host' || role === 'speaker') {
         hmsActions.setLocalAudioEnabled(false);
       }
+
+      // Add user as participant in Redis when they successfully join
+      const addParticipantToRedis = async () => {
+        try {
+          const response = await fetch(`/api/rooms/${roomId}/join`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userFid: user.fid,
+              role: role || 'listener'
+            }),
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            console.log('User added to Redis participants:', data.participant);
+          } else {
+            console.error('Failed to add user to Redis participants:', data.error);
+          }
+        } catch (error) {
+          console.error('Error adding participant to Redis:', error);
+        }
+      };
+
+      addParticipantToRedis();
     }
-  }, [isConnected, localPeer, hmsActions]);
+  }, [isConnected, localPeer, hmsActions, user, roomId]);
+
+  // Cleanup: Remove user from Redis participants when component unmounts or user leaves
+  useEffect(() => {
+    const removeParticipantFromRedis = async () => {
+      if (user?.fid) {
+        try {
+          await fetch(`/api/rooms/${roomId}/leave`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userFid: user.fid
+            }),
+          });
+          console.log('User removed from Redis participants');
+        } catch (error) {
+          console.error('Error removing participant from Redis:', error);
+        }
+      }
+    };
+
+    // Remove participant on page unload/refresh
+    const handleBeforeUnload = () => {
+      removeParticipantFromRedis();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Also remove on component unmount
+      removeParticipantFromRedis();
+    };
+  }, [user, roomId]);
 
   if (error) {
     return (
