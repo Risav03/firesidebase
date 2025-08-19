@@ -1,23 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { RedisRoomService } from '@/utils/redisServices';
+import { connectToDB } from '@/utils/db';
+import Room from '@/utils/schemas/Room';
+import User from '@/utils/schemas/User';
+import { HMSAPI } from '@/utils/100ms';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string; fid: string } }) {
-  const { id: roomId, fid } = params;
-
-  console.log('Fetching participant for roomId:', roomId, 'and fid:', fid);
-
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string; fid: string } }
+) {
   try {
-    const participant = await RedisRoomService.getParticipant(String(roomId), String(fid));
-
-    console.log('Fetched participant:', participant);
-
-    if (!participant) {
-      return NextResponse.json({ error: 'Participant not found' }, { status: 404 });
+    const { id: roomId, fid } = params;
+    
+    await connectToDB();
+    
+    const room = await Room.findById(roomId).populate('host', 'fid');
+    const user = await User.findOne({ fid: fid });
+    
+    if (!room) {
+      return NextResponse.json(
+        { success: false, error: 'Room not found' },
+        { status: 404 }
+      );
     }
 
-    return NextResponse.json(participant);
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    let role = 'listener';
+    
+    if (room.host && room.host.fid === fid) {
+      role = 'host';
+    }
+    
+    const hmsAPI = new HMSAPI();
+    const roomCodes = await hmsAPI.getRoomCodes(room.roomId);
+    
+    const userCode = roomCodes.data.find(code => code.role === role);
+    
+    if (!userCode) {
+      return NextResponse.json(
+        { success: false, error: `No room code found for role: ${role}` },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      role: role,
+      code: userCode.code,
+      roomCode: userCode
+    });
+    
   } catch (error) {
-    console.error('Error fetching participant:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('Error fetching user room code:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch user room code' },
+      { status: 500 }
+    );
   }
 }

@@ -65,28 +65,38 @@ export default function CallClient({ roomId }: CallClientProps) {
         }
 
         if (!roomCode) {
-          const code = await fetch(`/api/rooms/${roomId}/codes/${user.fid}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
-          
-          const usableBody = await code.json();
+          try {
+            const response = await fetch(`/api/rooms/${roomId}/codes/${user.fid}`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
+            
+            const data = await response.json();
+            console.log('User role data:', data);
 
-          console.log('Usable body:', usableBody);
-
-          const userCode = usableBody.role || "listener";
-
-          console.log('User code:', userCode);
-
-          const listenerCode = roomCodes.find(code => code.role === userCode);
-
-          console.log('Listener code:', listenerCode);
-
-          if (listenerCode) {
-            roomCode = listenerCode.code;
-            role = 'listener';
+            if (data.success) {
+              roomCode = data.code;
+              role = data.role;
+              console.log(`User assigned role: ${role} with code: ${roomCode}`);
+            } else {
+              console.error('Failed to get user role:', data.error);
+              // Fallback to listener role
+              const listenerCode = roomCodes.find(code => code.role === 'listener');
+              if (listenerCode) {
+                roomCode = listenerCode.code;
+                role = 'listener';
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching user role:', error);
+            // Fallback to listener role
+            const listenerCode = roomCodes.find(code => code.role === 'listener');
+            if (listenerCode) {
+              roomCode = listenerCode.code;
+              role = 'listener';
+            }
           }
         }
 

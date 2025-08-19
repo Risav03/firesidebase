@@ -19,21 +19,32 @@ class RedisManager {
             return this.client;
         }
 
-        if (this.isConnecting) {
-            while (this.isConnecting) {
+        if (this.client && this.client.status === 'connecting') {
+            // Wait for existing connection attempt
+            let attempts = 0;
+            while (this.client && this.client.status === 'connecting' && attempts < 50) {
                 await new Promise(resolve => setTimeout(resolve, 100));
-            }
-            if (this.client && this.client.status === 'ready') {
-                return this.client;
+                attempts++;
             }
         }
 
-        await this.connect();
+        if (this.client && this.client.status === 'ready') {
+            return this.client;
+        }
+
+        if (!this.isConnecting) {
+            await this.connect();
+        }
+        
         return this.client!;
     }
 
     private async connect(): Promise<void> {
-        if (this.isConnecting || (this.client && this.client.status === 'ready')) {
+        if (this.isConnecting) {
+            return;
+        }
+
+        if (this.client && (this.client.status === 'ready' || this.client.status === 'connecting')) {
             return;
         }
 
@@ -44,15 +55,12 @@ class RedisManager {
 
             this.client = new Redis(redisUrl, {
                 maxRetriesPerRequest: 3,
+                lazyConnect: true,
                 reconnectOnError: (err) => {
                     const targetError = 'READONLY';
                     return err.message.includes(targetError);
                 },
-                
             });
-
-            await this.client.connect();
-            console.log('Redis connection established successfully');
 
             this.client.on('error', (err) => {
                 console.error('Redis Client Error:', err);
@@ -74,6 +82,8 @@ class RedisManager {
                 console.log('Redis client reconnecting...');
             });
 
+            await this.client.connect();
+            console.log('Redis connection established successfully');
         } catch (error) {
             console.error('Failed to connect to Redis:', error);
             this.client = null;
@@ -117,7 +127,6 @@ class RedisManager {
     public async getJSON<T>(key: string): Promise<T | null> {
         const client = await this.getClient();
         const value = await client.get(key);
-
         if (!value) return null;
         try {
             return JSON.parse(value) as T;
