@@ -47,12 +47,13 @@ export async function POST(request: NextRequest) {
     // Populate host and participants for response
     await room.populate('host', 'fid username displayName pfp_url');
 
-    // Store room data in Redis
+    // Add host as participant in Redis
     try {
-      await RedisRoomService.createRoom(room, hostUser);
-      console.log('Room and host stored in Redis successfully');
+      const roomId = room._id.toString();
+      await RedisRoomService.addParticipant(roomId, hostUser, 'host');
+      console.log('Host added to Redis participants successfully');
     } catch (redisError) {
-      console.error('Failed to store room in Redis:', redisError);
+      console.error('Failed to add host to Redis:', redisError);
     }
 
     return NextResponse.json({

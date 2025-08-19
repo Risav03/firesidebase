@@ -35,7 +35,7 @@ export async function GET(
     
     if (room.host && room.host.fid === fid) {
       role = 'host';
-    }else{
+    } else {
       const existingParticipant = await RedisRoomService.getParticipant(roomId, fid);
       if (existingParticipant) {
         role = existingParticipant.role;

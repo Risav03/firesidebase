@@ -17,9 +17,7 @@ export async function POST(
       );
     }
 
-    // // Remove participant from room
-    // await RedisRoomService.removeParticipant(params.id, userFid);
-
+    // Mark participant as inactive instead of removing them
     await RedisRoomService.updateParticipantStatus(params.id, userFid, 'inactive');
     return NextResponse.json({
       success: true,

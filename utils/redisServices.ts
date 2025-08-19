@@ -1,21 +1,5 @@
 import { redis } from './redis';
-import { IRoom } from './schemas/Room';
 import { IUser } from './schemas/User';
-
-export interface RedisRoom {
-    id: string;
-    name: string;
-    description: string;
-    host: {
-        fid: string;
-        username: string;
-        displayName: string;
-        pfp_url: string;
-    };
-    roomId: string;
-    status: 'upcoming' | 'ongoing' | 'ended';
-    createdAt: string;
-}
 
 export interface RedisChatMessage {
     id: string;
@@ -33,114 +17,215 @@ export interface RoomParticipant {
     username: string;
     displayName: string;
     pfp_url: string;
-    wallet:string;
-    role: string;
+    wallet: string;
+    role: 'host' | 'co-host' | 'speaker' | 'listener';
     status: 'active' | 'inactive';
     joinedAt: string;
 }
 
 export class RedisRoomService {
-    private static ROOM_PREFIX = 'room:';
+    // New structure: participants:roomId:role -> Set of user data
     private static PARTICIPANTS_PREFIX = 'participants:';
 
-    static async getParticipant(roomId: string, fid: string): Promise<RoomParticipant | null> {
-        const participantKey = `${this.PARTICIPANTS_PREFIX}${roomId}:${fid}`;
-        console.log('Fetching participant from Redis:', participantKey);
-        const participant = await redis.getJSON<RoomParticipant>(participantKey);
-        console.log('Fetched participant in services:', participant);
-        return participant;
+    // Get a specific participant's info and role
+    static async getParticipant(roomId: string, userFid: string): Promise<{ participant: RoomParticipant; role: string } | null> {
+        const roles = ['host', 'co-host', 'speaker', 'listener'];
+        
+        for (const role of roles) {
+            const roleKey = `${this.PARTICIPANTS_PREFIX}${roomId}:${role}`;
+            const client = await redis.getClient();
+            const participants = await client.smembers(roleKey);
+            
+            for (const participantData of participants) {
+                try {
+                    const participant = JSON.parse(participantData) as RoomParticipant;
+                    if (participant.userId === userFid) {
+                        return { participant, role };
+                    }
+                } catch (error) {
+                    console.error('Error parsing participant data:', error);
+                }
+            }
+        }
+        
+        return null;
     }
 
-    static async createRoom(roomData: IRoom, hostUser: IUser): Promise<void> {
-        const roomId = (roomData as any)._id.toString();
-        const redisRoom: RedisRoom = {
-            id: roomId,
-            name: roomData.name,
-            description: roomData.description || '',
-            host: {
-                fid: hostUser.fid,
-                username: hostUser.username,
-                displayName: hostUser.displayName,
-                pfp_url: hostUser.pfp_url
-            },
-            roomId: roomData.roomId,
-            status: roomData.status,
-            createdAt: new Date().toISOString(),
-        };
-
-        const roomKey = `${this.ROOM_PREFIX}${roomId}`;
-        await redis.setJSON(roomKey, redisRoom, 86400); // 24 hours
-
-        await this.addParticipant(roomId, hostUser, 'host');
-    }
-
-    static async getRoom(roomId: string): Promise<RedisRoom | null> {
-        const roomKey = `${this.ROOM_PREFIX}${roomId}`;
-        return await redis.getJSON<RedisRoom>(roomKey);
-    }
-
+    // Add a participant to a specific role
     static async addParticipant(roomId: string, user: IUser, role: 'host' | 'co-host' | 'speaker' | 'listener'): Promise<void> {
+        // First, remove user from any existing role
+        await this.removeParticipant(roomId, user.fid);
+        
         const participant: RoomParticipant = {
             userId: user.fid,
             username: user.username,
             displayName: user.displayName,
             pfp_url: user.pfp_url,
             wallet: user.wallet || '',
-            status: 'active',
             role: role,
+            status: 'active',
             joinedAt: new Date().toISOString()
         };
 
-        const participantKey = `${this.PARTICIPANTS_PREFIX}${roomId}:${user.fid}`;
-        await redis.setJSON(participantKey, participant, 86400);
+        const roleKey = `${this.PARTICIPANTS_PREFIX}${roomId}:${role}`;
+        const client = await redis.getClient();
+        await client.sadd(roleKey, JSON.stringify(participant));
+        await redis.expire(roleKey, 86400); // 24 hours
     }
 
+    // Update a participant's role (move them between role sets)
     static async updateParticipantRole(roomId: string, userFid: string, newRole: 'host' | 'co-host' | 'speaker' | 'listener'): Promise<void> {
-        const participantKey = `${this.PARTICIPANTS_PREFIX}${roomId}:${userFid}`;
-        const participant = await redis.getJSON<RoomParticipant>(participantKey);
+        const currentData = await this.getParticipant(roomId, userFid);
         
-        if (participant) {
-            participant.role = newRole;
-            await redis.setJSON(participantKey, participant, 86400);
+        if (currentData) {
+            // Remove from current role
+            await this.removeParticipant(roomId, userFid);
+            
+            // Update role in participant data and add to new role
+            const updatedParticipant = { ...currentData.participant, role: newRole };
+            const roleKey = `${this.PARTICIPANTS_PREFIX}${roomId}:${newRole}`;
+            const client = await redis.getClient();
+            await client.sadd(roleKey, JSON.stringify(updatedParticipant));
+            await redis.expire(roleKey, 86400);
         }
     }
 
+    // Update a participant's status (active/inactive) without changing their role
     static async updateParticipantStatus(roomId: string, userFid: string, newStatus: 'active' | 'inactive'): Promise<void> {
-        const participantKey = `${this.PARTICIPANTS_PREFIX}${roomId}:${userFid}`;
-        const participant = await redis.getJSON<RoomParticipant>(participantKey);
+        const currentData = await this.getParticipant(roomId, userFid);
         
-        if (participant) {
-            participant.status = newStatus;
-            await redis.setJSON(participantKey, participant, 86400);
+        if (currentData) {
+            // Update status in participant data
+            const updatedParticipant = { ...currentData.participant, status: newStatus };
+            
+            // Remove old entry and add updated entry to the same role set
+            const roleKey = `${this.PARTICIPANTS_PREFIX}${roomId}:${currentData.role}`;
+            const client = await redis.getClient();
+            
+            // Remove old entry
+            await client.srem(roleKey, JSON.stringify(currentData.participant));
+            
+            // Add updated entry
+            await client.sadd(roleKey, JSON.stringify(updatedParticipant));
+            await redis.expire(roleKey, 86400);
         }
     }
 
+    // Remove a participant from all roles
     static async removeParticipant(roomId: string, userFid: string): Promise<void> {
-        const participantKey = `${this.PARTICIPANTS_PREFIX}${roomId}:${userFid}`;
-        await redis.del(participantKey);
+        const roles = ['host', 'co-host', 'speaker', 'listener'];
+        const client = await redis.getClient();
+        
+        for (const role of roles) {
+            const roleKey = `${this.PARTICIPANTS_PREFIX}${roomId}:${role}`;
+            const participants = await client.smembers(roleKey);
+            
+            for (const participantData of participants) {
+                try {
+                    const participant = JSON.parse(participantData) as RoomParticipant;
+                    if (participant.userId === userFid) {
+                        await client.srem(roleKey, participantData);
+                        break;
+                    }
+                } catch (error) {
+                    console.error('Error parsing participant data:', error);
+                }
+            }
+        }
     }
 
-    static async getRoomParticipants(roomId: string): Promise<RoomParticipant[]> {
-        const keys = await redis.keys(`${this.PARTICIPANTS_PREFIX}${roomId}:*`);
-        const participants: RoomParticipant[] = [];
+    // Get all participants in a room organized by role
+    static async getRoomParticipantsByRole(roomId: string): Promise<Record<string, RoomParticipant[]>> {
+        const roles = ['host', 'co-host', 'speaker', 'listener'];
+        const result: Record<string, RoomParticipant[]> = {};
+        const client = await redis.getClient();
         
-        for (const key of keys) {
-            const participant = await redis.getJSON<RoomParticipant>(key);
-            if (participant) {
-                participants.push(participant);
+        for (const role of roles) {
+            const roleKey = `${this.PARTICIPANTS_PREFIX}${roomId}:${role}`;
+            const participants = await client.smembers(roleKey);
+            
+            result[role] = [];
+            for (const participantData of participants) {
+                try {
+                    const participant = JSON.parse(participantData) as RoomParticipant;
+                    result[role].push(participant);
+                } catch (error) {
+                    console.error('Error parsing participant data:', error);
+                }
             }
         }
         
-        return participants;
+        return result;
     }
 
-    static async updateRoomStatus(roomId: string, status: 'upcoming' | 'ongoing' | 'ended'): Promise<void> {
-        const roomKey = `${this.ROOM_PREFIX}${roomId}`;
-        const room = await this.getRoom(roomId);
+    // Get all participants in a room (flat list)
+    static async getRoomParticipants(roomId: string): Promise<RoomParticipant[]> {
+        const participantsByRole = await this.getRoomParticipantsByRole(roomId);
+        const allParticipants: RoomParticipant[] = [];
         
-        if (room) {
-            room.status = status;
-            await redis.setJSON(roomKey, room, status === 'ended' ? 3600 : 86400); // Keep ended rooms for 1 hour
+        Object.values(participantsByRole).forEach(roleParticipants => {
+            allParticipants.push(...roleParticipants);
+        });
+        
+        return allParticipants;
+    }
+
+    // Get participants for a specific role
+    static async getParticipantsByRole(roomId: string, role: 'host' | 'co-host' | 'speaker' | 'listener'): Promise<RoomParticipant[]> {
+        const roleKey = `${this.PARTICIPANTS_PREFIX}${roomId}:${role}`;
+        const client = await redis.getClient();
+        const participants = await client.smembers(roleKey);
+        
+        const result: RoomParticipant[] = [];
+        for (const participantData of participants) {
+            try {
+                const participant = JSON.parse(participantData) as RoomParticipant;
+                result.push(participant);
+            } catch (error) {
+                console.error('Error parsing participant data:', error);
+            }
+        }
+        
+        return result;
+    }
+
+    // Get only active participants for a specific role
+    static async getActiveParticipantsByRole(roomId: string, role: 'host' | 'co-host' | 'speaker' | 'listener'): Promise<RoomParticipant[]> {
+        const allParticipants = await this.getParticipantsByRole(roomId, role);
+        return allParticipants.filter(p => p.status === 'active');
+    }
+
+    // Get all active participants in a room organized by role
+    static async getActiveRoomParticipantsByRole(roomId: string): Promise<Record<string, RoomParticipant[]>> {
+        const roles = ['host', 'co-host', 'speaker', 'listener'];
+        const result: Record<string, RoomParticipant[]> = {};
+        
+        for (const role of roles) {
+            result[role] = await this.getActiveParticipantsByRole(roomId, role as any);
+        }
+        
+        return result;
+    }
+
+    // Get all active participants in a room (flat list)
+    static async getActiveRoomParticipants(roomId: string): Promise<RoomParticipant[]> {
+        const participantsByRole = await this.getActiveRoomParticipantsByRole(roomId);
+        const allParticipants: RoomParticipant[] = [];
+        
+        Object.values(participantsByRole).forEach(roleParticipants => {
+            allParticipants.push(...roleParticipants);
+        });
+        
+        return allParticipants;
+    }
+
+    // Clean up all participants for a room
+    static async deleteRoomParticipants(roomId: string): Promise<void> {
+        const roles = ['host', 'co-host', 'speaker', 'listener'];
+        
+        for (const role of roles) {
+            const roleKey = `${this.PARTICIPANTS_PREFIX}${roomId}:${role}`;
+            await redis.del(roleKey);
         }
     }
 }
