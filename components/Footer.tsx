@@ -75,9 +75,16 @@ export default function Footer({ roomId }: { roomId: string }) {
     },
   });
 
-  const handleEmojiSelect = (emoji: any) => {
-    const newEmoji = { emoji: emoji.emoji, sender: user?.username };
-    sendEvent(newEmoji);
+  let emojiTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  const handleEmojiSelect = (emoji: { emoji: string }) => {
+    if (emojiTimeout) return;
+
+    emojiTimeout = setTimeout(() => {
+      const newEmoji = { emoji: emoji.emoji, sender: user?.username };
+      sendEvent(newEmoji);
+      emojiTimeout = null;
+    }, 400);
   };
 
   const handleCopyURL = () => {
@@ -454,7 +461,7 @@ export default function Footer({ roomId }: { roomId: string }) {
                   opacity: 1,
                   animation: "fade 7s ease-out forwards",
                 }}
-                className="text-xs text-center text-white"
+                className="text-xs text-center text-gray-300 bg-black/40 rounded-full px-2 py-1"
               >
                 {floatingEmoji.sender}
               </p>
