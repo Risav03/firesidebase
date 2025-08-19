@@ -3,6 +3,7 @@ import { connectToDB } from '@/utils/db';
 import Room from '@/utils/schemas/Room';
 import User from '@/utils/schemas/User';
 import { HMSAPI } from '@/utils/100ms';
+import { RedisRoomService } from '@/utils/redisServices';
 
 export async function GET(
   request: NextRequest,
@@ -34,7 +35,13 @@ export async function GET(
     
     if (room.host && room.host.fid === fid) {
       role = 'host';
+    }else{
+      const existingParticipant = await RedisRoomService.getParticipant(roomId, fid);
+      if (existingParticipant) {
+        role = existingParticipant.role;
+      }
     }
+
     
     const hmsAPI = new HMSAPI();
     const roomCodes = await hmsAPI.getRoomCodes(room.roomId);

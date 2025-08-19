@@ -32,7 +32,11 @@ export async function POST(
 
     // Check if user is already a participant to avoid duplicates
     const participants = await RedisRoomService.getRoomParticipants(params.id);
+
+    console.log("Participants in room:", participants, userFid);
     const existingParticipant = participants.find(p => p.userId === userFid);
+
+
     
     if (existingParticipant) {
       return NextResponse.json({

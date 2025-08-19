@@ -17,8 +17,8 @@ export async function POST(
       );
     }
 
-    // Remove participant from room
-    await RedisRoomService.removeParticipant(params.id, userFid);
+    // // Remove participant from room
+    // await RedisRoomService.removeParticipant(params.id, userFid);
 
     return NextResponse.json({
       success: true,
