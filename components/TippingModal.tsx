@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useGlobalContext } from '@/utils/providers/globalContext';
+import { FaEthereum } from 'react-icons/fa';
+import { BiSolidDollarCircle } from "react-icons/bi";
 
 interface TippingModalProps {
   isOpen: boolean;
@@ -220,18 +222,19 @@ export default function TippingModal({ isOpen, onClose, roomId }: TippingModalPr
             />
         </div>
 
-        <div className="flex space-x-3">
+
+        <div className="flex space-x-3 mt-4">
           <button
-            onClick={onClose}
-            className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+            onClick={() => alert('Tip in ETH selected')}
+            className="flex-1 text-white bg-indigo-400 hover:bg-indigo-500 font-medium py-2 px-4 rounded-md transition-colors"
           >
-            Cancel
+            <span className='flex gap-2 items-center justify-center'><FaEthereum/>Tip in ETH</span>
           </button>
           <button
-            onClick={handleTip}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+            onClick={() => alert('Tip in USDC selected')}
+            className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
           >
-            Send Tip
+            <span className='flex gap-2 items-center justify-center'><BiSolidDollarCircle/>Tip in USDC</span>
           </button>
         </div>
       </div>
