@@ -20,6 +20,7 @@ interface Participant {
   username: string;
   pfp_url: string;
   customDomain?: string;
+  wallet:string;
   status: string;
 }
 
@@ -91,7 +92,7 @@ export default function TippingModal({ isOpen, onClose, roomId }: TippingModalPr
   const handleETHTip = async () => {
     try {
       setIsLoading(true);
-      if (!selectedUsers.length) {
+      if (!selectedUsers.length && !selectedRoles.length) {
         console.error('No users selected for tipping');
         return;
       }
@@ -99,9 +100,42 @@ export default function TippingModal({ isOpen, onClose, roomId }: TippingModalPr
         console.error('No tip amount specified');
         return;
       }
-      console.log('Selected Users:', selectedUsers);
+
+      let usersToSend:any = []
+
+      if(selectedUsers.length > 0) {
+        usersToSend = selectedUsers.map((user) => user.wallet);
+      }
+      else{
+        for(const role in selectedRoles){
+          console.log(selectedRoles[role])
+          const res = await fetch(`/api/rooms/${roomId}/participants-by-role`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              role: selectedRoles[role]
+            }),
+          });
+
+          const data = await res.json();
+          if (data.success) {
+            console.log(data.participants)
+            usersToSend.push(...data.participants.map((user: Participant) => user.wallet));
+          } else {
+            console.error('Failed to fetch participants by role:', data.error);
+          }
+        }
+      }
+
+      if(usersToSend.length === 0) {
+        console.error('No users found for tipping');
+        return;
+      }
+
       const ethPrice = await getEthPrice();
-      console.log('Current ETH Price:', ethPrice);
+
       const cryptoAmount = (() => {
         const tipAmount = selectedTip ? selectedTip : parseFloat(customTip);
         if (!tipAmount || isNaN(tipAmount)) {
@@ -112,13 +146,13 @@ export default function TippingModal({ isOpen, onClose, roomId }: TippingModalPr
         }
         return Number((tipAmount / ethPrice).toFixed(6));
       })();
-      console.log('Crypto Amount:', cryptoAmount, BigInt(cryptoAmount * 1e18));
+      
       const res = await writeContract(config, {
           abi: firebaseTipsAbi,
           address: contractAdds.tipping as `0x${string}`,
           functionName: "distributeETH",
           args: [
-            selectedUsers.map((user) => user.wallet),
+            usersToSend
           ],
           value: BigInt(cryptoAmount * 1e18),
         });
@@ -153,7 +187,6 @@ export default function TippingModal({ isOpen, onClose, roomId }: TippingModalPr
 
   if (!isOpen) return null;
 
-console.log(address)
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
   
