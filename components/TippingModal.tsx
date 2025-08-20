@@ -2,6 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import { useGlobalContext } from '@/utils/providers/globalContext';
 import { FaEthereum } from 'react-icons/fa';
 import { BiSolidDollarCircle } from "react-icons/bi";
+import { config } from '@/utils/rainbow';
+import { writeContract } from '@wagmi/core';
+import {firebaseTipsAbi} from '@/utils/contract/abis/firebaseTipsAbi';
+import { contractAdds } from '@/utils/contract/contractAdds';
+import { useAccount } from 'wagmi';
+import { CustomConnect } from './UI/connectButton';
 
 interface TippingModalProps {
   isOpen: boolean;
@@ -19,13 +25,16 @@ interface Participant {
 
 export default function TippingModal({ isOpen, onClose, roomId }: TippingModalProps) {
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [customTip, setCustomTip] = useState<string>('');
   const [selectedTip, setSelectedTip] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const {address} = useAccount()
 
   useEffect(() => {
     if (isOpen) {
@@ -57,10 +66,71 @@ export default function TippingModal({ isOpen, onClose, roomId }: TippingModalPr
     };
   }, []);
 
-  const handleTip = () => {
-    if (selectedUsers.length === 0) return;
-    alert(`Tipped ${selectedUsers.join(', ')}!`);
-    onClose();
+    const getEthPrice = async () => {
+    try {
+      const url =
+        "https://api.g.alchemy.com/prices/v1/CA4eh0FjTxMenSW3QxTpJ7D-vWMSHVjq/tokens/by-symbol?symbols=ETH";
+      const headers = {
+        Accept: "application/json",
+      };
+
+      const priceFetch = await fetch(url, {
+        method: "GET",
+        headers: headers,
+      });
+
+      const priceBody = await priceFetch.json();
+
+      return priceBody.data[0].prices[0].value;
+    } catch (error) {
+      console.error("Error", error);
+      throw error;
+    }
+  };
+
+  const handleETHTip = async () => {
+    try {
+      setIsLoading(true);
+      if (!selectedUsers.length) {
+        console.error('No users selected for tipping');
+        return;
+      }
+      if (!selectedTip && !customTip) {
+        console.error('No tip amount specified');
+        return;
+      }
+      console.log('Selected Users:', selectedUsers);
+      const ethPrice = await getEthPrice();
+      console.log('Current ETH Price:', ethPrice);
+      const cryptoAmount = (() => {
+        const tipAmount = selectedTip ? selectedTip : parseFloat(customTip);
+        if (!tipAmount || isNaN(tipAmount)) {
+          throw new Error('Invalid tip amount');
+        }
+        if (!ethPrice || isNaN(ethPrice)) {
+          throw new Error('Invalid ETH price');
+        }
+        return Number((tipAmount / ethPrice).toFixed(6));
+      })();
+      console.log('Crypto Amount:', cryptoAmount, BigInt(cryptoAmount * 1e18));
+      const res = await writeContract(config, {
+          abi: firebaseTipsAbi,
+          address: contractAdds.tipping as `0x${string}`,
+          functionName: "distributeETH",
+          args: [
+            selectedUsers.map((user) => user.wallet),
+          ],
+          value: BigInt(cryptoAmount * 1e18),
+        });
+
+        console.log('Transaction successful:', res);
+    }
+    catch (error) {
+      console.error('Error tipping users:', error);
+    }
+    finally {
+      setIsLoading(false);
+    }
   };
 
   const handleRoleSelection = (role: string) => {
@@ -72,25 +142,27 @@ export default function TippingModal({ isOpen, onClose, roomId }: TippingModalPr
     setSelectedUsers([]); // Clear user selection when roles are selected
   };
 
-  const handleUserSelection = (username: string) => {
-    if (selectedUsers.includes(username)) {
-      setSelectedUsers((prev) => prev.filter((user) => user !== username));
+  const handleUserSelection = (user: any) => {
+    if (selectedUsers.some((u) => u.userId === user.userId)) {
+      setSelectedUsers((prev) => prev.filter((u) => u.userId !== user.userId));
     } else {
-      setSelectedUsers((prev) => [...prev, username]);
+      setSelectedUsers((prev) => [...prev, user]);
     }
     setSelectedRoles([]); // Clear role selection when users are selected
   };
 
   if (!isOpen) return null;
 
+console.log(address)
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-white">Send a Tip</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white"
+  
+        <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+          {!address ? <div className='w-full flex items-center justify-center'> <CustomConnect/> </div> : <><div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-white">Send a Tip</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-white"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -124,14 +196,14 @@ export default function TippingModal({ isOpen, onClose, roomId }: TippingModalPr
             >
               {selectedUsers.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
-                  {selectedUsers.map((username) => (
-                    <div key={username} className="flex items-center bg-gray-600 rounded-md px-2 py-1">
+                  {selectedUsers.map((user) => (
+                    <div key={user.userId} className="flex items-center bg-gray-600 rounded-md px-2 py-1">
                       <img
-                        src={participants.find((p) => p.username === username)?.pfp_url || '/default-avatar.png'}
-                        alt={username}
+                        src={user.pfp_url || '/default-avatar.png'}
+                        alt={user.username}
                         className="w-6 h-6 rounded-full border border-gray-600 mr-2"
                       />
-                      <span>{username}</span>
+                      <span>{user.username}</span>
                     </div>
                   ))}
                 </div>
@@ -157,8 +229,8 @@ export default function TippingModal({ isOpen, onClose, roomId }: TippingModalPr
                   .map((participant) => (
                     <div
                       key={participant.userId}
-                      className={`flex items-center p-2 cursor-pointer hover:bg-gray-600 ${selectedUsers.includes(participant.username) ? 'bg-gray-600' : ''}`}
-                      onClick={() => handleUserSelection(participant.username)}
+                      className={`flex items-center p-2 cursor-pointer hover:bg-gray-600 ${selectedUsers.some((user) => user.userId === participant.userId) ? 'bg-gray-600' : ''}`}
+                      onClick={() => handleUserSelection(participant)}
                     >
                       <img
                         src={participant.pfp_url || '/default-avatar.png'}
@@ -169,9 +241,9 @@ export default function TippingModal({ isOpen, onClose, roomId }: TippingModalPr
                         <p className="text-sm font-medium text-white">{participant.username}</p>
                         <p className="text-xs text-gray-400">{participant.customDomain || 'No domain'}</p>
                       </div>
-                      {selectedUsers.includes(participant.username) && (
+                      {selectedUsers.some((user) => user.userId === participant.userId) && (
                         <svg
-                          className="w-5 h-5 text-blue-500"
+                          className="w-5 h-5 text-white"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -225,19 +297,24 @@ export default function TippingModal({ isOpen, onClose, roomId }: TippingModalPr
 
         <div className="flex space-x-3 mt-4">
           <button
-            onClick={() => alert('Tip in ETH selected')}
-            className="flex-1 text-white bg-indigo-400 hover:bg-indigo-500 font-medium py-2 px-4 rounded-md transition-colors"
+            onClick={() => handleETHTip()}
+            disabled={isLoading}
+            className={`flex-1 text-white bg-indigo-400 hover:bg-indigo-500 font-medium py-2 px-4 rounded-md transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <span className='flex gap-2 items-center justify-center'><FaEthereum/>Tip in ETH</span>
           </button>
           <button
             onClick={() => alert('Tip in USDC selected')}
-            className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
+            disabled={isLoading}
+            className={`flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <span className='flex gap-2 items-center justify-center'><BiSolidDollarCircle/>Tip in USDC</span>
           </button>
         </div>
+          </>}
+          
       </div>
+      
     </div>
   );
 }
