@@ -305,8 +305,8 @@ console.log(address)
           </button>
           <button
             onClick={() => alert('Tip in USDC selected')}
-            disabled={isLoading}
-            className={`flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={true}
+            className={`flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:bg-gray-400 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <span className='flex gap-2 items-center justify-center'><BiSolidDollarCircle/>Tip in USDC</span>
           </button>

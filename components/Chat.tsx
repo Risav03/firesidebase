@@ -37,7 +37,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       
       setLoading(true);
       try {
-        const response = await fetch(`/api/chat/${roomId}?limit=50`);
+        const response = await fetch(`/api/protected/chat/${roomId}?limit=50`);
         const data = await response.json();
         
         if (data.success) {
@@ -78,7 +78,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       hmsActions.sendBroadcastMessage(messageText);
 
       // Store in Redis for persistence
-      const response = await fetch(`/api/chat/${roomId}`, {
+      const response = await fetch(`/api/protected/chat/${roomId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
