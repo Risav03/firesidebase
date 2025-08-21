@@ -12,6 +12,8 @@ import toast from "react-hot-toast";
 import { getEthPrice } from "@/utils/commons";
 import { ethers } from "ethers";
 import { usdcAbi } from "@/utils/contract/abis/usdcabi";
+import { RiLoader5Fill } from "react-icons/ri";
+import { useHMSActions } from "@100mslive/react-sdk";
 
 interface TippingModalProps {
   isOpen: boolean;
@@ -41,12 +43,17 @@ export default function TippingModal({
   const [customTip, setCustomTip] = useState<string>("");
   const [selectedTip, setSelectedTip] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const { user } = useGlobalContext();
+
   const { address } = useAccount();
+  const hmsActions = useHMSActions();
 
   useEffect(() => {
     if (isOpen) {
+      setIsLoadingUsers(true);
       fetch(`/api/rooms/${roomId}/participants`)
         .then((response) => response.json())
         .then((data) => {
@@ -57,7 +64,8 @@ export default function TippingModal({
             setParticipants(activeParticipants);
           }
         })
-        .catch((error) => console.error("Error fetching participants:", error));
+        .catch((error) => console.error("Error fetching participants:", error))
+        .finally(() => setIsLoadingUsers(false));
     }
   }, [isOpen, roomId]);
 
@@ -77,6 +85,36 @@ export default function TippingModal({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  const sendTipMessage = async (tipper: string, recipients: string, amount: number, currency: string, userFid: string) => {
+    const emoji = amount >= 100 ? "💸" : amount >= 25 ? "🎉" : "👍";
+    const message = `${emoji} ${tipper} tipped ${recipients} $${amount} in ${currency}!`;
+
+    // Send to HMS for real-time broadcast
+    hmsActions.sendBroadcastMessage(message);
+
+    // Store in Redis for persistence
+    try {
+      const response = await fetch(`/api/protected/chat/${roomId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message,
+          userFid,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        console.error("Failed to store tip message in Redis:", data.error);
+      }
+    } catch (error) {
+      console.error("Error saving tip message to Redis:", error);
+    }
+  };
 
   const handleETHTip = async () => {
     try {
@@ -99,7 +137,6 @@ export default function TippingModal({
         usersToSend = selectedUsers.map((user) => user.wallet);
       } else {
         for (const role in selectedRoles) {
-          console.log(selectedRoles[role]);
           const res = await fetch(`/api/rooms/${roomId}/participants-by-role`, {
             method: "POST",
             headers: {
@@ -112,7 +149,6 @@ export default function TippingModal({
 
           const data = await res.json();
           if (data.success) {
-            console.log(data.participants);
             usersToSend.push(
               ...data.participants.map((user: Participant) => user.wallet)
             );
@@ -153,10 +189,15 @@ export default function TippingModal({
       // Dismiss loading toast and show success
       toast.dismiss(loadingToast);
       toast.success(
-        `Successfully tipped $${selectedTip || customTip} to ${
-          usersToSend.length
-        } user(s)!`
+        `Successfully tipped $${selectedTip || customTip} to ${usersToSend.length} user(s)!`
       );
+
+      // Send chat message
+      const tipper = user?.username || "Someone";
+      const recipients = selectedUsers.length
+        ? selectedUsers.map((user) => user.username).join(", ")
+        : selectedRoles.map((role) => (role === "host" ? role : `${role}s`)).join(", ");
+      await sendTipMessage(tipper, recipients, selectedTip || parseFloat(customTip), "ETH", user?.fid || "unknown");
 
       // Close modal and reset form
       onClose();
@@ -225,7 +266,7 @@ export default function TippingModal({
       const usdcAmount = (() => {
         const tipAmount = selectedTip ? selectedTip : parseFloat(customTip);
         if (!tipAmount || isNaN(tipAmount)) {
-          throw new Error('Invalid tip amount');
+          throw new Error("Invalid tip amount");
         }
         return BigInt(tipAmount * 1e6); // USDC has 6 decimal places
       })();
@@ -257,7 +298,6 @@ export default function TippingModal({
           { name: "deadline", type: "uint256" },
         ],
       };
-
 
       const values = {
         owner: address,
@@ -291,14 +331,18 @@ export default function TippingModal({
         ],
       });
 
-
       // Dismiss loading toast and show success
       toast.dismiss(loadingToast);
       toast.success(
-        `Successfully tipped $${selectedTip || customTip} to ${
-          usersToSend.length
-        } user(s)!`
+        `Successfully tipped $${selectedTip || customTip} to ${usersToSend.length} user(s)!`
       );
+
+      // Send chat message
+      const tipper = user?.username || "Someone";
+      const recipients = selectedUsers.length
+        ? selectedUsers.map((user) => user.username).join(", ")
+        : selectedRoles.map((role) => (role === "host" ? role : `${role}s`)).join(", ");
+      sendTipMessage(tipper, recipients, selectedTip || parseFloat(customTip), "USDC", user?.fid || "unknown");
 
       // Close modal and reset form
       onClose();
@@ -427,64 +471,72 @@ export default function TippingModal({
 
                 {dropdownOpen && (
                   <div className="absolute top-full left-0 w-full bg-gray-700 border border-gray-600 rounded-md max-h-60 overflow-y-auto">
-                    <div className="p-2">
-                      <input
-                        type="text"
-                        placeholder="Search users..."
-                        className="w-full bg-gray-600 text-white p-2 rounded-md border border-gray-500 focus:outline-none"
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                      />
-                    </div>
-                    {participants
-                      .filter((participant) =>
-                        participant.username
-                          .toLowerCase()
-                          .includes(searchQuery.toLowerCase())
-                      )
-                      .map((participant) => (
-                        <div
-                          key={participant.userId}
-                          className={`flex items-center p-2 cursor-pointer hover:bg-gray-600 ${
-                            selectedUsers.some(
-                              (user) => user.userId === participant.userId
-                            )
-                              ? "bg-gray-600"
-                              : ""
-                          }`}
-                          onClick={() => handleUserSelection(participant)}
-                        >
-                          <img
-                            src={participant.pfp_url || "/default-avatar.png"}
-                            alt={participant.username}
-                            className="w-10 h-10 rounded-full border border-gray-600 mr-3"
+                    {isLoadingUsers ? (
+                      <div className="flex items-center justify-center p-4">
+                        <RiLoader5Fill className="animate-spin text-white text-2xl" />
+                      </div>
+                    ) : (
+                      <>
+                        <div className="p-2">
+                          <input
+                            type="text"
+                            placeholder="Search users..."
+                            className="w-full bg-gray-600 text-white p-2 rounded-md border border-gray-500 focus:outline-none"
+                            onChange={(e) => setSearchQuery(e.target.value)}
                           />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-white">
-                              {participant.username}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              {participant.customDomain || "No domain"}
-                            </p>
-                          </div>
-                          {selectedUsers.some(
-                            (user) => user.userId === participant.userId
-                          ) && (
-                            <svg
-                              className="w-5 h-5 text-white"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M5 13l4 4L19 7"
-                              />
-                            </svg>
-                          )}
                         </div>
-                      ))}
+                        {participants
+                          .filter((participant) =>
+                            participant.username
+                              .toLowerCase()
+                              .includes(searchQuery.toLowerCase())
+                          )
+                          .map((participant) => (
+                            <div
+                              key={participant.userId}
+                              className={`flex items-center p-2 cursor-pointer hover:bg-gray-600 ${
+                                selectedUsers.some(
+                                  (user) => user.userId === participant.userId
+                                )
+                                  ? "bg-gray-600"
+                                  : ""
+                              }`}
+                              onClick={() => handleUserSelection(participant)}
+                            >
+                              <img
+                                src={participant.pfp_url || "/default-avatar.png"}
+                                alt={participant.username}
+                                className="w-10 h-10 rounded-full border border-gray-600 mr-3"
+                              />
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-white">
+                                  {participant.username}
+                                </p>
+                                <p className="text-xs text-gray-400">
+                                  {participant.customDomain || "No domain"}
+                                </p>
+                              </div>
+                              {selectedUsers.some(
+                                (user) => user.userId === participant.userId
+                              ) && (
+                                <svg
+                                  className="w-5 h-5 text-white"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                              )}
+                            </div>
+                          ))}
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -513,7 +565,7 @@ export default function TippingModal({
                 ))}
               </div>
               <label className="text-sm block font-medium text-gray-300 mt-4 mb-2">
-                Add Custom Tip Amount
+                Add Custom Tip Amount ($)
               </label>
 
               <input
