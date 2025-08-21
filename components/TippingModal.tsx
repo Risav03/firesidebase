@@ -2,11 +2,11 @@ import { useState, useEffect, useRef } from "react";
 import { useGlobalContext } from "@/utils/providers/globalContext";
 import { FaEthereum } from "react-icons/fa";
 import { BiSolidDollarCircle } from "react-icons/bi";
-import { config } from "@/utils/rainbow";
-import { writeContract } from "@wagmi/core";
+import { config } from "@/utils/providers/rainbow";
+import { readContract, writeContract } from "@wagmi/core";
 import { firebaseTipsAbi } from "@/utils/contract/abis/firebaseTipsAbi";
 import { contractAdds } from "@/utils/contract/contractAdds";
-import { useAccount } from "wagmi";
+import { useAccount, useWriteContract } from "wagmi";
 import { CustomConnect } from "./UI/connectButton";
 import toast from "react-hot-toast";
 import { getEthPrice } from "@/utils/commons";
@@ -14,6 +14,8 @@ import { ethers } from "ethers";
 import { usdcAbi } from "@/utils/contract/abis/usdcabi";
 import { RiLoader5Fill } from "react-icons/ri";
 import { useHMSActions } from "@100mslive/react-sdk";
+import { useSignTypedData } from 'wagmi'
+import { splitSignature } from "ethers/lib/utils";
 
 interface TippingModalProps {
   isOpen: boolean;
@@ -47,6 +49,9 @@ export default function TippingModal({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { user } = useGlobalContext();
+  const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' // Base USDC
+  const { signTypedDataAsync } = useSignTypedData()
+  const { writeContractAsync } = useWriteContract()
 
   const { address } = useAccount();
   const hmsActions = useHMSActions();
@@ -228,22 +233,21 @@ export default function TippingModal({
         return;
       }
 
-      // Show loading toast
       const loadingToast = toast.loading("Processing your tip...");
 
-      let usersToSend: any = [];
+      let usersToSend: string[] = [];
 
       if (selectedUsers.length > 0) {
         usersToSend = selectedUsers.map((user) => user.wallet);
       } else {
-        for (const role in selectedRoles) {
+        for (const role of selectedRoles) {
           const res = await fetch(`/api/rooms/${roomId}/participants-by-role`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              role: selectedRoles[role],
+              role,
             }),
           });
 
@@ -268,26 +272,27 @@ export default function TippingModal({
         if (!tipAmount || isNaN(tipAmount)) {
           throw new Error("Invalid tip amount");
         }
-        return BigInt(tipAmount * 1e6); // USDC has 6 decimal places
+        return BigInt(tipAmount * 1e6);
       })();
 
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      await provider.send("eth_requestAccounts", []);
-      const signer = provider.getSigner();
-      const address = await signer.getAddress();
+      const provider = new ethers.providers.JsonRpcProvider(
+        "https://base-mainnet.g.alchemy.com/v2/CA4eh0FjTxMenSW3QxTpJ7D-vWMSHVjq"
+      );
 
-      const usdcAddress = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // USDC Base
-      const myToken = new ethers.Contract(usdcAddress, usdcAbi, signer);
+      const contract = new ethers.Contract(USDC_ADDRESS, usdcAbi, provider);
+      const nonce = BigInt(await contract.nonces(address));
 
-      const nonce = await myToken.nonces(address);
-      const deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour
+      console.log("Nonce:", nonce);
+
+      const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600); // +1 hour
 
       const domain = {
         name: "USD Coin",
         version: "2",
         chainId: 8453,
-        verifyingContract: usdcAddress,
-      };
+        verifyingContract: USDC_ADDRESS,
+        primaryType: "Permit",
+      } as const;
 
       const types = {
         Permit: [
@@ -297,11 +302,11 @@ export default function TippingModal({
           { name: "nonce", type: "uint256" },
           { name: "deadline", type: "uint256" },
         ],
-      };
+      } as const;
 
       const values = {
-        owner: address,
-        spender: contractAdds.tipping, // your distributor contract
+        owner: address as `0x${string}`,
+        spender: contractAdds.tipping as `0x${string}`,
         value: usdcAmount,
         nonce,
         deadline,
@@ -309,19 +314,23 @@ export default function TippingModal({
 
       console.log("Permit Values:", values);
 
-      // Sign EIP712 permit
-      const signature = await signer._signTypedData(domain, types, values);
-      const { v, r, s } = ethers.utils.splitSignature(signature);
+      const signature = await signTypedDataAsync({
+        domain,
+        primaryType: "Permit",
+        types,
+        message: values,
+      });
+      console.log("Signature:", signature);
+      const { v, r, s } = splitSignature(signature);
 
       console.log("Permit Signature:", { v, r, s });
 
-      // Call distributeTokenWithPermit
       const res = await writeContract(config, {
         abi: firebaseTipsAbi,
         address: contractAdds.tipping as `0x${string}`,
         functionName: "distributeTokenWithPermit",
         args: [
-          usdcAddress,
+          USDC_ADDRESS,
           usersToSend,
           usdcAmount, // must be uint256 with 6 decimals
           deadline,
@@ -337,14 +346,12 @@ export default function TippingModal({
         `Successfully tipped $${selectedTip || customTip} to ${usersToSend.length} user(s)!`
       );
 
-      // Send chat message
       const tipper = user?.username || "Someone";
       const recipients = selectedUsers.length
         ? selectedUsers.map((user) => user.username).join(", ")
         : selectedRoles.map((role) => (role === "host" ? role : `${role}s`)).join(", ");
       sendTipMessage(tipper, recipients, selectedTip || parseFloat(customTip), "USDC", user?.fid || "unknown");
 
-      // Close modal and reset form
       onClose();
       setSelectedUsers([]);
       setSelectedRoles([]);
@@ -352,8 +359,6 @@ export default function TippingModal({
       setCustomTip("");
     } catch (error) {
       console.error("Error tipping users:", error);
-
-      // Dismiss loading toast and show error
       toast.dismiss();
       toast.error("Failed to process tip. Please try again.");
     } finally {
