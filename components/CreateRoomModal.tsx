@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGlobalContext } from '@/utils/providers/globalContext';
+import toast from 'react-hot-toast';
 
 interface CreateRoomModalProps {
   isOpen: boolean;
@@ -24,12 +25,15 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
     e.preventDefault();
     if (!/^[a-zA-Z0-9 ]+$/.test(formData.name)) {
       setNameError('Room name can only contain alphabets, numbers, and spaces.');
+      toast.error('Invalid room name format');
       return;
     }
     setNameError('');
     setLoading(true);
     
     try {
+      toast.loading('Creating room...');
+      
       const response = await fetch('/api/rooms/create', {
         method: 'POST',
         headers: {
@@ -44,17 +48,20 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
       
       const data = await response.json();
       if (data.success) {
-        alert('Room created successfully! Redirecting...');
+        toast.dismiss();
+        toast.success('Room created successfully! Redirecting...');
         setFormData({ name: '', description: '', startTime: '' });
         onClose();
         // Redirect to the room page
         router.push('/call/' + data.room._id);
       } else {
-        alert('Error creating room: ' + data.error);
+        toast.dismiss();
+        toast.error('Error creating room: ' + data.error);
       }
     } catch (error) {
       console.error('Error creating room:', error);
-      alert('Error creating room');
+      toast.dismiss();
+      toast.error('Error creating room. Please try again.');
     } finally {
       setLoading(false);
     }

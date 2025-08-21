@@ -7,6 +7,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import RoleChangeHandler from '@/components/RoleChangeHandler';
 import { Loader } from '@/components/Loader';
+import toast from 'react-hot-toast';
 
 interface RoomCode {
   id: string;
@@ -124,6 +125,7 @@ export default function CallClient({ roomId }: CallClientProps) {
         console.error('Error joining room:', err);
         setError(err instanceof Error ? err.message : 'Failed to join room');
         setIsJoining(false);
+        toast.error('Failed to join room. Please try again.');
       }
     };
 

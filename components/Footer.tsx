@@ -32,6 +32,7 @@ import { useGlobalContext } from "../utils/providers/globalContext";
 import { MdCopyAll, MdOutlineIosShare } from "react-icons/md";
 import { useDebounce } from "use-debounce";
 import TippingModal from "./TippingModal";
+import toast from "react-hot-toast";
 
 // Dynamic import to avoid SSR issues
 let plugin: any = null;
@@ -104,9 +105,10 @@ export default function Footer({ roomId }: { roomId: string }) {
   const handleCopyURL = () => {
     const roomURL = `https://farcaster.xyz/miniapps/jWGOUKHeE2fd/fireside-100ms/call/${roomId}`;
     navigator.clipboard.writeText(roomURL).then(() => {
-      alert("Room URL copied to clipboard!");
+      toast.success("Room URL copied to clipboard!");
     }).catch((error) => {
       console.error("Failed to copy URL:", error);
+      toast.error("Failed to copy URL to clipboard");
     });
   };
 

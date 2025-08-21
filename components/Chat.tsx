@@ -11,6 +11,7 @@ import {
 import { ChatMessage } from "./ChatMessage";
 import { useGlobalContext } from "@/utils/providers/globalContext";
 import { RedisChatMessage } from "@/utils/redisServices";
+import toast from "react-hot-toast";
 
 interface ChatProps {
   isOpen: boolean;
@@ -96,9 +97,11 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         setRedisMessages(prev => [...prev, data.message]);
       } else {
         console.error('Failed to store message:', data.error);
+        toast.error('Failed to send message. Please try again.');
       }
     } catch (error) {
       console.error('Error sending message:', error);
+      toast.error('Error sending message. Please try again.');
       // Could show a retry option here
     }
   };

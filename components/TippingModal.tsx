@@ -8,6 +8,7 @@ import {firebaseTipsAbi} from '@/utils/contract/abis/firebaseTipsAbi';
 import { contractAdds } from '@/utils/contract/contractAdds';
 import { useAccount } from 'wagmi';
 import { CustomConnect } from './UI/connectButton';
+import toast from 'react-hot-toast';
 
 interface TippingModalProps {
   isOpen: boolean;
@@ -93,13 +94,16 @@ export default function TippingModal({ isOpen, onClose, roomId }: TippingModalPr
     try {
       setIsLoading(true);
       if (!selectedUsers.length && !selectedRoles.length) {
-        console.error('No users selected for tipping');
+        toast.error('Please select users or roles to tip');
         return;
       }
       if (!selectedTip && !customTip) {
-        console.error('No tip amount specified');
+        toast.error('Please specify a tip amount');
         return;
       }
+
+      // Show loading toast
+      const loadingToast = toast.loading('Processing your tip...');
 
       let usersToSend:any = []
 
@@ -130,7 +134,7 @@ export default function TippingModal({ isOpen, onClose, roomId }: TippingModalPr
       }
 
       if(usersToSend.length === 0) {
-        console.error('No users found for tipping');
+        toast.error('No users found for tipping');
         return;
       }
 
@@ -158,9 +162,25 @@ export default function TippingModal({ isOpen, onClose, roomId }: TippingModalPr
         });
 
         console.log('Transaction successful:', res);
+        
+        // Dismiss loading toast and show success
+        toast.dismiss(loadingToast);
+        toast.success(`Successfully tipped $${selectedTip || customTip} to ${usersToSend.length} user(s)!`);
+        
+        // Close modal and reset form
+        onClose();
+        setSelectedUsers([]);
+        setSelectedRoles([]);
+        setSelectedTip(null);
+        setCustomTip('');
+        
     }
     catch (error) {
       console.error('Error tipping users:', error);
+      
+      // Dismiss loading toast and show error
+      toast.dismiss();
+      toast.error('Failed to process tip. Please try again.');
     }
     finally {
       setIsLoading(false);
@@ -337,7 +357,7 @@ export default function TippingModal({ isOpen, onClose, roomId }: TippingModalPr
             <span className='flex gap-2 items-center justify-center'><FaEthereum/>Tip in ETH</span>
           </button>
           <button
-            onClick={() => alert('Tip in USDC selected')}
+            onClick={() => toast('USDC tipping coming soon!', { icon: '💡' })}
             disabled={true}
             className={`flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:bg-gray-400 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >

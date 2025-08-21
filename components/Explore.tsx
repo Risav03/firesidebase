@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FaPlay } from "react-icons/fa";
 import { IoIosArrowForward, IoIosRefresh } from "react-icons/io";
+import toast from "react-hot-toast";
 
 interface Room {
   _id: string;
@@ -36,6 +37,7 @@ export default function Explore() {
       }
     } catch (error) {
       console.error("Error fetching rooms:", error);
+      toast.error('Error fetching rooms. Please try again.');
     } finally {
       setLoading(false);
     }
