@@ -23,7 +23,7 @@ import {
   useHMSNotifications,
   selectBroadcastMessages,
 } from "@100mslive/react-sdk";
-import { FaGratipay } from "react-icons/fa";
+import { FaMoneyBill } from "react-icons/fa";
 import { TbShare3 } from "react-icons/tb";
 import { sdk } from "@farcaster/miniapp-sdk";
 import EmojiPicker, { Theme } from "emoji-picker-react";
@@ -387,7 +387,7 @@ export default function Footer({ roomId }: { roomId: string }) {
             className="relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 bg-white/10 text-white hover:bg-white/20"
             title="Send a tip"
           >
-            <FaGratipay className="w-5 h-5" />
+            <FaMoneyBill className="w-5 h-5" />
           </button>
 
           

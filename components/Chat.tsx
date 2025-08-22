@@ -12,6 +12,7 @@ import { ChatMessage } from "./ChatMessage";
 import { useGlobalContext } from "@/utils/providers/globalContext";
 import { RedisChatMessage } from "@/utils/redisServices";
 import toast from "react-hot-toast";
+import sdk from "@farcaster/miniapp-sdk";
 
 interface ChatProps {
   isOpen: boolean;
@@ -38,7 +39,13 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       
       setLoading(true);
       try {
-        const response = await fetch(`/api/protected/chat/${roomId}?limit=50`);
+              const {token} = await sdk.quickAuth.getToken();
+
+        const response = await fetch(`/api/protected/chat/${roomId}?limit=50`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         const data = await response.json();
         
         if (data.success) {
@@ -78,11 +85,14 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       // Send to HMS for real-time broadcast
       hmsActions.sendBroadcastMessage(messageText);
 
+      const {token} = await sdk.quickAuth.getToken();
+
       // Store in Redis for persistence
       const response = await fetch(`/api/protected/chat/${roomId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           message: messageText,

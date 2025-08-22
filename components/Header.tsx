@@ -47,10 +47,11 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
       <header className="fixed top-0 left-0 right-0 z-50 bg-gray-900 px-6 py-2">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <div className="w-10 h-10  rounded-2xl flex items-center justify-center">
-              <Image src={`${process.env.NEXT_PUBLIC_URL}/fireside-logo.svg`} width={1080} height={1080} alt="Fireside Logo" className="text-white font-bold text-lg" />
+            <div className="rounded-2xl flex items-center justify-center">
+              <Image src={`${process.env.NEXT_PUBLIC_URL}/fireside-logo.svg`} width={1080} height={1080} alt="Fireside Logo" className="w-10 aspect-square" />
+                            <Image src={`${process.env.NEXT_PUBLIC_URL}/fireside-name.png`} width={1920} height={1080} alt="Fireside Logo" className="w-40" />
+
             </div>
-            <h1 className="text-xl font-bold text-white -translate-x-4">Fireside</h1>
           </div>
           {isConnected && (
             <div className="flex items-center space-x-3">

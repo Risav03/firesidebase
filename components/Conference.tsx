@@ -82,7 +82,7 @@ export default function Conference({roomId}:{roomId: string}) {
   }, []);
 
   return (
-    <div className="pt-16 pb-32 px-6">
+    <div className="pt-20 pb-32 px-6">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-4 mt-6">
           <h2 className="text-3xl font-bold text-white mb-2">

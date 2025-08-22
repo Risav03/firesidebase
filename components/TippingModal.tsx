@@ -16,6 +16,7 @@ import { RiLoader5Fill } from "react-icons/ri";
 import { useHMSActions } from "@100mslive/react-sdk";
 import { useSignTypedData } from 'wagmi'
 import { splitSignature } from "ethers/lib/utils";
+import sdk from "@farcaster/miniapp-sdk";
 
 interface TippingModalProps {
   isOpen: boolean;
@@ -100,10 +101,12 @@ export default function TippingModal({
 
     // Store in Redis for persistence
     try {
+      const {token} = await sdk.quickAuth.getToken();
       const response = await fetch(`/api/protected/chat/${roomId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           message,
