@@ -3,6 +3,10 @@
     {
       "path": "/api/cron",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-rooms",
+      "schedule": "0 2 * * *"
     }
   ],
   "redirects": [
