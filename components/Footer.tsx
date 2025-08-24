@@ -23,6 +23,7 @@ import {
   useHMSNotifications,
   selectBroadcastMessages,
 } from "@100mslive/react-sdk";
+import { RiAdvertisementFill } from "react-icons/ri";
 import { FaMoneyBill } from "react-icons/fa";
 import { TbShare3 } from "react-icons/tb";
 import { sdk } from "@farcaster/miniapp-sdk";
@@ -59,6 +60,8 @@ export default function Footer({ roomId }: { roomId: string }) {
   const { user } = useGlobalContext();
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
   const [isTippingModalOpen, setIsTippingModalOpen] = useState(false);
+  const [adsEnabled, setAdsEnabled] = useState(true);
+  const [isAdsModalOpen, setIsAdsModalOpen] = useState(false);
 
   // Corrected state initialization for emojiToSend
   const [emojiToSend, setEmojiToSend] = useState<{ emoji: string; sender: string } | null>(null);
@@ -232,6 +235,12 @@ export default function Footer({ roomId }: { roomId: string }) {
     setIsTippingModalOpen((prev) => !prev);
   };
 
+  const handleAdsClick = () => {
+    setIsAdsModalOpen((prev) => !prev);
+  };
+
+  const isHost = localRoleName === "host" || localRoleName === "co-host";
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900">
       <div className="max-w-4xl mx-auto px-6 py-4 flex">
@@ -390,16 +399,24 @@ export default function Footer({ roomId }: { roomId: string }) {
             <FaMoneyBill className="w-5 h-5" />
           </button>
 
-          
+          {/* Ads button - shown to hosts/co-hosts regardless of adsEnabled state */}
+          {(isHost || adsEnabled) && (
             <button
-              onClick={() => setIsShareMenuOpen((prev) => !prev)}
-              className={`text-white pl-4 relative z-50 ${isShareMenuOpen ? "" : ""} `}
-              title="Share"
+              onClick={handleAdsClick}
+              className="relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 bg-white/10 text-white hover:bg-white/20"
+              title="Advertisements"
             >
-              <TbShare3 className="w-5 h-5" />
+              <RiAdvertisementFill className="w-5 h-5" />
             </button>
+          )}
 
-            
+          <button
+            onClick={() => setIsShareMenuOpen((prev) => !prev)}
+            className={`text-white pl-4 relative z-50 ${isShareMenuOpen ? "" : ""} `}
+            title="Share"
+          >
+            <TbShare3 className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Chat component rendered here */}
@@ -498,6 +515,225 @@ export default function Footer({ roomId }: { roomId: string }) {
           roomId={roomId}
         />
       )}
+
+      {/* Ads Modal */}
+      <AdsModal participants={room.peerCount || 0} isAdsModalOpen={isAdsModalOpen} setIsAdsModalOpen={setIsAdsModalOpen} isHost={isHost} adsEnabled={adsEnabled} setAdsEnabled={setAdsEnabled} />
     </div>
   );
 }
+const AdsModal = ({ participants, isAdsModalOpen, setIsAdsModalOpen, isHost, adsEnabled, setAdsEnabled}: {participants: number, isAdsModalOpen: boolean, setIsAdsModalOpen: (isOpen: boolean) => void, isHost: boolean, adsEnabled: boolean, setAdsEnabled: (isEnabled: boolean) => void}) => {
+  
+  const maxSeconds = 60 * 60 * 2;
+  const [selectedTime, setSelectedTime] = useState(0);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Cost calculation formula
+  const calculateCost = (seconds: number, participantCount: number) => {
+    // Base cost per minute
+    const baseRatePerMinute = 0.5; 
+    
+    // Convert seconds to minutes for calculation
+    const minutes = seconds / 60;
+    
+    // Participant multiplier - increases cost based on audience size
+    // Uses a logarithmic scale to avoid costs getting too high
+    const participantMultiplier = Math.log10(participantCount + 1) + 1;
+    
+    // Time multiplier - gives discount for longer durations
+    const timeMultiplier = Math.max(0.8, 1 - (minutes / 120) * 0.2);
+    
+    // Calculate final cost
+    const cost = baseRatePerMinute * minutes * participantMultiplier * timeMultiplier;
+    
+    // Round to 2 decimal places and ensure minimum cost of $5
+    return Math.max(0, Math.round(cost * 100) / 100);
+  };
+
+  const formatTime = (seconds: number) => {
+    if (seconds < 60) {
+      return `${seconds} sec`;
+    } else if (seconds < 3600) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins} min ${secs} sec`;
+    } else {
+      const hours = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      return `${hours} hr ${mins} min`;
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setSelectedImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setSelectedImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  if (!isAdsModalOpen) return null;
+
+  if(!isHost) return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-gray-900 p-5 rounded-lg shadow-xl max-w-md w-full">
+        <h2 className="text-lg font-bold text-center text-white mb-4">Sponsor Now</h2>
+        <p className="text-sm text-green-500 text-center mb-4">Participants: {participants}</p>
+        
+        <div className="space-y-4">
+          {selectedImage && (
+            <div className="relative w-full h-[200px] bg-black/40 rounded-lg overflow-hidden mb-4">
+              <img 
+                src={selectedImage} 
+                alt="Banner preview"
+                className="w-full h-full object-contain"
+              />
+              <p className="absolute bottom-2 right-2 text-xs text-white bg-black/60 px-2 py-1 rounded">
+                1080x200 display area
+              </p>
+            </div>
+          )}
+
+          <div>
+            <label className="text-gray-300 text-sm block mb-2">Set time: {formatTime(selectedTime)}</label>
+            <input
+              type="range"
+              min="0"
+              max={maxSeconds}
+              value={selectedTime}
+              onChange={(e) => setSelectedTime(Number(e.target.value))}
+              className="w-full h-2 bg-black/40 rounded-lg appearance-none cursor-pointer"
+            />
+          </div>
+
+          <div
+            className={`relative w-full min-h-[100px] border-2 border-dashed rounded-lg ${
+              isDragging ? 'border-fireside-orange bg-black/60' : 'border-gray-600 bg-black/40'
+            }`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            />
+            <div className="flex flex-col items-center justify-center p-4">
+              <p className="text-gray-300 text-sm text-center">
+                Drop image here or click to upload
+                <span className="block text-xs text-gray-500 mt-1">
+                  Recommended size: 1080x200 - Larger images will be scaled to fit
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-gray-300 text-sm block mb-2">Advertisement Cost</label>
+            <div className="w-full bg-black/40 text-white p-3 rounded-lg text-center">
+              ${calculateCost(selectedTime, participants)}
+            </div>
+            <p className="text-xs text-gray-500 mt-1 text-center">
+              Cost based on {participants} participants and {formatTime(selectedTime)}
+            </p>
+          </div>
+
+          <button
+            onClick={() => setIsAdsModalOpen(false)}
+            className="mt-6 w-full bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded"
+          >
+            Appeal
+          </button>
+        </div>
+
+        <button
+          onClick={() => setIsAdsModalOpen(false)}
+          className="mt-2 w-full bg-white/10 hover:bg-white/20 text-white px-5 py-2 rounded"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  )
+  else return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-gray-900 p-5 rounded-lg shadow-xl max-w-md w-full">
+        <h2 className="text-lg font-bold text-center text-white mb-4">Sponsorship Controls</h2>
+        <div className="w-full h-[1px] bg-white/10 mx-auto mb-4"></div>
+        {isHost ? (
+          <div className="space-y-6">
+            <div className="flex items-center justify-start gap-4">              
+              <button 
+                onClick={() => setAdsEnabled(!adsEnabled)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out ${adsEnabled ? 'bg-fireside-orange' : 'bg-gray-600'}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out ${adsEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+              <span className="text-gray-300 text-base">Allow Sponsors</span>
+            </div>
+            <div className="space-y-4">
+              {adsEnabled ? (
+                <div className=" min-h-40 rounded-lg p-4 bg-black/40">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-white">Request for 10mins</span>
+                      <div className="space-x-2">
+                        <button className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">Approve</button>
+                        <button className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">Reject</button>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-white">Request for 5min</span>
+                      <div className="space-x-2">
+                        <button className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">Approve</button>
+                        <button className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">Reject</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-white h-40 flex items-center justify-center bg-black/40 rounded-lg">Adds not enabled</p>
+              )
+              }
+            </div>
+          </div>
+        ) : (
+          <p className="text-white">Only hosts can manage sponsorship settings</p>
+        )}
+        <button
+          onClick={() => setIsAdsModalOpen(false)}
+          className="mt-6 w-full bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded hover:bg-opacity-80"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  )
+};
