@@ -12,6 +12,8 @@ export interface IRoom extends Document {
   ended_at?: Date; // When the room was ended by host
   status: 'upcoming' | 'ongoing' | 'ended';
   roomId: string;
+  sponsorshipEnabled: boolean;
+  // baseSponsorshipPrice: number;
 }
 
 const Room: Schema = new Schema({
@@ -28,7 +30,9 @@ const Room: Schema = new Schema({
     enum: ['upcoming', 'ongoing', 'ended'], 
     default: 'upcoming' 
   },
-  roomId: { type: String, required: true, unique: true }
+  roomId: { type: String, required: true, unique: true },
+  sponsorshipEnabled: { type: Boolean, default: false },
+  // baseSponsorshipPrice: { type: Number, default: 0 }
 }, {
   timestamps: true
 });
