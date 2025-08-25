@@ -9,7 +9,13 @@ export async function PUT(
   try {
     const { id } = params;
     const body = await request.json();
-    const { status, endTime, participants, action } = body;
+    const { 
+      status, 
+      endTime, 
+      participants, 
+      action,
+      sponsorshipEnabled
+    } = body;
     
     await connectToDB();
     
@@ -29,6 +35,11 @@ export async function PUT(
     // Update end time if provided
     if (endTime) {
       room.endTime = new Date(endTime);
+    }
+    
+    // Update sponsorship settings if provided
+    if (typeof sponsorshipEnabled === 'boolean') {
+      room.sponsorshipEnabled = sponsorshipEnabled;
     }
     
     // Handle participant management
