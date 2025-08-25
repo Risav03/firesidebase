@@ -285,7 +285,6 @@ export default function TippingModal({
       const contract = new ethers.Contract(USDC_ADDRESS, usdcAbi, provider);
       const nonce = BigInt(await contract.nonces(address));
 
-      console.log("Nonce:", nonce);
 
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600); // +1 hour
 
@@ -315,18 +314,14 @@ export default function TippingModal({
         deadline,
       };
 
-      console.log("Permit Values:", values);
-
       const signature = await signTypedDataAsync({
         domain,
         primaryType: "Permit",
         types,
         message: values,
       });
-      console.log("Signature:", signature);
-      const { v, r, s } = splitSignature(signature);
 
-      console.log("Permit Signature:", { v, r, s });
+      const { v, r, s } = splitSignature(signature);
 
       const res = await writeContract(config, {
         abi: firebaseTipsAbi,
