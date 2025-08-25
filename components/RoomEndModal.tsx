@@ -209,7 +209,7 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
           {/* Actions */}
           <div className="px-6 pb-4 space-y-3">
             {/* Leave Room Button */}
-            <button
+            {/* <button
               onClick={handleLeaveRoom}
               disabled={isLoading}
               className="w-full px-4 py-3 bg-fireside-blue hover:bg-blue-600 disabled:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center space-x-2"
@@ -223,7 +223,7 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
                 </svg>
               )}
               <span>Leave Room</span>
-            </button>
+            </button> */}
 
             {/* End Room Button - Only show for host */}
             {isHost && !showEndConfirmation && (
