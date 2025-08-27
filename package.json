@@ -14,7 +14,7 @@
     "@emoji-mart/data": "^1.2.1",
     "@emoji-mart/react": "^1.1.1",
     "@farcaster/auth-client": "^0.7.0",
-    "@farcaster/miniapp-sdk": "^0.1.8",
+    "@farcaster/miniapp-sdk": "^0.1.9",
     "@farcaster/quick-auth": "^0.0.7",
     "@rainbow-me/rainbowkit": "^2.2.8",
     "@types/ioredis": "^4.28.10",

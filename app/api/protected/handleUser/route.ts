@@ -12,6 +12,8 @@ export async function POST(req: NextRequest) {
 			return NextResponse.json({ error: 'Missing x-user-fid header' }, { status: 400 });
 		}
 
+		console.log("Fetching user with fid:", fid);
+
 		// Try to find the user
 		let user = await User.findOne({ fid });
 		if (!user) {
@@ -35,7 +37,9 @@ export async function POST(req: NextRequest) {
 
 			console.log("Neynar response:", neynarRes);
 
-			user = await User.create({ fid: fid, username: neynarRes?.username, displayName: neynarRes?.display_name, pfp_url: neynarRes?.pfp_url, wallet: neynarRes?.verified_addresses?.primary?.eth_address || '' });
+			user = await User.create({ fid: fid, username: neynarRes?.username, displayName: neynarRes?.display_name, pfp_url: neynarRes?.pfp_url, wallet: neynarRes?.verified_addresses?.primary?.eth_address || neynarRes?.custody_address });
+
+			console.log("Created new user:", user);
 		}
 
 		return NextResponse.json({ user });

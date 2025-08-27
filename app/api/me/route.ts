@@ -24,7 +24,10 @@ export async function GET(request: Request) {
       { status: 401 }
     );
   }
+
+
   const fid = Number(fidParam);
+  
   if (Number.isNaN(fid)) {
     return NextResponse.json(
       { error: "Invalid fid parameter" },
