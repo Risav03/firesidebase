@@ -1,7 +1,24 @@
 'use server'
 import Explore from '@/components/Explore';
 import NavigationWrapper from '@/components/NavigationWrapper';
+import TopRooms from '@/components/TopRooms';
+import MainHeader from '@/components/UI/MainHeader';
 import { Metadata } from 'next';
+import { Suspense } from 'react';
+
+interface Room {
+  _id: string;
+  name: string;
+  description: string;
+  host: {
+    fid: string;
+    username: string;
+    displayName: string;
+    pfp_url: string;
+  };
+  status: string;
+  startTime: string;
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   const URL = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
@@ -27,10 +44,32 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+// Server-side function to fetch rooms
+async function fetchRooms(): Promise<Room[]> {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/rooms`, {
+      cache: 'no-store'
+    });
+    const data = await response.json();
+    
+    if (data.success) {
+      return data.rooms;
+    }
+    return [];
+  } catch (error) {
+    console.error("Error fetching rooms:", error);
+    return [];
+  }
+}
+
 export default async function Home() {
+  const rooms = await fetchRooms();
+  
   return (
     <>
-      <Explore />
+      <MainHeader/>
+      <TopRooms rooms={rooms}/>
+      <Explore rooms={rooms} />
       <NavigationWrapper />
     </>
   );
