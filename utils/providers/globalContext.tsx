@@ -21,6 +21,7 @@ const GlobalContext = createContext<GlobalContextProps | undefined>(undefined);
 
 export function GlobalProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
+  const URL = process.env.NEXT_PUBLIC_URL || 'http://localhost:8000';
 
   useEffect(() => {
     (async () => {
@@ -66,13 +67,14 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       }
 
       console.log("Authorization token:", token);
+      console.log("user", user)
 
       const createUserRes = await fetch(
-        `${process.env.NEXT_PUBLIC_URL}/api/protected/handleUser`,
+        `${URL}/api/users/protected/handle`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${token}`,
+            'Authorization': `Bearer ${token}`
           },
         }
       );

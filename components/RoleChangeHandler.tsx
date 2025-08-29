@@ -22,6 +22,7 @@ export default function RoleChangeHandler() {
   const notification = useHMSNotifications();
   const isRejoining = useRef(false);
   const lastRole = useRef<string | null>(null);
+  const URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
   useEffect(() => {
     if (!notification) return;
@@ -66,7 +67,7 @@ export default function RoleChangeHandler() {
             }));
             
             // Get room codes for the new role
-            const response = await fetch(`/api/rooms/${roomId}/codes`);
+            const response = await fetch(`${URL}/api/rooms/public/${roomId}/codes`);
             const data = await response.json();
 
             if (!data.success) {

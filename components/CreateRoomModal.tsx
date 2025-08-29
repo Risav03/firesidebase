@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGlobalContext } from '@/utils/providers/globalContext';
 import toast from 'react-hot-toast';
+import sdk from "@farcaster/miniapp-sdk";
 
 interface CreateRoomModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
   const [nameError, setNameError] = useState('');
   const router = useRouter();
   const { user } = useGlobalContext();
+  const URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
   const createRoom = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,11 +35,13 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
     
     try {
       toast.loading('Creating room...');
-      
-      const response = await fetch('/api/rooms/create', {
+      const { token } = await sdk.quickAuth.getToken();
+
+      const response = await fetch(`${URL}/api/rooms/protected`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           ...formData,

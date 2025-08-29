@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useHMSActions, useHMSStore, selectLocalPeer, selectPermissions, selectIsPeerAudioEnabled } from '@100mslive/react-sdk';
 import { ChevronDownIcon, MicOnIcon, MicOffIcon } from '@100mslive/react-icons';
+import sdk from "@farcaster/miniapp-sdk";
 
 interface UserContextMenuProps {
   peer: any;
@@ -29,6 +30,8 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
   
   // Check if this is the local user
   const isLocalUser = peer.id === localPeer?.id;
+
+  const URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
   useEffect(() => {
     if (isVisible) {
@@ -57,6 +60,7 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
   }, [isOpen, onClose]);
 
   const handleRoleChange = async (newRole: string) => {
+    const { token } = await sdk.quickAuth.getToken();
     try {
       setIsLoading(true);
       
@@ -72,11 +76,12 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
           // Get room ID from URL or context
           const pathParts = window.location.pathname.split('/');
           const roomId = pathParts[pathParts.length - 1];
-          
-          const response = await fetch(`/api/rooms/${roomId}/participants`, {
+
+          const response = await fetch(`${URL}/api/rooms/protected/${roomId}/participants`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
               userFid: userFid,

@@ -57,10 +57,12 @@ export default function TippingModal({
   const { address } = useAccount();
   const hmsActions = useHMSActions();
 
+  const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+
   useEffect(() => {
     if (isOpen) {
       setIsLoadingUsers(true);
-      fetch(`/api/rooms/${roomId}/participants`)
+      fetch(`${URL}/api/rooms/public/${roomId}/participants`)
         .then((response) => response.json())
         .then((data) => {
           if (data.success) {
@@ -102,7 +104,7 @@ export default function TippingModal({
     // Store in Redis for persistence
     try {
       const {token} = await sdk.quickAuth.getToken();
-      const response = await fetch(`/api/protected/chat/${roomId}`, {
+      const response = await fetch(`${URL}/api/rooms/protected/${roomId}/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -125,6 +127,7 @@ export default function TippingModal({
   };
 
   const handleETHTip = async () => {
+    const { token } = await sdk.quickAuth.getToken();
     try {
       setIsLoading(true);
       if (!selectedUsers.length && !selectedRoles.length) {
@@ -144,15 +147,13 @@ export default function TippingModal({
       if (selectedUsers.length > 0) {
         usersToSend = selectedUsers.map((user) => user.wallet);
       } else {
-        for (const role in selectedRoles) {
-          const res = await fetch(`/api/rooms/${roomId}/participants-by-role`, {
-            method: "POST",
+        for (const role of selectedRoles) {
+          const res = await fetch(`${URL}/api/rooms/public/${roomId}/participants?role=${role}&activeOnly=true`, {
+            method: "GET",
             headers: {
               "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              role: selectedRoles[role],
-            }),
+              // "Authorization": `Bearer ${token}`
+            }
           });
 
           const data = await res.json();
@@ -244,14 +245,12 @@ export default function TippingModal({
         usersToSend = selectedUsers.map((user) => user.wallet);
       } else {
         for (const role of selectedRoles) {
-          const res = await fetch(`/api/rooms/${roomId}/participants-by-role`, {
-            method: "POST",
+          const res = await fetch(`${URL}/api/rooms/public/${roomId}/participants?role=${role}&activeOnly=true`, {
+            method: "GET",
             headers: {
               "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              role,
-            }),
+              // 'x-user-fid': user.fid
+            }
           });
 
           const data = await res.json();

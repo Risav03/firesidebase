@@ -8,6 +8,7 @@ import Footer from '@/components/Footer';
 import RoleChangeHandler from '@/components/RoleChangeHandler';
 import { Loader } from '@/components/Loader';
 import toast from 'react-hot-toast';
+import sdk from '@farcaster/miniapp-sdk';
 
 interface RoomCode {
   id: string;
@@ -24,6 +25,8 @@ interface CallClientProps {
 }
 
 export default function CallClient({ roomId }: CallClientProps) {
+  const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+
   const { user } = useGlobalContext();
   const hmsActions = useHMSActions();
 
@@ -36,13 +39,15 @@ export default function CallClient({ roomId }: CallClientProps) {
   useEffect(() => {
     const joinRoom = async () => {
       try {
+        const { token } = await sdk.quickAuth.getToken();
+
         if (!user) {
           setError('User not authenticated');
           setIsJoining(false);
           return;
         }
 
-        const response = await fetch(`/api/rooms/${roomId}/codes`);
+        const response = await fetch(`${URL}/api/rooms/public/${roomId}/codes`);
         const data = await response.json();
 
         if (!data.success) {
@@ -54,7 +59,7 @@ export default function CallClient({ roomId }: CallClientProps) {
         let roomCode = '';
         let role = 'listener';
 
-        const roomResponse = await fetch(`/api/rooms/${roomId}`);
+        const roomResponse = await fetch(`${URL}/api/rooms/public/${roomId}`);
         const roomData = await roomResponse.json();
 
         if (roomData.success && roomData.room.host._id === user._id) {
@@ -67,10 +72,11 @@ export default function CallClient({ roomId }: CallClientProps) {
 
         if (!roomCode) {
           try {
-            const response = await fetch(`/api/rooms/${roomId}/codes/${user.fid}`, {
+            const response = await fetch(`${URL}/api/rooms/protected/${roomId}/my-code`, {
               method: 'GET',
               headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
               },
             });
             
@@ -141,11 +147,14 @@ export default function CallClient({ roomId }: CallClientProps) {
 
       // Add user as participant in Redis when they successfully join
       const addParticipantToRedis = async () => {
+        const { token } = await sdk.quickAuth.getToken();
+
         try {
-          const response = await fetch(`/api/rooms/${roomId}/join`, {
+          const response = await fetch(`${URL}/api/rooms/protected/${roomId}/join`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
               userFid: user.fid,
@@ -171,12 +180,15 @@ export default function CallClient({ roomId }: CallClientProps) {
   // Cleanup: Remove user from Redis participants when component unmounts or user leaves
   useEffect(() => {
     const removeParticipantFromRedis = async () => {
+      const { token } = await sdk.quickAuth.getToken();
+
       if (user?.fid) {
         try {
-          await fetch(`/api/rooms/${roomId}/leave`, {
+          await fetch(`/api/rooms/protected/${roomId}/leave`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
               userFid: user.fid

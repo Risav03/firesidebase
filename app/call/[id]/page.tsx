@@ -1,12 +1,11 @@
 import CallClient from '@/components/CallClient';
-import Room from '@/utils/schemas/Room';
 import { Metadata } from 'next';
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const URL = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
+  const URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
-  const response = await fetch(`${URL}/api/rooms/${params.id}`);
-      const data = await response.json();
+  const response = await fetch(`${URL}/api/rooms/public/${params.id}`);
+  const data = await response.json();
 
   const hostName = data.room.host.displayName;
 

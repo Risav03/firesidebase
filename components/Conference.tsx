@@ -20,10 +20,11 @@ export default function Conference({roomId}:{roomId: string}) {
 
   //function to fetch room details and save name and description in a useState. Call the function in useEffect
   const [roomDetails, setRoomDetails] = useState<{ name: string; description: string } | null>(null);
+  const URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
   useEffect(() => {
     async function fetchRoomDetails() {
-      const response = await fetch(`/api/rooms/${roomId}`);
+      const response = await fetch(`${URL}/api/rooms/public/${roomId}`);
       const data = await response.json();
       if (data.success) {
         setRoomDetails({ name: data.room.name, description: data.room.description });

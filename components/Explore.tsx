@@ -25,12 +25,13 @@ export default function Explore() {
   const [loading, setLoading] = useState(true);
   const [redirectingRoomId, setRedirectingRoomId] = useState<string | null>(null);
   const router = useRouter();
+  const URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
   // Fetch rooms
   const fetchRooms = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/rooms");
+      const response = await fetch(`${URL}/api/rooms/public/`);
       const data = await response.json();
       if (data.success) {
         setRooms(data.rooms);

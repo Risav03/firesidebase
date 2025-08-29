@@ -36,18 +36,19 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   useEffect(() => {
     const loadMessages = async () => {
       if (!roomId) return;
-      
+
       setLoading(true);
       try {
-              const {token} = await sdk.quickAuth.getToken();
+        const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+        const { token } = await sdk.quickAuth.getToken();
 
-        const response = await fetch(`/api/protected/chat/${roomId}?limit=50`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        const response = await fetch(`${URL}/api/rooms/public/${roomId}/messages?limit=50`, {
+          // headers: {
+          //   'Authorization': `Bearer ${token}`
+          // }
         });
         const data = await response.json();
-        
+
         if (data.success) {
           setRedisMessages(data.messages);
         }
@@ -85,14 +86,14 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       // Send to HMS for real-time broadcast
       hmsActions.sendBroadcastMessage(messageText);
 
-      const {token} = await sdk.quickAuth.getToken();
+      const { token } = await sdk.quickAuth.getToken();
 
       // Store in Redis for persistence
-      const response = await fetch(`/api/protected/chat/${roomId}`, {
+      const response = await fetch(`${URL}/api/rooms/protected/${roomId}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           message: messageText,
@@ -101,7 +102,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         // Add the new message to our local state
         setRedisMessages(prev => [...prev, data.message]);
@@ -127,9 +128,9 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   const combinedMessages = [
     ...redisMessages,
     // Add HMS messages that aren't already in Redis (for real-time updates)
-    ...messages.filter(hmsMsg => 
-      !redisMessages.some(redisMsg => 
-        redisMsg.message === hmsMsg.message && 
+    ...messages.filter(hmsMsg =>
+      !redisMessages.some(redisMsg =>
+        redisMsg.message === hmsMsg.message &&
         Math.abs(new Date(redisMsg.timestamp).getTime() - hmsMsg.time.getTime()) < 5000
       )
     ).map(hmsMsg => ({
