@@ -1,14 +1,19 @@
-'use client'
-import { useEffect, useState } from 'react';
-import { useHMSActions, useHMSStore, selectLocalPeer, selectIsConnectedToRoom } from '@100mslive/react-sdk';
-import { useGlobalContext } from '@/utils/providers/globalContext';
-import Conference from '@/components/Conference';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import RoleChangeHandler from '@/components/RoleChangeHandler';
-import { Loader } from '@/components/Loader';
-import toast from 'react-hot-toast';
-import sdk from '@farcaster/miniapp-sdk';
+"use client";
+import { useEffect, useState } from "react";
+import {
+  useHMSActions,
+  useHMSStore,
+  selectLocalPeer,
+  selectIsConnectedToRoom,
+} from "@100mslive/react-sdk";
+import { useGlobalContext } from "@/utils/providers/globalContext";
+import Conference from "@/components/Conference";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import RoleChangeHandler from "@/components/RoleChangeHandler";
+import { Loader } from "@/components/Loader";
+import toast from "react-hot-toast";
+import sdk from "@farcaster/miniapp-sdk";
 
 interface RoomCode {
   id: string;
@@ -25,7 +30,7 @@ interface CallClientProps {
 }
 
 export default function CallClient({ roomId }: CallClientProps) {
-  const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+  const URL = process.env.BACKEND_URL || "http://localhost:8000";
 
   const { user } = useGlobalContext();
   const hmsActions = useHMSActions();
@@ -39,10 +44,15 @@ export default function CallClient({ roomId }: CallClientProps) {
   useEffect(() => {
     const joinRoom = async () => {
       try {
-        const { token } = await sdk.quickAuth.getToken();
+        const env = process.env.NEXT_PUBLIC_ENV;
+        
+        var token: any = "";
+        if (env !== "DEV") {
+          token = await sdk.quickAuth.getToken();
+        }
 
         if (!user) {
-          setError('User not authenticated');
+          setError("User not authenticated");
           setIsJoining(false);
           return;
         }
@@ -51,64 +61,71 @@ export default function CallClient({ roomId }: CallClientProps) {
         const data = await response.json();
 
         if (!data.success) {
-          throw new Error(data.error || 'Failed to fetch room codes');
+          throw new Error(data.error || "Failed to fetch room codes");
         }
 
         const roomCodes: RoomCode[] = data.roomCodes;
 
-        let roomCode = '';
-        let role = 'listener';
+        let roomCode = "";
+        let role = "listener";
 
         const roomResponse = await fetch(`${URL}/api/rooms/public/${roomId}`);
         const roomData = await roomResponse.json();
 
         if (roomData.success && roomData.room.host._id === user._id) {
-          const hostCode = roomCodes.find(code => code.role === 'host');
+          const hostCode = roomCodes.find((code) => code.role === "host");
           if (hostCode) {
             roomCode = hostCode.code;
-            role = 'host';
+            role = "host";
           }
         }
 
         if (!roomCode) {
           try {
-            const response = await fetch(`${URL}/api/rooms/protected/${roomId}/my-code`, {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
-            });
-            
+            const response = await fetch(
+              `${URL}/api/rooms/protected/${roomId}/my-code`,
+              {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+
             const data = await response.json();
-            console.log('User role data:', data);
+            console.log("User role data:", data);
 
             if (data.success) {
               roomCode = data.code;
               role = data.role;
               console.log(`User assigned role: ${role} with code: ${roomCode}`);
             } else {
-              console.error('Failed to get user role:', data.error);
+              console.error("Failed to get user role:", data.error);
               // Fallback to listener role
-              const listenerCode = roomCodes.find(code => code.role === 'listener');
+              const listenerCode = roomCodes.find(
+                (code) => code.role === "listener"
+              );
               if (listenerCode) {
                 roomCode = listenerCode.code;
-                role = 'listener';
+                role = "listener";
               }
             }
           } catch (error) {
-            console.error('Error fetching user role:', error);
+            console.error("Error fetching user role:", error);
             // Fallback to listener role
-            const listenerCode = roomCodes.find(code => code.role === 'listener');
+            const listenerCode = roomCodes.find(
+              (code) => code.role === "listener"
+            );
             if (listenerCode) {
               roomCode = listenerCode.code;
-              role = 'listener';
+              role = "listener";
             }
           }
         }
 
         if (!roomCode) {
-          throw new Error('No valid room code found');
+          throw new Error("No valid room code found");
         }
 
         const authToken = await hmsActions.getAuthTokenByRoomCode({
@@ -116,22 +133,22 @@ export default function CallClient({ roomId }: CallClientProps) {
         });
 
         await hmsActions.join({
-          userName: user.username || user.displayName || 'Anonymous',
+          userName: user.username || user.displayName || "Anonymous",
           authToken,
           metaData: JSON.stringify({
             avatar: user.pfp_url,
             role: role,
             fid: user.fid,
-            wallet: user.wallet || '',
-          })
+            wallet: user.wallet || "",
+          }),
         });
 
         setIsJoining(false);
       } catch (err) {
-        console.error('Error joining room:', err);
-        setError(err instanceof Error ? err.message : 'Failed to join room');
+        console.error("Error joining room:", err);
+        setError(err instanceof Error ? err.message : "Failed to join room");
         setIsJoining(false);
-        toast.error('Failed to join room. Please try again.');
+        toast.error("Failed to join room. Please try again.");
       }
     };
 
@@ -141,35 +158,46 @@ export default function CallClient({ roomId }: CallClientProps) {
   useEffect(() => {
     if (isConnected && localPeer && user) {
       const role = localPeer.roleName;
-      if (role === 'host' || role === 'co-host' || role === 'speaker') {
+      if (role === "host" || role === "co-host" || role === "speaker") {
         hmsActions.setLocalAudioEnabled(false);
       }
 
       // Add user as participant in Redis when they successfully join
       const addParticipantToRedis = async () => {
-        const { token } = await sdk.quickAuth.getToken();
+        const env = process.env.NEXT_PUBLIC_ENV;
+        
+        var token: any = "";
+        if (env !== "DEV") {
+          token = await sdk.quickAuth.getToken();
+        };
 
         try {
-          const response = await fetch(`${URL}/api/rooms/protected/${roomId}/join`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              userFid: user.fid,
-              role: role || 'listener'
-            }),
-          });
+          const response = await fetch(
+            `${URL}/api/rooms/protected/${roomId}/join`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                userFid: user.fid,
+                role: role || "listener",
+              }),
+            }
+          );
 
           const data = await response.json();
           if (data.success) {
-            console.log('User added to Redis participants:', data.participant);
+            console.log("User added to Redis participants:", data.participant);
           } else {
-            console.error('Failed to add user to Redis participants:', data.error);
+            console.error(
+              "Failed to add user to Redis participants:",
+              data.error
+            );
           }
         } catch (error) {
-          console.error('Error adding participant to Redis:', error);
+          console.error("Error adding participant to Redis:", error);
         }
       };
 
@@ -180,23 +208,28 @@ export default function CallClient({ roomId }: CallClientProps) {
   // Cleanup: Remove user from Redis participants when component unmounts or user leaves
   useEffect(() => {
     const removeParticipantFromRedis = async () => {
-      const { token } = await sdk.quickAuth.getToken();
+      const env = process.env.NEXT_PUBLIC_ENV;
+        
+        var token: any = "";
+        if (env !== "DEV") {
+          token = await sdk.quickAuth.getToken();
+        };
 
       if (user?.fid) {
         try {
           await fetch(`/api/rooms/protected/${roomId}/leave`, {
-            method: 'POST',
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
-              userFid: user.fid
+              userFid: user.fid,
             }),
           });
-          console.log('User removed from Redis participants');
+          console.log("User removed from Redis participants");
         } catch (error) {
-          console.error('Error removing participant from Redis:', error);
+          console.error("Error removing participant from Redis:", error);
         }
       }
     };
@@ -206,10 +239,10 @@ export default function CallClient({ roomId }: CallClientProps) {
       removeParticipantFromRedis();
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener("beforeunload", handleBeforeUnload);
 
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
       // Also remove on component unmount
       removeParticipantFromRedis();
     };
@@ -219,9 +252,11 @@ export default function CallClient({ roomId }: CallClientProps) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-950 to-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Error Joining Room</h1>
+          <h1 className="text-2xl font-bold text-white mb-4">
+            Error Joining Room
+          </h1>
           <p className="text-red-400 mb-4">{error}</p>
-          <button 
+          <button
             onClick={() => window.history.back()}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
           >

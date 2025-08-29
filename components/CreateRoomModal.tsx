@@ -35,7 +35,12 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
     
     try {
       toast.loading('Creating room...');
-      const { token } = await sdk.quickAuth.getToken();
+      const env = process.env.NEXT_PUBLIC_ENV;
+        
+        var token: any = "";
+        if (env !== "DEV") {
+          token = await sdk.quickAuth.getToken();
+        };
 
       const response = await fetch(`${URL}/api/rooms/protected`, {
         method: 'POST',

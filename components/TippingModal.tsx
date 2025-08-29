@@ -127,7 +127,12 @@ export default function TippingModal({
   };
 
   const handleETHTip = async () => {
-    const { token } = await sdk.quickAuth.getToken();
+    const env = process.env.NEXT_PUBLIC_ENV;
+        
+        var token: any = "";
+        if (env !== "DEV") {
+          token = await sdk.quickAuth.getToken();
+        };
     try {
       setIsLoading(true);
       if (!selectedUsers.length && !selectedRoles.length) {

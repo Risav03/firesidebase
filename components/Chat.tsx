@@ -40,7 +40,12 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       setLoading(true);
       try {
         const URL = process.env.BACKEND_URL || 'http://localhost:8000';
-        const { token } = await sdk.quickAuth.getToken();
+        const env = process.env.NEXT_PUBLIC_ENV;
+        
+        var token: any = "";
+        if (env !== "DEV") {
+          token = await sdk.quickAuth.getToken();
+        };
 
         const response = await fetch(`${URL}/api/rooms/public/${roomId}/messages?limit=50`, {
           // headers: {
@@ -86,7 +91,12 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       // Send to HMS for real-time broadcast
       hmsActions.sendBroadcastMessage(messageText);
 
-      const { token } = await sdk.quickAuth.getToken();
+      const env = process.env.NEXT_PUBLIC_ENV;
+        
+        var token: any = "";
+        if (env !== "DEV") {
+          token = await sdk.quickAuth.getToken();
+        };
 
       // Store in Redis for persistence
       const response = await fetch(`${URL}/api/rooms/protected/${roomId}/messages`, {
