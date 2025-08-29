@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 export default function TopRooms({ rooms }: { rooms?: any[] }) {
   const router = useRouter();
 
+  if(rooms && rooms?.length > 0)
   return (
-    <div className=" bg-gray-900 w-screen overflow-x-scroll p-2">
+    <div className=" bg-gray-950 w-screen overflow-x-scroll p-2 border-y border-white/5">
       <div className="flex gap-2 w-max">
         {rooms?.slice(0, 5).map((room) => (
           <div

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGlobalContext } from '@/utils/providers/globalContext';
 import CreateRoomModal from '@/components/CreateRoomModal';
+import Image from 'next/image';
 
 export default function Navigation() {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -56,10 +57,12 @@ export default function Navigation() {
               onClick={handleProfileClick}
               className="flex flex-col items-center w-1/3 space-y-1 text-gray-300 hover:text-white transition-colors"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {user ? <><Image src={user.pfp_url} alt={user.displayName} width={120} height={120} className="w-6 h-6 rounded-full" />
+              <span className="text-xs">{user.displayName}</span>
+              </> :<><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <span className="text-xs">Profile</span>
+              </svg><span className="text-xs">Profile</span></>}
+
             </button>
           </div>
         </div>
