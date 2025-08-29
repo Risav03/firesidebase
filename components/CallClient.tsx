@@ -57,6 +57,8 @@ export default function CallClient({ roomId }: CallClientProps) {
           return;
         }
 
+       
+
         const response = await fetch(`${URL}/api/rooms/public/${roomId}/codes`);
         const data = await response.json();
 
@@ -64,7 +66,7 @@ export default function CallClient({ roomId }: CallClientProps) {
           throw new Error(data.error || "Failed to fetch room codes");
         }
 
-        const roomCodes: RoomCode[] = data.roomCodes;
+        const roomCodes: RoomCode[] = data.data.roomCodes;
 
         let roomCode = "";
         let role = "listener";
@@ -97,8 +99,8 @@ export default function CallClient({ roomId }: CallClientProps) {
             console.log("User role data:", data);
 
             if (data.success) {
-              roomCode = data.code;
-              role = data.role;
+              roomCode = data.data.code;
+              role = data.data.role;
               console.log(`User assigned role: ${role} with code: ${roomCode}`);
             } else {
               console.error("Failed to get user role:", data.error);
@@ -151,8 +153,10 @@ export default function CallClient({ roomId }: CallClientProps) {
         toast.error("Failed to join room. Please try again.");
       }
     };
-
-    if (user && roomId) joinRoom();
+    if (user && roomId) {
+      
+      joinRoom();
+    }
   }, [roomId, user, hmsActions]);
 
   useEffect(() => {
@@ -188,8 +192,9 @@ export default function CallClient({ roomId }: CallClientProps) {
           );
 
           const data = await response.json();
+          console.log("Add participant response:", data);
           if (data.success) {
-            console.log("User added to Redis participants:", data.participant);
+            console.log("User added to Redis participants:", data.data.participant);
           } else {
             console.error(
               "Failed to add user to Redis participants:",
@@ -217,7 +222,7 @@ export default function CallClient({ roomId }: CallClientProps) {
 
       if (user?.fid) {
         try {
-          await fetch(`/api/rooms/protected/${roomId}/leave`, {
+          await fetch(`${URL}/api/rooms/protected/${roomId}/leave`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

@@ -53,9 +53,10 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
           // }
         });
         const data = await response.json();
+        console.log("Room messages response:", data);
 
         if (data.success) {
-          setRedisMessages(data.messages);
+          setRedisMessages(data.data.messages);
         }
       } catch (error) {
         console.error('Failed to load messages:', error);
@@ -82,6 +83,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   };
 
   const handleSendMessage = async () => {
+    const URL = process.env.BACKEND_URL || 'http://localhost:8000';
     if (!message.trim() || !user?.fid) return;
 
     const messageText = message.trim();
@@ -115,7 +117,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
       if (data.success) {
         // Add the new message to our local state
-        setRedisMessages(prev => [...prev, data.message]);
+        setRedisMessages(prev => [...prev, data.data.message]);
       } else {
         console.error('Failed to store message:', data.error);
         toast.error('Failed to send message. Please try again.');
@@ -159,6 +161,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   // Always render, but control visibility through CSS classes
   const modalClass = `chat-modal ${isOpen ? 'open' : ''} ${isClosing ? 'closing' : ''}`;
 
+  console.log("Combined messages:", combinedMessages);
   return (
     <div
       ref={chatRef}

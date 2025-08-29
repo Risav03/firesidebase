@@ -25,6 +25,7 @@ export default function Conference({roomId}:{roomId: string}) {
   useEffect(() => {
     async function fetchRoomDetails() {
       const response = await fetch(`${URL}/api/rooms/public/${roomId}`);
+      // console.log("Room details response:", await response.json());
       const data = await response.json();
       if (data.success) {
         setRoomDetails({ name: data.room.name, description: data.room.description });

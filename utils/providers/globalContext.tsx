@@ -21,7 +21,7 @@ const GlobalContext = createContext<GlobalContextProps | undefined>(undefined);
 
 export function GlobalProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
-  const URL = process.env.NEXT_PUBLIC_URL || 'http://localhost:8000';
+  const URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
   useEffect(() => {
     (async () => {
@@ -82,7 +82,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       if (!createUserRes.ok) {
         console.error("Failed to create user:", await createUserRes.text());
       }
-      setUser((await createUserRes.json()).user);
+      setUser((await createUserRes.json()).data.user);
     } catch (error) {
       console.error("Sign in error:", error);
     }

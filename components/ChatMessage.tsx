@@ -10,9 +10,13 @@ interface ChatMessageProps {
 }
 
 export function ChatMessage({ message, isOwnMessage }: ChatMessageProps) {
+
+  // console.log("Rendering message:", message, "Is own message:", isOwnMessage);
   
   const isRedisMessage = 'userId' in message;
-  
+
+  console.log("isRedisMessage:", isRedisMessage);
+
   // Get sender name based on message type
   const getSenderName = () => {
     if (isRedisMessage) {
