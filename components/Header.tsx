@@ -45,7 +45,7 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 bg-gray-950 px-6 h-16 my-auto border-b border-white/20">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-black px-6 h-16 my-auto border-b border-white/20">
         <div className="max-w-7xl h-full mx-auto flex items-center justify-between">
           <div className="flex items-start justify-start space-x-4">
             <FiresideLogo className="w-32 justify-start"/>

@@ -1,8 +1,8 @@
-
 import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import NProgress from 'nprogress';
 import 'nprogress/nprogress.css';
+import './progressbar-orange.css';
 
 NProgress.configure({ showSpinner: false });
 

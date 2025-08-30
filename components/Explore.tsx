@@ -139,6 +139,11 @@ export default function Explore({ rooms }: ExploreProps) {
           />
         </div>
 
+        <div>
+          <h2 className="text-white text-xl font-bold">Explore</h2>
+          <div className="text-white/80 animate-pulse bg-white/10 rounded-lg w-full flex mt-2 text-sm font-bold items-center justify-center h-32">Find what you like, Coming soon!</div>
+        </div>
+
         {/* Rooms List */}
         {/* <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 sm:p-6 border border-white/10">
           <div className="flex justify-between items-start sm:items-center mb-6 gap-4">

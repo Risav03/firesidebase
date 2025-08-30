@@ -50,7 +50,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
           body: JSON.stringify({
             ...formData,
             host: user?.fid || '',
-            startTime: new Date(formData.startTime).toISOString(),
+            startTime: new Date().toISOString(),
             topics: selectedTags
           }),
         });
@@ -128,6 +128,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
             />
           </div>
           
+          {/*
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Start Time*
@@ -140,6 +141,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
               required
             />
           </div>
+          */}
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">

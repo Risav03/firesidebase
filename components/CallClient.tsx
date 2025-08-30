@@ -205,7 +205,7 @@ export default function CallClient({ roomId }: CallClientProps) {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 to-gray-900 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-white mb-4">Error Joining Room</h1>
           <p className="text-red-400 mb-4">{error}</p>
@@ -222,7 +222,7 @@ export default function CallClient({ roomId }: CallClientProps) {
 
   if (isJoining) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 to-gray-900 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Loader />
         </div>
@@ -231,7 +231,7 @@ export default function CallClient({ roomId }: CallClientProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 to-gray-900">
+    <div className="min-h-screen">
       <RoleChangeHandler />
       <Header roomId={roomId} />
       <Conference roomId={roomId} />
