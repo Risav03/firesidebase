@@ -7,22 +7,24 @@ import CreateRoomModal from "@/components/CreateRoomModal";
 import Image from "next/image";
 import { IoMdHome } from "react-icons/io";
 import { FaPlus } from "react-icons/fa";
+import { useNavigateWithLoader } from "@/utils/useNavigateWithLoader";
 
 export default function Navigation() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const router = useRouter();
   const { user } = useGlobalContext();
+  const navigate = useNavigateWithLoader();
 
   const handleCreateRoom = () => {
     setShowCreateModal(true);
   };
 
   const handleProfileClick = () => {
-    router.push("/profile");
+    navigate("/profile");
   };
 
   const handleExploreClick = () => {
-    router.push("/");
+    navigate("/");
   };
 
   return (
