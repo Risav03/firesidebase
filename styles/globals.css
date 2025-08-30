@@ -55,8 +55,12 @@
     @apply w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-fireside-orange focus:ring-2 focus:ring-fireside-orange focus:ring-opacity-20 outline-none transition-all duration-200;
   }
   
-  .gradient-fire {
+  .gradient-fire-text {
     @apply bg-gradient-to-br from-orange-500 to-orange-400 bg-clip-text text-transparent;
+  }
+
+  .gradient-fire {
+    @apply bg-gradient-to-br from-orange-500 to-orange-400;
   }
   
   .peer-avatar {

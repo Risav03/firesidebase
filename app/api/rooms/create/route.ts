@@ -8,18 +8,18 @@ import { RedisRoomService } from '@/utils/redisServices';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, description, host, startTime } = body;
+    const { name, description, host, startTime, topics } = body;
     await connectToDB();
 
     const hostUser = await User.findOne({ fid: host });
 
     // Validate required fields
-    if (!name || !host || !startTime) {
-      return NextResponse.json(
-        { success: false, error: 'Missing required fields: name, host, startTime' },
-        { status: 400 }
-      );
-    }
+      if (!name || !host || !startTime || !topics || !Array.isArray(topics) || topics.length === 0) {
+        return NextResponse.json(
+          { success: false, error: 'Missing required fields: name, host, startTime, topics' },
+          { status: 400 }
+        );
+      }
 
     await connectToDB();
 
@@ -32,17 +32,23 @@ export async function POST(request: NextRequest) {
     const currentTime = new Date();
 
     // Create room in our database
-    const room = new Room({
-      name,
-      description,
-      host: hostUser._id,
-      startTime: new Date(startTime),
-      roomId: hmsRoom.id,
-      participants: [hostUser._id],
-      status: currentTime < new Date(startTime) ? 'upcoming' : 'ongoing',
-    });
+      const room = new Room({
+        name,
+        description,
+        host: hostUser._id,
+        startTime: new Date(startTime),
+        roomId: hmsRoom.id,
+        participants: [hostUser._id],
+        status: currentTime < new Date(startTime) ? 'upcoming' : 'ongoing',
+        topics,
+      });
 
     await room.save();
+
+    // Add room to host's hostedRooms
+    hostUser.hostedRooms = hostUser.hostedRooms || [];
+    hostUser.hostedRooms.push(room._id);
+    await hostUser.save();
 
     // Populate host and participants for response
     await room.populate('host', 'fid username displayName pfp_url');

@@ -120,7 +120,7 @@ export default function Explore({ rooms }: ExploreProps) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 to-gray-900">
+    <div className="min-h-screen">
       <div className="max-w-4xl mx-auto p-4 sm:p-6 pb-24">
         <div className="text-left mb-8">
           <h1 className="text-2xl font-bold flex items-center gap-2 text-white mb-2">
@@ -133,18 +133,9 @@ export default function Explore({ rooms }: ExploreProps) {
 
         <div className="mb-6">
           <SearchBar
-            placeholder="Search rooms..."
-            value={searchQuery}
-            onChange={(value) => {
-              setSearchQuery(value);
-              handleSearch(value);
-            }}
-            onSearch={handleSearch}
-            results={searchResults}
-            onResultClick={handleResultClick}
-            loading={isLoading}
+            
             className="w-full"
-            resultsClassName="bg-gray-900/95 border-white/20"
+          
           />
         </div>
 

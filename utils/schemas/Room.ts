@@ -14,6 +14,7 @@ export interface IRoom extends Document {
   roomId: string;
   sponsorshipEnabled: boolean;
   // baseSponsorshipPrice: number;
+  topics: string[];
 }
 
 const Room: Schema = new Schema({
@@ -33,6 +34,7 @@ const Room: Schema = new Schema({
   roomId: { type: String, required: true, unique: true },
   sponsorshipEnabled: { type: Boolean, default: false },
   // baseSponsorshipPrice: { type: Number, default: 0 }
+  topics: { type: [String], required: true },
 }, {
   timestamps: true
 });

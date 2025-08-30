@@ -1,67 +1,72 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigateWithLoader } from '@/utils/useNavigateWithLoader';
 import { twMerge } from 'tailwind-merge';
 import { IoSearchOutline } from 'react-icons/io5';
 
-export type SearchResult = {
-  id: string;
-  title: string;
-  image?: string;
-};
 
-export interface SearchBarProps {
-  placeholder?: string;
-  value: string;
-  onChange: (value: string) => void;
-  onSearch?: (value: string) => void;
-  results?: SearchResult[];
-  onResultClick?: (result: SearchResult) => void;
-  className?: string;
-  inputClassName?: string;
-  resultsClassName?: string;
-  resultItemClassName?: string;
-  showResults?: boolean;
-  loading?: boolean;
-}
-
-const SearchBar: React.FC<SearchBarProps> = ({
-  placeholder = 'Search...',
-  value,
-  onChange,
-  onSearch,
-  results = [],
-  onResultClick,
-  className,
-  inputClassName,
-  resultsClassName,
-  resultItemClassName,
-  showResults = true,
-  loading = false,
-}) => {
+const SearchBar: React.FC<{ className?: string }> = ({ className }) => {
+  const [value, setValue] = useState('');
+  const [results, setResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [showResultsList, setShowResultsList] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigateWithLoader();
 
   useEffect(() => {
-    // Show results when there are any and the input is focused
-    setShowResultsList(isFocused && results.length > 0 && showResults);
+    setShowResultsList(isFocused && results.length > 0);
 
-    // Handle clicks outside of the search component
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setIsFocused(false);
         setShowResultsList(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isFocused, results, showResults]);
+  }, [isFocused, results]);
+
+  const handleSearch = async (searchValue: string) => {
+    if (!searchValue.trim()) {
+      setResults([]);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(searchValue.trim())}`);
+      const data = await res.json();
+      if (data.success) {
+        // Flatten results for display
+        const userResults = (data.users || []).map((user: any) => ({
+          id: user.fid,
+          title: user.displayName || user.username,
+          image: user.pfp_url,
+          type: 'user',
+          raw: user
+        }));
+        const roomResults = (data.rooms || []).map((room: any) => ({
+          id: room.roomId,
+          title: room.name,
+          image: undefined,
+          type: 'room',
+          tags: room.topics,
+          raw: room
+        }));
+        setResults([...userResults, ...roomResults]);
+      } else {
+        setResults([]);
+      }
+    } catch {
+      setResults([]);
+    }
+    setLoading(false);
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && onSearch) {
-      onSearch(value);
+    if (e.key === 'Enter') {
+      handleSearch(value);
     }
   };
 
@@ -78,12 +83,18 @@ const SearchBar: React.FC<SearchBarProps> = ({
         <input
           type="text"
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => {
+            setValue(e.target.value);
+            if (e.target.value.trim()) {
+              handleSearch(e.target.value);
+            } else {
+              setResults([]);
+            }
+          }}
           onFocus={() => setIsFocused(true)}
-          placeholder={placeholder}
+          placeholder={'Search users or rooms...'}
           className={twMerge(
-            'w-full bg-transparent outline-none text-white placeholder-white/50',
-            inputClassName
+            'w-full bg-transparent outline-none text-white placeholder-white/50'
           )}
           onKeyDown={handleKeyDown}
         />
@@ -96,21 +107,19 @@ const SearchBar: React.FC<SearchBarProps> = ({
       {showResultsList && (
         <div
           className={twMerge(
-            'absolute z-10 mt-1 w-full bg-black/80 border border-white/20 rounded-lg shadow-lg max-h-60 overflow-y-auto',
-            resultsClassName
+            'absolute z-10 mt-1 w-full bg-black/80 border border-white/20 rounded-lg shadow-lg max-h-60 overflow-y-auto'
           )}
         >
           {results.map((result) => (
             <div
               key={result.id}
               className={twMerge(
-                'flex items-center p-3 cursor-pointer hover:bg-white/10 transition-colors',
-                resultItemClassName
+                'flex items-center p-3 cursor-pointer hover:bg-white/10 transition-colors'
               )}
               onClick={() => {
-                if (onResultClick) {
-                  onResultClick(result);
-                  setShowResultsList(false);
+                setShowResultsList(false);
+                if (result.type === 'user' && result.raw?.username) {
+                  navigate(`/user/${result.raw.username}`);
                 }
               }}
             >
@@ -119,7 +128,18 @@ const SearchBar: React.FC<SearchBarProps> = ({
                   <img src={result.image} alt={result.title} className="w-full h-full object-cover" />
                 </div>
               )}
-              <div className="text-white text-sm font-medium truncate">{result.title}</div>
+              <div className="text-white text-sm font-medium truncate">
+                {result.title}
+                {result.type === 'room' && result.tags && (
+                  <span className="ml-2 text-xs text-pink-400">[{result.tags.join(', ')}]</span>
+                )}
+              </div>
+              {result.type === 'user' && (
+                <span className="ml-2 text-xs text-blue-400">User</span>
+              )}
+              {result.type === 'room' && (
+                <span className="ml-2 text-xs text-orange-400">Room</span>
+              )}
             </div>
           ))}
         </div>
