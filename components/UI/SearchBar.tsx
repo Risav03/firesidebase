@@ -121,6 +121,9 @@ const SearchBar: React.FC<{ className?: string }> = ({ className }) => {
                 if (result.type === 'user' && result.raw?.username) {
                   navigate(`/user/${result.raw.username}`);
                 }
+                if (result.type === 'room' && result.raw?._id) {
+                  navigate(`/call/${result.raw._id}`);
+                }
               }}
             >
               {result.image && (

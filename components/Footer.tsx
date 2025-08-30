@@ -400,7 +400,7 @@ export default function Footer({ roomId }: { roomId: string }) {
           </button>
 
           {/* Ads button - shown to hosts/co-hosts regardless of adsEnabled state */}
-          {(isHost || adsEnabled) && (
+          {/* {(isHost || adsEnabled) && (
             <button
               onClick={handleAdsClick}
               className="relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 bg-white/10 text-white hover:bg-white/20"
@@ -408,7 +408,7 @@ export default function Footer({ roomId }: { roomId: string }) {
             >
               <RiAdvertisementFill className="w-5 h-5" />
             </button>
-          )}
+          )} */}
 
           <button
             onClick={() => setIsShareMenuOpen((prev) => !prev)}
