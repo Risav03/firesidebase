@@ -10,6 +10,7 @@ import UserDisplay from "./UserDisplay";
 import SearchBar from "./UI/SearchBar";
 import TopicSelector from "./TopicSelector";
 import CreateRoomModal from "./CreateRoomModal";
+import sdk from "@farcaster/miniapp-sdk";
 
 interface Room {
   _id: string;
@@ -40,7 +41,7 @@ const welcomeMessages = [
   "Explore live discussions and join the conversation!",
   "Looking for an engaging chat? We've got you covered!",
   "Jump into a conversation that catches your interest!",
-  "Ready to share your thoughts in a live discussion?"
+  "Ready to share your thoughts in a live discussion?",
 ];
 
 export default function Explore({ rooms }: ExploreProps) {
@@ -53,11 +54,18 @@ export default function Explore({ rooms }: ExploreProps) {
   // Handle topic selection and PATCH request
   const handleTopicSubmit = async (selectedTopics: string[]) => {
     try {
+      var token: any = "";
+      const env = process.env.NEXT_PUBLIC_ENV;
+
+      if (env !== "DEV") {
+        token = await sdk.quickAuth.getToken();
+      }
+
       const res = await fetch("/api/protected/handleUser", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          "x-user-fid": user?.fid,
+          "Authorization": `Bearer ${token}`,
         },
         body: JSON.stringify({ topics: selectedTopics }),
       });
@@ -67,7 +75,7 @@ export default function Explore({ rooms }: ExploreProps) {
         // Refetch user
         const userRes = await fetch("/api/protected/handleUser", {
           method: "POST",
-          headers: { "x-user-fid": user?.fid },
+          headers: { "Authorization": `Bearer ${token}` },
         });
         const userData = await userRes.json();
         setUser(userData.user);
@@ -113,60 +121,61 @@ export default function Explore({ rooms }: ExploreProps) {
       const data = await response.json();
       if (data.success) {
         setLocalRooms(data.rooms);
-        toast.success('Rooms refreshed!');
+        toast.success("Rooms refreshed!");
       }
     } catch (error) {
       console.error("Error refreshing rooms:", error);
-      toast.error('Error refreshing rooms. Please try again.');
+      toast.error("Error refreshing rooms. Please try again.");
     } finally {
       setLoading(false);
     }
   };
-  
+
   // Handle search function
   const handleSearch = (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     // Filter rooms based on search query
-    const filteredRooms = localRooms.filter(room => 
-      room.name.toLowerCase().includes(query.toLowerCase()) || 
-      room.description.toLowerCase().includes(query.toLowerCase()) ||
-      room.host.username.toLowerCase().includes(query.toLowerCase()) ||
-      room.host.displayName.toLowerCase().includes(query.toLowerCase())
+    const filteredRooms = localRooms.filter(
+      (room) =>
+        room.name.toLowerCase().includes(query.toLowerCase()) ||
+        room.description.toLowerCase().includes(query.toLowerCase()) ||
+        room.host.username.toLowerCase().includes(query.toLowerCase()) ||
+        room.host.displayName.toLowerCase().includes(query.toLowerCase())
     );
-    
+
     // Convert to search results format
-    const results = filteredRooms.map(room => ({
+    const results = filteredRooms.map((room) => ({
       id: room._id,
       title: room.name,
       image: room.host.pfp_url,
       description: room.description,
-      hostName: room.host.displayName || room.host.username
+      hostName: room.host.displayName || room.host.username,
     }));
-    
+
     setSearchResults(results);
     setIsLoading(false);
   };
-  
+
   // Handle result click
   const handleResultClick = (result: any) => {
     // Navigate to room or perform other actions
     window.location.href = `/call/${result.id}`;
   };
 
-  useEffect(()=>{
+  useEffect(() => {
     console.log("Rooms prop changed:", rooms);
-    if(rooms && rooms.length > 0){
+    if (rooms && rooms.length > 0) {
       console.log("Setting localRooms with data from props");
       setLocalRooms(rooms);
       setLoading(false); // Set loading to false once we have rooms
     }
-  },[rooms])
+  }, [rooms]);
 
   useEffect(() => {
     // Pick a random welcome message
@@ -181,29 +190,33 @@ export default function Explore({ rooms }: ExploreProps) {
           <h1 className="text-2xl font-bold flex items-center gap-2 text-white mb-2">
             Welcome, <UserDisplay />
           </h1>
-          <p className="text-white/70 text-sm">
-            {welcomeMessage}
-          </p>
+          <p className="text-white/70 text-sm">{welcomeMessage}</p>
         </div>
 
         <div className="mb-6">
           <SearchBar className="w-full" />
         </div>
 
-{/* Topic selection if user.topics is empty */}
+        {/* Topic selection if user.topics is empty */}
         {user?.topics?.length === 0 && (
           <TopicSelector onSubmit={handleTopicSubmit} />
-        ) }
+        )}
 
         {user?.topics?.length > 0 && (
           <div>
-            <h2 className="text-white text-xl font-bold mb-4">Explore what you like!</h2>
+            <h2 className="text-white text-xl font-bold mb-4">
+              Explore what you like!
+            </h2>
             {/* Tabs for topics */}
             <div className="flex gap-2 mb-6 overflow-x-scroll">
               {user.topics.map((topic: string, idx: number) => (
                 <button
                   key={topic}
-                  className={`px-4 leading-none text-nowrap py-2 rounded-lg font-semibold transition-colors text-white ${selectedTab === idx ? 'gradient-fire font-bold border-white border-2' : 'bg-white/10 border-transparent'}`}
+                  className={`px-4 leading-none text-nowrap py-2 rounded-lg font-semibold transition-colors text-white ${
+                    selectedTab === idx
+                      ? "gradient-fire font-bold border-white border-2"
+                      : "bg-white/10 border-transparent"
+                  }`}
                   onClick={() => setSelectedTab(idx)}
                 >
                   {topic}
@@ -213,29 +226,57 @@ export default function Explore({ rooms }: ExploreProps) {
             {/* Tab content for selected topic */}
             {(() => {
               const topic = user.topics[selectedTab] as string;
-              const ongoingRooms = topicRooms.filter(r => r.status === 'ongoing' && r.topics.includes(topic));
-              const endedRooms = topicRooms.filter(r => r.status === 'ended' && r.topics.includes(topic));
+              const ongoingRooms = topicRooms.filter(
+                (r) => r.status === "ongoing" && r.topics.includes(topic)
+              );
+              const endedRooms = topicRooms.filter(
+                (r) => r.status === "ended" && r.topics.includes(topic)
+              );
               return (
                 <div key={topic} className="mb-10">
-                  <h3 className="text-lg font-bold text-orange-400 mb-2">{topic}</h3>
+                  <h3 className="text-lg font-bold text-orange-400 mb-2">
+                    {topic}
+                  </h3>
                   {/* Ongoing rooms for this topic */}
                   {ongoingRooms.length > 0 && (
                     <div className="mb-4">
-                      <h4 className="text-md font-semibold text-orange-500 mb-2">Live Now!</h4>
+                      <h4 className="text-md font-semibold text-orange-500 mb-2">
+                        Live Now!
+                      </h4>
                       <div className="space-y-4">
-                        {ongoingRooms.map(room => (
-                          <div key={room._id} className="border border-orange-500 rounded-lg p-4 bg-white/5 backdrop-blur-sm flex items-center justify-between cursor-pointer hover:bg-orange-900/20 transition-colors" onClick={() => window.location.href = `/call/${room._id}` }>
+                        {ongoingRooms.map((room) => (
+                          <div
+                            key={room._id}
+                            className="border border-orange-500 rounded-lg p-4 bg-white/5 backdrop-blur-sm flex items-center justify-between cursor-pointer hover:bg-orange-900/20 transition-colors"
+                            onClick={() =>
+                              (window.location.href = `/call/${room._id}`)
+                            }
+                          >
                             <div>
-                              <h4 className="text-lg font-bold text-white">{room.name}</h4>
-                              <p className="text-white/70 text-sm">{room.description}</p>
-                              <p className="text-white/60 text-xs mt-1">Host: {room.host?.displayName || room.host?.username}</p>
+                              <h4 className="text-lg font-bold text-white">
+                                {room.name}
+                              </h4>
+                              <p className="text-white/70 text-sm">
+                                {room.description}
+                              </p>
+                              <p className="text-white/60 text-xs mt-1">
+                                Host:{" "}
+                                {room.host?.displayName || room.host?.username}
+                              </p>
                               <div className="flex flex-wrap gap-1 mt-2">
                                 {room.topics.map((t: string) => (
-                                  <span key={t} className="px-2 py-1 bg-orange-600 text-white text-xs rounded-full">{t}</span>
+                                  <span
+                                    key={t}
+                                    className="px-2 py-1 bg-orange-600 text-white text-xs rounded-full"
+                                  >
+                                    {t}
+                                  </span>
                                 ))}
                               </div>
                             </div>
-                            <span className="bg-orange-600 text-white px-4 py-2 rounded font-bold">Live</span>
+                            <span className="bg-orange-600 text-white px-4 py-2 rounded font-bold">
+                              Live
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -244,21 +285,40 @@ export default function Explore({ rooms }: ExploreProps) {
                   {/* Ended rooms for this topic */}
                   {endedRooms.length > 0 && (
                     <div className="mb-4">
-                      <h4 className="text-md font-semibold text-white mb-2">Recordings</h4>
+                      <h4 className="text-md font-semibold text-white mb-2">
+                        Recordings
+                      </h4>
                       <div className="space-y-4">
-                        {endedRooms.map(room => (
-                          <div key={room._id} className="border border-white/20 rounded-lg p-4 bg-white/5 backdrop-blur-sm flex items-center justify-between">
+                        {endedRooms.map((room) => (
+                          <div
+                            key={room._id}
+                            className="border border-white/20 rounded-lg p-4 bg-white/5 backdrop-blur-sm flex items-center justify-between"
+                          >
                             <div>
-                              <h4 className="text-lg font-bold text-white">{room.name}</h4>
-                              <p className="text-white/70 text-sm">{room.description}</p>
-                              <p className="text-white/60 text-xs mt-1">Host: {room.host?.displayName || room.host?.username}</p>
+                              <h4 className="text-lg font-bold text-white">
+                                {room.name}
+                              </h4>
+                              <p className="text-white/70 text-sm">
+                                {room.description}
+                              </p>
+                              <p className="text-white/60 text-xs mt-1">
+                                Host:{" "}
+                                {room.host?.displayName || room.host?.username}
+                              </p>
                               <div className="flex flex-wrap gap-1 mt-2">
                                 {room.topics.map((t: string) => (
-                                  <span key={t} className="px-2 py-1 bg-orange-600 text-white text-xs rounded-full">{t}</span>
+                                  <span
+                                    key={t}
+                                    className="px-2 py-1 bg-orange-600 text-white text-xs rounded-full"
+                                  >
+                                    {t}
+                                  </span>
                                 ))}
                               </div>
                             </div>
-                            <span className="bg-white/10 text-white px-4 py-2 rounded font-bold">Recording</span>
+                            <span className="bg-white/10 text-white px-4 py-2 rounded font-bold">
+                              Recording
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -266,7 +326,10 @@ export default function Explore({ rooms }: ExploreProps) {
                   )}
                   {/* No rooms for this topic */}
                   {ongoingRooms.length === 0 && endedRooms.length === 0 && (
-                    <div className="text-white/70 mb-4">This topic hasn&apos;t been discussed yet. Be the first one to bring it to light.</div>
+                    <div className="text-white/70 mb-4">
+                      This topic hasn&apos;t been discussed yet. Be the first
+                      one to bring it to light.
+                    </div>
                   )}
                   {/* Button to create room for this topic if no rooms exist */}
                   {ongoingRooms.length === 0 && endedRooms.length === 0 && (
@@ -281,10 +344,12 @@ export default function Explore({ rooms }: ExploreProps) {
               );
             })()}
             {/* CreateRoomModal */}
-            <CreateRoomModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} />
+            <CreateRoomModal
+              isOpen={showCreateModal}
+              onClose={() => setShowCreateModal(false)}
+            />
           </div>
         )}
-
 
         {/* Rooms List and other sections remain unchanged (commented out) */}
       </div>
