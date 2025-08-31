@@ -1,16 +1,6 @@
 export async function GET() {
   let header, payload, signature;
-  try {
-    header = process.env.FARCASTER_HEADER ? JSON.parse(process.env.FARCASTER_HEADER) : null;
-    payload = process.env.FARCASTER_PAYLOAD ? JSON.parse(process.env.FARCASTER_PAYLOAD) : null;
-    signature = process.env.FARCASTER_SIGNATURE ? JSON.parse(process.env.FARCASTER_SIGNATURE) : null;
-
-    console.log("Farcaster env variables:", { header, payload, signature });
-  } catch (e) {
-    header = process.env.FARCASTER_HEADER;
-    payload = process.env.FARCASTER_PAYLOAD;
-    signature = process.env.FARCASTER_SIGNATURE;
-  }
+  
   return Response.json({
     frame: {
       name: "Fireside",
@@ -30,9 +20,9 @@ export async function GET() {
       ogTitle: "Fireside"
     },
     accountAssociation: {
-      header,
-      payload,
-      signature
+      header: "eyJmaWQiOjExMjk4NDIsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHhBMTVkQzQxQjYwRjZmNzc5NjlDYzkzZjQxRUM3QjFkMzc2QTEzQjc5In0",
+      payload: "eyJkb21haW4iOiJmaXJlc2lkZWJhc2UudmVyY2VsLmFwcCJ9",
+      signature: "MHhhY2VkMjcyZWQ5OGRhYmUyOTU5ZjI3MmExM2UxNjdlMDM3NDQ2N2Q3Y2RlY2U3NGZlZDkxMjg2MmMxYjBlNzFkN2RmZGI5NGZiN2NjYzZiOWEwOWExMmU3Y2U4MDJkNDRjMjJiMTkwZGQzZDk1Y2I0NmIzMmJiMWYzODdiOTA0YjFi"
     }
   });
 }
