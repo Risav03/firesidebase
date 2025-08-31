@@ -28,14 +28,14 @@ export async function generateMetadata(): Promise<Metadata> {
     other: {
       "fc:frame": JSON.stringify({
         version: "next",
-        imageUrl: "https://100msfireside-kolt.vercel.app/fireside_banner.png",
+        imageUrl: "https://firesidebase.vercel.app/fireside_banner.png",
         button: {
           title: `Tune in!`,
           action: {
             type: "launch_frame",
             name: "Fireside 100ms",
             url: URL,
-            splashImageUrl: "https://100msfireside-kolt.vercel.app/fireside-logo.svg",
+            splashImageUrl: "https://firesidebase.vercel.app/app-icon.png",
             splashBackgroundColor: "#000000",
           },
         },
