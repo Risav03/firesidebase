@@ -266,7 +266,7 @@ export default function Explore({ rooms }: ExploreProps) {
                   )}
                   {/* No rooms for this topic */}
                   {ongoingRooms.length === 0 && endedRooms.length === 0 && (
-                    <div className="text-white/70 mb-4">This topic hasn't been discussed yet. Be the first one to bring it to light.</div>
+                    <div className="text-white/70 mb-4">This topic hasn&apos;t been discussed yet. Be the first one to bring it to light.</div>
                   )}
                   {/* Button to create room for this topic if no rooms exist */}
                   {ongoingRooms.length === 0 && endedRooms.length === 0 && (

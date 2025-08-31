@@ -596,7 +596,7 @@ export default function TippingModal({
                   Tip in ETH
                 </span>
               </button>
-              <button
+              {/* <button
                 onClick={() => handleUSDCTip()}
                 disabled={isLoading}
                 className={`flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:bg-gray-400 ${
@@ -607,7 +607,7 @@ export default function TippingModal({
                   <BiSolidDollarCircle />
                   Tip in USDC
                 </span>
-              </button>
+              </button> */}
             </div>
           </>
         )}
