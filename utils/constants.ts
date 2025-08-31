@@ -1,1 +1,12 @@
-export const topics = ['Crypto', 'Sports', 'Politics', 'Science', 'Tech', 'Music', 'Gaming', 'Art', 'Movies', 'Education', 'Finance', 'Health']
+export const topics = [
+	'Crypto',
+	'Ethereum',
+	'Base',
+	'Base App',
+	'Farcaster',
+	'Defi',
+	'Memecoins',
+	'Science',
+	'Tech',
+	
+]

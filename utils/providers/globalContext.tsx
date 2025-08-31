@@ -67,7 +67,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
 
       console.log("Authorization token:", token);
 
-      const createUserRes = await fetch(
+      const userRes = await fetch(
         `${process.env.NEXT_PUBLIC_URL}/api/protected/handleUser`,
         {
           method: "POST",
@@ -77,10 +77,10 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
         }
       );
 
-      if (!createUserRes.ok) {
-        console.error("Failed to create user:", await createUserRes.text());
+      if (!userRes.ok) {
+        console.error("Failed to create user:", await userRes.text());
       }
-      setUser((await createUserRes.json()).user);
+      setUser((await userRes.json()).user);
     } catch (error) {
       console.error("Sign in error:", error);
     }

@@ -8,6 +8,7 @@ export interface IUser extends Document {
   wallet:string;
   bio?: string;
   hostedRooms: mongoose.Types.ObjectId[]; // Array of Room ObjectIds
+  topics: string[];
 }
 
 const User: Schema = new Schema({
@@ -18,6 +19,7 @@ const User: Schema = new Schema({
   pfp_url: { type: String, required: true },
   bio: { type: String, required: false },
   hostedRooms: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Room' }],
+  topics: [{ type: String, required: false, default: [] }],
 });
 
 export default mongoose.models.User || mongoose.model('User', User);

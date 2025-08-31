@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 		console.log("Fetching user with fid:", fid);
 
 		// Try to find the user
-		let user = await User.findOne({ fid });
+		let user = await User.findOne({ fid }).select('fid username displayName pfp_url wallet topics');
 		if (!user) {
 
 			const res = await fetch(
@@ -43,6 +43,32 @@ export async function POST(req: NextRequest) {
 		}
 
 		return NextResponse.json({ user });
+	} catch (error: any) {
+		return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+	}
+}
+
+export async function PATCH(req: NextRequest) {
+	try {
+		await connectToDB();
+		const fid = req.headers.get('x-user-fid');
+		if (!fid) {
+			return NextResponse.json({ error: 'Missing x-user-fid header' }, { status: 400 });
+		}
+		const body = await req.json();
+		const { topics } = body;
+		if (!Array.isArray(topics)) {
+			return NextResponse.json({ error: 'Missing topics array' }, { status: 400 });
+		}
+		const user = await User.findOneAndUpdate(
+			{ fid },
+			{ topics },
+			{ new: true, select: 'fid username displayName pfp_url wallet topics' }
+		);
+		if (!user) {
+			return NextResponse.json({ error: 'User not found' }, { status: 404 });
+		}
+		return NextResponse.json({ success: true, user });
 	} catch (error: any) {
 		return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
 	}

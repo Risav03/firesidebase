@@ -8,6 +8,8 @@ import { useGlobalContext } from "@/utils/providers/globalContext";
 import RoomsList from "./RoomsList";
 import UserDisplay from "./UserDisplay";
 import SearchBar from "./UI/SearchBar";
+import TopicSelector from "./TopicSelector";
+import CreateRoomModal from "./CreateRoomModal";
 
 interface Room {
   _id: string;
@@ -45,10 +47,63 @@ export default function Explore({ rooms }: ExploreProps) {
   const [localRooms, setLocalRooms] = useState<Room[]>(rooms || []);
   const [loading, setLoading] = useState(!rooms || rooms.length === 0);
   const [welcomeMessage, setWelcomeMessage] = useState("");
-  const { user } = useGlobalContext();
+  const { user, setUser } = useGlobalContext();
+  // Add state for selected tab
+  const [selectedTab, setSelectedTab] = useState(0);
+  // Handle topic selection and PATCH request
+  const handleTopicSubmit = async (selectedTopics: string[]) => {
+    try {
+      const res = await fetch("/api/protected/handleUser", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-fid": user?.fid,
+        },
+        body: JSON.stringify({ topics: selectedTopics }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Topics updated!");
+        // Refetch user
+        const userRes = await fetch("/api/protected/handleUser", {
+          method: "POST",
+          headers: { "x-user-fid": user?.fid },
+        });
+        const userData = await userRes.json();
+        setUser(userData.user);
+      } else {
+        toast.error(data.error || "Failed to update topics");
+      }
+    } catch (err) {
+      toast.error("Error updating topics");
+    }
+  };
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [topicRooms, setTopicRooms] = useState<any[]>([]);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  // Fetch rooms by user's topics
+  useEffect(() => {
+    const fetchRoomsByTopics = async () => {
+      if (user?.topics?.length > 0) {
+        try {
+          const res = await fetch("/api/rooms/by-topics", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ topics: user.topics }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            setTopicRooms(data.rooms);
+          }
+        } catch (err) {
+          setTopicRooms([]);
+        }
+      }
+    };
+    fetchRoomsByTopics();
+  }, [user?.topics]);
 
   // Refresh rooms client-side
   const refreshRooms = async () => {
@@ -132,73 +187,106 @@ export default function Explore({ rooms }: ExploreProps) {
         </div>
 
         <div className="mb-6">
-          <SearchBar
-            
-            className="w-full"
-          
-          />
+          <SearchBar className="w-full" />
         </div>
 
-        <div>
-          <h2 className="text-white text-xl font-bold">Explore</h2>
-          <div className="text-white/80 animate-pulse bg-white/10 rounded-lg w-full flex mt-2 text-sm font-bold items-center justify-center h-32">Find what you like, Coming soon!</div>
-        </div>
+{/* Topic selection if user.topics is empty */}
+        {user?.topics?.length === 0 && (
+          <TopicSelector onSubmit={handleTopicSubmit} />
+        ) }
 
-        {/* Rooms List */}
-        {/* <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 sm:p-6 border border-white/10">
-          <div className="flex justify-between items-start sm:items-center mb-6 gap-4">
-            <h2 className="text-xl sm:text-2xl font-semibold text-white">
-              Live Now!
-            </h2>
-            <button
-              onClick={refreshRooms}
-              disabled={loading}
-              className="bg-white/10 hover:bg-white/20 text-white p-2 aspect-square rounded-md transition-colors border border-white/20 hover:border-white/30"
-            >
-              {loading ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500 mx-auto"></div>
-              ) : (
-                <IoIosRefresh className="mx-auto" />
-              )}
-            </button>
-          </div>
-
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500 mx-auto"></div>
-              <p className="text-white/60 mt-4">Loading rooms...</p>
-            </div>
-          ) : (
-            <RoomsList rooms={localRooms} />
-          )}
-        </div> */}
-
-        {/* Recordings Section */}
-        {/* <div className="mt-8">
-          <h2 className="text-xl sm:text-2xl font-semibold text-white mb-4">
-            Recently Ended
-          </h2>
-          <div className="space-y-4">
-            {[...Array(5)].map((_, index) => (
-              <div
-                key={index}
-                className="border border-white/20 rounded-lg p-4 bg-white/5 backdrop-blur-sm flex items-center justify-between"
-              >
-                <div>
-                  <h3 className="text-lg font-medium text-white">
-                    Recording {index + 1}
-                  </h3>
-                  <p className="text-white/70 text-sm">
-                    Hosted by: username {index + 1}
-                  </p>
-                </div>
-                <button className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 aspect-square rounded-md transition-colors">
-                  <FaPlay className="mx-auto" />
+        {user?.topics?.length > 0 && (
+          <div>
+            <h2 className="text-white text-xl font-bold mb-4">Explore what you like!</h2>
+            {/* Tabs for topics */}
+            <div className="flex gap-2 mb-6 overflow-x-scroll">
+              {user.topics.map((topic: string, idx: number) => (
+                <button
+                  key={topic}
+                  className={`px-4 leading-none text-nowrap py-2 rounded-lg font-semibold transition-colors text-white ${selectedTab === idx ? 'bg-orange-600 border-orange-600' : 'bg-white/10 border-transparent hover:bg-orange-700 hover:border-orange-700'}`}
+                  onClick={() => setSelectedTab(idx)}
+                >
+                  {topic}
                 </button>
-              </div>
-            ))}
+              ))}
+            </div>
+            {/* Tab content for selected topic */}
+            {(() => {
+              const topic = user.topics[selectedTab] as string;
+              const ongoingRooms = topicRooms.filter(r => r.status === 'ongoing' && r.topics.includes(topic));
+              const endedRooms = topicRooms.filter(r => r.status === 'ended' && r.topics.includes(topic));
+              return (
+                <div key={topic} className="mb-10">
+                  <h3 className="text-lg font-bold text-orange-400 mb-2">{topic}</h3>
+                  {/* Ongoing rooms for this topic */}
+                  {ongoingRooms.length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="text-md font-semibold text-orange-500 mb-2">Live Now!</h4>
+                      <div className="space-y-4">
+                        {ongoingRooms.map(room => (
+                          <div key={room._id} className="border border-orange-500 rounded-lg p-4 bg-white/5 backdrop-blur-sm flex items-center justify-between cursor-pointer hover:bg-orange-900/20 transition-colors" onClick={() => window.location.href = `/call/${room._id}` }>
+                            <div>
+                              <h4 className="text-lg font-bold text-white">{room.name}</h4>
+                              <p className="text-white/70 text-sm">{room.description}</p>
+                              <p className="text-white/60 text-xs mt-1">Host: {room.host?.displayName || room.host?.username}</p>
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {room.topics.map((t: string) => (
+                                  <span key={t} className="px-2 py-1 bg-orange-600 text-white text-xs rounded-full">{t}</span>
+                                ))}
+                              </div>
+                            </div>
+                            <span className="bg-orange-600 text-white px-4 py-2 rounded font-bold">Live</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* Ended rooms for this topic */}
+                  {endedRooms.length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="text-md font-semibold text-white mb-2">Recordings</h4>
+                      <div className="space-y-4">
+                        {endedRooms.map(room => (
+                          <div key={room._id} className="border border-white/20 rounded-lg p-4 bg-white/5 backdrop-blur-sm flex items-center justify-between">
+                            <div>
+                              <h4 className="text-lg font-bold text-white">{room.name}</h4>
+                              <p className="text-white/70 text-sm">{room.description}</p>
+                              <p className="text-white/60 text-xs mt-1">Host: {room.host?.displayName || room.host?.username}</p>
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {room.topics.map((t: string) => (
+                                  <span key={t} className="px-2 py-1 bg-orange-600 text-white text-xs rounded-full">{t}</span>
+                                ))}
+                              </div>
+                            </div>
+                            <span className="bg-white/10 text-white px-4 py-2 rounded font-bold">Recording</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* No rooms for this topic */}
+                  {ongoingRooms.length === 0 && endedRooms.length === 0 && (
+                    <div className="text-white/70 mb-4">This topic hasn't been discussed yet. Be the first one to bring it to light.</div>
+                  )}
+                  {/* Button to create room for this topic if no rooms exist */}
+                  {ongoingRooms.length === 0 && endedRooms.length === 0 && (
+                    <button
+                      className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-md font-semibold"
+                      onClick={() => setShowCreateModal(true)}
+                    >
+                      Create Room
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
+            {/* CreateRoomModal */}
+            <CreateRoomModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} />
           </div>
-        </div> */}
+        )}
+
+
+        {/* Rooms List and other sections remain unchanged (commented out) */}
       </div>
     </div>
   );
