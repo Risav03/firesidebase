@@ -203,7 +203,7 @@ export default function Explore({ rooms }: ExploreProps) {
               {user.topics.map((topic: string, idx: number) => (
                 <button
                   key={topic}
-                  className={`px-4 leading-none text-nowrap py-2 rounded-lg font-semibold transition-colors text-white ${selectedTab === idx ? 'bg-orange-600 border-orange-600' : 'bg-white/10 border-transparent hover:bg-orange-700 hover:border-orange-700'}`}
+                  className={`px-4 leading-none text-nowrap py-2 rounded-lg font-semibold transition-colors text-white ${selectedTab === idx ? 'gradient-fire font-bold border-white border-2' : 'bg-white/10 border-transparent'}`}
                   onClick={() => setSelectedTab(idx)}
                 >
                   {topic}
