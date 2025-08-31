@@ -9,13 +9,12 @@ interface Props {
 
 export default async function UserProfilePage({ params }: Props) {
 	const { username } = params;
-	// Fetch user by username
-	const user = await User.findOne({ username }).select('pfp_url displayName username hostedRooms');
-	if (!user) {
+	// Fetch user and rooms via API
+	const res = await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/user/${username}`);
+	if (!res.ok) {
 		return <div className="text-center py-10 text-red-500">User not found</div>;
 	}
-	// Fetch hosted rooms
-	const rooms = await Room.find({ host: user._id }).select('roomId name description topics status');
+	const { user, rooms } = await res.json();
 
 	return (
 		<div className="max-w-2xl mx-auto p-4 text-white min-h-screen">
