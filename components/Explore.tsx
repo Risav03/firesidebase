@@ -58,7 +58,7 @@ export default function Explore({ rooms }: ExploreProps) {
       const env = process.env.NEXT_PUBLIC_ENV;
 
       if (env !== "DEV") {
-        token = await sdk.quickAuth.getToken();
+        token = ((await sdk.quickAuth.getToken()).token);
       }
 
       const res = await fetch("/api/protected/handleUser", {
