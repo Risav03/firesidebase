@@ -1,5 +1,6 @@
-"use client";
 
+"use client";
+import { useNavigateWithLoader } from "../utils/useNavigateWithLoader";
 import {
   selectPeers,
   selectPeersScreenSharing,
@@ -11,8 +12,30 @@ import { useEffect, useState } from "react";
 import sdk from "@farcaster/miniapp-sdk";
 
 export default function Conference({roomId}:{roomId: string}) {
+  const navigate = useNavigateWithLoader();
   const allPeers = useHMSStore(selectPeers);
   const presenters = useHMSStore(selectPeersScreenSharing);
+  const localPeer = allPeers.find(peer => peer.isLocal);
+  // Listen for END_ROOM_EVENT broadcast from 100ms
+  const hmsMessages = useHMSStore((store) => store.messages);
+  useEffect(() => {
+    if (!localPeer) return;
+    const { allIDs, byID } = hmsMessages || {};
+    if (allIDs && byID) {
+      for (const id of allIDs) {
+        const msg = byID[id];
+        try {
+          const data = JSON.parse(msg.message);
+          if (data.type === "END_ROOM_EVENT" && localPeer.roleName !== "host") {
+            navigate("/");
+            break;
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }, [hmsMessages, localPeer, navigate]);
   
   // Local state for optimistic updates
   const [peers, setPeers] = useState(allPeers);
@@ -35,7 +58,18 @@ export default function Conference({roomId}:{roomId: string}) {
 
   useEffect(() => {
     // Update local peers when 100ms peers change
-    setPeers(allPeers.filter(peer => !removedPeers.has(peer.id)));
+    // Sort peers by role: host > co-host > speaker > listener
+  const roleOrder: Record<string, number> = { host: 0, "co-host": 1, speaker: 2, listener: 3 };
+    const sortedPeers = allPeers
+      .filter(peer => !removedPeers.has(peer.id))
+      .sort((a, b) => {
+        const aRoleName = typeof a.roleName === "string" ? a.roleName : "listener";
+        const bRoleName = typeof b.roleName === "string" ? b.roleName : "listener";
+        const aRole = roleOrder[aRoleName] ?? 99;
+        const bRole = roleOrder[bRoleName] ?? 99;
+        return aRole - bRole;
+      });
+    setPeers(sortedPeers);
   }, [allPeers, removedPeers]);
 
   useEffect(() => {
@@ -66,21 +100,6 @@ export default function Conference({roomId}:{roomId: string}) {
     };
   }, []);
 
-  useEffect(() => {
-    async function getPermission() {
-      try {
-        await sdk.actions.requestCameraAndMicrophoneAccess();
-        console.log("Camera and microphone access granted");
-        // You can now use camera and microphone in your mini app
-      } catch (error) {
-        console.log("Camera and microphone access denied");
-        // Handle the denial gracefully
-      }
-    }
-
-    getPermission();
-  }, []);
-
   return (
     <div className="pt-20 pb-32 px-6">
       <div className="max-w-6xl mx-auto">
@@ -100,7 +119,7 @@ export default function Conference({roomId}:{roomId: string}) {
             ))}
           </div>
 
-          {presenters.length > 0 && (
+          {/* {presenters.length > 0 && (
             <div className="mt-8 pt-8 border-t border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
                 Screen Share
@@ -111,7 +130,7 @@ export default function Conference({roomId}:{roomId: string}) {
                 ))}
               </div>
             </div>
-          )}
+          )} */}
         </div>
       </div>
     </div>
