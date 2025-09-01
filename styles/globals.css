@@ -34,6 +34,14 @@
   .clubhouse-card {
     @apply bg-white rounded-3xl shadow-clubhouse border border-gray-100;
   }
+  /* Hide scrollbars utility */
+  .hide-scrollbar {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE 10+ */
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
   
   .clubhouse-button {
     @apply px-6 py-3 rounded-2xl font-semibold transition-all duration-200 transform hover:scale-105 active:scale-95;

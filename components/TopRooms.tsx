@@ -7,7 +7,7 @@ export default function TopRooms({ rooms }: { rooms?: any[] }) {
 
   if(rooms && rooms?.length > 0)
   return (
-    <div className=" bg-black w-screen overflow-x-scroll p-2 border-y border-white/5">
+    <div className=" bg-black w-screen overflow-x-scroll hide-scrollbar p-2 border-y border-white/5">
       <div className="flex gap-2 w-max">
         {rooms?.slice(0, 5).map((room) => (
           <div
