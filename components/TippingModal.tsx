@@ -550,7 +550,7 @@ export default function TippingModal({
                 Select Tip Amount
               </label>
               <div className="flex space-x-2 w-full">
-                {[10, 25, 100].map((amount) => (
+                {[0.10, 0.25, 1.00].map((amount) => (
                   <button
                     key={amount}
                     onClick={() => {
