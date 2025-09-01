@@ -1,11 +1,11 @@
 export const topics = [
-	'Crypto',
-	'Ethereum',
 	'Base',
+	'Ethereum',
 	'NFTs',
 	'Farcaster',
 	'Defi',
-	'Memecoins',
-	'Web3',
-	'BTC'
+	'AI',
+	'Memes',
+	'Gaming',
+	'Film'
 ]
