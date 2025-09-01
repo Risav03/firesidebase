@@ -45,6 +45,7 @@ const welcomeMessages = [
 ];
 
 export default function Explore({ rooms }: ExploreProps) {
+
   const [localRooms, setLocalRooms] = useState<Room[]>(rooms || []);
   const [loading, setLoading] = useState(!rooms || rooms.length === 0);
   const [welcomeMessage, setWelcomeMessage] = useState("");
@@ -208,7 +209,7 @@ export default function Explore({ rooms }: ExploreProps) {
               Explore what you like!
             </h2>
             {/* Tabs for topics */}
-            <div className="flex gap-2 mb-6 overflow-x-scroll">
+              <div className="flex gap-2 mb-6 overflow-x-scroll hide-scrollbar">
               {user.topics.map((topic: string, idx: number) => (
                 <button
                   key={topic}
@@ -316,9 +317,9 @@ export default function Explore({ rooms }: ExploreProps) {
                                 ))}
                               </div>
                             </div>
-                            <span className="bg-white/10 text-white px-4 py-2 rounded font-bold">
-                              Recording
-                            </span>
+                            <button onClick={()=>{toast.loading("Coming Soon!")}} className=" text-white w-12 aspect-square gradient-fire rounded flex items-center justify-center font-bold">
+                              <FaPlay className="" />
+                            </button>
                           </div>
                         ))}
                       </div>

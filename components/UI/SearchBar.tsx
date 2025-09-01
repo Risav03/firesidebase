@@ -107,7 +107,7 @@ const SearchBar: React.FC<{ className?: string }> = ({ className }) => {
       {showResultsList && (
         <div
           className={twMerge(
-            'absolute z-10 mt-1 w-full bg-black/80 border border-white/20 rounded-lg shadow-lg max-h-60 overflow-y-auto'
+            'absolute z-10 mt-1 w-full bg-black/80 backdrop-blur-lg border border-white/20 rounded-lg shadow-lg max-h-60 overflow-y-auto'
           )}
         >
           {results.map((result) => (
