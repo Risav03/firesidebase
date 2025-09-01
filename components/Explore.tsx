@@ -164,12 +164,6 @@ export default function Explore({ rooms }: ExploreProps) {
     setIsLoading(false);
   };
 
-  // Handle result click
-  const handleResultClick = (result: any) => {
-    // Navigate to room or perform other actions
-    window.location.href = `/call/${result.id}`;
-  };
-
   useEffect(() => {
     console.log("Rooms prop changed:", rooms);
     if (rooms && rooms.length > 0) {
@@ -265,7 +259,7 @@ export default function Explore({ rooms }: ExploreProps) {
                                 {room.name}
                               </h4>
                               <p className="text-white/70 text-sm">
-                                {room.description}
+                                {room.description.slice(0,50)}{room.description.length>50?"...":""}
                               </p>
                               <p className="text-white/60 text-xs mt-1">
                                 Host:{" "}
@@ -302,12 +296,12 @@ export default function Explore({ rooms }: ExploreProps) {
                             key={room._id}
                             className="border border-white/20 rounded-lg p-4 bg-white/5 backdrop-blur-sm flex items-center justify-between"
                           >
-                            <div>
+                            <div className="w-[85%]">
                               <h4 className="text-lg font-bold text-white">
                                 {room.name}
                               </h4>
                               <p className="text-white/70 text-sm">
-                                {room.description}
+                                {room.description.slice(0,50)}{room.description.length>50?"...":""}
                               </p>
                               <p className="text-white/60 text-xs mt-1">
                                 Host:{" "}
@@ -324,7 +318,7 @@ export default function Explore({ rooms }: ExploreProps) {
                                 ))}
                               </div>
                             </div>
-                            <button onClick={()=>{handlePlayRecording(room.roomId)}} className=" text-white w-12 aspect-square gradient-fire rounded flex items-center justify-center font-bold">
+                            <button onClick={()=>{handlePlayRecording(room.roomId)}} className=" text-white w-[15%] aspect-square gradient-fire rounded flex items-center justify-center font-bold">
                               <FaPlay className="" />
                             </button>
                           </div>
