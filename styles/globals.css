@@ -78,6 +78,25 @@
   .room-card {
     @apply bg-white rounded-3xl p-6 shadow-fireside-lg border border-gray-100 hover:shadow-xl transition-all duration-300;
   }
+
+    /* Background floating animation */
+    @keyframes float-updown-1 {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-90px); }
+      100% { transform: translateY(0); }
+    }
+    @keyframes float-updown-2 {
+      0% { transform: translateY(0); }
+      25% { transform: translateY(-60px); }
+      75% { transform: translateY(30px); }
+      100% { transform: translateY(0); }
+    }
+    .bg-float-1 {
+      animation: float-updown-1 7s ease-in-out infinite;
+    }
+    .bg-float-2 {
+      animation: float-updown-2 9s ease-in-out infinite;
+    }
   
   .speaking-ring {
     animation: speaking-pulse 1s ease-in-out infinite;

@@ -176,10 +176,9 @@ export default function Footer({ roomId }: { roomId: string }) {
   }
 
   const emojiPickerStyles = {
-    backgroundColor: "oklch(21% 0.034 264.665)",
-    "--epr-category-label-bg-color": "oklch(21% 0.034 264.665)",
+    backgroundColor: "#000000",
+    "--epr-category-label-bg-color": "#000000",
     borderRadius: "0.5rem",
-    border: "1px solid",
     width: "100%",
     height: "400px",
     margin: "auto",
