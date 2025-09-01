@@ -98,7 +98,7 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
       setError(null);
       setAction('end');
       setIsLoading(true);
-      
+
       // Call our API to end the room
       const response = await fetch(`/api/rooms/${roomId}/end`, {
         method: 'POST',
@@ -113,9 +113,16 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
         throw new Error(errorData.error || 'Failed to end room');
       }
 
-      // Leave the room after ending it
-      await hmsActions.leave();
-      router.push('/');
+      // Broadcast END_ROOM_EVENT to all participants
+      hmsActions.sendBroadcastMessage(
+        JSON.stringify({ type: "END_ROOM_EVENT", roomId })
+      );
+
+      // Wait 2 seconds before leaving
+      setTimeout(async () => {
+        await hmsActions.leave();
+        router.push('/');
+      }, 2000);
     } catch (error) {
       console.error('Error ending room:', error);
       setError(error instanceof Error ? error.message : 'Failed to end room. Please try again.');

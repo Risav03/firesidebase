@@ -11,6 +11,7 @@ import SearchBar from "./UI/SearchBar";
 import TopicSelector from "./TopicSelector";
 import CreateRoomModal from "./CreateRoomModal";
 import sdk from "@farcaster/miniapp-sdk";
+import { useRouter } from "next/navigation";
 
 interface Room {
   _id: string;
@@ -184,6 +185,12 @@ export default function Explore({ rooms }: ExploreProps) {
     setWelcomeMessage(welcomeMessages[randomIndex]);
   }, []);
 
+  const router = useRouter();
+
+  const handlePlayRecording = (roomId: string) => {
+    router.push(`/recordings/${roomId}`);
+  };
+
   return (
     <div className="min-h-screen">
       <div className="max-w-4xl mx-auto p-4 sm:p-6 pb-24">
@@ -317,7 +324,7 @@ export default function Explore({ rooms }: ExploreProps) {
                                 ))}
                               </div>
                             </div>
-                            <button onClick={()=>{toast.loading("Coming Soon!")}} className=" text-white w-12 aspect-square gradient-fire rounded flex items-center justify-center font-bold">
+                            <button onClick={()=>{handlePlayRecording(room.roomId)}} className=" text-white w-12 aspect-square gradient-fire rounded flex items-center justify-center font-bold">
                               <FaPlay className="" />
                             </button>
                           </div>
