@@ -18,6 +18,11 @@ export async function GET() {
       tags: ["social", "base", "calls", "spaces"],
       heroImageUrl: "https://firesidebase.vercel.app/app-icon2.png",
       ogTitle: "Fireside"
-    }
+    },
+     accountAssociation: {
+    header: "eyJmaWQiOjEzMTc5MDYsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHg3ZUU0MTQ1YUFiOGMwNjI0NmE0ZDQ2NEIzNmQ5ODdhOTA2MWRCQTFDIn0",
+    payload: "eyJkb21haW4iOiJmaXJlc2lkZWJhc2UudmVyY2VsLmFwcCJ9",
+    signature: "MHhjYThlNzllMGRlYjUxNjllZDZlN2RkZWI5OWFhOGM3M2M4ZWM5NWE4OTY1MzFiYzJmMWE5YWQzOWY1ZmNkMjZhMzFkYjgyODZkYjY1MzdmYTQyMDI0NDhjYTM1MzYyMDljYzAyMDlmZDJlNTU1ZDY1MDhhZTQ0ZTNiMWRjYWI1ODFi"
+  }
   });
 }
