@@ -70,22 +70,19 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
     }
   }, [getNonce]);
 
+  const hasRunRef = React.useRef(false);
   useEffect(() => {
-    let hasRun = false;
-    
     (async () => {
-      if (hasRun) return;
-      hasRun = true;
-      
+      if (hasRunRef.current) return;
+      hasRunRef.current = true;
       // const sessionUser = sessionStorage.getItem("user");
-
       // if (!sessionUser) {
       //   await handleSignIn();
       // } else {
       //   setUser(JSON.parse(sessionUser));
       // }
       await handleSignIn();
-      if(process.env.NEXT_PUBLIC_ENV !== "DEV"){
+      if (process.env.NEXT_PUBLIC_ENV !== "DEV") {
         sdk.actions.ready();
       }
     })();
