@@ -22,22 +22,6 @@ const GlobalContext = createContext<GlobalContextProps | undefined>(undefined);
 export function GlobalProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
 
-  useEffect(() => {
-    (async () => {
-      // const sessionUser = sessionStorage.getItem("user");
-
-      // if (!sessionUser) {
-      //   await handleSignIn();
-      // } else {
-      //   setUser(JSON.parse(sessionUser));
-      // }
-      await handleSignIn();
-      if(process.env.NEXT_PUBLIC_ENV !== "DEV"){
-        sdk.actions.ready();
-      }
-    })();
-  }, []);
-
   const getNonce = useCallback(async (): Promise<string> => {
     console.log("getNonce called");
     try {
@@ -85,6 +69,27 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       console.error("Sign in error:", error);
     }
   }, [getNonce]);
+
+  useEffect(() => {
+    let hasRun = false;
+    
+    (async () => {
+      if (hasRun) return;
+      hasRun = true;
+      
+      // const sessionUser = sessionStorage.getItem("user");
+
+      // if (!sessionUser) {
+      //   await handleSignIn();
+      // } else {
+      //   setUser(JSON.parse(sessionUser));
+      // }
+      await handleSignIn();
+      if(process.env.NEXT_PUBLIC_ENV !== "DEV"){
+        sdk.actions.ready();
+      }
+    })();
+  }, []);
 
   return (
     <GlobalContext.Provider value={{ user, setUser }}>
