@@ -40,6 +40,16 @@ export default function Conference({roomId}:{roomId: string}) {
   // Local state for optimistic updates
   const [peers, setPeers] = useState(allPeers);
   const [removedPeers, setRemovedPeers] = useState<Set<string>>(new Set());
+  // Track previous peer count for join detection
+  const [prevPeerCount, setPrevPeerCount] = useState(allPeers.length);
+  // Play audio when a new peer joins
+  useEffect(() => {
+    if (peers.length > prevPeerCount) {
+      const audio = new window.Audio("/assets/ping.mp3");
+      audio.play();
+    }
+    setPrevPeerCount(peers.length);
+  }, [peers.length]);
 
   //function to fetch room details and save name and description in a useState. Call the function in useEffect
   const [roomDetails, setRoomDetails] = useState<{ name: string; description: string } | null>(null);
