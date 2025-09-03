@@ -34,10 +34,6 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
 
   const handleLeaveClick = () => {
     if (isHost) {
-      // Broadcast custom event to end room for all participants except host
-      hmsActions.sendBroadcastMessage(
-        JSON.stringify({ type: "END_ROOM_EVENT", roomId })
-      );
       setShowRoomEndModal(true);
     } else {
       // Direct leave for other roles
