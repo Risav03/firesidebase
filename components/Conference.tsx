@@ -42,14 +42,15 @@ export default function Conference({roomId}:{roomId: string}) {
   const [removedPeers, setRemovedPeers] = useState<Set<string>>(new Set());
   // Track previous peer count for join detection
   const [prevPeerCount, setPrevPeerCount] = useState(allPeers.length);
+
   // Play audio when a new peer joins
-  useEffect(() => {
-    if (peers.length > prevPeerCount) {
-      const audio = new window.Audio("/assets/ping.mp3");
-      audio.play();
-    }
-    setPrevPeerCount(peers.length);
-  }, [peers.length]);
+  // useEffect(() => {
+  //   if (peers.length > prevPeerCount) {
+  //     const audio = new window.Audio("/assets/ping.mp3");
+  //     audio.play();
+  //   }
+  //   setPrevPeerCount(peers.length);
+  // }, [peers.length]);
 
   //function to fetch room details and save name and description in a useState. Call the function in useEffect
   const [roomDetails, setRoomDetails] = useState<{ name: string; description: string } | null>(null);
@@ -69,9 +70,22 @@ export default function Conference({roomId}:{roomId: string}) {
   useEffect(() => {
     // Update local peers when 100ms peers change
     // Sort peers by role: host > co-host > speaker > listener
-  const roleOrder: Record<string, number> = { host: 0, "co-host": 1, speaker: 2, listener: 3 };
-    const sortedPeers = allPeers
+    const roleOrder: Record<string, number> = { host: 0, "co-host": 1, speaker: 2, listener: 3 };
+    
+    // Use a Map to ensure each peer ID only appears once
+    const uniquePeersMap = new Map();
+    
+    allPeers
       .filter(peer => !removedPeers.has(peer.id))
+      .forEach(peer => {
+        // Only add the peer if it's not already in the map
+        if (!uniquePeersMap.has(peer.id)) {
+          uniquePeersMap.set(peer.id, peer);
+        }
+      });
+      
+    // Convert map values to array and sort
+    const sortedPeers = Array.from(uniquePeersMap.values())
       .sort((a, b) => {
         const aRoleName = typeof a.roleName === "string" ? a.roleName : "listener";
         const bRoleName = typeof b.roleName === "string" ? b.roleName : "listener";
@@ -79,6 +93,7 @@ export default function Conference({roomId}:{roomId: string}) {
         const bRole = roleOrder[bRoleName] ?? 99;
         return aRole - bRole;
       });
+      
     setPeers(sortedPeers);
   }, [allPeers, removedPeers]);
 
