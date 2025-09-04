@@ -10,6 +10,7 @@ import PeerWithContextMenu from "./PeerWithContextMenu";
 import { ScreenTile } from "./ScreenTile";
 import { useEffect, useState } from "react";
 import sdk from "@farcaster/miniapp-sdk";
+import RoomEndScreen from "./RoomEndScreen";
 
 export default function Conference({roomId}:{roomId: string}) {
   const navigate = useNavigateWithLoader();
@@ -18,6 +19,8 @@ export default function Conference({roomId}:{roomId: string}) {
   const localPeer = allPeers.find(peer => peer.isLocal);
   // Listen for END_ROOM_EVENT broadcast from 100ms
   const hmsMessages = useHMSStore((store) => store.messages);
+  const [showRoomEndScreen, setShowRoomEndScreen] = useState(false);
+  
   useEffect(() => {
     if (!localPeer) return;
     const { allIDs, byID } = hmsMessages || {};
@@ -27,7 +30,7 @@ export default function Conference({roomId}:{roomId: string}) {
         try {
           const data = JSON.parse(msg.message);
           if (data.type === "END_ROOM_EVENT" && localPeer.roleName !== "host") {
-            navigate("/");
+            setShowRoomEndScreen(true);
             break;
           }
         } catch {
@@ -35,7 +38,7 @@ export default function Conference({roomId}:{roomId: string}) {
         }
       }
     }
-  }, [hmsMessages, localPeer, navigate]);
+  }, [hmsMessages, localPeer]);
   
   // Local state for optimistic updates
   const [peers, setPeers] = useState(allPeers);
@@ -124,6 +127,17 @@ export default function Conference({roomId}:{roomId: string}) {
       window.removeEventListener('peerRestored', handlePeerRestored as EventListener);
     };
   }, []);
+
+  // Show room end screen if host ended the call
+  if (showRoomEndScreen) {
+    return (
+      <RoomEndScreen
+        onComplete={() => {
+          setShowRoomEndScreen(false);
+        }} 
+      />
+    );
+  }
 
   return (
     <div className="pt-20 pb-32 px-6">
