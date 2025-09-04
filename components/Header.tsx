@@ -18,6 +18,7 @@ interface HeaderProps {
 }
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import FiresideLogo from "./UI/firesideLogo";
 
 export default function Header({ onToggleChat, isChatOpen = false, roomId }: HeaderProps) {
   const isConnected = useHMSStore(selectIsConnectedToRoom);
@@ -33,7 +34,6 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
 
   const handleLeaveClick = () => {
     if (isHost) {
-      // Show modal for host
       setShowRoomEndModal(true);
     } else {
       // Direct leave for other roles
@@ -44,20 +44,16 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 bg-gray-900 px-6 py-2">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="rounded-2xl flex items-center justify-center">
-              <Image src={`${process.env.NEXT_PUBLIC_URL}/fireside-logo.svg`} width={1080} height={1080} alt="Fireside Logo" className="w-10 aspect-square" />
-                            <Image src={`${process.env.NEXT_PUBLIC_URL}/fireside-name.png`} width={1920} height={1080} alt="Fireside Logo" className="w-40" />
-
-            </div>
+      <header className="fixed top-0 left-0 right-0 z-50 bg-black px-6 h-16 my-auto border-b border-white/20">
+        <div className="max-w-7xl h-full mx-auto flex items-center justify-between">
+          <div className="flex items-start justify-start space-x-4">
+            <FiresideLogo className="w-32 justify-start"/>
           </div>
           {isConnected && (
             <div className="flex items-center space-x-3">
               <button
                 id="leave-btn"
-                className="px-4 py-2 rounded-lg clubhouse-button-danger flex items-center"
+                className="px-2 py-1 rounded-lg clubhouse-button-danger flex items-center"
                 onClick={handleLeaveClick}
               >
                 <ExitIcon className="w-6 h-6" />

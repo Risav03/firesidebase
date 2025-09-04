@@ -289,7 +289,6 @@ export default function TippingModal({
       const contract = new ethers.Contract(USDC_ADDRESS, usdcAbi, provider);
       const nonce = BigInt(await contract.nonces(address));
 
-      console.log("Nonce:", nonce);
 
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600); // +1 hour
 
@@ -319,18 +318,14 @@ export default function TippingModal({
         deadline,
       };
 
-      console.log("Permit Values:", values);
-
       const signature = await signTypedDataAsync({
         domain,
         primaryType: "Permit",
         types,
         message: values,
       });
-      console.log("Signature:", signature);
-      const { v, r, s } = splitSignature(signature);
 
-      console.log("Permit Signature:", { v, r, s });
+      const { v, r, s } = splitSignature(signature);
 
       const res = await writeContract(config, {
         abi: firebaseTipsAbi,
@@ -434,9 +429,9 @@ export default function TippingModal({
                   <button
                     key={role}
                     onClick={() => handleRoleSelection(role)}
-                    className={`px-4 py-2 rounded-md text-white font-medium transition-colors ${
+                    className={`w-1/4 py-2 rounded-md text-white text-nowrap font-medium transition-colors ${
                       selectedRoles.includes(role)
-                        ? "bg-blue-600 hover:bg-blue-700"
+                        ? "gradient-fire "
                         : "bg-gray-600 hover:bg-gray-700"
                     }`}
                   >
@@ -559,7 +554,7 @@ export default function TippingModal({
                 Select Tip Amount
               </label>
               <div className="flex space-x-2 w-full">
-                {[10, 25, 100].map((amount) => (
+                {[0.10, 0.25, 1.00].map((amount) => (
                   <button
                     key={amount}
                     onClick={() => {
@@ -568,7 +563,7 @@ export default function TippingModal({
                     }}
                     className={`px-4 py-2 rounded-md text-white font-medium transition-colors w-1/3 ${
                       selectedTip === amount
-                        ? "bg-blue-600 hover:bg-blue-700"
+                        ? "gradient-fire"
                         : "bg-gray-600 hover:bg-gray-700"
                     }`}
                   >
@@ -605,7 +600,7 @@ export default function TippingModal({
                   Tip in ETH
                 </span>
               </button>
-              <button
+              {/* <button
                 onClick={() => handleUSDCTip()}
                 disabled={isLoading}
                 className={`flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:bg-gray-400 ${
@@ -616,7 +611,7 @@ export default function TippingModal({
                   <BiSolidDollarCircle />
                   Tip in USDC
                 </span>
-              </button>
+              </button> */}
             </div>
           </>
         )}

@@ -1,65 +1,90 @@
-'use client'
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useGlobalContext } from '@/utils/providers/globalContext';
-import CreateRoomModal from '@/components/CreateRoomModal';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useGlobalContext } from "@/utils/providers/globalContext";
+import CreateRoomModal from "@/components/CreateRoomModal";
+import Image from "next/image";
+import { IoMdHome } from "react-icons/io";
+import { FaPlus } from "react-icons/fa";
+import { useNavigateWithLoader } from "@/utils/useNavigateWithLoader";
 
 export default function Navigation() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const router = useRouter();
   const { user } = useGlobalContext();
+  const navigate = useNavigateWithLoader();
 
   const handleCreateRoom = () => {
     setShowCreateModal(true);
   };
 
   const handleProfileClick = () => {
-    router.push('/profile');
+    navigate("/profile");
   };
 
   const handleExploreClick = () => {
-    router.push('/');
+    navigate("/");
   };
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t pb-2 border-gray-600 z-50">
+      <nav className="fixed bottom-0 left-0 right-0 bg-black border-t pb-2 border-gray-600 z-50">
         <div className="max-w-md mx-auto w-full py-3">
           <div className="flex w-full items-center justify-between">
             {/* Explore Button */}
             <button
               onClick={handleExploreClick}
-              className="flex flex-col items-center space-y-1 w-1/3 text-gray-300 hover:text-white transition-colors"
+              className="flex flex-col items-center w-1/3 text-gray-300 hover:text-white transition-colors"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+              <IoMdHome className="text-white text-2xl" />
               <span className="text-xs">Explore</span>
             </button>
 
             {/* Create Room Button */}
-            <div className='w-1/3 flex flex-col items-center'>
-<button
-              onClick={handleCreateRoom}
-              className=" bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-            </button>
+            <div className="w-1/3 flex flex-col items-center">
+              <button
+                onClick={handleCreateRoom}
+                className=" gradient-fire text-white p-4 rounded-full font-bold transition-colors"
+              >
+                <FaPlus className="text-2xl" />
+              </button>
             </div>
-            
 
             {/* Profile Button */}
             <button
               onClick={handleProfileClick}
               className="flex flex-col items-center w-1/3 space-y-1 text-gray-300 hover:text-white transition-colors"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <span className="text-xs">Profile</span>
+              {user ? (
+                <>
+                  <Image
+                    src={user.pfp_url}
+                    alt={user.displayName}
+                    width={120}
+                    height={120}
+                    className="w-6 h-6 rounded-full"
+                  />
+                  <span className="text-xs">{user.displayName}</span>
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                  <span className="text-xs">Profile</span>
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -67,9 +92,9 @@ export default function Navigation() {
 
       {/* Create Room Modal */}
       {showCreateModal && (
-        <CreateRoomModal 
-          isOpen={showCreateModal} 
-          onClose={() => setShowCreateModal(false)} 
+        <CreateRoomModal
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
         />
       )}
     </>

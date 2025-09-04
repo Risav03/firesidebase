@@ -79,14 +79,32 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
         }
       );
 
-      if (!createUserRes.ok) {
-        console.error("Failed to create user:", await createUserRes.text());
+      if (!userRes.ok) {
+        console.error("Failed to create user:", await userRes.text());
       }
       setUser((await createUserRes.json()).data.user);
     } catch (error) {
       console.error("Sign in error:", error);
     }
   }, [getNonce]);
+
+  const hasRunRef = React.useRef(false);
+  useEffect(() => {
+    (async () => {
+      if (hasRunRef.current) return;
+      hasRunRef.current = true;
+      // const sessionUser = sessionStorage.getItem("user");
+      // if (!sessionUser) {
+      //   await handleSignIn();
+      // } else {
+      //   setUser(JSON.parse(sessionUser));
+      // }
+      await handleSignIn();
+      if (process.env.NEXT_PUBLIC_ENV !== "DEV") {
+        sdk.actions.ready();
+      }
+    })();
+  }, []);
 
   return (
     <GlobalContext.Provider value={{ user, setUser }}>

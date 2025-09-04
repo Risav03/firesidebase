@@ -140,6 +140,8 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
   const currentRole = peer.roleName;
   const isMuted = !isPeerAudioEnabled;
 
+
+  if(currentRole !== "host")
   return (
     <>
       {/* Backdrop */}

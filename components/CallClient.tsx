@@ -253,9 +253,24 @@ export default function CallClient({ roomId }: CallClientProps) {
     };
   }, [user, roomId]);
 
+  useEffect(() => {
+    async function getPermission() {
+      try {
+        await sdk.actions.requestCameraAndMicrophoneAccess();
+        console.log("Camera and microphone access granted");
+        // You can now use camera and microphone in your mini app
+      } catch (error) {
+        console.log("Camera and microphone access denied");
+        // Handle the denial gracefully
+      }
+    }
+
+    getPermission();
+  }, []);
+
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 to-gray-900 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-white mb-4">
             Error Joining Room
@@ -274,7 +289,7 @@ export default function CallClient({ roomId }: CallClientProps) {
 
   if (isJoining) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 to-gray-900 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Loader />
         </div>
@@ -283,7 +298,7 @@ export default function CallClient({ roomId }: CallClientProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 to-gray-900">
+    <div className="min-h-screen">
       <RoleChangeHandler />
       <Header roomId={roomId} />
       <Conference roomId={roomId} />

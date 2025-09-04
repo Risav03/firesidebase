@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigateWithLoader } from '@/utils/useNavigateWithLoader';
 import { useGlobalContext } from '@/utils/providers/globalContext';
 import toast from 'react-hot-toast';
+import { topics } from '@/utils/constants';
 import sdk from "@farcaster/miniapp-sdk";
 
 interface CreateRoomModalProps {
@@ -17,9 +18,10 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
     description: '',
     startTime: ''
   });
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState('');
-  const router = useRouter();
+  const navigate = useNavigateWithLoader();
   const { user } = useGlobalContext();
   const URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
@@ -32,6 +34,12 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
     }
     setNameError('');
     setLoading(true);
+
+      if (selectedTags.length === 0) {
+        toast.error('Please select at least one topic tag.');
+        setLoading(false);
+        return;
+      }
     
     try {
       toast.loading('Creating room...');
@@ -60,9 +68,10 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         toast.dismiss();
         toast.success('Room created successfully! Redirecting...');
         setFormData({ name: '', description: '', startTime: '' });
+    setSelectedTags([]);
         onClose();
         // Redirect to the room page
-        router.push('/call/' + data.room._id);
+  navigate('/call/' + data.room._id);
       } else {
         toast.dismiss();
         toast.error('Error creating room: ' + data.error);
@@ -80,7 +89,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-screen overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-white">Create New Room</h2>
           <button
@@ -127,6 +136,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
             />
           </div>
           
+          {/*
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Start Time*
@@ -139,6 +149,34 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
               required
             />
           </div>
+          */}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Topics (up to 3)*
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {topics.map(tag => (
+                  <button
+                    type="button"
+                    key={tag}
+                    className={`px-3 py-1 rounded-full border text-sm transition-colors ${selectedTags.includes(tag) ? 'gradient-fire font-bold text-white border-none' : 'bg-gray-700 text-gray-300 border-gray-500'} ${selectedTags.length >= 3 && !selectedTags.includes(tag) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    onClick={() => {
+                      if (selectedTags.includes(tag)) {
+                        setSelectedTags(selectedTags.filter(t => t !== tag));
+                      } else if (selectedTags.length < 3) {
+                        setSelectedTags([...selectedTags, tag]);
+                      }
+                    }}
+                    disabled={selectedTags.length >= 3 && !selectedTags.includes(tag)}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+              {selectedTags.length === 0 && <p className="text-red-500 text-sm mt-1">Please select at least one topic.</p>}
+              {selectedTags.length > 3 && <p className="text-red-500 text-sm mt-1">You can select up to 3 topics only.</p>}
+            </div>
           
           <div className="flex space-x-3 pt-2">
             <button
@@ -151,7 +189,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
+              className="flex-1 gradient-fire disabled:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
             >
               {loading ? 'Creating...' : 'Create Room'}
             </button>

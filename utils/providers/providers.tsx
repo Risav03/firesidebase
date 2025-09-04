@@ -12,9 +12,12 @@ interface ProvidersProps {
   children: ReactNode;
 }
 
+import ProgressBar from "@/components/UI/ProgressBar";
+
 export default function Providers({ children }: ProvidersProps) {
   return (
     <>
+      <ProgressBar />
       <MiniKitProvider
         apiKey={process.env.NEXT_PUBLIC_CDP_CLIENT_API_KEY || ""}
         chain={base}

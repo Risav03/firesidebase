@@ -107,7 +107,7 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
       setError(null);
       setAction('end');
       setIsLoading(true);
-      
+
       // Call our API to end the room
       const response = await fetch(`${URL}/api/rooms/protected/${roomId}/end`, {
         method: 'POST',
@@ -123,9 +123,16 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
         throw new Error(errorData.error || 'Failed to end room');
       }
 
-      // Leave the room after ending it
-      await hmsActions.leave();
-      router.push('/');
+      // Broadcast END_ROOM_EVENT to all participants
+      await hmsActions.sendBroadcastMessage(
+        JSON.stringify({ type: "END_ROOM_EVENT", roomId })
+      );
+
+      // Wait 2 seconds before leaving
+      setTimeout(async () => {
+        await hmsActions.leave();
+        router.push('/');
+      }, 2000);
     } catch (error) {
       console.error('Error ending room:', error);
       setError(error instanceof Error ? error.message : 'Failed to end room. Please try again.');
@@ -219,7 +226,7 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
           {/* Actions */}
           <div className="px-6 pb-4 space-y-3">
             {/* Leave Room Button */}
-            <button
+            {/* <button
               onClick={handleLeaveRoom}
               disabled={isLoading}
               className="w-full px-4 py-3 bg-fireside-blue hover:bg-blue-600 disabled:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center space-x-2"
@@ -233,7 +240,7 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
                 </svg>
               )}
               <span>Leave Room</span>
-            </button>
+            </button> */}
 
             {/* End Room Button - Only show for host */}
             {isHost && !showEndConfirmation && (

@@ -69,6 +69,8 @@ export default function Footer({ roomId }: { roomId: string }) {
 
   const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
 
+  const hmsActions = useHMSActions();
+
   const { sendEvent } = useCustomEvent({
     type: "EMOJI_REACTION",
     onEvent: (msg: { emoji: string; sender: string }) => {
@@ -85,6 +87,9 @@ export default function Footer({ roomId }: { roomId: string }) {
       }, 5000);
     },
   });
+
+        hmsActions.ignoreMessageTypes(['EMOJI_REACTION']);
+
 
   // Send emoji event when debounced value changes
   useEffect(() => {
@@ -176,10 +181,9 @@ export default function Footer({ roomId }: { roomId: string }) {
   }
 
   const emojiPickerStyles = {
-    backgroundColor: "oklch(21% 0.034 264.665)",
-    "--epr-category-label-bg-color": "oklch(21% 0.034 264.665)",
+    backgroundColor: "#000000",
+    "--epr-category-label-bg-color": "#000000",
     borderRadius: "0.5rem",
-    border: "1px solid",
     width: "100%",
     height: "400px",
     margin: "auto",
@@ -242,7 +246,7 @@ export default function Footer({ roomId }: { roomId: string }) {
   const isHost = localRoleName === "host" || localRoleName === "co-host";
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-black">
       <div className="max-w-4xl mx-auto px-6 py-4 flex">
         <div className="flex flex-col items-start justify-center w-[30%]">
           <button
@@ -400,7 +404,7 @@ export default function Footer({ roomId }: { roomId: string }) {
           </button>
 
           {/* Ads button - shown to hosts/co-hosts regardless of adsEnabled state */}
-          {(isHost || adsEnabled) && (
+          {/* {(isHost || adsEnabled) && (
             <button
               onClick={handleAdsClick}
               className="relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 bg-white/10 text-white hover:bg-white/20"
@@ -408,7 +412,7 @@ export default function Footer({ roomId }: { roomId: string }) {
             >
               <RiAdvertisementFill className="w-5 h-5" />
             </button>
-          )}
+          )} */}
 
           <button
             onClick={() => setIsShareMenuOpen((prev) => !prev)}
