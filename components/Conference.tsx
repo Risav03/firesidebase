@@ -29,8 +29,12 @@ export default function Conference({roomId}:{roomId: string}) {
         const msg = byID[id];
         try {
           const data = JSON.parse(msg.message);
+          // if (data.type === "END_ROOM_EVENT" && localPeer.roleName !== "host") {
+          //   setShowRoomEndScreen(true);
+          //   break;
+          // }
           if (data.type === "END_ROOM_EVENT" && localPeer.roleName !== "host") {
-            setShowRoomEndScreen(true);
+            navigate("/");
             break;
           }
         } catch {
@@ -139,6 +143,7 @@ export default function Conference({roomId}:{roomId: string}) {
     );
   }
 
+  else {
   return (
     <div className="pt-20 pb-32 px-6">
       <div className="max-w-6xl mx-auto">
@@ -174,4 +179,5 @@ export default function Conference({roomId}:{roomId: string}) {
       </div>
     </div>
   );
+}
 }
