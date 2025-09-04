@@ -69,6 +69,8 @@ export default function Footer({ roomId }: { roomId: string }) {
 
   const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
 
+  const hmsActions = useHMSActions();
+
   const { sendEvent } = useCustomEvent({
     type: "EMOJI_REACTION",
     onEvent: (msg: { emoji: string; sender: string }) => {
@@ -85,6 +87,9 @@ export default function Footer({ roomId }: { roomId: string }) {
       }, 5000);
     },
   });
+
+        hmsActions.ignoreMessageTypes(['EMOJI_REACTION']);
+
 
   // Send emoji event when debounced value changes
   useEffect(() => {
