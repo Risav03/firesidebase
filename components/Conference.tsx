@@ -29,14 +29,14 @@ export default function Conference({roomId}:{roomId: string}) {
         const msg = byID[id];
         try {
           const data = JSON.parse(msg.message);
-          if (data.type === "END_ROOM_EVENT" && localPeer.roleName !== "host") {
-            setShowRoomEndScreen(true);
-            break;
-          }
           // if (data.type === "END_ROOM_EVENT" && localPeer.roleName !== "host") {
-          //   navigate("/");
+          //   setShowRoomEndScreen(true);
           //   break;
           // }
+          if (data.type === "END_ROOM_EVENT" && localPeer.roleName !== "host") {
+            navigate("/");
+            break;
+          }
         } catch {
           // ignore
         }
