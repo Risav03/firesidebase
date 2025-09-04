@@ -118,8 +118,6 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
         JSON.stringify({ type: "END_ROOM_EVENT", roomId })
       );
 
-      hmsActions.ignoreMessageTypes(['END_ROOM_EVENT']);
-
       // Wait 2 seconds before leaving
       setTimeout(async () => {
         await hmsActions.leave();
