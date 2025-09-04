@@ -4,6 +4,7 @@ import { useNavigateWithLoader } from "../utils/useNavigateWithLoader";
 import {
   selectPeers,
   selectPeersScreenSharing,
+  useHMSNotifications,
   useHMSStore,
 } from "@100mslive/react-sdk";
 import PeerWithContextMenu from "./PeerWithContextMenu";
@@ -12,7 +13,7 @@ import { useEffect, useState } from "react";
 import sdk from "@farcaster/miniapp-sdk";
 import RoomEndScreen from "./RoomEndScreen";
 
-export default function Conference({roomId}:{roomId: string}) {
+export default function Conference({ roomId }: { roomId: string }) {
   const navigate = useNavigateWithLoader();
   const allPeers = useHMSStore(selectPeers);
   const presenters = useHMSStore(selectPeersScreenSharing);
@@ -20,39 +21,46 @@ export default function Conference({roomId}:{roomId: string}) {
   // Listen for END_ROOM_EVENT broadcast from 100ms
   const hmsMessages = useHMSStore((store) => store.messages);
   const [showRoomEndScreen, setShowRoomEndScreen] = useState(false);
-  
+
+  const notification = useHMSNotifications();
+
+
   useEffect(() => {
-    if (!localPeer) return;
-    const { allIDs, byID } = hmsMessages || {};
-    if (allIDs && byID) {
-      for (const id of allIDs) {
-        const msg = byID[id];
-        try {
-          const data = JSON.parse(msg.message);
-          if (data.type === "END_ROOM_EVENT" && localPeer.roleName !== "host") {
-            setShowRoomEndScreen(true);
-            break;
-          }
-        } catch {
-          // ignore
-        }
-      }
+    if (!notification) {
+      return;
     }
-  }, [hmsMessages, localPeer]);
-  
+
+    switch (notification.type) {
+      
+      case 'ROOM_ENDED':
+        // navigate("/");
+        setShowRoomEndScreen(true);
+        break;
+      default:
+        console.log("test");
+        break;
+      // ...Other notification type cases
+      // case 'ROOM_ENDED':
+      //   // Redirect or Show toast to user
+      //   navigate("/");
+      //   break;
+    }
+  }, [notification]);
+
   // Local state for optimistic updates
   const [peers, setPeers] = useState(allPeers);
   const [removedPeers, setRemovedPeers] = useState<Set<string>>(new Set());
   // Track previous peer count for join detection
   const [prevPeerCount, setPrevPeerCount] = useState(allPeers.length);
+
   // Play audio when a new peer joins
-  useEffect(() => {
-    if (peers.length > prevPeerCount) {
-      const audio = new window.Audio("/assets/ping.mp3");
-      audio.play();
-    }
-    setPrevPeerCount(peers.length);
-  }, [peers.length]);
+  // useEffect(() => {
+  //   if (peers.length > prevPeerCount) {
+  //     const audio = new window.Audio("/assets/ping.mp3");
+  //     audio.play();
+  //   }
+  //   setPrevPeerCount(peers.length);
+  // }, [peers.length]);
 
   //function to fetch room details and save name and description in a useState. Call the function in useEffect
   const [roomDetails, setRoomDetails] = useState<{ name: string; description: string } | null>(null);
@@ -72,9 +80,22 @@ export default function Conference({roomId}:{roomId: string}) {
   useEffect(() => {
     // Update local peers when 100ms peers change
     // Sort peers by role: host > co-host > speaker > listener
-  const roleOrder: Record<string, number> = { host: 0, "co-host": 1, speaker: 2, listener: 3 };
-    const sortedPeers = allPeers
+    const roleOrder: Record<string, number> = { host: 0, "co-host": 1, speaker: 2, listener: 3 };
+
+    // Use a Map to ensure each peer ID only appears once
+    const uniquePeersMap = new Map();
+
+    allPeers
       .filter(peer => !removedPeers.has(peer.id))
+      .forEach(peer => {
+        // Only add the peer if it's not already in the map
+        if (!uniquePeersMap.has(peer.id)) {
+          uniquePeersMap.set(peer.id, peer);
+        }
+      });
+
+    // Convert map values to array and sort
+    const sortedPeers = Array.from(uniquePeersMap.values())
       .sort((a, b) => {
         const aRoleName = typeof a.roleName === "string" ? a.roleName : "listener";
         const bRoleName = typeof b.roleName === "string" ? b.roleName : "listener";
@@ -82,6 +103,7 @@ export default function Conference({roomId}:{roomId: string}) {
         const bRole = roleOrder[bRoleName] ?? 99;
         return aRole - bRole;
       });
+
     setPeers(sortedPeers);
   }, [allPeers, removedPeers]);
 
@@ -119,31 +141,32 @@ export default function Conference({roomId}:{roomId: string}) {
       <RoomEndScreen
         onComplete={() => {
           setShowRoomEndScreen(false);
-        }} 
+        }}
       />
     );
   }
 
-  return (
-    <div className="pt-20 pb-32 px-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-4 mt-6">
-          <h2 className="text-3xl font-bold text-white mb-2">
-            {roomDetails?.name || ""} 
-          </h2>
-          <p className="text-gray-400">
-            {roomDetails?.description || ""}
-          </p>
-        </div>
-
-        <div className="">
-          <div className="grid grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 justify-items-center">
-            {peers.map((peer) => (
-              <PeerWithContextMenu key={peer.id} peer={peer} />
-            ))}
+  else {
+    return (
+      <div className="pt-20 pb-32 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-4 mt-6">
+            <h2 className="text-3xl font-bold text-white mb-2">
+              {roomDetails?.name || ""}
+            </h2>
+            <p className="text-gray-400">
+              {roomDetails?.description || ""}
+            </p>
           </div>
 
-          {/* {presenters.length > 0 && (
+          <div className="">
+            <div className="grid grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 justify-items-center">
+              {peers.map((peer) => (
+                <PeerWithContextMenu key={peer.id} peer={peer} />
+              ))}
+            </div>
+
+            {/* {presenters.length > 0 && (
             <div className="mt-8 pt-8 border-t border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
                 Screen Share
@@ -155,8 +178,9 @@ export default function Conference({roomId}:{roomId: string}) {
               </div>
             </div>
           )} */}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 }
