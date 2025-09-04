@@ -4,10 +4,10 @@ import { useNavigateWithLoader } from "../utils/useNavigateWithLoader";
 import FiresideLogo from "./UI/firesideLogo";
 
 interface RoomEndScreenProps {
-  onComplete: ({onComplete}: {onComplete: () => void}) => void;
+  onComplete: () => void;
 }
 
-export default function RoomEndScreen({onComplete}: {onComplete: () => void}) {
+export default function RoomEndScreen({onComplete}: RoomEndScreenProps) {
   const navigate = useNavigateWithLoader();
   const [timeLeft, setTimeLeft] = useState(10);
 
