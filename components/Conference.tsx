@@ -33,7 +33,8 @@ export default function Conference({ roomId }: { roomId: string }) {
     switch (notification.type) {
       
       case 'ROOM_ENDED':
-        navigate("/");
+        // navigate("/");
+        setShowRoomEndScreen(true);
         break;
       default:
         console.log("test");
