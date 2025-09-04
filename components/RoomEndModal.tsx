@@ -114,7 +114,7 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
       }
 
       // Broadcast END_ROOM_EVENT to all participants
-      hmsActions.sendBroadcastMessage(
+      await hmsActions.sendBroadcastMessage(
         JSON.stringify({ type: "END_ROOM_EVENT", roomId })
       );
 
