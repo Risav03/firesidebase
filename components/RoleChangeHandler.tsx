@@ -74,7 +74,7 @@ export default function RoleChangeHandler() {
               throw new Error(data.error || 'Failed to fetch room codes');
             }
 
-            const roomCodes: RoomCode[] = data.roomCodes;
+            const roomCodes: RoomCode[] = data.data.roomCodes;
             const roleCode = roomCodes.find(code => code.role === newRole);
 
             if (!roleCode) {
