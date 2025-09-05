@@ -8,6 +8,7 @@ import {
   MicOnIcon,
   ShareScreenIcon,
 } from "@100mslive/react-icons";
+import { HandRaiseIcon } from "@100mslive/react-icons";
 import {
   selectIsLocalAudioPluginPresent,
   selectIsLocalScreenShared,
@@ -22,6 +23,8 @@ import {
   HMSNotificationTypes,
   useHMSNotifications,
   selectBroadcastMessages,
+  selectLocalPeerID,
+  selectHasPeerHandRaised,
 } from "@100mslive/react-sdk";
 import { RiAdvertisementFill } from "react-icons/ri";
 import { FaMoneyBill } from "react-icons/fa";
@@ -70,6 +73,22 @@ export default function Footer({ roomId }: { roomId: string }) {
   const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
 
   const hmsActions = useHMSActions();
+  
+  // Hand raise functionality
+  const localPeerId = useHMSStore(selectLocalPeerID);
+  const isHandRaised = useHMSStore(selectHasPeerHandRaised(localPeerId));
+  
+  const toggleRaiseHand = useCallback(async () => {
+    try {
+      if (isHandRaised) {
+        await hmsActions.lowerLocalPeerHand();
+      } else {
+        await hmsActions.raiseLocalPeerHand();
+      }
+    } catch (error) {
+      console.error("Error toggling hand raise:", error);
+    }
+  }, [hmsActions, isHandRaised]);
 
   const { sendEvent } = useCustomEvent({
     type: "EMOJI_REACTION",
@@ -96,7 +115,7 @@ export default function Footer({ roomId }: { roomId: string }) {
     if (debouncedEmoji) {
       sendEvent(debouncedEmoji);
     }
-  }, [debouncedEmoji]);
+  }, [debouncedEmoji, sendEvent]);
 
   let emojiTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -359,6 +378,19 @@ export default function Footer({ roomId }: { roomId: string }) {
                 {messages.length > 9 ? "9+" : messages.length}
               </div>
             )}
+          </button>
+
+          {/* Hand raise button */}
+          <button
+            onClick={toggleRaiseHand}
+            className={`relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
+              isHandRaised
+                ? "bg-fireside-orange text-white shadow-lg"
+                : "bg-white/10 text-white hover:bg-white/20"
+            }`}
+            title={isHandRaised ? "Lower hand" : "Raise hand"}
+          >
+            <HandRaiseIcon className="w-5 h-5" />
           </button>
 
           {/* Emoji reactions button */}

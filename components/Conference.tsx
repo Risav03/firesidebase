@@ -6,12 +6,14 @@ import {
   selectPeersScreenSharing,
   useHMSNotifications,
   useHMSStore,
+  HMSNotificationTypes,
 } from "@100mslive/react-sdk";
 import PeerWithContextMenu from "./PeerWithContextMenu";
 import { ScreenTile } from "./ScreenTile";
 import { useEffect, useState } from "react";
 import sdk from "@farcaster/miniapp-sdk";
 import RoomEndScreen from "./RoomEndScreen";
+import toast from "react-hot-toast";
 
 export default function Conference({ roomId }: { roomId: string }) {
   const navigate = useNavigateWithLoader();
@@ -24,14 +26,22 @@ export default function Conference({ roomId }: { roomId: string }) {
 
   const notification = useHMSNotifications();
 
-
   useEffect(() => {
     if (!notification) {
       return;
     }
 
     switch (notification.type) {
-      
+      case HMSNotificationTypes.HAND_RAISE_CHANGED:
+        const peer = notification.data;
+        if (peer && !peer.isLocal && peer.isHandRaised) {
+          // Show toast notification when someone raises their hand
+          toast(`${peer.name} raised their hand ✋`, {
+            icon: '✋',
+            duration: 3000,
+          });
+        }
+        break;
       case 'ROOM_ENDED':
         // navigate("/");
         setShowRoomEndScreen(true);
