@@ -36,7 +36,7 @@ export default function Conference({ roomId }: { roomId: string }) {
         const peer = notification.data;
         if (peer && !peer.isLocal && peer.isHandRaised) {
           // Show toast notification when someone raises their hand
-          toast(`${peer.name} raised their hand ✋`, {
+          toast(`${peer.name} raised their hand`, {
             icon: '✋',
             duration: 3000,
           });
