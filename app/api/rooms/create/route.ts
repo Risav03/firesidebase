@@ -45,10 +45,13 @@ export async function POST(request: NextRequest) {
 
     await room.save();
 
-    // Add room to host's hostedRooms
+    // Add room to host's hostedRooms if not already present
     hostUser.hostedRooms = hostUser.hostedRooms || [];
-    hostUser.hostedRooms.push(room._id);
-    await hostUser.save();
+    const roomIdStr = room._id.toString();
+  if (!hostUser.hostedRooms.some((rid: any) => rid.toString() === roomIdStr)) {
+      hostUser.hostedRooms.push(room._id);
+      await hostUser.save();
+    }
 
     // Populate host and participants for response
     await room.populate('host', 'fid username displayName pfp_url');
