@@ -31,6 +31,7 @@ interface Participant {
   customDomain?: string;
   wallet: string;
   status: string;
+  role: string;
 }
 
 export default function TippingModal({
@@ -67,6 +68,8 @@ export default function TippingModal({
             const activeParticipants = data.participants.filter(
               (participant: Participant) => participant.status === "active"
             );
+
+            console.log("Fetched participants:", activeParticipants);
             setParticipants(activeParticipants);
           }
         })
@@ -425,9 +428,9 @@ export default function TippingModal({
                   <button
                     key={role}
                     onClick={() => handleRoleSelection(role)}
-                    className={`w-1/4 py-2 rounded-md text-white text-nowrap font-medium transition-colors ${
+                    className={`px-4 py-2 rounded-md text-white font-medium transition-colors ${
                       selectedRoles.includes(role)
-                        ? "gradient-fire "
+                        ? "bg-blue-600 hover:bg-blue-700"
                         : "bg-gray-600 hover:bg-gray-700"
                     }`}
                   >
@@ -516,7 +519,7 @@ export default function TippingModal({
                                   {participant.username}
                                 </p>
                                 <p className="text-xs text-gray-400">
-                                  {participant.customDomain || "No domain"}
+                                  {participant.role || "No domain"}
                                 </p>
                               </div>
                               {selectedUsers.some(
@@ -550,7 +553,7 @@ export default function TippingModal({
                 Select Tip Amount
               </label>
               <div className="flex space-x-2 w-full">
-                {[0.10, 0.25, 1.00].map((amount) => (
+                {[10, 25, 100].map((amount) => (
                   <button
                     key={amount}
                     onClick={() => {
@@ -559,7 +562,7 @@ export default function TippingModal({
                     }}
                     className={`px-4 py-2 rounded-md text-white font-medium transition-colors w-1/3 ${
                       selectedTip === amount
-                        ? "gradient-fire"
+                        ? "bg-blue-600 hover:bg-blue-700"
                         : "bg-gray-600 hover:bg-gray-700"
                     }`}
                   >
@@ -596,7 +599,7 @@ export default function TippingModal({
                   Tip in ETH
                 </span>
               </button>
-              {/* <button
+              <button
                 onClick={() => handleUSDCTip()}
                 disabled={isLoading}
                 className={`flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:bg-gray-400 ${
@@ -607,7 +610,7 @@ export default function TippingModal({
                   <BiSolidDollarCircle />
                   Tip in USDC
                 </span>
-              </button> */}
+              </button>
             </div>
           </>
         )}

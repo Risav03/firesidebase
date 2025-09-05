@@ -82,16 +82,43 @@ export default function Conference({ roomId }: { roomId: string }) {
     // Sort peers by role: host > co-host > speaker > listener
     const roleOrder: Record<string, number> = { host: 0, "co-host": 1, speaker: 2, listener: 3 };
 
-    // Use a Map to ensure each peer ID only appears once
+    // Use a Map to ensure each user (by userId) only appears once
+    // If a user rejoins, remove previous instance and keep the latest
     const uniquePeersMap = new Map();
 
     allPeers
       .filter(peer => !removedPeers.has(peer.id))
       .forEach(peer => {
-        // Only add the peer if it's not already in the map
-        if (!uniquePeersMap.has(peer.id)) {
-          uniquePeersMap.set(peer.id, peer);
+        // Use fid from metadata as unique user identifier
+        let fid: string | undefined = undefined;
+        if (peer.metadata) {
+          try {
+            const meta = JSON.parse(peer.metadata);
+            if (meta && typeof meta.fid === 'string') {
+              fid = meta.fid;
+            }
+          } catch (e) {
+            // ignore malformed metadata
+          }
         }
+        if (fid) {
+          // Remove any peer with same fid
+          for (const [id, existingPeer] of Array.from(uniquePeersMap.entries())) {
+            let existingFid: string | undefined = undefined;
+            if (existingPeer.metadata) {
+              try {
+                const existingMeta = JSON.parse(existingPeer.metadata);
+                if (existingMeta && typeof existingMeta.fid === 'string') {
+                  existingFid = existingMeta.fid;
+                }
+              } catch (e) {}
+            }
+            if (existingFid && existingFid === fid) {
+              uniquePeersMap.delete(id);
+            }
+          }
+        }
+        uniquePeersMap.set(peer.id, peer);
       });
 
     // Convert map values to array and sort
