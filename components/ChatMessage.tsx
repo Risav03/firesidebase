@@ -79,30 +79,27 @@ export function ChatMessage({ message, isOwnMessage }: ChatMessageProps) {
 
   return (
     <div className={`chat-message ${isOwnMessage ? 'own-message' : 'other-message'}`}>
-      {!isOwnMessage && (
+      {/* {!isOwnMessage && (
         <div className={`chat-avatar ${getAvatarColor(senderName)}`}>
           {getInitials(senderName)}
         </div>
-      )}
+      )} */}
       
       <div className="chat-message-content">
         {!isOwnMessage && (
           <div className="chat-message-header">
-            <span className="font-medium text-white text-sm">
+            <span className="font-medium text-fireside-orange text-sm">
               {senderName}
-            </span>
-            <span className="text-xs text-gray-400 ml-2">
-              {formatDistanceToNow(getTimestamp())}
             </span>
           </div>
         )}
         
         <div className={`chat-message-bubble ${isOwnMessage ? 'own-bubble' : 'other-bubble'}`}>
-          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+          <p className="text-sm text-left leading-relaxed whitespace-pre-wrap break-words">
             {getMessageText()}
           </p>
-          {isOwnMessage && (
-            <div className="text-xs text-gray-300 mt-1 text-right">
+          {(
+            <div className={`text-xs mt-1 text-white/40 text-right`}>
               {formatDistanceToNow(getTimestamp())}
             </div>
           )}

@@ -124,7 +124,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error('Error sending message. Please try again.');
+      // toast.error('Error sending message. Please try again.');
       // Could show a retry option here
     }
   };
@@ -172,9 +172,9 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         <div className="flex items-center space-x-3 w-[50%]">
           <div className="w-3 h-3 bg-fireside-orange rounded-full animate-pulse"></div>
           <h3 className="font-semibold text-white">Room Chat</h3>
-          <span className="text-xs text-white bg-gray-700 px-2 py-1 rounded-full">
+          {/* <span className="text-xs text-white bg-gray-700 px-2 py-1 rounded-full">
             {combinedMessages.length}
-          </span>
+          </span> */}
         </div>
         <div className="flex items-center space-x-2 justify-end w-[50%]">
           <button
@@ -200,7 +200,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       </div>
 
       {/* Chat Messages */}
-      <div className="chat-content chat-messages bg-gray-950 min-h-[70vh] max-h-[70vh]">
+      <div className="chat-content chat-messages bg-gray-100/5 backdrop-blur-sm min-h-[70vh] max-h-[70vh]">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-white text-sm">Loading messages...</div>

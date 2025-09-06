@@ -8,6 +8,7 @@ import {
   selectDominantSpeaker,
   useHMSStore,
   HMSPeer,
+  selectHasPeerHandRaised,
 } from "@100mslive/react-sdk";
 
 interface PeerProps {
@@ -18,6 +19,7 @@ export default function Peer({ peer }: PeerProps) {
   const isPeerAudioEnabled = useHMSStore(selectIsPeerAudioEnabled(peer.id));
   const peerAudioLevel = useHMSStore(selectPeerAudioByID(peer.id));
   const dominantSpeaker = useHMSStore(selectDominantSpeaker);
+  const isHandRaised = useHMSStore(selectHasPeerHandRaised(peer.id));
   
   const [showSpeakingRing, setShowSpeakingRing] = useState(false);
   
@@ -65,6 +67,13 @@ export default function Peer({ peer }: PeerProps) {
           {!isPeerAudioEnabled && peer.roleName !== "listener" && (
             <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center border-2 border-white">
               <MicOffIcon className="w-3 h-3 text-white" />
+            </div>
+          )}
+          
+          {/* Hand raise indicator */}
+          {isHandRaised && (
+            <div className="absolute -top-1 -left-1 w-6 h-6 bg-fireside-orange rounded-full flex items-center justify-center border-2 border-white">
+              <span className="text-white text-xs">✋</span>
             </div>
           )}
         </div>
