@@ -206,7 +206,7 @@ export default function Footer({ roomId }: { roomId: string }) {
       transform: translateY(-15vh);
     }
     100% {
-      transform: translateY(-70vh);
+      transform: translateY(-90vh);
     }
   }
 
