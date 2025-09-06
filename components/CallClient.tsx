@@ -219,20 +219,6 @@ export default function CallClient({ roomId }: CallClientProps) {
     };
   }, [user, roomId]);
 
-  useEffect(() => {
-    async function getPermission() {
-      try {
-        await sdk.actions.requestCameraAndMicrophoneAccess();
-        console.log("Camera and microphone access granted");
-        // You can now use camera and microphone in your mini app
-      } catch (error) {
-        console.log("Camera and microphone access denied");
-        // Handle the denial gracefully
-      }
-    }
-
-    getPermission();
-  }, []);
 
   if (error) {
     return (
