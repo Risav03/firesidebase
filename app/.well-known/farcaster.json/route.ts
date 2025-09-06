@@ -14,7 +14,7 @@ export async function GET() {
       webhookUrl: "https://firesidebase.vercel.app/api/webhook",
       subtitle: "Sparking conversations on Base",
       description: "The ultimate miniapp for connecting people.",
-      primaryCategory: "social",
+      primaryCategory: "entertainment",
       tags: ["social", "base", "calls", "spaces"],
       heroImageUrl: "https://firesidebase.vercel.app/app-icon2.png",
       ogTitle: "Fireside"
