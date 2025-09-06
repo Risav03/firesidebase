@@ -40,8 +40,8 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
 
       const env = process.env.NEXT_PUBLIC_ENV;
       console.log("Environment:", env);
-      var token:any = "";
-      if (env !== "DEV") {
+      var token:any = ((await sdk.quickAuth.getToken()).token);
+      if (env !== "DEV" && !token) {
         const nonce = await getNonce();
 
         await sdk.actions.signIn({ nonce });
