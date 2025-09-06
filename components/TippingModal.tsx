@@ -515,7 +515,7 @@ export default function TippingModal({
                     onClick={() => handleRoleSelection(role)}
                     className={`px-4 py-2 rounded-md text-white font-medium transition-colors ${
                       selectedRoles.includes(role)
-                        ? "bg-blue-600 hover:bg-blue-700"
+                        ? "gradient-fire"
                         : "bg-gray-600 hover:bg-gray-700"
                     }`}
                   >
@@ -640,7 +640,7 @@ export default function TippingModal({
                 Select Tip Amount
               </label>
               <div className="flex space-x-2 w-full">
-                {[10, 25, 100].map((amount) => (
+                {[0.1, 0.5, 1].map((amount) => (
                   <button
                     key={amount}
                     onClick={() => {
@@ -649,7 +649,7 @@ export default function TippingModal({
                     }}
                     className={`px-4 py-2 rounded-md text-white font-medium transition-colors w-1/3 ${
                       selectedTip === amount
-                        ? "bg-blue-600 hover:bg-blue-700"
+                        ? "gradient-fire "
                         : "bg-gray-600 hover:bg-gray-700"
                     }`}
                   >
@@ -689,7 +689,7 @@ export default function TippingModal({
               <button
                 onClick={() => handleUSDCTip()}
                 disabled={isLoading}
-                className={`flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:bg-gray-400 ${
+                className={`flex-1 gradient-fire text-white font-medium py-2 px-4 rounded-md transition-colors disabled:bg-gray-400 ${
                   isLoading ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
