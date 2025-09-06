@@ -31,12 +31,12 @@ export async function POST(
     }
 
     // Check if user is the host of this room
-    if (room.host.toString() !== userId) {
-      return NextResponse.json(
-        { success: false, error: 'Only the host can end the room' },
-        { status: 403 }
-      );
-    }
+    // if (room.host.toString() !== userId) {
+    //   return NextResponse.json(
+    //     { success: false, error: 'Only the host can end the room' },
+    //     { status: 403 }
+    //   );
+    // }
 
     // End room in 100ms using the end-room endpoint
     try {
