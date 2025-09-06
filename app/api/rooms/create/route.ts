@@ -4,6 +4,7 @@ import Room from '@/utils/schemas/Room';
 import User from '@/utils/schemas/User';
 import { HMSAPI } from '@/utils/100ms';
 import { RedisRoomService } from '@/utils/redisServices';
+import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,35 +24,51 @@ export async function POST(request: NextRequest) {
 
     await connectToDB();
 
-    // Create room in 100ms
-    const hmsAPI = new HMSAPI();
-    const hmsRoom = await hmsAPI.createRoom(name, description);
+    // Generate a random hash (6 characters) to append to the HMS room name
+    const randomHash = crypto.randomBytes(3).toString('hex');
+    const hmsRoomName = `${name}_${randomHash}`;
 
-    await hmsAPI.generateRoomCodes(hmsRoom.id);
+    // Create room in 100ms with the modified name
+    const hmsAPI = new HMSAPI();
+    let hmsRoom;
+    try {
+      hmsRoom = await hmsAPI.createRoom(hmsRoomName, description);
+    } catch (error) {
+      console.error('Error creating room in 100ms:', error);
+      return NextResponse.json(
+        { success: false, error: 'Failed to create room in 100ms service' },
+        { status: 500 }
+      );
+    }
+
+    // Generate room codes
+    try {
+      await hmsAPI.generateRoomCodes(hmsRoom.id);
+    } catch (error) {
+      console.error('Error generating room codes:', error);
+      // Continue with room creation even if code generation fails
+    }
 
     const currentTime = new Date();
 
-    // Create room in our database
-      const room = new Room({
-        name,
-        description,
-        host: hostUser._id,
-        startTime: new Date(startTime),
-        roomId: hmsRoom.id,
-        participants: [hostUser._id],
-        status: currentTime < new Date(startTime) ? 'upcoming' : 'ongoing',
-        topics,
-      });
+    // Create room in our database with original name (including symbols)
+    const room = new Room({
+      name, // Keep the original name with symbols in our database
+      description,
+      host: hostUser._id,
+      startTime: new Date(startTime),
+      roomId: hmsRoom.id,
+      participants: [hostUser._id],
+      status: currentTime < new Date(startTime) ? 'upcoming' : 'ongoing',
+      topics,
+    });
 
     await room.save();
 
-    // Add room to host's hostedRooms if not already present
+    // Add room to host's hostedRooms
     hostUser.hostedRooms = hostUser.hostedRooms || [];
-    const roomIdStr = room._id.toString();
-  if (!hostUser.hostedRooms.some((rid: any) => rid.toString() === roomIdStr)) {
-      hostUser.hostedRooms.push(room._id);
-      await hostUser.save();
-    }
+    hostUser.hostedRooms.push(room._id);
+    await hostUser.save();
 
     // Populate host and participants for response
     await room.populate('host', 'fid username displayName pfp_url');

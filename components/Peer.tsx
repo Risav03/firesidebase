@@ -56,8 +56,10 @@ export default function Peer({ peer }: PeerProps) {
         <div className={`  border-2 border-white rounded-full relative`}>
           {/* Avatar with first letter of name */}
           <div className={`w-16 h-16 rounded-full bg-fireside-orange flex items-center justify-center text-white text-2xl font-bold ${!isPeerAudioEnabled ? 'opacity-50' : ''}`}>
-            {peer.metadata && JSON.parse(peer.metadata).avatar ? (
-              <img src={JSON.parse(peer.metadata).avatar} alt={peer.name} className="w-full h-full rounded-full object-cover" />
+            {peer.metadata && JSON.parse(peer.metadata).avatar ? (<div className="relative w-full h-full rounded-full overflow-hidden">
+              {peer.isLocal && <div className="bg-green-400 opacity-100 w-full h-full absolute z-1 blur-xl" ></div>}
+              <img src={JSON.parse(peer.metadata).avatar} alt={peer.name} className={`w-full h-full absolute z-50 rounded-full object-cover`} />
+            </div>
             ) : (
               <span>{peer.name.charAt(0).toUpperCase()}</span>
             )}
@@ -79,7 +81,7 @@ export default function Peer({ peer }: PeerProps) {
         </div>
       </div>
       
-      <div className="mt-2 text-center">
+      <div className={`mt-2 text-center  `}>
         <p className="text-sm font-medium text-white truncate max-w-20">
           {peer.name}
         </p>
@@ -94,9 +96,9 @@ export default function Peer({ peer }: PeerProps) {
               {peer.roleName}
             </span>
           )}
-          {peer.isLocal && (
+          {/* {peer.isLocal && (
             <span className="text-xs text-fireside-orange font-semibold">(You)</span>
-          )}
+          )} */}
         </div>
       </div>
     </div>

@@ -74,20 +74,6 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
     };
   }, [isOpen, onClose, showEndConfirmation]);
 
-  const handleLeaveRoom = async () => {
-    try {
-      setError(null);
-      setAction('leave');
-      setIsLoading(true);
-      await hmsActions.leave();
-      router.push('/');
-    } catch (error) {
-      console.error('Error leaving room:', error);
-      setError('Failed to leave room. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleEndRoomClick = () => {
     setShowEndConfirmation(true);

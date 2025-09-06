@@ -1,76 +1,34 @@
-
 "use client";
-import { useNavigateWithLoader } from "../utils/useNavigateWithLoader";
+
 import {
   selectPeers,
   selectPeersScreenSharing,
-  useHMSNotifications,
   useHMSStore,
-  HMSNotificationTypes,
+  useHMSActions,
+  selectLocalPeer,
 } from "@100mslive/react-sdk";
 import PeerWithContextMenu from "./PeerWithContextMenu";
 import { ScreenTile } from "./ScreenTile";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import sdk from "@farcaster/miniapp-sdk";
-import RoomEndScreen from "./RoomEndScreen";
-import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import { useGlobalContext } from "@/utils/providers/globalContext";
 
-export default function Conference({ roomId }: { roomId: string }) {
-  const navigate = useNavigateWithLoader();
+export default function Conference({roomId}:{roomId: string}) {
   const allPeers = useHMSStore(selectPeers);
   const presenters = useHMSStore(selectPeersScreenSharing);
-  const localPeer = allPeers.find(peer => peer.isLocal);
-  // Listen for END_ROOM_EVENT broadcast from 100ms
-  const hmsMessages = useHMSStore((store) => store.messages);
-  const [showRoomEndScreen, setShowRoomEndScreen] = useState(false);
-
-  const notification = useHMSNotifications();
-
-  useEffect(() => {
-    if (!notification) {
-      return;
-    }
-
-    switch (notification.type) {
-      case HMSNotificationTypes.HAND_RAISE_CHANGED:
-        const peer = notification.data;
-        if (peer && !peer.isLocal && peer.isHandRaised) {
-          // Show toast notification when someone raises their hand
-          toast(`${peer.name} raised their hand`, {
-            icon: '✋',
-            duration: 3000,
-          });
-        }
-        break;
-      case 'ROOM_ENDED':
-        // navigate("/");
-        setShowRoomEndScreen(true);
-        break;
-      default:
-        console.log("test");
-        break;
-      // ...Other notification type cases
-      // case 'ROOM_ENDED':
-      //   // Redirect or Show toast to user
-      //   navigate("/");
-      //   break;
-    }
-  }, [notification]);
-
+  const localPeer = useHMSStore(selectLocalPeer);
+  const hmsActions = useHMSActions();
+  const router = useRouter();
+  const { user } = useGlobalContext();
+  
+  // Ref to track previous peers for empty room detection
+  const previousPeersRef = useRef<any[]>([]);
+  
   // Local state for optimistic updates
   const [peers, setPeers] = useState(allPeers);
   const [removedPeers, setRemovedPeers] = useState<Set<string>>(new Set());
-  // Track previous peer count for join detection
-  const [prevPeerCount, setPrevPeerCount] = useState(allPeers.length);
-
-  // Play audio when a new peer joins
-  // useEffect(() => {
-  //   if (peers.length > prevPeerCount) {
-  //     const audio = new window.Audio("/assets/ping.mp3");
-  //     audio.play();
-  //   }
-  //   setPrevPeerCount(peers.length);
-  // }, [peers.length]);
+  const [isEndingRoom, setIsEndingRoom] = useState(false);
 
   //function to fetch room details and save name and description in a useState. Call the function in useEffect
   const [roomDetails, setRoomDetails] = useState<{ name: string; description: string } | null>(null);
@@ -86,63 +44,107 @@ export default function Conference({ roomId }: { roomId: string }) {
 
     fetchRoomDetails();
   }, [roomId]);
+  
+  // Function to handle ending room when empty - memoized with useCallback
+  const handleEmptyRoom = useCallback(async () => {
+    // Only the host should end the room
+    if (!localPeer || localPeer.roleName !== 'host' || isEndingRoom) return;
+    
+    try {
+      setIsEndingRoom(true);
+      console.log('Room is empty, automatically ending room...');
+      
+      // Call API to end the room
+      const response = await fetch(`/api/rooms/${roomId}/end`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user._id }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to end empty room:', errorData.error);
+        setIsEndingRoom(false);
+        return;
+      }
+
+      console.log('Empty room ended successfully');
+      
+      // Leave the room
+      await hmsActions.leave();
+      router.push('/');
+    } catch (error) {
+      console.error('Error ending empty room:', error);
+      setIsEndingRoom(false);
+    }
+  }, [roomId, user, localPeer, isEndingRoom, hmsActions, router]);
 
   useEffect(() => {
     // Update local peers when 100ms peers change
-    // Sort peers by role: host > co-host > speaker > listener
-    const roleOrder: Record<string, number> = { host: 0, "co-host": 1, speaker: 2, listener: 3 };
-
-    // Use a Map to ensure each user (by userId) only appears once
-    // If a user rejoins, remove previous instance and keep the latest
-    const uniquePeersMap = new Map();
-
-    allPeers
-      .filter(peer => !removedPeers.has(peer.id))
-      .forEach(peer => {
-        // Use fid from metadata as unique user identifier
-        let fid: string | undefined = undefined;
-        if (peer.metadata) {
-          try {
-            const meta = JSON.parse(peer.metadata);
-            if (meta && typeof meta.fid === 'string') {
-              fid = meta.fid;
-            }
-          } catch (e) {
-            // ignore malformed metadata
-          }
-        }
-        if (fid) {
-          // Remove any peer with same fid
-          for (const [id, existingPeer] of Array.from(uniquePeersMap.entries())) {
-            let existingFid: string | undefined = undefined;
-            if (existingPeer.metadata) {
-              try {
-                const existingMeta = JSON.parse(existingPeer.metadata);
-                if (existingMeta && typeof existingMeta.fid === 'string') {
-                  existingFid = existingMeta.fid;
-                }
-              } catch (e) {}
-            }
-            if (existingFid && existingFid === fid) {
-              uniquePeersMap.delete(id);
-            }
-          }
-        }
-        uniquePeersMap.set(peer.id, peer);
-      });
-
-    // Convert map values to array and sort
-    const sortedPeers = Array.from(uniquePeersMap.values())
-      .sort((a, b) => {
-        const aRoleName = typeof a.roleName === "string" ? a.roleName : "listener";
-        const bRoleName = typeof b.roleName === "string" ? b.roleName : "listener";
-        const aRole = roleOrder[aRoleName] ?? 99;
-        const bRole = roleOrder[bRoleName] ?? 99;
-        return aRole - bRole;
-      });
-
+    const uniquePeers = new Map();
+    allPeers.forEach(peer => {
+      if (!removedPeers.has(peer.id)) {
+        uniquePeers.set(peer.id, peer);
+      }
+    });
+    
+    // Get peers and sort by role priority: host > co-host > speaker > listener
+    const currentPeers = Array.from(uniquePeers.values());
+    
+    // Define role priority order
+    const rolePriority: {[key: string]: number} = {
+      'host': 1,
+      'co-host': 2,
+      'speaker': 3,
+      'listener': 4
+    };
+    
+    // Sort peers by role priority
+    const sortedPeers = currentPeers.sort((a, b) => {
+      const roleA = a.roleName?.toLowerCase() || 'listener';
+      const roleB = b.roleName?.toLowerCase() || 'listener';
+      
+      return (rolePriority[roleA] || 5) - (rolePriority[roleB] || 5);
+    });
+    
     setPeers(sortedPeers);
-  }, [allPeers, removedPeers]);
+    
+    // Log peer changes for debugging
+    if (currentPeers.length !== previousPeersRef.current.length) {
+      console.log(`Peers changed: ${previousPeersRef.current.length} -> ${currentPeers.length}`);
+    }
+    
+    // Check if room is empty and should be ended
+    // Use a timer to ensure we don't end the room during transient states
+    let emptyRoomTimer: NodeJS.Timeout | null = null;
+    
+    if (currentPeers.length === 0 && previousPeersRef.current.length > 0) {
+      console.log("Room appears to be empty, scheduling end check...");
+      // Wait 10 seconds before ending the room to ensure it's really empty
+      emptyRoomTimer = setTimeout(() => {
+        // We'll re-use the latest allPeers value when the timeout executes
+        if (allPeers.length === 0) {
+          console.log("Room confirmed empty after delay, ending room...");
+          handleEmptyRoom();
+        } else {
+          console.log("Room is no longer empty, cancelling end room action");
+        }
+      }, 10000); // 10 second delay
+    }
+    
+    // Update the previous peers reference
+    previousPeersRef.current = currentPeers;
+    
+    // Clear timeout if component unmounts or peers change
+    return () => {
+      if (emptyRoomTimer) {
+        clearTimeout(emptyRoomTimer);
+        console.log("Cleared empty room check timer");
+      }
+    };
+  }, [allPeers, removedPeers, handleEmptyRoom]);
 
   useEffect(() => {
     // Handle optimistic peer removal
@@ -172,38 +174,41 @@ export default function Conference({ roomId }: { roomId: string }) {
     };
   }, []);
 
-  // Show room end screen if host ended the call
-  if (showRoomEndScreen) {
-    return (
-      <RoomEndScreen
-        onComplete={() => {
-          setShowRoomEndScreen(false);
-        }}
-      />
-    );
-  }
+  useEffect(() => {
+    async function getPermission() {
+      try {
+        await sdk.actions.requestCameraAndMicrophoneAccess();
+        console.log("Camera and microphone access granted");
+        // You can now use camera and microphone in your mini app
+      } catch (error) {
+        console.log("Camera and microphone access denied");
+        // Handle the denial gracefully
+      }
+    }
 
-  else {
-    return (
-      <div className="pt-20 pb-32 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-4 mt-6">
-            <h2 className="text-3xl font-bold text-white mb-2">
-              {roomDetails?.name || ""}
-            </h2>
-            <p className="text-gray-400">
-              {roomDetails?.description || ""}
-            </p>
+    getPermission();
+  }, []);
+
+  return (
+    <div className="pt-20 pb-32 px-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-4 mt-6">
+          <h2 className="text-3xl font-bold text-white mb-2">
+            {roomDetails?.name || ""} 
+          </h2>
+          <p className="text-gray-400">
+            {roomDetails?.description || ""}
+          </p>
+        </div>
+
+        <div className="">
+          <div className="grid grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 justify-items-center">
+            {peers.map((peer) => (
+              <PeerWithContextMenu key={peer.id} peer={peer} />
+            ))}
           </div>
 
-          <div className="">
-            <div className="grid grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 justify-items-center">
-              {peers.map((peer) => (
-                <PeerWithContextMenu key={peer.id} peer={peer} />
-              ))}
-            </div>
-
-            {/* {presenters.length > 0 && (
+          {presenters.length > 0 && (
             <div className="mt-8 pt-8 border-t border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
                 Screen Share
@@ -214,10 +219,9 @@ export default function Conference({ roomId }: { roomId: string }) {
                 ))}
               </div>
             </div>
-          )} */}
-          </div>
+          )}
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 }
