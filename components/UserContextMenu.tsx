@@ -170,6 +170,18 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
       await hmsActions.changeRole(peer.id, 'host', true);
       await hmsActions.changeRole(localPeer.id, 'co-host', true);
       
+      // Force a reconnection for the promoted user by sending a message
+      try {
+        await hmsActions.sendDirectMessage(
+          'HOST_TRANSFER_RECONNECT', 
+          peer.id
+        );
+        
+        console.log('Sent reconnect message to the new host');
+      } catch (msgError) {
+        console.error('Failed to send reconnect message:', msgError);
+      }
+      
       onClose();
     } catch (error) {
       console.error('Error transferring host role:', error);

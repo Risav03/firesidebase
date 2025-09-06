@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react';
-import { useHMSNotifications, useHMSActions } from '@100mslive/react-sdk';
+import { useHMSNotifications, useHMSActions, useHMSStore, selectLocalPeer } from '@100mslive/react-sdk';
 import { HMSNotificationTypes } from '@100mslive/hms-video-store';
 import { useParams } from 'next/navigation';
 
@@ -20,6 +20,7 @@ export default function RoleChangeHandler() {
   const roomId = params.id as string;
   const hmsActions = useHMSActions();
   const notification = useHMSNotifications();
+  const localPeer = useHMSStore(selectLocalPeer);
   const isRejoining = useRef(false);
   const lastRole = useRef<string | null>(null);
 
@@ -134,6 +135,27 @@ export default function RoleChangeHandler() {
 
     handleRoleUpdate();
   }, [notification, hmsActions, roomId]);
+
+  // Handle messages for host transfer
+  useEffect(() => {
+    // Check if current notification is a new message
+    if (notification?.type === HMSNotificationTypes.NEW_MESSAGE) {
+      const data = notification.data;
+      
+      // Check if this is a host transfer reconnect message
+      if (data && data.message === 'HOST_TRANSFER_RECONNECT') {
+        console.log('[RoleChangeHandler] Received host transfer reconnect message');
+        
+        // We only want to reconnect if we're the peer that was promoted to host
+        if (localPeer && localPeer.roleName === 'co-host') {
+          console.log('[RoleChangeHandler] Co-host received reconnect message, initiating rejoin');
+          
+          // Force a page reload to properly reconnect with the new role
+          window.location.reload();
+        }
+      }
+    }
+  }, [notification, localPeer]);
 
   // This component doesn't render anything
   return null;
