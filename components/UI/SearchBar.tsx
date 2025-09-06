@@ -35,18 +35,20 @@ const SearchBar: React.FC<{ className?: string }> = ({ className }) => {
     }
     setLoading(true);
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(searchValue.trim())}`);
+      const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+      const res = await fetch(`${URL}/api/search?q=${encodeURIComponent(searchValue.trim())}`);
       const data = await res.json();
+      console.log("Search results:", data);
       if (data.success) {
         // Flatten results for display
-        const userResults = (data.users || []).map((user: any) => ({
+        const userResults = (data.data.users || []).map((user: any) => ({
           id: user.fid,
           title: user.displayName || user.username,
           image: user.pfp_url,
           type: 'user',
           raw: user
         }));
-        const roomResults = (data.rooms || []).map((room: any) => ({
+        const roomResults = (data.data.rooms || []).map((room: any) => ({
           id: room.roomId,
           title: room.name,
           image: undefined,
