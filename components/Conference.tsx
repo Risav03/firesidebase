@@ -89,8 +89,27 @@ export default function Conference({roomId}:{roomId: string}) {
         uniquePeers.set(peer.id, peer);
       }
     });
+    
+    // Get peers and sort by role priority: host > co-host > speaker > listener
     const currentPeers = Array.from(uniquePeers.values());
-    setPeers(currentPeers);
+    
+    // Define role priority order
+    const rolePriority: {[key: string]: number} = {
+      'host': 1,
+      'co-host': 2,
+      'speaker': 3,
+      'listener': 4
+    };
+    
+    // Sort peers by role priority
+    const sortedPeers = currentPeers.sort((a, b) => {
+      const roleA = a.roleName?.toLowerCase() || 'listener';
+      const roleB = b.roleName?.toLowerCase() || 'listener';
+      
+      return (rolePriority[roleA] || 5) - (rolePriority[roleB] || 5);
+    });
+    
+    setPeers(sortedPeers);
     
     // Log peer changes for debugging
     if (currentPeers.length !== previousPeersRef.current.length) {

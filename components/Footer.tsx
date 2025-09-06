@@ -34,9 +34,9 @@ import EmojiPicker, { Theme } from "emoji-picker-react";
 import { IoIosArrowDown } from "react-icons/io";
 import { useGlobalContext } from "../utils/providers/globalContext";
 import { MdCopyAll, MdOutlineIosShare } from "react-icons/md";
-import { useDebounce } from "use-debounce";
 import TippingModal from "./TippingModal";
 import toast from "react-hot-toast";
+import Image from "next/image";
 
 // Dynamic import to avoid SSR issues
 let plugin: any = null;
@@ -59,16 +59,12 @@ export default function Footer({ roomId }: { roomId: string }) {
   const publishPermissions = useHMSStore(selectIsAllowedToPublish);
   const localRoleName = useHMSStore(selectLocalPeerRoleName);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
-  const [floatingEmojis, setFloatingEmojis] = useState<Array<{ emoji: string; sender: string; id: number; position: number }>>([]);
+  // Update floatingEmojis state type to include fontSize
+  const [floatingEmojis, setFloatingEmojis] = useState<Array<{ emoji: string; sender: string; id: number; position: number; fontSize: string }>>([]);
   const { user } = useGlobalContext();
-  const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
   const [isTippingModalOpen, setIsTippingModalOpen] = useState(false);
   const [adsEnabled, setAdsEnabled] = useState(true);
   const [isAdsModalOpen, setIsAdsModalOpen] = useState(false);
-
-  // Corrected state initialization for emojiToSend
-  const [emojiToSend, setEmojiToSend] = useState<{ emoji: string; sender: string } | null>(null);
-  const [debouncedEmoji] = useDebounce(emojiToSend, 200);
 
   const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
 
@@ -96,7 +92,8 @@ export default function Footer({ roomId }: { roomId: string }) {
       const uniqueMsg = {
         ...msg,
         id: Date.now(),
-        position: Math.random() * 15, // Random position within 150px from the right
+        position: Math.random() * 30, // Random position within 150px from the right
+        fontSize: (Math.random() * 0.5 + 1).toFixed(1) // Store a random font size between 1.2 and 1.7 rem
       };
       setFloatingEmojis((prev) => [...prev, uniqueMsg]);
 
@@ -109,24 +106,18 @@ export default function Footer({ roomId }: { roomId: string }) {
 
         hmsActions.ignoreMessageTypes(['EMOJI_REACTION']);
 
+        var emojiTimeout: NodeJS.Timeout | null = null;
 
-  // Send emoji event when debounced value changes
-  useEffect(() => {
-    if (debouncedEmoji) {
-      sendEvent(debouncedEmoji);
-    }
-  }, [debouncedEmoji, sendEvent]);
-
-  let emojiTimeout: ReturnType<typeof setTimeout> | null = null;
-
+  // Simple direct emoji handling with reduced timeout
   const handleEmojiSelect = (emoji: { emoji: string }) => {
     if (emojiTimeout) return;
 
+    // Send emoji with a very short timeout to prevent rapid firing but still be responsive
     emojiTimeout = setTimeout(() => {
-      const newEmoji = { emoji: emoji.emoji, sender: user?.username };
+      const newEmoji = { emoji: emoji.emoji, sender: user?.pfp_url };
       sendEvent(newEmoji);
       emojiTimeout = null;
-    }, 400);
+    }, 700); // Reduced from 1000ms to 700ms for better responsiveness
   };
 
   const handleCopyURL = () => {
@@ -212,15 +203,18 @@ export default function Footer({ roomId }: { roomId: string }) {
   const styles = `
   @keyframes float {
     0% {
-      transform: translateY(0);
+      transform: translateY(-15vh);
     }
     100% {
-      transform: translateY(-100vh);
+      transform: translateY(-70vh);
     }
   }
 
   @keyframes fade {
     0% {
+      opacity: 0;
+    }
+    10% {
       opacity: 1;
     }
     100% {
@@ -324,7 +318,7 @@ export default function Footer({ roomId }: { roomId: string }) {
             <ShareScreenIcon className="w-6 h-6" />
           </button> */}
 
-          {room?.isNoiseCancellationEnabled && isPluginReady && plugin && (
+          {/* {room?.isNoiseCancellationEnabled && isPluginReady && plugin && (
             <button
               title="Noise cancellation"
               className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
@@ -345,7 +339,7 @@ export default function Footer({ roomId }: { roomId: string }) {
             >
               <AudioLevelIcon className="w-6 h-6" />
             </button>
-          )}
+          )} */}
 
           {/* Chat toggle button */}
         </div>
@@ -445,14 +439,6 @@ export default function Footer({ roomId }: { roomId: string }) {
               <RiAdvertisementFill className="w-5 h-5" />
             </button>
           )} */}
-
-          <button
-            onClick={() => setIsShareMenuOpen((prev) => !prev)}
-            className={`text-white pl-4 relative z-50 ${isShareMenuOpen ? "" : ""} `}
-            title="Share"
-          >
-            <TbShare3 className="w-5 h-5" />
-          </button>
         </div>
 
         {/* Chat component rendered here */}
@@ -480,32 +466,7 @@ export default function Footer({ roomId }: { roomId: string }) {
 
 
           </div>
-          <div onClick={() => setIsShareMenuOpen(false)} className={` fixed top-0 left-0 h-screen w-screen bg-black/30 duration-200 ${isShareMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"} `}>
-{isShareMenuOpen && (
-              <div className="absolute right-0 bottom-24 border border-white/10 mb-2 w-40 bg-gray-800 text-white rounded-lg shadow-lg">
-                <button
-                  onClick={() => {
-                    setIsShareMenuOpen(false);
-                    composeCast();
-                  }}
-                  className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center space-x-2"
-                >
-                  <MdOutlineIosShare className="w-5 h-5" />
-                  <span>Share on App</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setIsShareMenuOpen(false);
-                    handleCopyURL();
-                  }}
-                  className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center space-x-2"
-                >
-                  <MdCopyAll className="w-5 h-5" />
-                  <span>Copy URL</span>
-                </button>
-              </div>
-            )}
-          </div>
+          
         
 
         {/* Floating emoji rendering */}
@@ -519,25 +480,22 @@ export default function Footer({ roomId }: { roomId: string }) {
               animation: "float 7s ease-out forwards",
             }}
           >
-            <div className="flex flex-col items-center justify-center">
+            <div style={{animation: "fade 3s ease-out forwards"}} className="flex flex-col pointer-events-none items-center relative justify-center rounded-full p-[0.1rem] aspect-square bg-black/50 border-2 border-black/50">
               <span
                 style={{
-                  fontSize: "1.5rem",
-                  opacity: 1,
-                  animation: "fade 7s ease-out forwards",
+                  fontSize: `${floatingEmoji.fontSize}rem`, // Use the stored font size for this specific emoji
                 }}
               >
                 {floatingEmoji.emoji}
               </span>
-              <p
-                style={{
-                  opacity: 1,
-                  animation: "fade 7s ease-out forwards",
-                }}
-                className="text-xs text-center text-gray-300 bg-black/40 rounded-full px-2 py-1"
-              >
-                {floatingEmoji.sender}
-              </p>
+              <Image
+              
+                src={floatingEmoji.sender || "/default-pfp.png"}
+                className="w-5 h-5 rounded-full border-2 border-black/50 absolute -bottom-[0.4rem] -right-[0.4rem]"
+                alt={floatingEmoji.sender ? floatingEmoji.sender : "Default Avatar"}
+                width={32}
+                height={32}
+              />
             </div>
           </div>
         ))}
