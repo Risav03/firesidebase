@@ -32,18 +32,18 @@ export default function RecordingsPage() {
   useEffect(() => {
     const fetchRecordings = async () => {
       try {
+        const URL = process.env.BACKEND_URL || 'http://localhost:8000';
         setLoading(true);
-        const response = await fetch(`/api/rooms/${roomId}/recordings`);
-        
+        const response = await fetch(`${URL}/api/rooms/public/${roomId}/recordings`);
+
         if (!response.ok) {
           throw new Error('Failed to fetch recordings');
         }
         
-        const data: RecordingResponse = await response.json();
-        
-        if (data.success && data.recordings.length > 0) {
-          setRecordings(data.recordings);
-          setSelectedRecording(data.recordings[0]);
+        const data = await response.json();
+        if (data.success && data.data.recordings.length > 0) {
+          setRecordings(data.data.recordings);
+          setSelectedRecording(data.data.recordings[0]);
         } else {
           setError('No recordings found for this room');
         }

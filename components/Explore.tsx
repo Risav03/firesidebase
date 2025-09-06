@@ -56,6 +56,7 @@ export default function Explore({ rooms }: ExploreProps) {
   // Handle topic selection and PATCH request
   const handleTopicSubmit = async (selectedTopics: string[]) => {
     try {
+      const URL = process.env.BACKEND_URL || 'http://localhost:8000';
       var token: any = "";
       const env = process.env.NEXT_PUBLIC_ENV;
 
@@ -63,7 +64,7 @@ export default function Explore({ rooms }: ExploreProps) {
         token = ((await sdk.quickAuth.getToken()).token);
       }
 
-      const res = await fetch("/api/protected/handleUser", {
+      const res = await fetch(`${URL}/users/protected/topics`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -75,12 +76,12 @@ export default function Explore({ rooms }: ExploreProps) {
       if (data.success) {
         toast.success("Topics updated!");
         // Refetch user
-        const userRes = await fetch("/api/protected/handleUser", {
+        const userRes = await fetch(`${URL}/users/protected/handle`, {
           method: "POST",
           headers: { "Authorization": `Bearer ${token}` },
         });
         const userData = await userRes.json();
-        setUser(userData.user);
+        setUser(userData.data.user);
       } else {
         toast.error(data.error || "Failed to update topics");
       }
@@ -96,16 +97,17 @@ export default function Explore({ rooms }: ExploreProps) {
   // Fetch rooms by user's topics
   useEffect(() => {
     const fetchRoomsByTopics = async () => {
+      const URL = process.env.BACKEND_URL || 'http://localhost:8000';
       if (user?.topics?.length > 0) {
         try {
-          const res = await fetch("/api/rooms/by-topics", {
+          const res = await fetch(`${URL}/api/rooms/public/by-topics`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ topics: user.topics }),
           });
           const data = await res.json();
           if (data.success) {
-            setTopicRooms(data.rooms);
+            setTopicRooms(data.data.rooms);
           }
         } catch (err) {
           setTopicRooms([]);
@@ -118,11 +120,12 @@ export default function Explore({ rooms }: ExploreProps) {
   // Refresh rooms client-side
   const refreshRooms = async () => {
     try {
+      const URL = process.env.BACKEND_URL || 'http://localhost:8000';
       setLoading(true);
       const response = await fetch(`${URL}/api/rooms/public/`);
       const data = await response.json();
       if (data.success) {
-        setLocalRooms(data.rooms);
+        setLocalRooms(data.data.rooms);
         toast.success("Rooms refreshed!");
       }
     } catch (error) {
@@ -210,15 +213,14 @@ export default function Explore({ rooms }: ExploreProps) {
               Explore what you like!
             </h2>
             {/* Tabs for topics */}
-              <div className="flex gap-2 mb-6 overflow-x-scroll hide-scrollbar">
+            <div className="flex gap-2 mb-6 overflow-x-scroll hide-scrollbar">
               {user.topics.map((topic: string, idx: number) => (
                 <button
                   key={topic}
-                  className={`px-4 leading-none text-nowrap py-2 rounded-lg font-semibold transition-colors text-white ${
-                    selectedTab === idx
-                      ? "gradient-fire font-bold border-white border-2"
-                      : "bg-white/10 border-transparent"
-                  }`}
+                  className={`px-4 leading-none text-nowrap py-2 rounded-lg font-semibold transition-colors text-white ${selectedTab === idx
+                    ? "gradient-fire font-bold border-white border-2"
+                    : "bg-white/10 border-transparent"
+                    }`}
                   onClick={() => setSelectedTab(idx)}
                 >
                   {topic}
@@ -259,7 +261,7 @@ export default function Explore({ rooms }: ExploreProps) {
                                 {room.name}
                               </h4>
                               <p className="text-white/70 text-sm">
-                                {room.description.slice(0,50)}{room.description.length>50?"...":""}
+                                {room.description.slice(0, 50)}{room.description.length > 50 ? "..." : ""}
                               </p>
                               <p className="text-white/60 text-xs mt-1">
                                 Host:{" "}
@@ -301,7 +303,7 @@ export default function Explore({ rooms }: ExploreProps) {
                                 {room.name}
                               </h4>
                               <p className="text-white/70 text-sm">
-                                {room.description.slice(0,50)}{room.description.length>50?"...":""}
+                                {room.description.slice(0, 50)}{room.description.length > 50 ? "..." : ""}
                               </p>
                               <p className="text-white/60 text-xs mt-1">
                                 Host:{" "}
@@ -318,7 +320,7 @@ export default function Explore({ rooms }: ExploreProps) {
                                 ))}
                               </div>
                             </div>
-                            <button onClick={()=>{handlePlayRecording(room.roomId)}} className=" text-white w-[15%] aspect-square gradient-fire rounded flex items-center justify-center font-bold">
+                            <button onClick={() => { handlePlayRecording(room.roomId) }} className=" text-white w-[15%] aspect-square gradient-fire rounded flex items-center justify-center font-bold">
                               <FaPlay className="" />
                             </button>
                           </div>

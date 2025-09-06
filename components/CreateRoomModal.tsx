@@ -15,8 +15,7 @@ interface CreateRoomModalProps {
 export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProps) {
   const [formData, setFormData] = useState({
     name: '',
-    description: '',
-    startTime: ''
+    description: ''
   });
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -60,7 +59,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         body: JSON.stringify({
           ...formData,
           host: user?.fid || '',
-          startTime: new Date(formData.startTime).toISOString()
+          startTime: new Date().toISOString()
         }),
       });
       
@@ -68,7 +67,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
       if (data.success) {
         toast.dismiss();
         toast.success('Room created successfully! Redirecting...');
-        setFormData({ name: '', description: '', startTime: '' });
+        setFormData({ name: '', description: '' });
     setSelectedTags([]);
         onClose();
         // Redirect to the room page

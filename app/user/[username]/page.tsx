@@ -1,5 +1,3 @@
-import User from '@/utils/schemas/User';
-import Room from '@/utils/schemas/Room';
 import Link from 'next/link';
 import { IoIosArrowBack } from 'react-icons/io';
 
@@ -9,8 +7,9 @@ interface Props {
 
 export default async function UserProfilePage({ params }: Props) {
 	const { username } = params;
+	const URL = process.env.BACKEND_URL || 'http://localhost:8000';
 	// Fetch user and rooms via API
-	const res = await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/user/${username}`);
+	const res = await fetch(`${URL}/api/users/public/username/${username}`);
 	if (!res.ok) {
 		return <div className="text-center py-10 text-red-500">User not found</div>;
 	}

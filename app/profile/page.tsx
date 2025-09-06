@@ -12,11 +12,12 @@ export default function ProfilePage() {
   const [hostedRooms, setHostedRooms] = useState<any[]>([]);
 
   useEffect(() => {
+    const URL = process.env.BACKEND_URL || 'http://localhost:8000';
     if (!user) {
       router.push('/');
     } else if (user.hostedRooms && user.hostedRooms.length > 0) {
       // Fetch hosted rooms details from API
-      fetch(`/api/rooms?ids=${user.hostedRooms.join(',')}`)
+      fetch(`${URL}/api/users/public/username/${user.username}`)
         .then(res => res.json())
         .then(data => {
           setHostedRooms(data.rooms || []);

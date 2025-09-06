@@ -79,8 +79,8 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
         }
       );
 
-      if (!userRes.ok) {
-        console.error("Failed to create user:", await userRes.text());
+      if (!createUserRes.ok) {
+        console.error("Failed to create user:", await createUserRes.text());
       }
       setUser((await createUserRes.json()).data.user);
     } catch (error) {
