@@ -4,23 +4,31 @@ import type { NextRequest } from 'next/server';
 // This middleware runs on every request
 export async function middleware(request: NextRequest) {
   
-      // Get fid from query parameter
-      const url = new URL(request.url);
-      let fid = url.searchParams.get('fid');
+      let authorization;
+
       const env = process.env.NEXT_PUBLIC_ENV;
 
-      // Use dev FID if in development mode
-      if(env == "DEV" && !fid){
-        fid = process.env.NEXT_PUBLIC_DEV_FID || "1";
+      
+
+      if(env == "DEV"){
+        authorization = `Bearer ${process.env.DEV_HEADER as string}`;
+      }
+      else{
+        authorization = request.headers.get("Authorization");
       }
 
-      console.log("FID from query:", fid);
+      console.log("Authorization header:", authorization);
 
-      if (!fid) {
-        return NextResponse.json({ status: 401, statusText: "Unauthorized - Missing FID" }, { status: 401 });
+      if (!authorization) {
+        return NextResponse.json({ status: 401, statusText: "Unauthorized" });
       }
     
-      const user = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/me?fid=${fid}`);
+      const user = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/me`, {
+        headers: {
+          "Authorization": authorization,
+        },
+      });
+
       const userJson = await user.json();
 
     const requestHeaders = new Headers(request.headers);
