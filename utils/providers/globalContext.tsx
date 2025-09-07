@@ -1,6 +1,6 @@
 "use client";
 
-// import { useMiniKit } from "@coinbase/onchainkit/minikit";
+import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import sdk from "@farcaster/miniapp-sdk";
 import React, {
   createContext,
@@ -10,7 +10,6 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
-import { generateNonce } from "@farcaster/auth-client";
 
 interface GlobalContextProps {
   user: any;
@@ -21,72 +20,77 @@ const GlobalContext = createContext<GlobalContextProps | undefined>(undefined);
 
 export function GlobalProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
-
-  const getNonce = useCallback(async (): Promise<string> => {
-    console.log("getNonce called");
-    try {
-      const nonce = await generateNonce();
-      if (!nonce) throw new Error("Unable to generate nonce");
-      console.log("Nonce generated:", nonce);
-      return nonce;
-    } catch (error) {
-      console.error("Error in getNonce:", error);
-      throw error;
-    }
-  }, []);
-
+  const miniKit = useMiniKit();
+  
   const handleSignIn = useCallback(async (): Promise<void> => {
     try {
-
       const env = process.env.NEXT_PUBLIC_ENV;
       console.log("Environment:", env);
-      var token:any = ((await sdk.quickAuth.getToken()).token);
-      if (env !== "DEV" && !token) {
-        const nonce = await getNonce();
-
-        await sdk.actions.signIn({ nonce });
-
-        token = ((await sdk.quickAuth.getToken()).token);
-      }
-
-      console.log("Authorization token:", token);
-
-      const userRes = await fetch(
-        `${process.env.NEXT_PUBLIC_URL}/api/protected/handleUser`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      
+      if (env !== "DEV") {
+        // Get the FID from the Farcaster context
+        const fid = miniKit.context?.user?.fid;
+        console.log("User FID from context:", fid);
+        
+        if (!fid) {
+          console.error("Failed to get FID from user context");
+          return;
         }
-      );
+        
+        // Use the FID as a query parameter instead of a token
+        const userRes = await fetch(
+          `${process.env.NEXT_PUBLIC_URL}/api/protected/handleUser`,
+          {
+            method: "POST",
+            headers:{
+              "x-user-fid": fid.toString(),
+            }
+          }
+        );
 
-      if (!userRes.ok) {
-        console.error("Failed to create user:", await userRes.text());
+        if (!userRes.ok) {
+          console.error("Failed to create user:", await userRes.text());
+          return;
+        }
+        
+        setUser((await userRes.json()).user);
+      } else {
+        // For development environment
+        const devFid = process.env.NEXT_PUBLIC_DEV_FID || "1"; // Default dev FID
+        
+        const userRes = await fetch(
+          `${process.env.NEXT_PUBLIC_URL}/api/protected/handleUser?fid=${devFid}`,
+          {
+            method: "POST",
+          }
+        );
+
+        if (!userRes.ok) {
+          console.error("Failed to create user:", await userRes.text());
+          return;
+        }
+        
+        setUser((await userRes.json()).user);
       }
-      setUser((await userRes.json()).user);
     } catch (error) {
       console.error("Sign in error:", error);
     }
-  }, [getNonce]);
+  }, [miniKit.context?.user?.fid]);
 
   const hasRunRef = React.useRef(false);
   useEffect(() => {
     (async () => {
       if (hasRunRef.current) return;
       hasRunRef.current = true;
-      // const sessionUser = sessionStorage.getItem("user");
-      // if (!sessionUser) {
-      //   await handleSignIn();
-      // } else {
-      //   setUser(JSON.parse(sessionUser));
-      // }
+      
       await handleSignIn();
+      
       if (process.env.NEXT_PUBLIC_ENV !== "DEV") {
+        // Let the app know we're ready
         sdk.actions.ready();
       }
     })();
-  }, []);
+  }, [handleSignIn]);
 
   return (
     <GlobalContext.Provider value={{ user, setUser }}>
