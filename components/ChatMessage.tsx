@@ -2,7 +2,6 @@
 
 import { HMSMessage } from "@100mslive/react-sdk";
 import { formatDistanceToNow } from "./utils/timeUtils";
-import { RedisChatMessage } from "@/utils/redisServices";
 
 interface ChatMessageProps {
   message: HMSMessage | RedisChatMessage;

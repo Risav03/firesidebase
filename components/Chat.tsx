@@ -10,7 +10,6 @@ import {
 } from "@100mslive/react-sdk";
 import { ChatMessage } from "./ChatMessage";
 import { useGlobalContext } from "@/utils/providers/globalContext";
-import { RedisChatMessage } from "@/utils/redisServices";
 import toast from "react-hot-toast";
 import sdk from "@farcaster/miniapp-sdk";
 
