@@ -59,7 +59,8 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         body: JSON.stringify({
           ...formData,
           host: user?.fid || '',
-          startTime: new Date().toISOString()
+          startTime: new Date().toISOString(),
+          topics: selectedTags
         }),
       });
       
