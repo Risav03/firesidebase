@@ -74,7 +74,7 @@ export default function Peer({ peer }: PeerProps) {
           
           {/* Hand raise indicator */}
           {isHandRaised && (
-            <div className="absolute -top-1 -left-1 w-6 h-6 bg-fireside-orange rounded-full flex items-center justify-center border-2 border-white">
+            <div className="absolute -top-1 -left-1 w-6 h-6 z-50 bg-fireside-orange rounded-full flex items-center justify-center border-2 border-white">
               <span className="text-white text-xs">✋</span>
             </div>
           )}

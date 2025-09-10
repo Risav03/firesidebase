@@ -86,16 +86,6 @@ export default function Footer({ roomId }: { roomId: string }) {
     }
   }, [hmsActions, isHandRaised]);
 
-  // Automatically lower hand when mic is unmuted
-  useEffect(() => {
-    if (isLocalAudioEnabled && isHandRaised) {
-      // Auto-lower hand when mic is unmuted
-      hmsActions.lowerLocalPeerHand().catch((error) => {
-        console.error("Error auto-lowering hand when unmuted:", error);
-      });
-    }
-  }, [isLocalAudioEnabled, isHandRaised, hmsActions]);
-
   const { sendEvent } = useCustomEvent({
     type: "EMOJI_REACTION",
     onEvent: (msg: { emoji: string; sender: string }) => {
@@ -282,7 +272,17 @@ export default function Footer({ roomId }: { roomId: string }) {
                 ? "bg-fireside-orange text-white shadow-lg"
                 : "bg-red-500 text-white shadow-lg"
             }`}
-            onClick={canUnmute && !isRejoining ? toggleAudio : undefined}
+            onClick={
+              canUnmute && !isRejoining
+                ? () => {
+                    if (!isLocalAudioEnabled) {
+                      // Only lower hand when unmuting
+                      hmsActions?.lowerLocalPeerHand?.();
+                    }
+                    toggleAudio?.();
+                  }
+                : undefined
+            }
             disabled={!canUnmute || isRejoining}
             title={
               isRejoining
