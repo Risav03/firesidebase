@@ -145,9 +145,12 @@ export default function CallClient({ roomId }: CallClientProps) {
     if (user && roomId) joinRoom();
   }, [roomId, user, hmsActions]);
 
+  const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
+
   useEffect(() => {
-    if (isConnected && localPeer && user) {
+    if (isConnected && localPeer && user && !hasJoinedRoom) {
       const role = localPeer.roleName;
+      // Only auto-mute on initial join, not on subsequent peer updates
       if (role === "host" || role === "co-host" || role === "speaker") {
         hmsActions.setLocalAudioEnabled(false);
       }
@@ -181,8 +184,9 @@ export default function CallClient({ roomId }: CallClientProps) {
       };
 
       addParticipantToRedis();
+      setHasJoinedRoom(true); // Mark that we've completed the initial join process
     }
-  }, [isConnected, localPeer, hmsActions, user, roomId]);
+  }, [isConnected, localPeer, hmsActions, user, roomId, hasJoinedRoom]);
 
   // Cleanup: Remove user from Redis participants when component unmounts or user leaves
   useEffect(() => {
