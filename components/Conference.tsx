@@ -45,9 +45,9 @@ export default function Conference({ roomId }: { roomId: string }) {
         
         setRoomEnded(true);
         break;
-      case HMSNotificationTypes.REMOVED_FROM_ROOM:
-        setRoomEnded(true);
-        break;
+      // case HMSNotificationTypes.REMOVED_FROM_ROOM:
+      //   setRoomEnded(true);
+      //   break;
       default:
         break;
     }
