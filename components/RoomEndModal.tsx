@@ -100,13 +100,16 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
       }
 
       // Broadcast END_ROOM_EVENT to all participants
-      await hmsActions.sendBroadcastMessage(
-        JSON.stringify({ type: "END_ROOM_EVENT", roomId })
-      );
+      // await hmsActions.sendBroadcastMessage(
+      //   JSON.stringify({ type: "END_ROOM_EVENT", roomId })
+      // );
 
+      const reason = 'Host ended the room'; // Reason to end the room
+const lock = true;
+
+      await hmsActions.endRoom(lock, reason);
       // Wait 2 seconds before leaving
       setTimeout(async () => {
-        await hmsActions.leave();
         router.push('/');
       }, 2000);
     } catch (error) {

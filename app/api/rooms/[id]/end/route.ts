@@ -39,29 +39,29 @@ export async function POST(
     // }
 
     // End room in 100ms using the end-room endpoint
-    try {
-      const hmsResponse = await fetch(`https://api.100ms.live/v2/active-rooms/${room.roomId}/end-room`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.HUNDRED_MS_MANAGEMENT_TOKEN}`,
-        },
-        body: JSON.stringify({
-          reason: "The session has ended",
-          lock: true
-        }),
-      });
+    // try {
+    //   const hmsResponse = await fetch(`https://api.100ms.live/v2/active-rooms/${room.roomId}/end-room`, {
+    //     method: 'POST',
+    //     headers: {
+    //       'Content-Type': 'application/json',
+    //       'Authorization': `Bearer ${process.env.HUNDRED_MS_MANAGEMENT_TOKEN}`,
+    //     },
+    //     body: JSON.stringify({
+    //       reason: "The session has ended",
+    //       lock: true
+    //     }),
+    //   });
 
-      if (!hmsResponse.ok) {
-        console.error('Failed to end room in 100ms:', await hmsResponse.text());
-        // Continue with database update even if 100ms fails
-      } else {
-        console.log('Room successfully ended in 100ms');
-      }
-    } catch (hmsError) {
-      console.error('Error ending room in 100ms:', hmsError);
-      // Continue with database update even if 100ms fails
-    }
+    //   if (!hmsResponse.ok) {
+    //     console.error('Failed to end room in 100ms:', await hmsResponse.text());
+    //     // Continue with database update even if 100ms fails
+    //   } else {
+    //     console.log('Room successfully ended in 100ms');
+    //   }
+    // } catch (hmsError) {
+    //   console.error('Error ending room in 100ms:', hmsError);
+    //   // Continue with database update even if 100ms fails
+    // }
 
     // Update room status to disabled in our database
     const updatedRoom = await Room.findByIdAndUpdate(
