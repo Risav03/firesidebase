@@ -13,25 +13,45 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import sdk from "@farcaster/miniapp-sdk";
 import { useRouter } from "next/navigation";
 import { useGlobalContext } from "@/utils/providers/globalContext";
+import { useHMSNotifications, HMSNotificationTypes } from '@100mslive/react-sdk';
+import RoomEndScreen from "./RoomEndScreen";
 
-export default function Conference({roomId}:{roomId: string}) {
+
+export default function Conference({ roomId }: { roomId: string }) {
   const allPeers = useHMSStore(selectPeers);
   const presenters = useHMSStore(selectPeersScreenSharing);
   const localPeer = useHMSStore(selectLocalPeer);
   const hmsActions = useHMSActions();
   const router = useRouter();
   const { user } = useGlobalContext();
-  
+  const notification = useHMSNotifications();
   // Ref to track previous peers for empty room detection
   const previousPeersRef = useRef<any[]>([]);
-  
+
   // Local state for optimistic updates
   const [peers, setPeers] = useState(allPeers);
   const [removedPeers, setRemovedPeers] = useState<Set<string>>(new Set());
   const [isEndingRoom, setIsEndingRoom] = useState(false);
 
+  const [roomEnded, setRoomEnded] = useState(false);
+
   //function to fetch room details and save name and description in a useState. Call the function in useEffect
   const [roomDetails, setRoomDetails] = useState<{ name: string; description: string } | null>(null);
+
+  useEffect(() => {
+    switch (notification?.type) {
+      case HMSNotificationTypes.ROOM_ENDED:
+        
+        
+        setRoomEnded(true);
+        break;
+      // case HMSNotificationTypes.REMOVED_FROM_ROOM:
+      //   setRoomEnded(true);
+      //   break;
+      default:
+        break;
+    }
+  }, [notification])
 
   useEffect(() => {
     async function fetchRoomDetails() {
@@ -44,16 +64,16 @@ export default function Conference({roomId}:{roomId: string}) {
 
     fetchRoomDetails();
   }, [roomId]);
-  
+
   // Function to handle ending room when empty - memoized with useCallback
   const handleEmptyRoom = useCallback(async () => {
     // Only the host should end the room
     if (!localPeer || localPeer.roleName !== 'host' || isEndingRoom) return;
-    
+
     try {
       setIsEndingRoom(true);
       console.log('Room is empty, automatically ending room...');
-      
+
       // Call API to end the room
       const response = await fetch(`/api/rooms/${roomId}/end`, {
         method: 'POST',
@@ -71,7 +91,7 @@ export default function Conference({roomId}:{roomId: string}) {
       }
 
       console.log('Empty room ended successfully');
-      
+
       // Leave the room
       await hmsActions.leave();
       router.push('/');
@@ -89,37 +109,37 @@ export default function Conference({roomId}:{roomId: string}) {
         uniquePeers.set(peer.id, peer);
       }
     });
-    
+
     // Get peers and sort by role priority: host > co-host > speaker > listener
     const currentPeers = Array.from(uniquePeers.values());
-    
+
     // Define role priority order
-    const rolePriority: {[key: string]: number} = {
+    const rolePriority: { [key: string]: number } = {
       'host': 1,
       'co-host': 2,
       'speaker': 3,
       'listener': 4
     };
-    
+
     // Sort peers by role priority
     const sortedPeers = currentPeers.sort((a, b) => {
       const roleA = a.roleName?.toLowerCase() || 'listener';
       const roleB = b.roleName?.toLowerCase() || 'listener';
-      
+
       return (rolePriority[roleA] || 5) - (rolePriority[roleB] || 5);
     });
-    
+
     setPeers(sortedPeers);
-    
+
     // Log peer changes for debugging
     if (currentPeers.length !== previousPeersRef.current.length) {
       console.log(`Peers changed: ${previousPeersRef.current.length} -> ${currentPeers.length}`);
     }
-    
+
     // Check if room is empty and should be ended
     // Use a timer to ensure we don't end the room during transient states
     let emptyRoomTimer: NodeJS.Timeout | null = null;
-    
+
     if (currentPeers.length === 0 && previousPeersRef.current.length > 0) {
       console.log("Room appears to be empty, scheduling end check...");
       // Wait 10 seconds before ending the room to ensure it's really empty
@@ -133,10 +153,10 @@ export default function Conference({roomId}:{roomId: string}) {
         }
       }, 10000); // 10 second delay
     }
-    
+
     // Update the previous peers reference
     previousPeersRef.current = currentPeers;
-    
+
     // Clear timeout if component unmounts or peers change
     return () => {
       if (emptyRoomTimer) {
@@ -189,39 +209,47 @@ export default function Conference({roomId}:{roomId: string}) {
     getPermission();
   }, []);
 
-  return (
-    <div className="pt-20 pb-32 px-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-4 mt-6">
-          <h2 className="text-3xl font-bold text-white mb-2">
-            {roomDetails?.name || ""} 
-          </h2>
-          <p className="text-gray-400">
-            {roomDetails?.description || ""}
-          </p>
-        </div>
+  if(roomEnded){
+    return <RoomEndScreen onComplete={() => router.push("/")} />
+  }
+  else{
 
-        <div className="">
-          <div className="grid grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 justify-items-center">
-            {peers.map((peer) => (
-              <PeerWithContextMenu key={peer.id} peer={peer} />
-            ))}
+    return (
+      <div className="pt-20 pb-32 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-4 mt-6">
+            <h2 className="text-3xl font-bold text-white mb-2">
+              {roomDetails?.name || ""}
+            </h2>
+            <p className="text-gray-400">
+              {roomDetails?.description || ""}
+            </p>
           </div>
-
-          {presenters.length > 0 && (
-            <div className="mt-8 pt-8 border-t border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
-                Screen Share
-              </h3>
-              <div className="flex flex-wrap justify-center gap-4">
-                {presenters.map((peer) => (
-                  <ScreenTile key={"screen" + peer.id} peer={peer} />
-                ))}
-              </div>
+  
+          <div className="">
+            <div className="grid grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 justify-items-center">
+              {peers.map((peer) => (
+                <PeerWithContextMenu key={peer.id} peer={peer} />
+              ))}
             </div>
-          )}
+  
+            {presenters.length > 0 && (
+              <div className="mt-8 pt-8 border-t border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
+                  Screen Share
+                </h3>
+                <div className="flex flex-wrap justify-center gap-4">
+                  {presenters.map((peer) => (
+                    <ScreenTile key={"screen" + peer.id} peer={peer} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  
 }
