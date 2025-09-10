@@ -8,8 +8,8 @@ export async function middleware(request: NextRequest) {
 
       const env = process.env.NEXT_PUBLIC_ENV;
 
+      console.log("Environment in middleware:", env)
       
-
       if(env == "DEV"){
         authorization = `Bearer ${process.env.DEV_HEADER as string}`;
       }

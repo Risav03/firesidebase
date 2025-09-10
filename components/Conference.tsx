@@ -41,6 +41,8 @@ export default function Conference({ roomId }: { roomId: string }) {
   useEffect(() => {
     switch (notification?.type) {
       case HMSNotificationTypes.ROOM_ENDED:
+        
+        
         setRoomEnded(true);
         break;
       case HMSNotificationTypes.REMOVED_FROM_ROOM:
@@ -207,45 +209,47 @@ export default function Conference({ roomId }: { roomId: string }) {
     getPermission();
   }, []);
 
-  if(!roomEnded)
-  return (
-    <div className="pt-20 pb-32 px-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-4 mt-6">
-          <h2 className="text-3xl font-bold text-white mb-2">
-            {roomDetails?.name || ""}
-          </h2>
-          <p className="text-gray-400">
-            {roomDetails?.description || ""}
-          </p>
-        </div>
+  if(roomEnded){
+    return <RoomEndScreen onComplete={() => router.push("/")} />
+  }
+  else{
 
-        <div className="">
-          <div className="grid grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 justify-items-center">
-            {peers.map((peer) => (
-              <PeerWithContextMenu key={peer.id} peer={peer} />
-            ))}
+    return (
+      <div className="pt-20 pb-32 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-4 mt-6">
+            <h2 className="text-3xl font-bold text-white mb-2">
+              {roomDetails?.name || ""}
+            </h2>
+            <p className="text-gray-400">
+              {roomDetails?.description || ""}
+            </p>
           </div>
-
-          {presenters.length > 0 && (
-            <div className="mt-8 pt-8 border-t border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
-                Screen Share
-              </h3>
-              <div className="flex flex-wrap justify-center gap-4">
-                {presenters.map((peer) => (
-                  <ScreenTile key={"screen" + peer.id} peer={peer} />
-                ))}
-              </div>
+  
+          <div className="">
+            <div className="grid grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 justify-items-center">
+              {peers.map((peer) => (
+                <PeerWithContextMenu key={peer.id} peer={peer} />
+              ))}
             </div>
-          )}
+  
+            {presenters.length > 0 && (
+              <div className="mt-8 pt-8 border-t border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
+                  Screen Share
+                </h3>
+                <div className="flex flex-wrap justify-center gap-4">
+                  {presenters.map((peer) => (
+                    <ScreenTile key={"screen" + peer.id} peer={peer} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 
-  else
-    return (
-  <><RoomEndScreen onComplete={()=>{router.push("/")}}/></>
-    )
+  
 }
