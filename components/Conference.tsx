@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { useGlobalContext } from "@/utils/providers/globalContext";
 import { useHMSNotifications, HMSNotificationTypes } from '@100mslive/react-sdk';
 import RoomEndScreen from "./RoomEndScreen";
+import toast from "react-hot-toast";
 
 
 export default function Conference({ roomId }: { roomId: string }) {
@@ -37,6 +38,17 @@ export default function Conference({ roomId }: { roomId: string }) {
 
   //function to fetch room details and save name and description in a useState. Call the function in useEffect
   const [roomDetails, setRoomDetails] = useState<{ name: string; description: string } | null>(null);
+
+
+  const handRaise = useHMSNotifications(HMSNotificationTypes.HAND_RAISE_CHANGED);
+  const peer = handRaise?.data;
+
+useEffect(() => {
+    if (peer && !peer.isLocal && peer.isHandRaised) {
+        toast(`${peer.name} raised their hand.`);
+    }
+}, [peer]);
+
 
   useEffect(() => {
     switch (notification?.type) {
