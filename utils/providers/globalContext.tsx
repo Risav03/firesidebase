@@ -15,12 +15,15 @@ import { generateNonce } from "@farcaster/auth-client";
 interface GlobalContextProps {
   user: any;
   setUser: (value: any) => void;
+  isUserLoading: boolean;
+  setIsUserLoading: (value: boolean) => void;
 }
 
 const GlobalContext = createContext<GlobalContextProps | undefined>(undefined);
 
 export function GlobalProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
+  const [isUserLoading, setIsUserLoading] = useState<boolean>(true);
 
   const getNonce = useCallback(async (): Promise<string> => {
     console.log("getNonce called");
@@ -65,8 +68,10 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
         console.error("Failed to create user:", await userRes.text());
       }
       setUser((await userRes.json()).user);
+      setIsUserLoading(false);
     } catch (error) {
       console.error("Sign in error:", error);
+      setIsUserLoading(false);
     }
   }, [getNonce]);
 
@@ -89,7 +94,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <GlobalContext.Provider value={{ user, setUser }}>
+    <GlobalContext.Provider value={{ user, setUser, isUserLoading, setIsUserLoading }}>
       {children}
     </GlobalContext.Provider>
   );

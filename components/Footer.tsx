@@ -92,15 +92,17 @@ export default function Footer({ roomId }: { roomId: string }) {
             if (prev <= 1) {
               clearInterval(countdownInterval);
               setHandRaiseDisabled(false);
-              return 10;
+              return 10; // This reset doesn't take effect due to the clearInterval
             }
             return prev - 1;
           });
         }, 1000);
         
-        // Clear interval after 10 seconds as a safety measure
+        // Clear interval after 10 seconds and explicitly reset states
         setTimeout(() => {
           clearInterval(countdownInterval);
+          setHandRaiseDisabled(false);
+          setHandRaiseCountdown(10);
         }, 10000);
       }
     } catch (error) {

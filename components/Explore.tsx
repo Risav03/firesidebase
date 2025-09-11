@@ -50,10 +50,9 @@ export default function Explore({ rooms }: ExploreProps) {
   const [localRooms, setLocalRooms] = useState<Room[]>(rooms || []);
   const [loading, setLoading] = useState(!rooms || rooms.length === 0);
   const [welcomeMessage, setWelcomeMessage] = useState("");
-  const { user, setUser } = useGlobalContext();
+  const { user, setUser, isUserLoading } = useGlobalContext();
   // Add state for selected tab
   const [selectedTab, setSelectedTab] = useState(0);
-  const [isUserLoading, setIsUserLoading] = useState(true);
   // Handle topic selection and PATCH request
   const handleTopicSubmit = async (selectedTopics: string[]) => {
     try {
@@ -179,13 +178,6 @@ export default function Explore({ rooms }: ExploreProps) {
     const randomIndex = Math.floor(Math.random() * welcomeMessages.length);
     setWelcomeMessage(welcomeMessages[randomIndex]);
   }, []);
-  
-  // Update loading state when user data changes
-  useEffect(() => {
-    if (user !== undefined) {
-      setIsUserLoading(false);
-    }
-  }, [user]);
 
   const router = useRouter();
 
