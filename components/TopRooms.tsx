@@ -13,7 +13,7 @@ export default function TopRooms({ rooms }: { rooms?: any[] }) {
           <div
             onClick={() => router.push(`/call/${room._id}`)}
             key={room._id}
-            className="flex items-center gap-2 w-60 truncate text-white p-1 bg-gradient-to-br font-bold from-orange-700 via-orange-500 to-yellow-400 rounded-full whitespace-nowrap"
+            className="flex items-center gap-2 w-72 truncate text-white p-1 font-bold gradient-fire rounded-full text-nowrap"
           >
             <div className="relative">
               <Image
@@ -31,7 +31,7 @@ export default function TopRooms({ rooms }: { rooms?: any[] }) {
                 className="w-8 aspect-square rounded-full border-2 border-white"
               />
             </div>
-            {room.name}
+            {room.name.slice(0,20)}{room.name.length > 20 ? '...' : ''} - {room.participants.length} listeners
           </div>
         ))}
       </div>
