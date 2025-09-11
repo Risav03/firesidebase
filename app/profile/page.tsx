@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import NavigationWrapper from '@/components/NavigationWrapper';
 import { IoIosArrowBack } from 'react-icons/io';
+import { IoRefreshOutline } from 'react-icons/io5';
 
 export default function ProfilePage() {
-  const { user } = useGlobalContext();
+  const { user, setUser } = useGlobalContext();
   const router = useRouter();
   const [hostedRooms, setHostedRooms] = useState<any[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -25,6 +27,37 @@ export default function ProfilePage() {
       setHostedRooms([]);
     }
   }, [user, router]);
+
+  const handleRefreshProfile = async () => {
+    if (!user || isRefreshing) return;
+    
+    setIsRefreshing(true);
+    try {
+      const response = await fetch('/api/protected/handleUser?query=profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.user) {
+          // Update the user context with refreshed data
+          setUser({
+            ...user,
+            ...data.user
+          });
+        }
+      } else {
+        console.error('Failed to refresh profile');
+      }
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   if (!user) {
     return (
@@ -47,8 +80,8 @@ export default function ProfilePage() {
           </div>
           
           <div className="bg-white/10 border border-white/80 rounded-lg px-4 py-8">
-            {/* Profile Picture */}
-            <div className="text-center mb-6">
+            {/* Profile Picture and Refresh Button */}
+            <div className="text-center mb-6 relative">
               <div className="w-24 h-24 mx-auto mb-4">
                 {user.pfp_url ? (
                   <img 
@@ -64,6 +97,16 @@ export default function ProfilePage() {
                   </div>
                 )}
               </div>
+              
+              {/* Refresh button */}
+              <button 
+                onClick={handleRefreshProfile}
+                disabled={isRefreshing}
+                className="absolute top-0 right-0 bg-orange-500 hover:bg-orange-600 text-white p-2 rounded-full transition-colors"
+                title="Refresh profile data"
+              >
+                <IoRefreshOutline className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </button>
             </div>
 
             {/* Profile Information */}
