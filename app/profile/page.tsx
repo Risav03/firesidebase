@@ -152,7 +152,7 @@ export default function ProfilePage() {
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Total Hosted Rooms
                   </label>
-                  <p className="text-white text-lg font-medium">{user.hostedRooms || 0} </p>
+                  <p className="text-white text-lg font-medium">{user.hostedRooms.length || 0} </p>
                 </div>
 
                 <div className="border-b border-gray-600 pb-4">
