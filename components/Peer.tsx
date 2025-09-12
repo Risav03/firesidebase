@@ -82,8 +82,8 @@ export default function Peer({ peer }: PeerProps) {
       </div>
       
       <div className={`mt-2 text-center  `}>
-        <p className="text-[0.8rem] font-medium text-white truncate max-w-24">
-          {peer.name.split(" ")[0]}
+        <p className="text-[0.8rem] font-medium text-white truncate max-w-20">
+          {peer.name}
         </p>
         <div className="flex items-center justify-center space-x-1">
           {peer.roleName && (
