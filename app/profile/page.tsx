@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import NavigationWrapper from '@/components/NavigationWrapper';
 import { IoIosArrowBack } from 'react-icons/io';
 import { IoRefreshOutline } from 'react-icons/io5';
+import toast from 'react-hot-toast';
 
 export default function ProfilePage() {
   const { user, setUser } = useGlobalContext();
@@ -41,14 +42,9 @@ export default function ProfilePage() {
       });
       
       if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.user) {
-          // Update the user context with refreshed data
-          setUser({
-            ...user,
-            ...data.user
-          });
-        }
+        toast.success('Profile refreshed successfully!');
+
+        window.location.reload();
       } else {
         console.error('Failed to refresh profile');
       }
