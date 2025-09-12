@@ -101,10 +101,10 @@ export default function ProfilePage() {
               <button 
                 onClick={handleRefreshProfile}
                 disabled={isRefreshing}
-                className="absolute top-0 right-0 bg-orange-500 hover:bg-orange-600 text-white p-2 rounded-full transition-colors"
+                className="absolute top-0 right-0 flex items-center justify-center px-3 py-1 text-sm bg-orange-500 hover:bg-orange-600 text-white p-2 rounded-full transition-colors"
                 title="Refresh profile data"
               >
-                <IoRefreshOutline className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <IoRefreshOutline className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />Refetch
               </button>
             </div>
 
