@@ -7,6 +7,7 @@ import NavigationWrapper from '@/components/NavigationWrapper';
 import { IoIosArrowBack } from 'react-icons/io';
 import { IoRefreshOutline } from 'react-icons/io5';
 import toast from 'react-hot-toast';
+import sdk from '@farcaster/miniapp-sdk';
 
 export default function ProfilePage() {
   const { user, setUser } = useGlobalContext();
@@ -34,10 +35,12 @@ export default function ProfilePage() {
     
     setIsRefreshing(true);
     try {
+      const {token} = await sdk.quickAuth.getToken();
       const response = await fetch('/api/protected/handleUser?query=profile', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
       });
       
