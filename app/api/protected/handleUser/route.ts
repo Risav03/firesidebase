@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 		console.log("Fetching user with fid:", fid);
 
 		// Try to find the user
-		let user = await User.findOne({ fid }).select('fid username displayName pfp_url wallet topics');
+		let user = await User.findOne({ fid }).select('fid username displayName pfp_url wallet topics hostedRooms coHostedRooms speakerRooms listenerRooms');
 		if (!user) {
 
 			const res = await fetch(

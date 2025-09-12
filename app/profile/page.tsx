@@ -121,7 +121,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Previous Spaces Section */}
-            <div className="mt-8">
+            {/* <div className="mt-8">
               <h2 className="text-xl font-bold text-white mb-4">Previous Spaces</h2>
               <div className="flex space-x-4 overflow-x-auto">
                 {hostedRooms.length === 0 ? (
@@ -142,7 +142,7 @@ export default function ProfilePage() {
                   ))
                 )}
               </div>
-            </div>
+            </div> */}
 
             {/* Statistics Section */}
             <div className="mt-8">
@@ -152,7 +152,7 @@ export default function ProfilePage() {
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Total Hosted Rooms
                   </label>
-                  <p className="text-white text-lg font-medium">{hostedRooms.length}</p>
+                  <p className="text-white text-lg font-medium">{user.hostedRooms || 0} </p>
                 </div>
 
                 <div className="border-b border-gray-600 pb-4">
