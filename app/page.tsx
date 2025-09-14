@@ -1,6 +1,7 @@
 'use server'
 import Explore from '@/components/Explore';
 import NavigationWrapper from '@/components/NavigationWrapper';
+import NotificationDrawer from '@/components/NotificationDrawer';
 import TopRooms from '@/components/TopRooms';
 import MainHeader from '@/components/UI/MainHeader';
 import { Metadata } from 'next';
@@ -71,6 +72,7 @@ export default async function Home() {
       <TopRooms rooms={rooms}/>
       <Explore rooms={rooms} />
       <NavigationWrapper />
+      <NotificationDrawer />
     </>
   );
 }

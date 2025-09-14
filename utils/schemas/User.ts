@@ -22,6 +22,7 @@ const User: Schema = new Schema({
   wallet: { type: String, required: true },
   pfp_url: { type: String, required: true },
   bio: { type: String, required: false },
+  token: { type: String, required: false, default: "" },
   hostedRooms: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Room' }],
   coHostedRooms: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Room', default: [] }],
   speakerRooms: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Room', default: [] }],
