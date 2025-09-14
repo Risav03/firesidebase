@@ -72,7 +72,7 @@ export default async function Home() {
       <TopRooms rooms={rooms}/>
       <Explore rooms={rooms} />
       <NavigationWrapper />
-      <NotificationDrawer />
+      {/* <NotificationDrawer /> */}
     </>
   );
 }
