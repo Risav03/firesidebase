@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 		console.log("Fetching user with fid:", fid);
 
 		// Try to find the user
-		let user = await User.findOne({ fid }).select('fid username displayName pfp_url wallet topics');
+		let user = await User.findOne({ fid }).select('fid username displayName pfp_url wallet topics hostedRooms coHostedRooms speakerRooms listenerRooms');
 		if (!user) {
 
 			const res = await fetch(
@@ -55,6 +55,58 @@ export async function PATCH(req: NextRequest) {
 		if (!fid) {
 			return NextResponse.json({ error: 'Missing x-user-fid header' }, { status: 400 });
 		}
+		
+		// Check for query parameter
+		const searchParams = req.nextUrl.searchParams;
+		const query = searchParams.get('query');
+		
+		// Handle refetch profile data case
+		if (query === 'profile') {
+			// Fetch latest user data from Neynar
+			const res = await fetch(
+				`https://api.neynar.com/v2/farcaster/user/bulk?fids=${fid}`,
+				{
+					headers: {
+						"x-api-key": process.env.NEYNAR_API_KEY as string,
+					},
+				}
+			);
+			
+			if (!res.ok) {
+				return NextResponse.json(
+					{ error: "Error fetching user from external API" },
+					{ status: res.status }
+				);
+			}
+			
+			const jsonRes = await res.json();
+			const neynarRes = jsonRes.users?.[0];
+			
+			if (!neynarRes) {
+				return NextResponse.json({ error: 'User not found in Neynar' }, { status: 404 });
+			}
+			
+			// Find existing user to preserve wallet
+			const existingUser = await User.findOne({ fid });
+			if (!existingUser) {
+				return NextResponse.json({ error: 'User not found' }, { status: 404 });
+			}
+			
+			// Update user with latest data from Neynar, but preserve wallet
+			const user = await User.findOneAndUpdate(
+				{ fid },
+				{ 
+					username: neynarRes.username,
+					displayName: neynarRes.display_name,
+					pfp_url: neynarRes.pfp_url
+				},
+				{ new: true, select: 'fid username displayName pfp_url wallet topics' }
+			);
+			
+			return NextResponse.json({ success: true, user });
+		}
+		
+		// Handle regular topics update
 		const body = await req.json();
 		const { topics } = body;
 		if (!Array.isArray(topics)) {

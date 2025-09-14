@@ -73,18 +73,42 @@ export default function Footer({ roomId }: { roomId: string }) {
   // Hand raise functionality
   const localPeerId = useHMSStore(selectLocalPeerID);
   const isHandRaised = useHMSStore(selectHasPeerHandRaised(localPeerId));
+  const [handRaiseDisabled, setHandRaiseDisabled] = useState(false);
+  const [handRaiseCountdown, setHandRaiseCountdown] = useState(10);
   
   const toggleRaiseHand = useCallback(async () => {
     try {
       if (isHandRaised) {
         await hmsActions.lowerLocalPeerHand();
-      } else {
+      } else if(!isHandRaised && !handRaiseDisabled) {
         await hmsActions.raiseLocalPeerHand();
+        // Set 10-second timeout on raising hand to prevent spamming
+        setHandRaiseDisabled(true);
+        setHandRaiseCountdown(10);
+        
+        // Start countdown
+        const countdownInterval = setInterval(() => {
+          setHandRaiseCountdown((prev) => {
+            if (prev <= 1) {
+              clearInterval(countdownInterval);
+              setHandRaiseDisabled(false);
+              return 10; // This reset doesn't take effect due to the clearInterval
+            }
+            return prev - 1;
+          });
+        }, 1000);
+        
+        // Clear interval after 10 seconds and explicitly reset states
+        setTimeout(() => {
+          clearInterval(countdownInterval);
+          setHandRaiseDisabled(false);
+          setHandRaiseCountdown(10);
+        }, 10000);
       }
     } catch (error) {
       console.error("Error toggling hand raise:", error);
     }
-  }, [hmsActions, isHandRaised]);
+  }, [hmsActions, isHandRaised, handRaiseDisabled]);
 
   const { sendEvent } = useCustomEvent({
     type: "EMOJI_REACTION",
@@ -120,15 +144,6 @@ export default function Footer({ roomId }: { roomId: string }) {
     }, 700); // Reduced from 1000ms to 700ms for better responsiveness
   };
 
-  const handleCopyURL = () => {
-    const roomURL = `https://farcaster.xyz/miniapps/jWGOUKHeE2fd/fireside-100ms/call/${roomId}`;
-    navigator.clipboard.writeText(roomURL).then(() => {
-      toast.success("Room URL copied to clipboard!");
-    }).catch((error) => {
-      console.error("Failed to copy URL:", error);
-      toast.error("Failed to copy URL to clipboard");
-    });
-  };
 
   // Listen for role change events to show re-joining state
   useEffect(() => {
@@ -387,14 +402,22 @@ export default function Footer({ roomId }: { roomId: string }) {
           {/* Hand raise button */}
           <button
             onClick={toggleRaiseHand}
-            className={`relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
+            className={`relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform ${
+              !handRaiseDisabled ? "hover:scale-105 active:scale-95" : " cursor-not-allowed"
+            } ${
               isHandRaised
                 ? "bg-fireside-orange text-white shadow-lg"
                 : "bg-white/10 text-white hover:bg-white/20"
             }`}
-            title={isHandRaised ? "Lower hand" : "Raise hand"}
+            disabled={handRaiseDisabled && !isHandRaised}
+            title={handRaiseDisabled && !isHandRaised ? "Hand raise cooldown (10s)" : isHandRaised ? "Lower hand" : "Raise hand"}
           >
             <HandRaiseIcon className="w-5 h-5" />
+            {handRaiseDisabled && !isHandRaised && (
+              <div className="absolute inset-0 bg-black/60 bg-opacity-30 rounded-full flex items-center justify-center">
+                <span className="text-xs text-white">{handRaiseCountdown}</span>
+              </div>
+            )}
           </button>
 
           {/* Emoji reactions button */}

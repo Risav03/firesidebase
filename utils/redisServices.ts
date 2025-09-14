@@ -1,3 +1,4 @@
+import mongoose, { Mongoose } from 'mongoose';
 import { redis } from './redis';
 import { IUser } from './schemas/User';
 
@@ -14,6 +15,7 @@ export interface RedisChatMessage {
 
 export interface RoomParticipant {
     userId: string;
+    dbId:mongoose.Types.ObjectId;
     username: string;
     displayName: string;
     pfp_url: string;
@@ -58,6 +60,7 @@ export class RedisRoomService {
         
         const participant: RoomParticipant = {
             userId: user.fid,
+            dbId: user._id,
             username: user.username,
             displayName: user.displayName,
             pfp_url: user.pfp_url,
@@ -70,7 +73,7 @@ export class RedisRoomService {
         const roleKey = `${this.PARTICIPANTS_PREFIX}${roomId}:${role}`;
         const client = await redis.getClient();
         await client.sadd(roleKey, JSON.stringify(participant));
-        await redis.expire(roleKey, 86400); // 24 hours
+        // await redis.expire(roleKey, 86400); // 24 hours
     }
 
     // Update a participant's role (move them between role sets)
@@ -86,7 +89,7 @@ export class RedisRoomService {
             const roleKey = `${this.PARTICIPANTS_PREFIX}${roomId}:${newRole}`;
             const client = await redis.getClient();
             await client.sadd(roleKey, JSON.stringify(updatedParticipant));
-            await redis.expire(roleKey, 86400);
+            // await redis.expire(roleKey, 86400);
         }
     }
 
@@ -107,7 +110,7 @@ export class RedisRoomService {
             
             // Add updated entry
             await client.sadd(roleKey, JSON.stringify(updatedParticipant));
-            await redis.expire(roleKey, 86400);
+            // await redis.expire(roleKey, 86400);
         }
     }
 
@@ -256,7 +259,7 @@ export class RedisChatService {
             messageId
         );
         
-        await redis.expire(this.ROOM_MESSAGES_KEY(roomId), 86400);
+        // await redis.expire(this.ROOM_MESSAGES_KEY(roomId), 86400);
 
         return chatMessage;
     }

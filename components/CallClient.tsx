@@ -123,7 +123,7 @@ export default function CallClient({ roomId }: CallClientProps) {
         });
 
         await hmsActions.join({
-          userName: user.username || user.displayName || "Anonymous",
+          userName: user.displayName || "Wanderer",
           authToken,
           metaData: JSON.stringify({
             avatar: user.pfp_url,
