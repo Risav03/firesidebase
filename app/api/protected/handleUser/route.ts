@@ -106,16 +106,35 @@ export async function PATCH(req: NextRequest) {
 			return NextResponse.json({ success: true, user });
 		}
 		
-		// Handle regular topics update
+		// Handle regular update for topics and/or token
 		const body = await req.json();
-		const { topics } = body;
-		if (!Array.isArray(topics)) {
-			return NextResponse.json({ error: 'Missing topics array' }, { status: 400 });
+		const { topics, token } = body;
+		
+		// Create an update object with only the fields that were provided
+		const updateObj: any = {};
+		
+		// Add topics to update if provided and valid
+		if (topics !== undefined) {
+			if (!Array.isArray(topics)) {
+				return NextResponse.json({ error: 'Topics must be an array' }, { status: 400 });
+			}
+			updateObj.topics = topics;
 		}
+		
+		// Add token to update if provided
+		if (token !== undefined) {
+			updateObj.token = token;
+		}
+		
+		// If no valid fields to update, return an error
+		if (Object.keys(updateObj).length === 0) {
+			return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
+		}
+		
 		const user = await User.findOneAndUpdate(
 			{ fid },
-			{ topics },
-			{ new: true, select: 'fid username displayName pfp_url wallet topics' }
+			updateObj,
+			{ new: true, select: 'fid username displayName pfp_url wallet topics token' }
 		);
 		if (!user) {
 			return NextResponse.json({ error: 'User not found' }, { status: 404 });

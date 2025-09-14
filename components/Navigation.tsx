@@ -48,7 +48,7 @@ export default function Navigation() {
       <nav className="fixed bottom-0 left-0 right-0 bg-black border-t pb-2 border-gray-600 z-50">
         <div className="max-w-md mx-auto w-full py-3">
           {/* Sliding Indicator */}
-          <div className="relative -translate-y-3">
+          <div className="relative -translate-y-4">
             <div 
               ref={indicatorRef} 
               className="absolute bottom-0 w-1/3 h-1 gradient-fire transition-transform duration-300 ease-in-out"
