@@ -24,7 +24,7 @@ export default function ProfilePage() {
       fetch(`${URL}/api/users/public/username/${user.username}`)
         .then(res => res.json())
         .then(data => {
-          setHostedRooms(data.rooms || []);
+          setHostedRooms(data.data.rooms || []);
         });
     } else {
       setHostedRooms([]);
@@ -42,7 +42,7 @@ export default function ProfilePage() {
             if (env !== "DEV" && !token) {
               token = ((await sdk.quickAuth.getToken()).token);
             }
-      const response = await fetch(`${URL}/api/protected/user/handle?query=profile`, {
+      const response = await fetch(`${URL}/api/users/protected/update?query=profile`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

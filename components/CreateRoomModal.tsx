@@ -72,7 +72,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
     setSelectedTags([]);
         onClose();
         // Redirect to the room page
-  navigate('/call/' + data.room._id);
+  navigate('/call/' + data.data.room._id);
       } else {
         toast.dismiss();
         toast.error('Error creating room: ' + data.error);

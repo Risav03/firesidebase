@@ -133,7 +133,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       if (!createUserRes.ok) {
         console.error("Failed to create user:", await createUserRes.text());
       }
-      const localUser = (await createUserRes.json()).user;
+      const localUser = (await createUserRes.json()).data.user;
       setUser(localUser);
 
       if(!localUser?.token || localUser?.token === ""){

@@ -74,7 +74,7 @@ export default function CallClient({ roomId }: CallClientProps) {
         const roomResponse = await fetch(`${URL}/api/rooms/public/${roomId}`);
         const roomData = await roomResponse.json();
 
-        if (roomData.success && roomData.room.host._id === user._id) {
+        if (roomData.success && roomData.data.room.host._id === user._id) {
           const hostCode = roomCodes.find((code) => code.role === "host");
           if (hostCode) {
             roomCode = hostCode.code;

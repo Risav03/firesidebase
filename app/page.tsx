@@ -56,7 +56,7 @@ async function fetchRooms(): Promise<Room[]> {
     const data = await response.json();
     
     if (data.success) {
-      return data.rooms;
+      return data.data.rooms;
     }
     return [];
   } catch (error) {
