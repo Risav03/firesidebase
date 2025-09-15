@@ -36,7 +36,11 @@ export default function ProfilePage() {
     
     setIsRefreshing(true);
     try {
-      const {token} = await sdk.quickAuth.getToken();
+      var token:any ;
+      const env = process.env.NEXT_PUBLIC_ENV;
+            if (env !== "DEV" && !token) {
+              token = ((await sdk.quickAuth.getToken()).token);
+            }
       const response = await fetch('/api/protected/handleUser?query=profile', {
         method: 'PATCH',
         headers: {
