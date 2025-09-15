@@ -35,7 +35,7 @@ const SearchBar: React.FC<{ className?: string }> = ({ className }) => {
     }
     setLoading(true);
     try {
-      const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+      const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
       const res = await fetch(`${URL}/api/search?q=${encodeURIComponent(searchValue.trim())}`);
       const data = await res.json();
       console.log("Search results:", data);

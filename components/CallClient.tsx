@@ -30,7 +30,7 @@ interface CallClientProps {
 }
 
 export default function CallClient({ roomId }: CallClientProps) {
-  const URL = process.env.BACKEND_URL || "http://localhost:8000";
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
   const { user } = useGlobalContext();
   const hmsActions = useHMSActions();

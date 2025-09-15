@@ -68,7 +68,7 @@ export default function TippingModal({
   const { address } = useAccount();
   const hmsActions = useHMSActions();
 
-  const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
   useEffect(() => {
     if (isOpen) {

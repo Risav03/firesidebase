@@ -56,7 +56,7 @@ export default function Explore({ rooms }: ExploreProps) {
   // Handle topic selection and PATCH request
   const handleTopicSubmit = async (selectedTopics: string[]) => {
     try {
-      const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+      const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
       var token: any = "";
       const env = process.env.NEXT_PUBLIC_ENV;
 
@@ -97,7 +97,7 @@ export default function Explore({ rooms }: ExploreProps) {
   // Fetch rooms by user's topics
   useEffect(() => {
     const fetchRoomsByTopics = async () => {
-      const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+      const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
       if (user?.topics?.length > 0) {
         try {
           const res = await fetch(`${URL}/api/rooms/public/by-topics`, {
@@ -120,7 +120,7 @@ export default function Explore({ rooms }: ExploreProps) {
   // Refresh rooms client-side
   const refreshRooms = async () => {
     try {
-      const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+      const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
       setLoading(true);
       const response = await fetch(`${URL}/api/rooms/public/`);
       const data = await response.json();

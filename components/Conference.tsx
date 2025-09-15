@@ -38,7 +38,7 @@ export default function Conference({ roomId }: { roomId: string }) {
 
   //function to fetch room details and save name and description in a useState. Call the function in useEffect
   const [roomDetails, setRoomDetails] = useState<{ name: string; description: string } | null>(null);
-  const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
 
   const handRaise = useHMSNotifications(HMSNotificationTypes.HAND_RAISE_CHANGED);
@@ -86,7 +86,7 @@ useEffect(() => {
 
     try {
       setIsEndingRoom(true);
-      const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+      const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
       console.log('Room is empty, automatically ending room...');
 
       // Call API to end the room

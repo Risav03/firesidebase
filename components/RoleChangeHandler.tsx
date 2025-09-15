@@ -23,7 +23,7 @@ export default function RoleChangeHandler() {
   const localPeer = useHMSStore(selectLocalPeer);
   const isRejoining = useRef(false);
   const lastRole = useRef<string | null>(null);
-  const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
   useEffect(() => {
     if (!notification) return;

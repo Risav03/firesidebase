@@ -38,7 +38,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
       setLoading(true);
       try {
-        const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+        const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
         const env = process.env.NEXT_PUBLIC_ENV;
         
         var token: any = "";
@@ -82,7 +82,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   };
 
   const handleSendMessage = async () => {
-    const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+    const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
     if (!message.trim() || !user?.fid) return;
 
     const messageText = message.trim();

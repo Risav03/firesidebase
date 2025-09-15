@@ -31,7 +31,7 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
   // Check if this is the local user
   const isLocalUser = peer.id === localPeer?.id;
 
-  const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
   useEffect(() => {
     if (isVisible) {
@@ -121,7 +121,7 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
     
     try {
       setIsLoading(true);
-      const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+      const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
       // Get room ID from URL
       const pathParts = window.location.pathname.split('/');
       const roomId = pathParts[pathParts.length - 1];

@@ -35,7 +35,7 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
   const isHostOrCoHost = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
   const isHost = localPeer?.roleName === 'host';
 
-  const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
   useEffect(() => {
     if (isVisible) {

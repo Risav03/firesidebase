@@ -7,7 +7,7 @@ interface Props {
 
 export default async function UserProfilePage({ params }: Props) {
 	const { username } = params;
-	const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+	const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 	// Fetch user and rooms via API
 	const res = await fetch(`${URL}/api/users/public/username/${username}`);
 	if (!res.ok) {

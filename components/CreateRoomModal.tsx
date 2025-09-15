@@ -22,7 +22,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
   const [nameError, setNameError] = useState('');
   const navigate = useNavigateWithLoader();
   const { user } = useGlobalContext();
-  const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
   const createRoom = async (e: React.FormEvent) => {
     e.preventDefault();

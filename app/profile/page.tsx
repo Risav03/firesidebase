@@ -16,7 +16,7 @@ export default function ProfilePage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
-    const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+    const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
     if (!user) {
       router.push('/');
     } else if (user.hostedRooms && user.hostedRooms.length > 0) {
@@ -36,7 +36,7 @@ export default function ProfilePage() {
     
     setIsRefreshing(true);
     try {
-      const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+      const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
       var token:any ;
       const env = process.env.NEXT_PUBLIC_ENV;
             if (env !== "DEV" && !token) {

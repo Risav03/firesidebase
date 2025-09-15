@@ -41,7 +41,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
         token = ((await sdk.quickAuth.getToken()).token);
       }
       const result = await addFrame();
-      const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+      const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
       console.log("addFrame result:", result);
       
       if (result) {
@@ -72,7 +72,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       setIsPopupOpen(false);
     }
   };
-  const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
   useEffect(() => {
     (async () => {

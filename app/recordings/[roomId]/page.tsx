@@ -32,7 +32,7 @@ export default function RecordingsPage() {
   useEffect(() => {
     const fetchRecordings = async () => {
       try {
-        const URL = process.env.BACKEND_URL || 'http://localhost:8000';
+        const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
         setLoading(true);
         const response = await fetch(`${URL}/api/rooms/public/${roomId}/recordings`);
 
