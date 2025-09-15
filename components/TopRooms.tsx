@@ -1,6 +1,7 @@
 "use client";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { FaHeadphones } from "react-icons/fa";
 
 export default function TopRooms({ rooms }: { rooms?: any[] }) {
   const router = useRouter();
@@ -13,7 +14,7 @@ export default function TopRooms({ rooms }: { rooms?: any[] }) {
           <div
             onClick={() => router.push(`/call/${room._id}`)}
             key={room._id}
-            className="flex items-center gap-2 w-60 truncate text-white p-1 bg-gradient-to-br font-bold from-orange-700 via-orange-500 to-yellow-400 rounded-full whitespace-nowrap"
+            className="flex items-center gap-2 w-72 truncate text-white p-1 font-bold gradient-fire pr-3 rounded-full text-nowrap"
           >
             <div className="relative">
               <Image
@@ -31,7 +32,10 @@ export default function TopRooms({ rooms }: { rooms?: any[] }) {
                 className="w-8 aspect-square rounded-full border-2 border-white"
               />
             </div>
-            {room.name}
+            <div className="flex justify-between w-full items-center">
+              <span>{room.name.slice(0,20)}{room.name.length > 20 ? '...' : ''} </span>
+              <span className=" text-white flex gap-1 items-center justify-center">{room.strength} <FaHeadphones/></span>
+            </div>
           </div>
         ))}
       </div>

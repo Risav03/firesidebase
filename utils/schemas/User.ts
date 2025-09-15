@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document, Mongoose } from 'mongoose';
 
 export interface IUser extends Document {
+  _id: mongoose.Types.ObjectId;
   fid: string;
   username: string;
   displayName: string;
@@ -8,6 +9,9 @@ export interface IUser extends Document {
   wallet:string;
   bio?: string;
   hostedRooms: mongoose.Types.ObjectId[]; // Array of Room ObjectIds
+  coHostedRooms: mongoose.Types.ObjectId[]; // Rooms participated as co-host
+  speakerRooms: mongoose.Types.ObjectId[]; // Rooms participated as speaker
+  listenerRooms: mongoose.Types.ObjectId[]; // Rooms participated as listener
   topics: string[];
 }
 
@@ -18,7 +22,11 @@ const User: Schema = new Schema({
   wallet: { type: String, required: true },
   pfp_url: { type: String, required: true },
   bio: { type: String, required: false },
+  token: { type: String, required: false, default: "" },
   hostedRooms: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Room' }],
+  coHostedRooms: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Room', default: [] }],
+  speakerRooms: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Room', default: [] }],
+  listenerRooms: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Room', default: [] }],
   topics: [{ type: String, required: false, default: [] }],
 });
 

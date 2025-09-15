@@ -14,9 +14,17 @@ import { ethers } from "ethers";
 import { usdcAbi } from "@/utils/contract/abis/usdcabi";
 import { RiLoader5Fill } from "react-icons/ri";
 import { useHMSActions } from "@100mslive/react-sdk";
-import { useSignTypedData } from 'wagmi'
+import { useSignTypedData } from "wagmi";
 import { splitSignature } from "ethers/lib/utils";
 import sdk from "@farcaster/miniapp-sdk";
+import { useMiniKit } from "@coinbase/onchainkit/minikit";
+import { encodeFunctionData, numberToHex } from "viem";
+import { erc20Abi } from "@/utils/contract/abis/erc20abi";
+import {
+  createBaseAccountSDK,
+  getCryptoKeyAccount,
+  base,
+} from "@base-org/account";
 
 interface TippingModalProps {
   isOpen: boolean;
@@ -51,9 +59,11 @@ export default function TippingModal({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { user } = useGlobalContext();
-  const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' // Base USDC
-  const { signTypedDataAsync } = useSignTypedData()
-  const { writeContractAsync } = useWriteContract()
+  const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Base USDC
+  const { signTypedDataAsync } = useSignTypedData();
+  const { writeContractAsync } = useWriteContract();
+
+  const { context, isFrameReady } = useMiniKit();
 
   const { address } = useAccount();
   const hmsActions = useHMSActions();
@@ -97,7 +107,13 @@ export default function TippingModal({
     };
   }, []);
 
-  const sendTipMessage = async (tipper: string, recipients: string, amount: number, currency: string, userFid: string) => {
+  const sendTipMessage = async (
+    tipper: string,
+    recipients: string,
+    amount: number,
+    currency: string,
+    userFid: string
+  ) => {
     const emoji = amount >= 100 ? "💸" : amount >= 25 ? "🎉" : "👍";
     const message = `${emoji} ${tipper} tipped ${recipients} $${amount} in ${currency}!`;
 
@@ -111,7 +127,7 @@ export default function TippingModal({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           message,
@@ -190,7 +206,7 @@ export default function TippingModal({
         if (!ethPrice || isNaN(ethPrice)) {
           throw new Error("Invalid ETH price");
         }
-        return Number((tipAmount / ethPrice).toFixed(6));
+        return Number((tipAmount * usersToSend.length / ethPrice).toFixed(6));
       })();
 
       const res = await writeContract(config, {
@@ -206,15 +222,25 @@ export default function TippingModal({
       // Dismiss loading toast and show success
       toast.dismiss(loadingToast);
       toast.success(
-        `Successfully tipped $${selectedTip || customTip} to ${usersToSend.length} user(s)!`
+        `Successfully tipped $${selectedTip || customTip} to ${
+          usersToSend.length
+        } user(s)!`
       );
 
       // Send chat message
       const tipper = user?.username || "Someone";
       const recipients = selectedUsers.length
         ? selectedUsers.map((user) => user.username).join(", ")
-        : selectedRoles.map((role) => (role === "host" ? role : `${role}s`)).join(", ");
-      await sendTipMessage(tipper, recipients, selectedTip || parseFloat(customTip), "ETH", user?.fid || "unknown");
+        : selectedRoles
+            .map((role) => (role === "host" ? role : `${role}s`))
+            .join(", ");
+      await sendTipMessage(
+        tipper,
+        recipients,
+        selectedTip || parseFloat(customTip),
+        "ETH",
+        user?.fid || "unknown"
+      );
 
       // Close modal and reset form
       onClose();
@@ -278,84 +304,143 @@ export default function TippingModal({
       }
 
       const usdcAmount = (() => {
-        const tipAmount = selectedTip ? selectedTip : parseFloat(customTip);
-        if (!tipAmount || isNaN(tipAmount)) {
-          throw new Error("Invalid tip amount");
-        }
-        return BigInt(tipAmount * 1e6);
-      })();
+          const tipAmount = selectedTip ? (selectedTip*usersToSend.length) : parseFloat(String(Number(customTip)*usersToSend.length));
+          if (!tipAmount || isNaN(tipAmount)) {
+            throw new Error("Invalid tip amount");
+          }
+          return BigInt(tipAmount * 1e6);
+        })();
 
-      const provider = new ethers.providers.JsonRpcProvider(
-        "https://base-mainnet.g.alchemy.com/v2/CA4eh0FjTxMenSW3QxTpJ7D-vWMSHVjq"
-      );
+      if (context?.client.clientFid !== 309857) {
 
-      const contract = new ethers.Contract(USDC_ADDRESS, usdcAbi, provider);
-      const nonce = BigInt(await contract.nonces(address));
+        const provider = new ethers.providers.JsonRpcProvider(
+          "https://base-mainnet.g.alchemy.com/v2/CA4eh0FjTxMenSW3QxTpJ7D-vWMSHVjq"
+        );
 
+        const contract = new ethers.Contract(USDC_ADDRESS, usdcAbi, provider);
+        const nonce = BigInt(await contract.nonces(address));
 
-      const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600); // +1 hour
+        const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600); // +1 hour
 
-      const domain = {
-        name: "USD Coin",
-        version: "2",
-        chainId: 8453,
-        verifyingContract: USDC_ADDRESS,
-        primaryType: "Permit",
-      } as const;
+        const domain = {
+          name: "USD Coin",
+          version: "2",
+          chainId: 8453,
+          verifyingContract: USDC_ADDRESS,
+          primaryType: "Permit",
+        } as const;
 
-      const types = {
-        Permit: [
-          { name: "owner", type: "address" },
-          { name: "spender", type: "address" },
-          { name: "value", type: "uint256" },
-          { name: "nonce", type: "uint256" },
-          { name: "deadline", type: "uint256" },
-        ],
-      } as const;
+        const types = {
+          Permit: [
+            { name: "owner", type: "address" },
+            { name: "spender", type: "address" },
+            { name: "value", type: "uint256" },
+            { name: "nonce", type: "uint256" },
+            { name: "deadline", type: "uint256" },
+          ],
+        } as const;
 
-      const values = {
-        owner: address as `0x${string}`,
-        spender: contractAdds.tipping as `0x${string}`,
-        value: usdcAmount,
-        nonce,
-        deadline,
-      };
-
-      const signature = await signTypedDataAsync({
-        domain,
-        primaryType: "Permit",
-        types,
-        message: values,
-      });
-
-      const { v, r, s } = splitSignature(signature);
-
-      const res = await writeContract(config, {
-        abi: firebaseTipsAbi,
-        address: contractAdds.tipping as `0x${string}`,
-        functionName: "distributeTokenWithPermit",
-        args: [
-          USDC_ADDRESS,
-          usersToSend,
-          usdcAmount, // must be uint256 with 6 decimals
+        const values = {
+          owner: address as `0x${string}`,
+          spender: contractAdds.tipping as `0x${string}`,
+          value: usdcAmount,
+          nonce,
           deadline,
-          v,
-          r,
-          s,
-        ],
-      });
+        };
 
-      // Dismiss loading toast and show success
-      toast.dismiss(loadingToast);
-      toast.success(
-        `Successfully tipped $${selectedTip || customTip} to ${usersToSend.length} user(s)!`
-      );
+        const signature = await signTypedDataAsync({
+          domain,
+          primaryType: "Permit",
+          types,
+          message: values,
+        });
+
+        const { v, r, s } = splitSignature(signature);
+
+        const res = await writeContract(config, {
+          abi: firebaseTipsAbi,
+          address: contractAdds.tipping as `0x${string}`,
+          functionName: "distributeTokenWithPermit",
+          args: [
+            USDC_ADDRESS,
+            usersToSend,
+            usdcAmount, // must be uint256 with 6 decimals
+            deadline,
+            v,
+            r,
+            s,
+          ],
+        });
+
+        // Dismiss loading toast and show success
+        toast.dismiss(loadingToast);
+        toast.success(
+          `Successfully tipped $${selectedTip || customTip} to ${
+            usersToSend.length
+          } user(s)!`
+        );
+      } else {
+        const provider = createBaseAccountSDK({
+        appName: "Bill test app",
+        appLogoUrl: "https://farcaster-miniapp-chi.vercel.app/pfp.jpg",
+        appChainIds: [base.constants.CHAIN_IDS.base],
+      }).getProvider();
+        const calls = [
+            {
+              to: USDC_ADDRESS,
+              value: "0x0",
+              data: encodeFunctionData({
+                abi: erc20Abi,
+                functionName: "approve",
+                args: [contractAdds.tipping, usdcAmount],
+              }),
+            },
+            {
+              to: contractAdds.tipping,
+              value: "0x0",
+              data: encodeFunctionData({
+                abi: firebaseTipsAbi,
+                functionName: "distributeToken",
+                args: [ USDC_ADDRESS,
+            usersToSend,
+            usdcAmount],
+              }),
+            },
+          ];
+          
+          const cryptoAccount = await getCryptoKeyAccount();
+          const fromAddress = cryptoAccount?.account?.address;
+        
+          
+          const result = await provider.request({
+            method: "wallet_sendCalls",
+            params: [
+              {
+                version: "2.0.0",
+                from: fromAddress,
+                chainId: numberToHex(base.constants.CHAIN_IDS.base),
+                atomicRequired: true,
+                calls: calls,
+              },
+            ],
+          });
+          
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
 
       const tipper = user?.username || "Someone";
       const recipients = selectedUsers.length
         ? selectedUsers.map((user) => user.username).join(", ")
-        : selectedRoles.map((role) => (role === "host" ? role : `${role}s`)).join(", ");
-      sendTipMessage(tipper, recipients, selectedTip || parseFloat(customTip), "USDC", user?.fid || "unknown");
+        : selectedRoles
+            .map((role) => (role === "host" ? role : `${role}s`))
+            .join(", ");
+      sendTipMessage(
+        tipper,
+        recipients,
+        selectedTip || parseFloat(customTip),
+        "USDC",
+        user?.fid || "unknown"
+      );
 
       onClose();
       setSelectedUsers([]);
@@ -434,7 +519,7 @@ export default function TippingModal({
                     onClick={() => handleRoleSelection(role)}
                     className={`px-4 py-2 rounded-md text-white font-medium transition-colors ${
                       selectedRoles.includes(role)
-                        ? "bg-blue-600 hover:bg-blue-700"
+                        ? "gradient-fire"
                         : "bg-gray-600 hover:bg-gray-700"
                     }`}
                   >
@@ -514,7 +599,9 @@ export default function TippingModal({
                               onClick={() => handleUserSelection(participant)}
                             >
                               <img
-                                src={participant.pfp_url || "/default-avatar.png"}
+                                src={
+                                  participant.pfp_url || "/default-avatar.png"
+                                }
                                 alt={participant.username}
                                 className="w-10 h-10 rounded-full border border-gray-600 mr-3"
                               />
@@ -557,7 +644,7 @@ export default function TippingModal({
                 Select Tip Amount
               </label>
               <div className="flex space-x-2 w-full">
-                {[10, 25, 100].map((amount) => (
+                {[0.1, 0.5, 1].map((amount) => (
                   <button
                     key={amount}
                     onClick={() => {
@@ -566,7 +653,7 @@ export default function TippingModal({
                     }}
                     className={`px-4 py-2 rounded-md text-white font-medium transition-colors w-1/3 ${
                       selectedTip === amount
-                        ? "bg-blue-600 hover:bg-blue-700"
+                        ? "gradient-fire "
                         : "bg-gray-600 hover:bg-gray-700"
                     }`}
                   >
@@ -606,7 +693,7 @@ export default function TippingModal({
               <button
                 onClick={() => handleUSDCTip()}
                 disabled={isLoading}
-                className={`flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:bg-gray-400 ${
+                className={`flex-1 gradient-fire text-white font-medium py-2 px-4 rounded-md transition-colors disabled:bg-gray-400 ${
                   isLoading ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >

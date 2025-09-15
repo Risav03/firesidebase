@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react';
-import { useHMSActions, useHMSStore, selectLocalPeer } from '@100mslive/react-sdk';
+import { useHMSActions, useHMSStore, selectLocalPeer, useCustomEvent } from '@100mslive/react-sdk';
 import { useRouter } from 'next/navigation';
 import { useGlobalContext } from '@/utils/providers/globalContext';
 import sdk from "@farcaster/miniapp-sdk";
@@ -23,6 +23,13 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
   const router = useRouter();
   const { user } = useGlobalContext();
   const localPeer = useHMSStore(selectLocalPeer);
+
+   const { sendEvent } = useCustomEvent({
+          type: "ROOM_ENDED",
+          onEvent: (msg: {message:string}) => {
+            console.log("Room ended event received:", msg);
+          },
+        });
 
   // Check if local user is host or co-host
   const isHostOrCoHost = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
@@ -77,20 +84,6 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
     };
   }, [isOpen, onClose, showEndConfirmation]);
 
-  const handleLeaveRoom = async () => {
-    try {
-      setError(null);
-      setAction('leave');
-      setIsLoading(true);
-      await hmsActions.leave();
-      router.push('/');
-    } catch (error) {
-      console.error('Error leaving room:', error);
-      setError('Failed to leave room. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleEndRoomClick = () => {
     setShowEndConfirmation(true);
@@ -123,14 +116,13 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
         throw new Error(errorData.error || 'Failed to end room');
       }
 
-      // Broadcast END_ROOM_EVENT to all participants
-      await hmsActions.sendBroadcastMessage(
-        JSON.stringify({ type: "END_ROOM_EVENT", roomId })
-      );
+      sendEvent({message: "Room has been ended by the host."});
+//       const reason = 'Host ended the room'; // Reason to end the room
+// const lock = true;
 
+//       await hmsActions.endRoom(lock, reason);
       // Wait 2 seconds before leaving
       setTimeout(async () => {
-        await hmsActions.leave();
         router.push('/');
       }, 2000);
     } catch (error) {

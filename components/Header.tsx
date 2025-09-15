@@ -10,6 +10,10 @@ import {
 } from "@100mslive/react-sdk";
 import { useState } from 'react';
 import RoomEndModal from './RoomEndModal';
+import { TbShare3 } from "react-icons/tb";
+import { MdCopyAll, MdOutlineIosShare } from "react-icons/md";
+import { sdk } from "@farcaster/miniapp-sdk";
+import toast from "react-hot-toast";
 
 interface HeaderProps {
   onToggleChat?: () => void;
@@ -27,6 +31,7 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
   const router = useRouter();
   const localPeer = useHMSStore(selectLocalPeer);
   const [showRoomEndModal, setShowRoomEndModal] = useState(false);
+  const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
 
   // Check if local user is host or co-host
   const isHostOrCoHost = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
@@ -42,6 +47,27 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
     }
   };
 
+  async function composeCast() {
+    try {
+      await sdk.actions.composeCast({
+        text: `Join this awesome room! https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/call/${roomId}`,
+        embeds: [`https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/call/${roomId}`],
+      });
+    } catch (e) {
+      console.error("Error composing cast:", e);
+    }
+  }
+
+  const handleCopyURL = () => {
+    const roomURL = `https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/call/${roomId}`;
+    navigator.clipboard.writeText(roomURL).then(() => {
+      toast.success("Room URL copied to clipboard!");
+    }).catch((error) => {
+      console.error("Failed to copy URL:", error);
+      toast.error("Failed to copy URL to clipboard");
+    });
+  };
+
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 bg-black px-6 h-16 my-auto border-b border-white/20">
@@ -51,6 +77,16 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
           </div>
           {isConnected && (
             <div className="flex items-center space-x-3">
+              {roomId && (
+                <button
+                  onClick={() => setIsShareMenuOpen((prev) => !prev)}
+                  className="text-white relative z-50 px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 flex items-center space-x-2"
+                  title="Share"
+                >
+                  <TbShare3 className="w-5 h-5" />
+                  <span className="text-sm">Share</span>
+                </button>
+              )}
               <button
                 id="leave-btn"
                 className="px-2 py-1 rounded-lg clubhouse-button-danger flex items-center"
@@ -63,6 +99,34 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
           )}
         </div>
       </header>
+
+      {/* Share Menu Overlay */}
+      <div onClick={() => setIsShareMenuOpen(false)} className={`fixed top-0 left-0 h-screen w-screen bg-black/30 duration-200 z-50 ${isShareMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
+        {isShareMenuOpen && (
+          <div className="absolute right-4 top-16 border border-white/10 mb-2 w-40 bg-gray-800 text-white rounded-lg shadow-lg">
+            <button
+              onClick={() => {
+                setIsShareMenuOpen(false);
+                composeCast();
+              }}
+              className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center space-x-2"
+            >
+              <MdOutlineIosShare className="w-5 h-5" />
+              <span>Share on App</span>
+            </button>
+            <button
+              onClick={() => {
+                setIsShareMenuOpen(false);
+                handleCopyURL();
+              }}
+              className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center space-x-2"
+            >
+              <MdCopyAll className="w-5 h-5" />
+              <span>Copy URL</span>
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Room End Modal */}
       {showRoomEndModal && roomId && (

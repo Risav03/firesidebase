@@ -112,6 +112,93 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
       setIsLoading(false);
     }
   };
+  
+  const handleTransferHost = async () => {
+    if (!localPeer) {
+      console.error('Local peer not found');
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      
+      // Get room ID from URL
+      const pathParts = window.location.pathname.split('/');
+      const roomId = pathParts[pathParts.length - 1];
+      
+      // Extract FIDs from metadata
+      const peerMetadata = peer.metadata ? JSON.parse(peer.metadata) : null;
+      const peerFid = peerMetadata?.fid;
+      
+      let localFid = null;
+      if (localPeer.metadata) {
+        const localMetadata = JSON.parse(localPeer.metadata);
+        localFid = localMetadata?.fid;
+      }
+      
+      if (!peerFid || !localFid) {
+        console.error('Missing user FIDs, cannot transfer host role');
+        return;
+      }
+      
+      // First promote the co-host to host using API
+      const promoteResponse = await fetch(`/api/rooms/${roomId}/participants`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userFid: peerFid,
+          newRole: 'host'
+        }),
+      });
+      
+      if (!promoteResponse.ok) {
+        console.error('Failed to promote user to host');
+        throw new Error('Failed to promote user to host');
+      }
+      
+      // Then demote the current host to co-host
+      const demoteResponse = await fetch(`/api/rooms/${roomId}/participants`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userFid: localFid,
+          newRole: 'co-host'
+        }),
+      });
+      
+      if (!demoteResponse.ok) {
+        console.error('Failed to demote current host to co-host');
+        // Even if this fails, the other user is now host
+      }
+      
+      // For HMS SDK, we still need to update the local state
+      // This should trigger when the webhook comes back, but we do it here for immediate UI feedback
+      await hmsActions.changeRole(peer.id, 'host', true);
+      await hmsActions.changeRole(localPeer.id, 'co-host', true);
+      
+      // Force a reconnection for the promoted user by sending a message
+      try {
+        await hmsActions.sendDirectMessage(
+          'HOST_TRANSFER_RECONNECT', 
+          peer.id
+        );
+        
+        console.log('Sent reconnect message to the new host');
+      } catch (msgError) {
+        console.error('Failed to send reconnect message:', msgError);
+      }
+      
+      onClose();
+    } catch (error) {
+      console.error('Error transferring host role:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleMuteToggle = async () => {
     if (!peer.audioTrack || !canRemoteMute) return;
@@ -140,8 +227,11 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
   const currentRole = peer.roleName;
   const isMuted = !isPeerAudioEnabled;
 
+  // Only return nothing if we're not a host OR if this is the local user
+  if (!isHostOrCoHost || isLocalUser) {
+    return null;
+  }
 
-  if(currentRole !== "host")
   return (
     <>
       {/* Backdrop */}
@@ -198,6 +288,18 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
               >
                 <ChevronDownIcon className="w-5 h-5" />
                 <span className="font-medium">{isLoading ? 'Changing...' : 'Make Co-host'}</span>
+              </button>
+            )}
+
+            {/* Make Host - only when local user is host and peer is co-host */}
+            {localPeer?.roleName === 'host' && currentRole === 'co-host' && (
+              <button
+                onClick={handleTransferHost}
+                disabled={isLoading}
+                className="w-full px-6 py-3 text-left text-sm text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-3 transition-colors"
+              >
+                <ChevronDownIcon className="w-5 h-5" />
+                <span className="font-medium">{isLoading ? 'Transferring...' : 'Make Host'}</span>
               </button>
             )}
 

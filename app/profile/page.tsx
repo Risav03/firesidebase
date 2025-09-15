@@ -5,11 +5,15 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import NavigationWrapper from '@/components/NavigationWrapper';
 import { IoIosArrowBack } from 'react-icons/io';
+import { IoRefreshOutline } from 'react-icons/io5';
+import toast from 'react-hot-toast';
+import sdk from '@farcaster/miniapp-sdk';
 
 export default function ProfilePage() {
-  const { user } = useGlobalContext();
+  const { user, setUser } = useGlobalContext();
   const router = useRouter();
   const [hostedRooms, setHostedRooms] = useState<any[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     const URL = process.env.BACKEND_URL || 'http://localhost:8000';
@@ -26,6 +30,34 @@ export default function ProfilePage() {
       setHostedRooms([]);
     }
   }, [user, router]);
+
+  const handleRefreshProfile = async () => {
+    if (!user || isRefreshing) return;
+    
+    setIsRefreshing(true);
+    try {
+      const {token} = await sdk.quickAuth.getToken();
+      const response = await fetch('/api/protected/handleUser?query=profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      });
+      
+      if (response.ok) {
+        toast.success('Profile refreshed successfully!');
+
+        window.location.reload();
+      } else {
+        console.error('Failed to refresh profile');
+      }
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   if (!user) {
     return (
@@ -48,8 +80,8 @@ export default function ProfilePage() {
           </div>
           
           <div className="bg-white/10 border border-white/80 rounded-lg px-4 py-8">
-            {/* Profile Picture */}
-            <div className="text-center mb-6">
+            {/* Profile Picture and Refresh Button */}
+            <div className="text-center mb-6 relative">
               <div className="w-24 h-24 mx-auto mb-4">
                 {user.pfp_url ? (
                   <img 
@@ -65,6 +97,16 @@ export default function ProfilePage() {
                   </div>
                 )}
               </div>
+              
+              {/* Refresh button */}
+              <button 
+                onClick={handleRefreshProfile}
+                disabled={isRefreshing}
+                className="absolute top-0 right-0 flex items-center justify-center px-3 py-1 text-sm bg-orange-500 hover:bg-orange-600 text-white p-2 rounded-full transition-colors"
+                title="Refresh profile data"
+              >
+                <IoRefreshOutline className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />Refetch
+              </button>
             </div>
 
             {/* Profile Information */}
@@ -80,7 +122,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Previous Spaces Section */}
-            <div className="mt-8">
+            {/* <div className="mt-8">
               <h2 className="text-xl font-bold text-white mb-4">Previous Spaces</h2>
               <div className="flex space-x-4 overflow-x-auto">
                 {hostedRooms.length === 0 ? (
@@ -101,7 +143,7 @@ export default function ProfilePage() {
                   ))
                 )}
               </div>
-            </div>
+            </div> */}
 
             {/* Statistics Section */}
             <div className="mt-8">
@@ -111,7 +153,7 @@ export default function ProfilePage() {
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Total Hosted Rooms
                   </label>
-                  <p className="text-white text-lg font-medium">{hostedRooms.length}</p>
+                  <p className="text-white text-lg font-medium">{user.hostedRooms.length || 0} </p>
                 </div>
 
                 <div className="border-b border-gray-600 pb-4">

@@ -50,7 +50,7 @@ export default function Explore({ rooms }: ExploreProps) {
   const [localRooms, setLocalRooms] = useState<Room[]>(rooms || []);
   const [loading, setLoading] = useState(!rooms || rooms.length === 0);
   const [welcomeMessage, setWelcomeMessage] = useState("");
-  const { user, setUser } = useGlobalContext();
+  const { user, setUser, isUserLoading } = useGlobalContext();
   // Add state for selected tab
   const [selectedTab, setSelectedTab] = useState(0);
   // Handle topic selection and PATCH request
@@ -137,35 +137,35 @@ export default function Explore({ rooms }: ExploreProps) {
   };
 
   // Handle search function
-  const handleSearch = (query: string) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      return;
-    }
+  // const handleSearch = (query: string) => {
+  //   if (!query.trim()) {
+  //     setSearchResults([]);
+  //     return;
+  //   }
 
-    setIsLoading(true);
+  //   setIsLoading(true);
 
-    // Filter rooms based on search query
-    const filteredRooms = localRooms.filter(
-      (room) =>
-        room.name.toLowerCase().includes(query.toLowerCase()) ||
-        room.description.toLowerCase().includes(query.toLowerCase()) ||
-        room.host.username.toLowerCase().includes(query.toLowerCase()) ||
-        room.host.displayName.toLowerCase().includes(query.toLowerCase())
-    );
+  //   // Filter rooms based on search query
+  //   const filteredRooms = localRooms.filter(
+  //     (room) =>
+  //       room.name.toLowerCase().includes(query.toLowerCase()) ||
+  //       room.description.toLowerCase().includes(query.toLowerCase()) ||
+  //       room.host.username.toLowerCase().includes(query.toLowerCase()) ||
+  //       room.host.displayName.toLowerCase().includes(query.toLowerCase())
+  //   );
 
-    // Convert to search results format
-    const results = filteredRooms.map((room) => ({
-      id: room._id,
-      title: room.name,
-      image: room.host.pfp_url,
-      description: room.description,
-      hostName: room.host.displayName || room.host.username,
-    }));
+  //   // Convert to search results format
+  //   const results = filteredRooms.map((room) => ({
+  //     id: room._id,
+  //     title: room.name,
+  //     image: room.host.pfp_url,
+  //     description: room.description,
+  //     hostName: room.host.displayName || room.host.username,
+  //   }));
 
-    setSearchResults(results);
-    setIsLoading(false);
-  };
+  //   setSearchResults(results);
+  //   setIsLoading(false);
+  // };
 
   useEffect(() => {
     console.log("Rooms prop changed:", rooms);
@@ -193,7 +193,11 @@ export default function Explore({ rooms }: ExploreProps) {
       <div className="max-w-4xl mx-auto p-4 sm:p-6 pb-24">
         <div className="text-left mb-8">
           <h1 className="text-2xl font-bold flex items-center gap-2 text-white mb-2">
-            Welcome, <UserDisplay />
+            Welcome, {isUserLoading ? (
+              <div className="h-8 w-40 bg-white/20 rounded animate-pulse"></div>
+            ) : (
+              <UserDisplay />
+            )}
           </h1>
           <p className="text-white/70 text-sm">{welcomeMessage}</p>
         </div>
@@ -202,12 +206,89 @@ export default function Explore({ rooms }: ExploreProps) {
           <SearchBar className="w-full" />
         </div>
 
+        {/* Loading state - placeholder skeletons for categories and rooms */}
+        {isUserLoading && (
+          <div>
+            <h2 className="text-white text-xl font-bold mb-4">
+              Explore what you like!
+            </h2>
+            {/* Placeholder for category tabs */}
+            <div className="flex gap-2 mb-6 overflow-x-scroll hide-scrollbar">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div 
+                  key={i}
+                  className="px-4 py-2 rounded-lg bg-white/10 animate-pulse w-24 h-9"
+                ></div>
+              ))}
+            </div>
+            
+            {/* Placeholder for rooms */}
+            <div className="mb-10">
+              <div className="h-7 w-32 bg-orange-400/50 rounded animate-pulse mb-2"></div>
+              <div className="mb-4">
+                <div className="h-6 w-24 bg-orange-500/50 rounded animate-pulse mb-2"></div>
+                <div className="space-y-4">
+                  {[1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="border border-orange-500/50 rounded-lg p-4 bg-white/5 backdrop-blur-sm flex items-center justify-between"
+                    >
+                      <div className="w-4/5">
+                        <div className="h-6 w-4/5 bg-white/20 rounded animate-pulse mb-2"></div>
+                        <div className="h-4 w-full bg-white/10 rounded animate-pulse mb-2"></div>
+                        <div className="h-3 w-1/3 bg-white/10 rounded animate-pulse mb-2"></div>
+                        <div className="flex gap-1 mt-2">
+                          {[1, 2].map((j) => (
+                            <div
+                              key={j}
+                              className="h-5 w-16 bg-orange-600/50 rounded-full animate-pulse"
+                            ></div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="h-9 w-12 bg-orange-600/50 rounded animate-pulse"></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Placeholder for recordings */}
+              <div className="mb-4">
+                <div className="h-6 w-24 bg-white/30 rounded animate-pulse mb-2"></div>
+                <div className="space-y-4">
+                  {[1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="border border-white/20 rounded-lg p-4 bg-white/5 backdrop-blur-sm flex items-center justify-between"
+                    >
+                      <div className="w-[85%]">
+                        <div className="h-6 w-4/5 bg-white/20 rounded animate-pulse mb-2"></div>
+                        <div className="h-4 w-full bg-white/10 rounded animate-pulse mb-2"></div>
+                        <div className="h-3 w-1/3 bg-white/10 rounded animate-pulse mb-2"></div>
+                        <div className="flex gap-1 mt-2">
+                          {[1, 2].map((j) => (
+                            <div
+                              key={j}
+                              className="h-5 w-16 bg-orange-600/50 rounded-full animate-pulse"
+                            ></div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="w-[15%] aspect-square rounded bg-gradient-to-br from-orange-500/50 to-red-500/50 animate-pulse"></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Topic selection if user.topics is empty */}
-        {user?.topics?.length === 0 && (
+        {!isUserLoading && user?.topics?.length === 0 && (
           <TopicSelector onSubmit={handleTopicSubmit} />
         )}
 
-        {user?.topics?.length > 0 && (
+        {!isUserLoading && user?.topics?.length > 0 && (
           <div>
             <h2 className="text-white text-xl font-bold mb-4">
               Explore what you like!

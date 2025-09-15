@@ -2,97 +2,6 @@ export const firebaseTipsAbi = [
 	{
 		"inputs": [
 			{
-				"internalType": "address",
-				"name": "_wallet1",
-				"type": "address"
-			},
-			{
-				"internalType": "address",
-				"name": "_wallet2",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_wallet1Percentage",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_wallet2Percentage",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "constructor"
-	},
-	{
-		"inputs": [],
-		"name": "InsufficientBalance",
-		"type": "error"
-	},
-	{
-		"inputs": [],
-		"name": "InvalidAmount",
-		"type": "error"
-	},
-	{
-		"inputs": [],
-		"name": "InvalidFeeConfiguration",
-		"type": "error"
-	},
-	{
-		"inputs": [],
-		"name": "InvalidRecipientCount",
-		"type": "error"
-	},
-	{
-		"inputs": [],
-		"name": "InvalidWalletAddress",
-		"type": "error"
-	},
-	{
-		"inputs": [],
-		"name": "NotAuthorized",
-		"type": "error"
-	},
-	{
-		"inputs": [],
-		"name": "SameAddress",
-		"type": "error"
-	},
-	{
-		"inputs": [],
-		"name": "TransferFailed",
-		"type": "error"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "oldWallet",
-				"type": "address"
-			},
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "newWallet",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "bool",
-				"name": "isWallet1",
-				"type": "bool"
-			}
-		],
-		"name": "AdminWalletUpdated",
-		"type": "event"
-	},
-	{
-		"inputs": [
-			{
 				"internalType": "address payable[]",
 				"name": "recipients",
 				"type": "address[]"
@@ -101,6 +10,29 @@ export const firebaseTipsAbi = [
 		"name": "distributeETH",
 		"outputs": [],
 		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "token",
+				"type": "address"
+			},
+			{
+				"internalType": "address[]",
+				"name": "recipients",
+				"type": "address[]"
+			},
+			{
+				"internalType": "uint256",
+				"name": "totalAmount",
+				"type": "uint256"
+			}
+		],
+		"name": "distributeToken",
+		"outputs": [],
+		"stateMutability": "nonpayable",
 		"type": "function"
 	},
 	{
@@ -170,103 +102,60 @@ export const firebaseTipsAbi = [
 		"type": "function"
 	},
 	{
-		"anonymous": false,
 		"inputs": [
 			{
-				"indexed": true,
 				"internalType": "address",
-				"name": "sender",
+				"name": "_wallet1",
 				"type": "address"
 			},
 			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "totalAmount",
-				"type": "uint256"
+				"internalType": "address",
+				"name": "_wallet2",
+				"type": "address"
 			},
 			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "recipientCount",
-				"type": "uint256"
+				"internalType": "uint96",
+				"name": "_wallet1Percentage",
+				"type": "uint96"
 			},
 			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "amountPerRecipient",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "totalFees",
-				"type": "uint256"
+				"internalType": "uint96",
+				"name": "_wallet2Percentage",
+				"type": "uint96"
 			}
 		],
-		"name": "ETHDistributed",
-		"type": "event"
+		"stateMutability": "nonpayable",
+		"type": "constructor"
 	},
 	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": false,
-				"internalType": "address",
-				"name": "wallet1",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "address",
-				"name": "wallet2",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "wallet1Percentage",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "wallet2Percentage",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "totalFeePercentage",
-				"type": "uint256"
-			}
-		],
-		"name": "FeeConfigUpdated",
-		"type": "event"
+		"inputs": [],
+		"name": "InsufficientBalance",
+		"type": "error"
 	},
 	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "wallet",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "bool",
-				"name": "isETH",
-				"type": "bool"
-			}
-		],
-		"name": "FeesCollected",
-		"type": "event"
+		"inputs": [],
+		"name": "InvalidAmount",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "InvalidFeeConfiguration",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "InvalidRecipientCount",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "InvalidWalletAddress",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "NotAuthorized",
+		"type": "error"
 	},
 	{
 		"inputs": [],
@@ -274,6 +163,16 @@ export const firebaseTipsAbi = [
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "SameAddress",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "TransferFailed",
+		"type": "error"
 	},
 	{
 		"anonymous": false,
@@ -286,49 +185,6 @@ export const firebaseTipsAbi = [
 			}
 		],
 		"name": "Paused",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "sender",
-				"type": "address"
-			},
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "token",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "totalAmount",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "recipientCount",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "amountPerRecipient",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "totalFees",
-				"type": "uint256"
-			}
-		],
-		"name": "TokenDistributed",
 		"type": "event"
 	},
 	{
@@ -354,14 +210,14 @@ export const firebaseTipsAbi = [
 	{
 		"inputs": [
 			{
-				"internalType": "uint256",
+				"internalType": "uint96",
 				"name": "_wallet1Percentage",
-				"type": "uint256"
+				"type": "uint96"
 			},
 			{
-				"internalType": "uint256",
+				"internalType": "uint96",
 				"name": "_wallet2Percentage",
-				"type": "uint256"
+				"type": "uint96"
 			}
 		],
 		"name": "updateFeePercentages",
@@ -466,19 +322,19 @@ export const firebaseTipsAbi = [
 				"type": "address"
 			},
 			{
-				"internalType": "uint256",
+				"internalType": "uint96",
 				"name": "wallet1Percentage",
-				"type": "uint256"
+				"type": "uint96"
 			},
 			{
-				"internalType": "uint256",
+				"internalType": "uint96",
 				"name": "wallet2Percentage",
-				"type": "uint256"
+				"type": "uint96"
 			},
 			{
-				"internalType": "uint256",
+				"internalType": "uint64",
 				"name": "totalFeePercentage",
-				"type": "uint256"
+				"type": "uint64"
 			}
 		],
 		"stateMutability": "view",
@@ -501,22 +357,22 @@ export const firebaseTipsAbi = [
 						"type": "address"
 					},
 					{
-						"internalType": "uint256",
+						"internalType": "uint96",
 						"name": "wallet1Percentage",
-						"type": "uint256"
+						"type": "uint96"
 					},
 					{
-						"internalType": "uint256",
+						"internalType": "uint96",
 						"name": "wallet2Percentage",
-						"type": "uint256"
+						"type": "uint96"
 					},
 					{
-						"internalType": "uint256",
+						"internalType": "uint64",
 						"name": "totalFeePercentage",
-						"type": "uint256"
+						"type": "uint64"
 					}
 				],
-				"internalType": "struct FiresideTips.FeeConfig",
+				"internalType": "struct MultiTransfer.FeeConfig",
 				"name": "",
 				"type": "tuple"
 			}

@@ -54,6 +54,15 @@ module.exports = {
       boxShadow: {
         'clubhouse': '0 4px 20px rgba(0, 0, 0, 0.1)',
         'clubhouse-lg': '0 10px 40px rgba(0, 0, 0, 0.15)',
+      },
+      keyframes: {
+        'slide-up': {
+          '0%': { transform: 'translateY(100%)' },
+          '100%': { transform: 'translateY(0)' },
+        }
+      },
+      animation: {
+        'slide-up': 'slide-up 0.3s ease-out'
       }
     },
   },

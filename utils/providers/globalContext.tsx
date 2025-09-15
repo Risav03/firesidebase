@@ -11,16 +11,67 @@ import React, {
   useCallback,
 } from "react";
 import { generateNonce } from "@farcaster/auth-client";
+import { useAddFrame, useNotification } from "@coinbase/onchainkit/minikit";
 
 interface GlobalContextProps {
   user: any;
   setUser: (value: any) => void;
+  isUserLoading: boolean;
+  setIsUserLoading: (value: boolean) => void;
+  isPopupOpen: boolean;
+  setIsPopupOpen: (value: boolean) => void;
+  handleAddFrame: () => Promise<void>;
 }
 
 const GlobalContext = createContext<GlobalContextProps | undefined>(undefined);
 
 export function GlobalProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
+  const [isUserLoading, setIsUserLoading] = useState<boolean>(true);
+  const [isPopupOpen, setIsPopupOpen] = useState<boolean>(false);
+  
+  const addFrame = useAddFrame();
+  const sendNotification = useNotification();
+
+  const handleAddFrame = async () => {
+    try {
+      var token:any ;
+      const env = process.env.NEXT_PUBLIC_ENV;
+      if (env !== "DEV" && !token) {
+        token = ((await sdk.quickAuth.getToken()).token);
+      }
+      const result = await addFrame();
+
+      console.log("addFrame result:", result);
+      
+      if (result) {
+        await fetch(`/api/protected/handleUser`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            token: result.token || Date.now(),
+          }),
+        });
+
+        await sendNotification({
+          title: "Notification Enabled",
+          body: "You chose the best channel to receive Base news!",
+        });
+
+        setTimeout(() => {
+          setIsPopupOpen(false);
+        }, 2000);
+
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error("Error saving notification details:", error);
+    } finally {
+      setIsPopupOpen(false);
+    }
+  };
   const URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
   useEffect(() => {
@@ -57,8 +108,8 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
 
       const env = process.env.NEXT_PUBLIC_ENV;
       console.log("Environment:", env);
-      var token:any = "";
-      if (env !== "DEV") {
+      var token:any ;
+      if (env !== "DEV" && !token) {
         const nonce = await getNonce();
 
         await sdk.actions.signIn({ nonce });
@@ -82,13 +133,21 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       if (!createUserRes.ok) {
         console.error("Failed to create user:", await createUserRes.text());
       }
-      setUser((await createUserRes.json()).data.user);
+      const localUser = (await userRes.json()).user;
+      setUser(localUser);
+
+      if(!localUser.token || localUser.token === ""){
+        setIsPopupOpen(true);
+      }
+      setIsUserLoading(false);
     } catch (error) {
       console.error("Sign in error:", error);
+      setIsUserLoading(false);
     }
   }, [getNonce]);
 
   const hasRunRef = React.useRef(false);
+
   useEffect(() => {
     (async () => {
       if (hasRunRef.current) return;
@@ -107,7 +166,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <GlobalContext.Provider value={{ user, setUser }}>
+    <GlobalContext.Provider value={{ user, setUser, isUserLoading, setIsUserLoading, isPopupOpen, setIsPopupOpen, handleAddFrame }}>
       {children}
     </GlobalContext.Provider>
   );
