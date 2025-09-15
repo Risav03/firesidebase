@@ -38,6 +38,7 @@ export default function Conference({ roomId }: { roomId: string }) {
 
   //function to fetch room details and save name and description in a useState. Call the function in useEffect
   const [roomDetails, setRoomDetails] = useState<{ name: string; description: string } | null>(null);
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
 
   const handRaise = useHMSNotifications(HMSNotificationTypes.HAND_RAISE_CHANGED);
@@ -67,10 +68,11 @@ useEffect(() => {
 
   useEffect(() => {
     async function fetchRoomDetails() {
-      const response = await fetch(`/api/rooms/${roomId}`);
+      const response = await fetch(`${URL}/api/rooms/public/${roomId}`);
+      // console.log("Room details response:", await response.json());
       const data = await response.json();
       if (data.success) {
-        setRoomDetails({ name: data.room.name, description: data.room.description });
+        setRoomDetails({ name: data.data.room.name, description: data.data.room.description });
       }
     }
 
@@ -84,10 +86,11 @@ useEffect(() => {
 
     try {
       setIsEndingRoom(true);
+      const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
       console.log('Room is empty, automatically ending room...');
 
       // Call API to end the room
-      const response = await fetch(`/api/rooms/${roomId}/end`, {
+      const response = await fetch(`${URL}/api/rooms/${roomId}/end`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

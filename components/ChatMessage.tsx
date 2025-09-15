@@ -2,7 +2,6 @@
 
 import { HMSMessage } from "@100mslive/react-sdk";
 import { formatDistanceToNow } from "./utils/timeUtils";
-import { RedisChatMessage } from "@/utils/redisServices";
 
 interface ChatMessageProps {
   message: HMSMessage | RedisChatMessage;
@@ -10,9 +9,13 @@ interface ChatMessageProps {
 }
 
 export function ChatMessage({ message, isOwnMessage }: ChatMessageProps) {
+
+  // console.log("Rendering message:", message, "Is own message:", isOwnMessage);
   
   const isRedisMessage = 'userId' in message;
-  
+
+  console.log("isRedisMessage:", isRedisMessage);
+
   // Get sender name based on message type
   const getSenderName = () => {
     if (isRedisMessage) {

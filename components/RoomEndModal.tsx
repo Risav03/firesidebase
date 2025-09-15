@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useHMSActions, useHMSStore, selectLocalPeer, useCustomEvent } from '@100mslive/react-sdk';
 import { useRouter } from 'next/navigation';
 import { useGlobalContext } from '@/utils/providers/globalContext';
+import sdk from "@farcaster/miniapp-sdk";
 
 interface RoomEndModalProps {
   isVisible: boolean;
@@ -33,6 +34,8 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
   // Check if local user is host or co-host
   const isHostOrCoHost = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
   const isHost = localPeer?.roleName === 'host';
+
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
   useEffect(() => {
     if (isVisible) {
@@ -87,16 +90,23 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
   };
 
   const handleEndRoomConfirm = async () => {
+    const env = process.env.NEXT_PUBLIC_ENV;
+        
+        var token: any = "";
+        if (env !== "DEV") {
+          token = await sdk.quickAuth.getToken();
+        };
     try {
       setError(null);
       setAction('end');
       setIsLoading(true);
 
       // Call our API to end the room
-      const response = await fetch(`/api/rooms/${roomId}/end`, {
+      const response = await fetch(`${URL}/api/rooms/protected/${roomId}/end`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ userId: user._id }),
       });

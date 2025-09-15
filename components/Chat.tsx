@@ -10,7 +10,6 @@ import {
 } from "@100mslive/react-sdk";
 import { ChatMessage } from "./ChatMessage";
 import { useGlobalContext } from "@/utils/providers/globalContext";
-import { RedisChatMessage } from "@/utils/redisServices";
 import toast from "react-hot-toast";
 import sdk from "@farcaster/miniapp-sdk";
 
@@ -36,20 +35,27 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   useEffect(() => {
     const loadMessages = async () => {
       if (!roomId) return;
-      
+
       setLoading(true);
       try {
-              const {token} = await sdk.quickAuth.getToken();
+        const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+        const env = process.env.NEXT_PUBLIC_ENV;
+        
+        var token: any = "";
+        if (env !== "DEV") {
+          token = await sdk.quickAuth.getToken();
+        };
 
-        const response = await fetch(`/api/protected/chat/${roomId}?limit=50`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        const response = await fetch(`${URL}/api/rooms/public/${roomId}/messages?limit=50`, {
+          // headers: {
+          //   'Authorization': `Bearer ${token}`
+          // }
         });
         const data = await response.json();
-        
+        console.log("Room messages response:", data);
+
         if (data.success) {
-          setRedisMessages(data.messages);
+          setRedisMessages(data.data.messages);
         }
       } catch (error) {
         console.error('Failed to load messages:', error);
@@ -76,6 +82,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   };
 
   const handleSendMessage = async () => {
+    const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
     if (!message.trim() || !user?.fid) return;
 
     const messageText = message.trim();
@@ -85,14 +92,19 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       // Send to HMS for real-time broadcast
       hmsActions.sendBroadcastMessage(messageText);
 
-      const {token} = await sdk.quickAuth.getToken();
+      const env = process.env.NEXT_PUBLIC_ENV;
+        
+        var token: any = "";
+        if (env !== "DEV") {
+          token = await sdk.quickAuth.getToken();
+        };
 
       // Store in Redis for persistence
-      const response = await fetch(`/api/protected/chat/${roomId}`, {
+      const response = await fetch(`${URL}/api/rooms/protected/${roomId}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           message: messageText,
@@ -101,10 +113,10 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         // Add the new message to our local state
-        setRedisMessages(prev => [...prev, data.message]);
+        setRedisMessages(prev => [...prev, data.data.message]);
       } else {
         console.error('Failed to store message:', data.error);
         toast.error('Failed to send message. Please try again.');
@@ -123,16 +135,32 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
     }
   };
 
-  // Combine HMS messages and Redis messages, with Redis messages as the base
-  const combinedMessages = [
-    ...redisMessages,
-    // Add HMS messages that aren't already in Redis (for real-time updates)
-    ...messages.filter(hmsMsg => 
-      !redisMessages.some(redisMsg => 
-        redisMsg.message === hmsMsg.message && 
-        Math.abs(new Date(redisMsg.timestamp).getTime() - hmsMsg.time.getTime()) < 5000
-      )
-    ).map(hmsMsg => ({
+  // Helper function to validate message structure
+  const isValidMessageStructure = (msg: any): boolean => {
+    if (!msg || typeof msg !== 'object') return false;
+    
+    // For Redis messages
+    if ('timestamp' in msg && 'message' in msg && typeof msg.message === 'string') return true;
+    
+    // For HMS messages
+    if ('time' in msg && 'message' in msg && typeof msg.message === 'string') return true;
+    
+    return false;
+  };
+
+  // Filter and combine messages
+  const validRedisMessages = redisMessages.filter(isValidMessageStructure);
+  const validHMSMessages = messages
+    .filter(msg => {
+      if (!isValidMessageStructure(msg)) return false;
+      
+      // Check if this message already exists in Redis
+      return !validRedisMessages.some(redisMsg =>
+        redisMsg.message === msg.message &&
+        Math.abs(new Date(redisMsg.timestamp).getTime() - msg.time.getTime()) < 5000
+      );
+    })
+    .map(hmsMsg => ({
       id: `hms_${hmsMsg.id}`,
       roomId: roomId,
       userId: hmsMsg.senderName || hmsMsg.sender || 'unknown',
@@ -142,12 +170,15 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       message: hmsMsg.message,
       timestamp: hmsMsg.time.toISOString(),
       type: 'text' as const
-    }))
-  ].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    }));
+
+  const combinedMessages = [...validRedisMessages, ...validHMSMessages]
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
   // Always render, but control visibility through CSS classes
   const modalClass = `chat-modal ${isOpen ? 'open' : ''} ${isClosing ? 'closing' : ''}`;
 
+  console.log("Combined messages:", combinedMessages);
   return (
     <div
       ref={chatRef}

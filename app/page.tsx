@@ -48,13 +48,15 @@ export async function generateMetadata(): Promise<Metadata> {
 // Server-side function to fetch rooms
 async function fetchRooms(): Promise<Room[]> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/rooms`, {
+    const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+    console.log("Fetching rooms from:", `${URL}/api/rooms`);
+    const response = await fetch(`${URL}/api/rooms/public`, {
       cache: 'no-store'
     });
     const data = await response.json();
     
     if (data.success) {
-      return data.rooms;
+      return data.data.rooms;
     }
     return [];
   } catch (error) {

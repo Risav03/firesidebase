@@ -41,11 +41,11 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
         token = ((await sdk.quickAuth.getToken()).token);
       }
       const result = await addFrame();
-
+      const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
       console.log("addFrame result:", result);
       
       if (result) {
-        await fetch(`/api/protected/handleUser`, {
+        await fetch(`${URL}/api/protected/user/handle`, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
@@ -72,6 +72,23 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       setIsPopupOpen(false);
     }
   };
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+
+  useEffect(() => {
+    (async () => {
+      // const sessionUser = sessionStorage.getItem("user");
+
+      // if (!sessionUser) {
+      //   await handleSignIn();
+      // } else {
+      //   setUser(JSON.parse(sessionUser));
+      // }
+      await handleSignIn();
+      if(process.env.NEXT_PUBLIC_ENV !== "DEV"){
+        sdk.actions.ready();
+      }
+    })();
+  }, []);
 
   const getNonce = useCallback(async (): Promise<string> => {
     console.log("getNonce called");
@@ -101,24 +118,25 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       }
 
       console.log("Authorization token:", token);
+      console.log("user", user)
 
-      const userRes = await fetch(
-        `${process.env.NEXT_PUBLIC_URL}/api/protected/handleUser`,
+      const createUserRes = await fetch(
+        `${URL}/api/users/protected/handle`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${token}`,
+            'Authorization': `Bearer ${token}`
           },
         }
       );
 
-      if (!userRes.ok) {
-        console.error("Failed to create user:", await userRes.text());
+      if (!createUserRes.ok) {
+        console.error("Failed to create user:", await createUserRes.text());
       }
-      const localUser = (await userRes.json()).user;
+      const localUser = (await createUserRes.json()).data.user;
       setUser(localUser);
 
-      if(!localUser.token || localUser.token === ""){
+      if(!localUser?.token || localUser?.token === ""){
         setIsPopupOpen(true);
       }
       setIsUserLoading(false);

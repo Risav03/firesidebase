@@ -30,6 +30,8 @@ interface CallClientProps {
 }
 
 export default function CallClient({ roomId }: CallClientProps) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
   const { user } = useGlobalContext();
   const hmsActions = useHMSActions();
 
@@ -42,28 +44,37 @@ export default function CallClient({ roomId }: CallClientProps) {
   useEffect(() => {
     const joinRoom = async () => {
       try {
+        const env = process.env.NEXT_PUBLIC_ENV;
+        
+        var token: any = "";
+        if (env !== "DEV") {
+          token = await sdk.quickAuth.getToken();
+        }
+
         if (!user) {
           setError("User not authenticated");
           setIsJoining(false);
           return;
         }
 
-        const response = await fetch(`/api/rooms/${roomId}/codes`);
+       
+
+        const response = await fetch(`${URL}/api/rooms/public/${roomId}/codes`);
         const data = await response.json();
 
         if (!data.success) {
           throw new Error(data.error || "Failed to fetch room codes");
         }
 
-        const roomCodes: RoomCode[] = data.roomCodes;
+        const roomCodes: RoomCode[] = data.data.roomCodes;
 
         let roomCode = "";
         let role = "listener";
 
-        const roomResponse = await fetch(`/api/rooms/${roomId}`);
+        const roomResponse = await fetch(`${URL}/api/rooms/public/${roomId}`);
         const roomData = await roomResponse.json();
 
-        if (roomData.success && roomData.room.host._id === user._id) {
+        if (roomData.success && roomData.data.room.host._id === user._id) {
           const hostCode = roomCodes.find((code) => code.role === "host");
           if (hostCode) {
             roomCode = hostCode.code;
@@ -74,11 +85,12 @@ export default function CallClient({ roomId }: CallClientProps) {
         if (!roomCode) {
           try {
             const response = await fetch(
-              `/api/rooms/${roomId}/codes/${user.fid}`,
+              `${URL}/api/rooms/protected/${roomId}/my-code`,
               {
                 method: "GET",
                 headers: {
                   "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
                 },
               }
             );
@@ -87,8 +99,8 @@ export default function CallClient({ roomId }: CallClientProps) {
             console.log("User role data:", data);
 
             if (data.success) {
-              roomCode = data.code;
-              role = data.role;
+              roomCode = data.data.code;
+              role = data.data.role;
               console.log(`User assigned role: ${role} with code: ${roomCode}`);
             } else {
               console.error("Failed to get user role:", data.error);
@@ -141,8 +153,10 @@ export default function CallClient({ roomId }: CallClientProps) {
         toast.error("Failed to join room. Please try again.");
       }
     };
-
-    if (user && roomId) joinRoom();
+    if (user && roomId) {
+      
+      joinRoom();
+    }
   }, [roomId, user, hmsActions]);
 
   const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
@@ -157,21 +171,33 @@ export default function CallClient({ roomId }: CallClientProps) {
 
       // Add user as participant in Redis when they successfully join
       const addParticipantToRedis = async () => {
+        const env = process.env.NEXT_PUBLIC_ENV;
+        
+        var token: any = "";
+        if (env !== "DEV") {
+          token = await sdk.quickAuth.getToken();
+        };
+
         try {
-          const response = await fetch(`/api/rooms/${roomId}/join`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              userFid: user.fid,
-              role: role || "listener",
-            }),
-          });
+          const response = await fetch(
+            `${URL}/api/rooms/protected/${roomId}/join`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                userFid: user.fid,
+                role: role || "listener",
+              }),
+            }
+          );
 
           const data = await response.json();
+          console.log("Add participant response:", data);
           if (data.success) {
-            console.log("User added to Redis participants:", data.participant);
+            console.log("User added to Redis participants:", data.data.participant);
           } else {
             console.error(
               "Failed to add user to Redis participants:",
@@ -191,12 +217,20 @@ export default function CallClient({ roomId }: CallClientProps) {
   // Cleanup: Remove user from Redis participants when component unmounts or user leaves
   useEffect(() => {
     const removeParticipantFromRedis = async () => {
+      const env = process.env.NEXT_PUBLIC_ENV;
+        
+        var token: any = "";
+        if (env !== "DEV") {
+          token = await sdk.quickAuth.getToken();
+        };
+
       if (user?.fid) {
         try {
-          await fetch(`/api/rooms/${roomId}/leave`, {
+          await fetch(`${URL}/api/rooms/protected/${roomId}/leave`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
               userFid: user.fid,
