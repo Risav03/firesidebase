@@ -136,7 +136,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       const localUser = (await createUserRes.json()).user;
       setUser(localUser);
 
-      if(!localUser.token || localUser.token === ""){
+      if(!localUser?.token || localUser?.token === ""){
         setIsPopupOpen(true);
       }
       setIsUserLoading(false);
