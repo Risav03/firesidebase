@@ -121,7 +121,7 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
     
     try {
       setIsLoading(true);
-      
+      const URL = process.env.BACKEND_URL || 'http://localhost:8000';
       // Get room ID from URL
       const pathParts = window.location.pathname.split('/');
       const roomId = pathParts[pathParts.length - 1];
@@ -142,7 +142,7 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
       }
       
       // First promote the co-host to host using API
-      const promoteResponse = await fetch(`/api/rooms/${roomId}/participants`, {
+      const promoteResponse = await fetch(`${URL}/api/rooms/${roomId}/participants`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -159,7 +159,7 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
       }
       
       // Then demote the current host to co-host
-      const demoteResponse = await fetch(`/api/rooms/${roomId}/participants`, {
+      const demoteResponse = await fetch(`${URL}/api/rooms/${roomId}/participants`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

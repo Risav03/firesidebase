@@ -86,10 +86,11 @@ useEffect(() => {
 
     try {
       setIsEndingRoom(true);
+      const URL = process.env.BACKEND_URL || 'http://localhost:8000';
       console.log('Room is empty, automatically ending room...');
 
       // Call API to end the room
-      const response = await fetch(`/api/rooms/${roomId}/end`, {
+      const response = await fetch(`${URL}/api/rooms/${roomId}/end`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

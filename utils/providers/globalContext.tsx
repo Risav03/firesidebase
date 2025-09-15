@@ -41,11 +41,11 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
         token = ((await sdk.quickAuth.getToken()).token);
       }
       const result = await addFrame();
-
+      const URL = process.env.BACKEND_URL || 'http://localhost:8000';
       console.log("addFrame result:", result);
       
       if (result) {
-        await fetch(`/api/protected/handleUser`, {
+        await fetch(`${URL}/api/protected/user/handle`, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
