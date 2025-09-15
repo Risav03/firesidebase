@@ -16,14 +16,15 @@ export default function ProfilePage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
+    const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
     if (!user) {
       router.push('/');
     } else if (user.hostedRooms && user.hostedRooms.length > 0) {
       // Fetch hosted rooms details from API
-      fetch(`/api/rooms?ids=${user.hostedRooms.join(',')}`)
+      fetch(`${URL}/api/users/public/username/${user.username}`)
         .then(res => res.json())
         .then(data => {
-          setHostedRooms(data.rooms || []);
+          setHostedRooms(data.data.rooms || []);
         });
     } else {
       setHostedRooms([]);
@@ -35,8 +36,13 @@ export default function ProfilePage() {
     
     setIsRefreshing(true);
     try {
-      const {token} = await sdk.quickAuth.getToken();
-      const response = await fetch('/api/protected/handleUser?query=profile', {
+      const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      var token:any ;
+      const env = process.env.NEXT_PUBLIC_ENV;
+            if (env !== "DEV" && !token) {
+              token = ((await sdk.quickAuth.getToken()).token);
+            }
+      const response = await fetch(`${URL}/api/users/protected/update?query=profile`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

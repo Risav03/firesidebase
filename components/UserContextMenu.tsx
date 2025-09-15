@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useHMSActions, useHMSStore, selectLocalPeer, selectPermissions, selectIsPeerAudioEnabled } from '@100mslive/react-sdk';
 import { ChevronDownIcon, MicOnIcon, MicOffIcon } from '@100mslive/react-icons';
+import sdk from "@farcaster/miniapp-sdk";
 
 interface UserContextMenuProps {
   peer: any;
@@ -29,6 +30,8 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
   
   // Check if this is the local user
   const isLocalUser = peer.id === localPeer?.id;
+
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
   useEffect(() => {
     if (isVisible) {
@@ -57,6 +60,12 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
   }, [isOpen, onClose]);
 
   const handleRoleChange = async (newRole: string) => {
+    const env = process.env.NEXT_PUBLIC_ENV;
+        
+        var token: any = "";
+        if (env !== "DEV") {
+          token = await sdk.quickAuth.getToken();
+        };
     try {
       setIsLoading(true);
       
@@ -72,11 +81,12 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
           // Get room ID from URL or context
           const pathParts = window.location.pathname.split('/');
           const roomId = pathParts[pathParts.length - 1];
-          
-          const response = await fetch(`/api/rooms/${roomId}/participants`, {
+
+          const response = await fetch(`${URL}/api/rooms/protected/${roomId}/participants`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
               userFid: userFid,
@@ -111,7 +121,7 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
     
     try {
       setIsLoading(true);
-      
+      const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
       // Get room ID from URL
       const pathParts = window.location.pathname.split('/');
       const roomId = pathParts[pathParts.length - 1];
@@ -132,7 +142,7 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
       }
       
       // First promote the co-host to host using API
-      const promoteResponse = await fetch(`/api/rooms/${roomId}/participants`, {
+      const promoteResponse = await fetch(`${URL}/api/rooms/${roomId}/participants`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -149,7 +159,7 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
       }
       
       // Then demote the current host to co-host
-      const demoteResponse = await fetch(`/api/rooms/${roomId}/participants`, {
+      const demoteResponse = await fetch(`${URL}/api/rooms/${roomId}/participants`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

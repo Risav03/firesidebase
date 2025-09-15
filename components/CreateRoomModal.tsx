@@ -5,6 +5,7 @@ import { useNavigateWithLoader } from '@/utils/useNavigateWithLoader';
 import { useGlobalContext } from '@/utils/providers/globalContext';
 import toast from 'react-hot-toast';
 import { topics } from '@/utils/constants';
+import sdk from "@farcaster/miniapp-sdk";
 
 interface CreateRoomModalProps {
   isOpen: boolean;
@@ -14,14 +15,14 @@ interface CreateRoomModalProps {
 export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProps) {
   const [formData, setFormData] = useState({
     name: '',
-    description: '',
-    startTime: ''
+    description: ''
   });
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState('');
   const navigate = useNavigateWithLoader();
   const { user } = useGlobalContext();
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
   const createRoom = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,29 +43,36 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
     
     try {
       toast.loading('Creating room...');
-      
-        const response = await fetch('/api/rooms/create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ...formData,
-            host: user?.fid || '',
-            startTime: new Date().toISOString(),
-            topics: selectedTags
-          }),
-        });
+      const env = process.env.NEXT_PUBLIC_ENV;
+        
+        var token: any = "";
+        if (env !== "DEV") {
+          token = await sdk.quickAuth.getToken();
+        };
+
+      const response = await fetch(`${URL}/api/rooms/protected`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          ...formData,
+          host: user?.fid || '',
+          startTime: new Date().toISOString(),
+          topics: selectedTags
+        }),
+      });
       
       const data = await response.json();
       if (data.success) {
         toast.dismiss();
         toast.success('Room created successfully! Redirecting...');
-        setFormData({ name: '', description: '', startTime: '' });
+        setFormData({ name: '', description: '' });
     setSelectedTags([]);
         onClose();
         // Redirect to the room page
-  navigate('/call/' + data.room._id);
+  navigate('/call/' + data.data.room._id);
       } else {
         toast.dismiss();
         toast.error('Error creating room: ' + data.error);
