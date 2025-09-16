@@ -27,6 +27,10 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
 
+  // Touch/swipe state
+  const [touchStart, setTouchStart] = useState<{ y: number; time: number } | null>(null);
+  const [touchEnd, setTouchEnd] = useState<{ y: number; time: number } | null>(null);
+
   const messages = useHMSStore(selectHMSMessages);
   const localPeer = useHMSStore(selectLocalPeer);
   const hmsActions = useHMSActions();
@@ -78,6 +82,47 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       setIsChatOpen(false);
       setIsClosing(false);
     }, 400); // Match the CSS transition duration
+  };
+
+  // Swipe detection functions
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    setTouchStart({
+      y: touch.clientY,
+      time: Date.now()
+    });
+    setTouchEnd(null);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    setTouchEnd({
+      y: touch.clientY,
+      time: Date.now()
+    });
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+
+    const deltaY = touchEnd.y - touchStart.y;
+    const deltaTime = touchEnd.time - touchStart.time;
+    const velocity = Math.abs(deltaY) / deltaTime;
+
+    // Swipe down detection: 
+    // - Must be downward (positive deltaY)
+    // - Must travel at least 100px
+    // - Must be completed within 800ms
+    // - Must have reasonable velocity (> 0.3px/ms)
+    const isSwipeDown = deltaY > 100 && deltaTime < 800 && velocity > 0.3;
+
+    if (isSwipeDown) {
+      handleClose();
+    }
+
+    // Reset touch state
+    setTouchStart(null);
+    setTouchEnd(null);
   };
 
   const handleSendMessage = async () => {
@@ -181,6 +226,9 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
     <div
       ref={chatRef}
       className={modalClass}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       {/* Chat Header */}
       <div className="chat-content chat-header bg-gray-800 border-0 px-4 py-4 rounded-t-lg flex">
