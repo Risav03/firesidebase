@@ -43,7 +43,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         
         var token: any = "";
         if (env !== "DEV") {
-          token = await sdk.quickAuth.getToken();
+          token = (await sdk.quickAuth.getToken()).token;
         };
 
         const response = await fetch(`${URL}/api/rooms/public/${roomId}/messages?limit=50`, {
@@ -96,7 +96,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         
         var token: any = "";
         if (env !== "DEV") {
-          token = await sdk.quickAuth.getToken();
+          token = (await sdk.quickAuth.getToken()).token;
         };
 
       // Store in Redis for persistence
