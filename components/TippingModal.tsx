@@ -77,7 +77,7 @@ export default function TippingModal({
         .then((response) => response.json())
         .then((data) => {
           if (data.success) {
-            const activeParticipants = data.participants.filter(
+            const activeParticipants = data.data.participants.filter(
               (participant: Participant) => participant.status === "active"
             );
 
@@ -474,17 +474,17 @@ export default function TippingModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
-        {!address ? (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className="bg-black/30 backdrop-blur-lg border border-orange-500/50 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        {false ? (
           <div className="w-full flex items-center justify-center">
             {" "}
             <CustomConnect />{" "}
           </div>
         ) : (
           <>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-white">Send a Tip</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-white">Send a Tip</h2>
               <button
                 onClick={onClose}
                 className="text-gray-400 hover:text-white"
@@ -505,19 +505,19 @@ export default function TippingModal({
               </button>
             </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+            <div className="mb-6">
+              <label className="block text-lg font-bold text-orange-400 mb-3">
                 Select multiple roles
               </label>
-              <div className="flex space-x-2">
+              <div className="flex flex-wrap gap-2">
                 {["host", "co-host", "speaker", "listener"].map((role) => (
                   <button
                     key={role}
                     onClick={() => handleRoleSelection(role)}
-                    className={`px-4 py-2 rounded-md text-white font-medium transition-colors ${
+                    className={`px-4 py-2 rounded-lg font-semibold transition-colors text-white ${
                       selectedRoles.includes(role)
-                        ? "gradient-fire"
-                        : "bg-gray-600 hover:bg-gray-700"
+                        ? "gradient-fire border-white border-2"
+                        : "bg-white/10 border-transparent hover:bg-white/20"
                     }`}
                   >
                     {role}
@@ -526,18 +526,19 @@ export default function TippingModal({
               </div>
             </div>
 
-            <div className="w-full flex items-center justify-center text-white">
-              {" "}
-              -- OR --{" "}
+            <div className="w-full flex items-center justify-center text-white/70 my-4">
+              <div className="flex-1 h-px bg-white/20"></div>
+              <span className="px-4 text-sm font-medium">OR</span>
+              <div className="flex-1 h-px bg-white/20"></div>
             </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+            <div className="mb-6">
+              <label className="block text-lg font-bold text-orange-400 mb-3">
                 Select multiple users
               </label>
               <div ref={dropdownRef} className="relative">
                 <div
-                  className="bg-gray-700 border border-gray-600 rounded-md text-white p-2 cursor-pointer"
+                  className="bg-white/10 border border-orange-500/50 rounded-lg text-white p-3 cursor-pointer hover:bg-white/20 transition-colors"
                   onClick={() => setDropdownOpen((prev) => !prev)}
                 >
                   {selectedUsers.length > 0 ? (
@@ -545,14 +546,14 @@ export default function TippingModal({
                       {selectedUsers.map((user) => (
                         <div
                           key={user.userId}
-                          className="flex items-center bg-gray-600 rounded-md px-2 py-1"
+                          className="flex items-center bg-orange-600 rounded-full px-3 py-1"
                         >
                           <img
                             src={user.pfp_url || "/default-avatar.png"}
                             alt={user.username}
-                            className="w-6 h-6 rounded-full border border-gray-600 mr-2"
+                            className="w-5 h-5 rounded-full mr-2"
                           />
-                          <span>{user.username}</span>
+                          <span className="text-sm font-medium">{user.username}</span>
                         </div>
                       ))}
                     </div>
@@ -562,18 +563,18 @@ export default function TippingModal({
                 </div>
 
                 {dropdownOpen && (
-                  <div className="absolute top-full left-0 w-full bg-gray-700 border border-gray-600 rounded-md max-h-60 overflow-y-auto">
+                  <div className="absolute top-full left-0 w-full bg-black border border-orange-500/50 rounded-lg max-h-60 overflow-y-auto mt-1 z-10">
                     {isLoadingUsers ? (
                       <div className="flex items-center justify-center p-4">
                         <RiLoader5Fill className="animate-spin text-white text-2xl" />
                       </div>
                     ) : (
                       <>
-                        <div className="p-2">
+                        <div className="p-3">
                           <input
                             type="text"
                             placeholder="Search users..."
-                            className="w-full bg-gray-600 text-white p-2 rounded-md border border-gray-500 focus:outline-none"
+                            className="w-full bg-white/10 text-white p-2 rounded-lg border border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors"
                             onChange={(e) => setSearchQuery(e.target.value)}
                           />
                         </div>
@@ -586,11 +587,11 @@ export default function TippingModal({
                           .map((participant) => (
                             <div
                               key={participant.userId}
-                              className={`flex items-center p-2 cursor-pointer hover:bg-gray-600 ${
+                              className={`flex items-center p-3 cursor-pointer hover:bg-white/20 transition-colors ${
                                 selectedUsers.some(
                                   (user) => user.userId === participant.userId
                                 )
-                                  ? "bg-gray-600"
+                                  ? "bg-orange-600/30"
                                   : ""
                               }`}
                               onClick={() => handleUserSelection(participant)}
@@ -600,13 +601,13 @@ export default function TippingModal({
                                   participant.pfp_url || "/default-avatar.png"
                                 }
                                 alt={participant.username}
-                                className="w-10 h-10 rounded-full border border-gray-600 mr-3"
+                                className="w-10 h-10 rounded-full mr-3"
                               />
                               <div className="flex-1">
                                 <p className="text-sm font-medium text-white">
                                   {participant.username}
                                 </p>
-                                <p className="text-xs text-gray-400">
+                                <p className="text-xs text-white/60">
                                   {participant.role || "No domain"}
                                 </p>
                               </div>
@@ -636,11 +637,11 @@ export default function TippingModal({
               </div>
             </div>
 
-            <div className="mb-4 w-full">
-              <label className="text-sm block font-medium text-gray-300 mb-2">
+            <div className="mb-6 w-full">
+              <label className="text-lg block font-bold text-orange-400 mb-3">
                 Select Tip Amount
               </label>
-              <div className="flex space-x-2 w-full">
+              <div className="flex gap-2 w-full">
                 {[0.1, 0.5, 1].map((amount) => (
                   <button
                     key={amount}
@@ -648,54 +649,62 @@ export default function TippingModal({
                       setSelectedTip(amount);
                       setCustomTip("");
                     }}
-                    className={`px-4 py-2 rounded-md text-white font-medium transition-colors w-1/3 ${
+                    className={`px-4 py-2 rounded-lg text-white font-semibold transition-colors flex-1 ${
                       selectedTip === amount
-                        ? "gradient-fire "
-                        : "bg-gray-600 hover:bg-gray-700"
+                        ? "gradient-fire border-white border-2"
+                        : "bg-white/10 border-transparent hover:bg-white/20"
                     }`}
                   >
                     ${amount}
                   </button>
                 ))}
               </div>
-              <label className="text-sm block font-medium text-gray-300 mt-4 mb-2">
+              <label className="text-md block font-semibold text-white/70 mt-4 mb-2">
                 Add Custom Tip Amount ($)
               </label>
 
               <input
                 type="number"
-                placeholder="Custom"
+                placeholder="Custom amount"
                 value={customTip}
                 onChange={(e) => {
                   setCustomTip(e.target.value);
                   setSelectedTip(null);
                 }}
-                className="px-4 py-2 rounded-md text-white bg-gray-600 border w-full border-gray-500 focus:outline-none"
+                className="px-4 py-2 rounded-lg text-white bg-white/10 border w-full border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors"
               />
             </div>
 
-            <div className="flex space-x-3 mt-4">
+            <div className="flex gap-3 mt-6">
               <button
                 onClick={() => handleETHTip()}
                 disabled={isLoading}
-                className={`flex-1 text-white bg-indigo-400 hover:bg-indigo-500 font-medium py-2 px-4 rounded-md transition-colors ${
+                className={`flex-1 text-white bg-white/10 hover:bg-white/20 font-semibold py-3 px-4 rounded-lg transition-colors border border-white/20 hover:border-white/40 ${
                   isLoading ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
                 <span className="flex gap-2 items-center justify-center">
-                  <FaEthereum />
+                  {isLoading ? (
+                    <RiLoader5Fill className="animate-spin" />
+                  ) : (
+                    <FaEthereum />
+                  )}
                   Tip in ETH
                 </span>
               </button>
               <button
                 onClick={() => handleUSDCTip()}
                 disabled={isLoading}
-                className={`flex-1 gradient-fire text-white font-medium py-2 px-4 rounded-md transition-colors disabled:bg-gray-400 ${
-                  isLoading ? "opacity-50 cursor-not-allowed" : ""
+                className={`flex-1 gradient-fire text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 ${
+                  isLoading ? "cursor-not-allowed" : ""
                 }`}
               >
                 <span className="flex gap-2 items-center justify-center">
-                  <BiSolidDollarCircle />
+                  {isLoading ? (
+                    <RiLoader5Fill className="animate-spin" />
+                  ) : (
+                    <BiSolidDollarCircle />
+                  )}
                   Tip in USDC
                 </span>
               </button>

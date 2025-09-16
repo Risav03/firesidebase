@@ -403,10 +403,40 @@ export default function Footer({ roomId }: { roomId: string }) {
             disabled={handRaiseDisabled && !isHandRaised}
             title={handRaiseDisabled && !isHandRaised ? "Hand raise cooldown (10s)" : isHandRaised ? "Lower hand" : "Raise hand"}
           >
-            <HandRaiseIcon className="w-5 h-5" />
+            {/* Show hand icon only when not in cooldown */}
+            {!(handRaiseDisabled && !isHandRaised) && (
+              <HandRaiseIcon className="w-5 h-5" />
+            )}
+            
+            {/* Cooldown overlay with circular progress */}
             {handRaiseDisabled && !isHandRaised && (
-              <div className="absolute inset-0 bg-black/60 bg-opacity-30 rounded-full flex items-center justify-center">
-                <span className="text-xs text-white">{handRaiseCountdown}</span>
+              <div className="absolute inset-0 rounded-full flex items-center justify-center">
+                {/* Circular progress border */}
+                <svg className="absolute inset-0 w-10 h-10 transform -rotate-90">
+                  <circle
+                    cx="20"
+                    cy="20"
+                    r="18"
+                    fill="none"
+                    stroke="rgba(255,255,255,0.2)"
+                    strokeWidth="2"
+                  />
+                  <circle
+                    cx="20"
+                    cy="20"
+                    r="18"
+                    fill="none"
+                    stroke="rgb(251, 146, 60)"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 18}`}
+                    strokeDashoffset={`${2 * Math.PI * 18 * (handRaiseCountdown / 10)}`}
+                    className="transition-all duration-1000 ease-linear"
+                  />
+                </svg>
+                
+                {/* Countdown number */}
+                <span className="text-xs text-white font-semibold z-10">{handRaiseCountdown}</span>
               </div>
             )}
           </button>
