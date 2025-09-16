@@ -94,7 +94,7 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
         
         var token: any = "";
         if (env !== "DEV") {
-          token = await sdk.quickAuth.getToken();
+          token = (await sdk.quickAuth.getToken()).token;
         };
     try {
       setError(null);
