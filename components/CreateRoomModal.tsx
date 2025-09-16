@@ -47,7 +47,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         
         var token: any = "";
         if (env !== "DEV") {
-          token = await sdk.quickAuth.getToken();
+          token = (await sdk.quickAuth.getToken()).token;
         };
 
       const response = await fetch(`${URL}/api/rooms/protected`, {
