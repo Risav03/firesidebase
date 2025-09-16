@@ -474,7 +474,7 @@ export default function TippingModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black w-screen h-screen overflow-hidden bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div className="bg-black/30 backdrop-blur-lg border border-orange-500/50 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
         {false ? (
           <div className="w-full flex items-center justify-center">
