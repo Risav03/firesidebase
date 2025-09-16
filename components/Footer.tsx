@@ -25,6 +25,7 @@ import {
   selectBroadcastMessages,
   selectLocalPeerID,
   selectHasPeerHandRaised,
+  selectLocalPeer,
 } from "@100mslive/react-sdk";
 import { RiAdvertisementFill } from "react-icons/ri";
 import { FaMoneyBill } from "react-icons/fa";
@@ -53,9 +54,20 @@ export default function Footer({ roomId }: { roomId: string }) {
   const [isPluginActive, setIsPluginActive] = useState(false);
   const [isPluginReady, setIsPluginReady] = useState(false);
   const messages = useHMSStore(selectHMSMessages) as Array<any>;
+  const localPeer = useHMSStore(selectLocalPeer);
   // Chat state
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isRejoining, setIsRejoining] = useState(false);
+  // Unread message tracking
+  const [lastReadTimestamp, setLastReadTimestamp] = useState<number>(() => {
+    // Initialize from localStorage if available, otherwise use current time
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(`lastReadTimestamp_${roomId}`);
+      return stored ? parseInt(stored, 10) : Date.now();
+    }
+    return Date.now();
+  });
+  const [unreadCount, setUnreadCount] = useState(0);
   const publishPermissions = useHMSStore(selectIsAllowedToPublish);
   const localRoleName = useHMSStore(selectLocalPeerRoleName);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
@@ -65,6 +77,53 @@ export default function Footer({ roomId }: { roomId: string }) {
   const [isTippingModalOpen, setIsTippingModalOpen] = useState(false);
   const [adsEnabled, setAdsEnabled] = useState(true);
   const [isAdsModalOpen, setIsAdsModalOpen] = useState(false);
+
+  // Function to handle chat open/close and reset unread count
+  const handleChatToggle = () => {
+    const newChatState = !isChatOpen;
+    setIsChatOpen(newChatState);
+    
+    // When opening chat, reset unread count and update last read timestamp
+    if (newChatState) {
+      const now = Date.now();
+      setUnreadCount(0);
+      setLastReadTimestamp(now);
+      
+      // Persist the timestamp to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`lastReadTimestamp_${roomId}`, now.toString());
+      }
+    }
+  };
+
+  // Effect to track unread messages
+  useEffect(() => {
+    if (!isChatOpen && messages.length > 0) {
+      // Filter out own messages and count only messages from others that arrived after last read
+      const unreadMessages = messages.filter((message: any) => {
+        if (!message.time) return false;
+        
+        // Check if message arrived after last read timestamp
+        const isAfterLastRead = message.time.getTime() > lastReadTimestamp;
+        
+        // Check if message is not from current user
+        const isNotOwnMessage = message.sender !== localPeer?.name && 
+                               message.senderName !== localPeer?.name &&
+                               message.sender !== user?.fid?.toString();
+        
+        return isAfterLastRead && isNotOwnMessage;
+      });
+      
+      setUnreadCount(unreadMessages.length);
+    }
+  }, [messages, lastReadTimestamp, isChatOpen, localPeer?.name, user?.fid]);
+
+  // Reset unread count when chat is opened
+  useEffect(() => {
+    if (isChatOpen) {
+      setUnreadCount(0);
+    }
+  }, [isChatOpen]);
 
   const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
 
@@ -362,7 +421,7 @@ export default function Footer({ roomId }: { roomId: string }) {
 
         <div className="flex items-center space-x-2 justify-end w-[70%]">
           <button
-            onClick={() => setIsChatOpen((prev) => !prev)}
+            onClick={handleChatToggle}
             className={`relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
               isChatOpen
                 ? "bg-fireside-orange text-white shadow-lg"
@@ -383,9 +442,9 @@ export default function Footer({ roomId }: { roomId: string }) {
                 d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
               />
             </svg>
-            {messages.length > 0 && !isChatOpen && (
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                {messages.length > 9 ? "9+" : messages.length}
+            {unreadCount > 0 && !isChatOpen && (
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center ">
+                {unreadCount > 9 ? "9+" : unreadCount}
               </div>
             )}
           </button>
@@ -496,7 +555,7 @@ export default function Footer({ roomId }: { roomId: string }) {
         </div>
 
         {/* Chat component rendered here */}
-        <Chat isOpen={isChatOpen} setIsChatOpen={setIsChatOpen} roomId={roomId} />
+        <Chat isOpen={isChatOpen} setIsChatOpen={handleChatToggle} roomId={roomId} />
 
         {/* Emoji Picker Drawer */}
           <div

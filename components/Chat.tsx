@@ -15,7 +15,7 @@ import sdk from "@farcaster/miniapp-sdk";
 
 interface ChatProps {
   isOpen: boolean;
-  setIsChatOpen: (isOpen: boolean) => void;
+  setIsChatOpen: () => void;
   roomId: string;
 }
 
@@ -26,6 +26,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Touch/swipe state
   const [touchStart, setTouchStart] = useState<{ y: number; time: number } | null>(null);
@@ -75,11 +76,35 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, redisMessages]);
 
+  // Auto-resize textarea based on content
+  const adjustTextareaHeight = () => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      const scrollHeight = textarea.scrollHeight;
+      const maxHeight = 120; // Maximum height in pixels (roughly 4-5 lines)
+      const minHeight = 48; // Minimum height in pixels
+      
+      if (scrollHeight <= maxHeight) {
+        textarea.style.height = `${Math.max(scrollHeight, minHeight)}px`;
+        textarea.style.overflowY = 'hidden';
+      } else {
+        textarea.style.height = `${maxHeight}px`;
+        textarea.style.overflowY = 'auto';
+      }
+    }
+  };
+
+  // Adjust height when message changes
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [message]);
+
   // Handle closing animation
   const handleClose = () => {
     setIsClosing(true);
     setTimeout(() => {
-      setIsChatOpen(false);
+      setIsChatOpen();
       setIsClosing(false);
     }, 400); // Match the CSS transition duration
   };
@@ -131,6 +156,11 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
     const messageText = message.trim();
     setMessage(""); // Clear input immediately
+    
+    // Reset textarea height after clearing message
+    setTimeout(() => {
+      adjustTextareaHeight();
+    }, 0);
 
     try {
       // Send to HMS for real-time broadcast
@@ -207,7 +237,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
     .map(hmsMsg => ({
       id: `hms_${hmsMsg.id}`,
       roomId: roomId,
-      userId: hmsMsg.senderName || hmsMsg.sender || 'unknown',
+      userId: user.fid || hmsMsg.sender || 'unknown',
       username: hmsMsg.senderName || hmsMsg.sender || 'Unknown',
       displayName: hmsMsg.senderName || hmsMsg.sender || 'Unknown',
       pfp_url: '',
@@ -231,7 +261,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       onTouchEnd={handleTouchEnd}
     >
       {/* Chat Header */}
-      <div className="chat-content chat-header bg-gray-800 border-0 px-4 py-4 rounded-t-lg flex">
+      <div className="chat-content chat-header bg-black/80 backdrop-blur-lg border-t-[1px] border-b-0 border-fireside-orange/60 px-4 py-4 rounded-t-lg flex">
         <div className="flex items-center space-x-3 w-[50%]">
           <div className="w-3 h-3 bg-fireside-orange rounded-full animate-pulse"></div>
           <h3 className="font-semibold text-white">Room Chat</h3>
@@ -242,7 +272,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         <div className="flex items-center space-x-2 justify-end w-[50%]">
           <button
             onClick={handleClose}
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-1 hover:bg-gray-100/20 bg-gray-100/10 rounded-lg transition-colors"
             title="Close chat"
           >
             <svg
@@ -292,7 +322,9 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
           <>
             {combinedMessages.map((msg) => {
               // For Redis messages, check against user fid; for HMS messages, check against peer name
-              const isOwn = msg.userId === user?.fid || msg.userId === localPeer?.name;
+              const isOwn = msg.userId === user?.fid
+
+              console.log(msg, user);
 
               return (
                 <ChatMessage
@@ -307,23 +339,32 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         )}
       </div>
 
+      <div className="w-full flex items-center justify-center absolute bottom-24"><div className="px-4 py-1 w-fit h-fit rounded-full bg-black/20 shadow-lg border-b-[0.5px] border-fireside-orange/60 text-[8px] text-white/70 backdrop-blur-sm">Swipe down to close</div></div>
+
       {/* Chat Input */}
       <div className="chat-content chat-input rounded-b-none bg-gray-800 border-0">
         <div className="flex items-end space-x-3">
           <div className="flex-1 items-center justify-center">
-            <input
-              type="text"
+            <textarea
+              ref={textareaRef}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
               placeholder="Type a message..."
-              className="w-full px-4 py-3 bg-white/10 text-white rounded-2xl border border-white/50 focus:border-fireside-orange focus:ring-2 focus:ring-fireside-orange focus:ring-opacity-20 outline-none transition-all duration-200 text-base resize-none"
+              className="w-full px-4 py-3 bg-white/10 text-white rounded-2xl border border-white/50 focus:border-fireside-orange focus:ring-2 focus:ring-fireside-orange focus:ring-opacity-20 outline-none transition-all duration-200 text-base resize-none min-h-[48px] max-h-[120px] leading-relaxed"
               maxLength={500}
+              rows={1}
+              style={{ 
+                transition: 'height 0.2s ease-out',
+                fontFamily: 'inherit',
+                lineHeight: '1.5'
+              }}
             />
           </div>
           <button
             onClick={handleSendMessage}
             disabled={!message.trim()}
-            className="w-10 h-10 bg-fireside-orange text-white rounded-full flex items-center justify-center transition-all duration-200 hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95"
+            className="w-10 h-10 bg-fireside-orange text-white rounded-full flex items-center justify-center transition-all duration-200 hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95 flex-shrink-0 self-end mb-0"
             title="Send message"
           >
             <svg
