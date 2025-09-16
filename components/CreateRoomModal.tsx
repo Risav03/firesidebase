@@ -69,10 +69,10 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         toast.dismiss();
         toast.success('Room created successfully! Redirecting...');
         setFormData({ name: '', description: '' });
-    setSelectedTags([]);
+        setSelectedTags([]);
         onClose();
         // Redirect to the room page
-  navigate('/call/' + data.data.room._id);
+        navigate('/call/' + data.data._id);
       } else {
         toast.dismiss();
         toast.error('Error creating room: ' + data.error);

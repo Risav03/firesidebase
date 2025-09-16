@@ -38,7 +38,7 @@ const SearchBar: React.FC<{ className?: string }> = ({ className }) => {
       const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
       const res = await fetch(`${URL}/api/search?q=${encodeURIComponent(searchValue.trim())}`);
       const data = await res.json();
-      console.log("Search results:", data);
+
       if (data.success) {
         // Flatten results for display
         const userResults = (data.data.users || []).map((user: any) => ({

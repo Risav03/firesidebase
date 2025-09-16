@@ -25,9 +25,7 @@ interface RoomsListProps {
 export default function RoomsList({ rooms }: RoomsListProps) {
   const [redirectingRoomId, setRedirectingRoomId] = useState<string | null>(null);
   const router = useRouter();
-  
-  console.log("RoomsList received rooms:", rooms);
-  
+    
   // Handle room click
   const handleRoomClick = (room: Room) => {
     setRedirectingRoomId(room._id);

@@ -167,15 +167,6 @@ export default function Footer({ roomId }: { roomId: string }) {
     };
   }, []);
 
-  // useEffect(() => {
-  //   // Helpful for debugging role/permission changes after promotions/demotions
-  //   console.log("[100ms] Local role:", localRoleName);
-  //   console.log("[100ms] Allowed to publish:", publishPermissions);
-  //   console.log("[100ms] canUnmute:", canUnmute);
-  //   console.log("[100ms] toggleAudio function exists:", !!toggleAudio);
-  //   console.log("[100ms] Component re-rendered due to permission change");
-  // }, [localRoleName, publishPermissions, canUnmute, toggleAudio]);
-
   // Initialize plugin only on client side with dynamic import
   useEffect(() => {
     if (typeof window !== "undefined" && !plugin) {

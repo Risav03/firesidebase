@@ -96,12 +96,10 @@ export default function CallClient({ roomId }: CallClientProps) {
             );
 
             const data = await response.json();
-            console.log("User role data:", data);
 
             if (data.success) {
               roomCode = data.data.code;
               role = data.data.role;
-              console.log(`User assigned role: ${role} with code: ${roomCode}`);
             } else {
               console.error("Failed to get user role:", data.error);
               // Fallback to listener role
@@ -195,9 +193,8 @@ export default function CallClient({ roomId }: CallClientProps) {
           );
 
           const data = await response.json();
-          console.log("Add participant response:", data);
           if (data.success) {
-            console.log("User added to Redis participants:", data.data.participant);
+            // User added to Redis participants
           } else {
             console.error(
               "Failed to add user to Redis participants:",
@@ -236,7 +233,7 @@ export default function CallClient({ roomId }: CallClientProps) {
               userFid: user.fid,
             }),
           });
-          console.log("User removed from Redis participants");
+          // User removed from Redis participants
         } catch (error) {
           console.error("Error removing participant from Redis:", error);
         }

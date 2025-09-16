@@ -42,7 +42,6 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       }
       const result = await addFrame();
       const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-      console.log("addFrame result:", result);
       
       if (result) {
         await fetch(`${URL}/api/protected/user/handle`, {
@@ -91,11 +90,9 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const getNonce = useCallback(async (): Promise<string> => {
-    console.log("getNonce called");
     try {
       const nonce = await generateNonce();
       if (!nonce) throw new Error("Unable to generate nonce");
-      console.log("Nonce generated:", nonce);
       return nonce;
     } catch (error) {
       console.error("Error in getNonce:", error);
@@ -107,7 +104,6 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
     try {
 
       const env = process.env.NEXT_PUBLIC_ENV;
-      console.log("Environment:", env);
       var token:any ;
       if (env !== "DEV" && !token) {
         const nonce = await getNonce();
@@ -116,9 +112,6 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
 
         token = ((await sdk.quickAuth.getToken()).token);
       }
-
-      console.log("Authorization token:", token);
-      console.log("user", user)
 
       const createUserRes = await fetch(
         `${URL}/api/users/protected/handle`,

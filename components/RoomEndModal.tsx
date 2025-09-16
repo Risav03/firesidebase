@@ -27,7 +27,7 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
    const { sendEvent } = useCustomEvent({
           type: "ROOM_ENDED",
           onEvent: (msg: {message:string}) => {
-            console.log("Room ended event received:", msg);
+            // Room ended event received
           },
         });
 

@@ -3,11 +3,9 @@ import { Metadata } from 'next';
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-  console.log("URL", URL, "ID", params.id);
   const response = await fetch(`${URL}/api/rooms/public/${params.id}`);
 
   const data = await response.json();
-  console.log("data", data)
 
   const hostName = data.data.room.host.displayName;
 
@@ -17,14 +15,14 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     other: {
       "fc:frame": JSON.stringify({
         version: "next",
-        imageUrl: "https://100msfireside-kolt.vercel.app/fireside_banner.png",
+        imageUrl: "https://firesidebase.vercel.app/fireside_banner.png",
         button: {
           title: "Tune in!",
           action: {
             type: "launch_frame",
             name: "Fireside 100ms",
             url: URL+ '/call/' + params.id,
-            splashImageUrl: "https://100msfireside-kolt.vercel.app/fireside-logo.svg",
+            splashImageUrl: "https://firesidebase.vercel.app/fireside-logo.svg",
             splashBackgroundColor: "#000000",
           },
         },
