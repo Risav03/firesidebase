@@ -48,7 +48,7 @@ export default function CallClient({ roomId }: CallClientProps) {
         
         var token: any = "";
         if (env !== "DEV") {
-          token = await sdk.quickAuth.getToken();
+          token = (await sdk.quickAuth.getToken()).token;
         }
 
         if (!user) {
@@ -175,7 +175,7 @@ export default function CallClient({ roomId }: CallClientProps) {
         
         var token: any = "";
         if (env !== "DEV") {
-          token = await sdk.quickAuth.getToken();
+          token = (await sdk.quickAuth.getToken()).token;
         };
 
         try {
@@ -221,7 +221,7 @@ export default function CallClient({ roomId }: CallClientProps) {
         
         var token: any = "";
         if (env !== "DEV") {
-          token = await sdk.quickAuth.getToken();
+          token = (await sdk.quickAuth.getToken()).token;
         };
 
       if (user?.fid) {

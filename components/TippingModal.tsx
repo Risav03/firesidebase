@@ -150,7 +150,7 @@ export default function TippingModal({
         
         var token: any = "";
         if (env !== "DEV") {
-          token = await sdk.quickAuth.getToken();
+          token = (await sdk.quickAuth.getToken()).token;
         };
     try {
       setIsLoading(true);
