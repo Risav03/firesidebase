@@ -168,11 +168,9 @@ export default function Explore({ rooms }: ExploreProps) {
   // };
 
   useEffect(() => {
-    console.log("Rooms prop changed:", rooms);
     if (rooms && rooms.length > 0) {
-      console.log("Setting localRooms with data from props");
       setLocalRooms(rooms);
-      setLoading(false); // Set loading to false once we have rooms
+      setLoading(false);
     }
   }, [rooms]);
 

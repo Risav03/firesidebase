@@ -93,12 +93,6 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
               newRole: newRole
             }),
           });
-          
-          if (response.ok) {
-            console.log('Role updated in Redis successfully');
-          } else {
-            console.error('Failed to update role in Redis');
-          }
         }
       } catch (redisError) {
         console.error('Error syncing role with Redis:', redisError);
@@ -187,7 +181,6 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
           peer.id
         );
         
-        console.log('Sent reconnect message to the new host');
       } catch (msgError) {
         console.error('Failed to send reconnect message:', msgError);
       }

@@ -14,7 +14,6 @@ export default function JoinForm() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     // use room code to fetch auth token
-    console.log("roomCodeRef.current?.value", roomCodeRef.current?.value);
     const authToken = await hmsActions.getAuthTokenByRoomCode({
       roomCode: roomCodeRef.current?.value || "",
     });

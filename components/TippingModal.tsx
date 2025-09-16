@@ -81,7 +81,6 @@ export default function TippingModal({
               (participant: Participant) => participant.status === "active"
             );
 
-            console.log("Fetched participants:", activeParticipants);
             setParticipants(activeParticipants);
           }
         })
@@ -216,8 +215,6 @@ export default function TippingModal({
         args: [usersToSend],
         value: BigInt(cryptoAmount * 1e18),
       });
-
-      console.log("Transaction successful:", res);
 
       // Dismiss loading toast and show success
       toast.dismiss(loadingToast);

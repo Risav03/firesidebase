@@ -69,7 +69,6 @@ useEffect(() => {
   useEffect(() => {
     async function fetchRoomDetails() {
       const response = await fetch(`${URL}/api/rooms/public/${roomId}`);
-      // console.log("Room details response:", await response.json());
       const data = await response.json();
       if (data.success) {
         setRoomDetails({ name: data.data.room.name, description: data.data.room.description });
@@ -87,7 +86,6 @@ useEffect(() => {
     try {
       setIsEndingRoom(true);
       const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-      console.log('Room is empty, automatically ending room...');
 
       // Call API to end the room
       const response = await fetch(`${URL}/api/rooms/${roomId}/end`, {
@@ -105,7 +103,6 @@ useEffect(() => {
         return;
       }
 
-      console.log('Empty room ended successfully');
 
       // Leave the room
       await hmsActions.leave();
@@ -146,25 +143,17 @@ useEffect(() => {
 
     setPeers(sortedPeers);
 
-    // Log peer changes for debugging
-    if (currentPeers.length !== previousPeersRef.current.length) {
-      console.log(`Peers changed: ${previousPeersRef.current.length} -> ${currentPeers.length}`);
-    }
-
     // Check if room is empty and should be ended
     // Use a timer to ensure we don't end the room during transient states
     let emptyRoomTimer: NodeJS.Timeout | null = null;
 
     if (currentPeers.length === 0 && previousPeersRef.current.length > 0) {
-      console.log("Room appears to be empty, scheduling end check...");
       // Wait 10 seconds before ending the room to ensure it's really empty
       emptyRoomTimer = setTimeout(() => {
         // We'll re-use the latest allPeers value when the timeout executes
         if (allPeers.length === 0) {
-          console.log("Room confirmed empty after delay, ending room...");
           handleEmptyRoom();
         } else {
-          console.log("Room is no longer empty, cancelling end room action");
         }
       }, 10000); // 10 second delay
     }
@@ -176,7 +165,6 @@ useEffect(() => {
     return () => {
       if (emptyRoomTimer) {
         clearTimeout(emptyRoomTimer);
-        console.log("Cleared empty room check timer");
       }
     };
   }, [allPeers, removedPeers, handleEmptyRoom]);
@@ -213,10 +201,8 @@ useEffect(() => {
     async function getPermission() {
       try {
         await sdk.actions.requestCameraAndMicrophoneAccess();
-        console.log("Camera and microphone access granted");
         // You can now use camera and microphone in your mini app
       } catch (error) {
-        console.log("Camera and microphone access denied");
         // Handle the denial gracefully
       }
     }

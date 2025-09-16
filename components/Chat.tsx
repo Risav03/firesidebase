@@ -52,7 +52,6 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
           // }
         });
         const data = await response.json();
-        console.log("Room messages response:", data);
 
         if (data.success) {
           setRedisMessages(data.data.messages);
@@ -178,7 +177,6 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   // Always render, but control visibility through CSS classes
   const modalClass = `chat-modal ${isOpen ? 'open' : ''} ${isClosing ? 'closing' : ''}`;
 
-  console.log("Combined messages:", combinedMessages);
   return (
     <div
       ref={chatRef}

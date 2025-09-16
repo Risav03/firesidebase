@@ -31,7 +31,6 @@ const queryClient = new QueryClient();
 
 
 const Rainbow = ({ children }:{children:ReactNode}) => {
-  console.log("Rainbow component rendered");
   
   return (
     <WagmiProvider config={config}>

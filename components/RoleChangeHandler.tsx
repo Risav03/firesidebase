@@ -42,7 +42,6 @@ export default function RoleChangeHandler() {
         
         // Only handle local peer role changes
         if (peer.isLocal) {
-          console.log(`[RoleChangeHandler] Local role changed from ${lastRole.current} to ${newRole}`);
           
           // Prevent infinite loops and invalid role changes
           if (isRejoining.current || lastRole.current === newRole || !newRole) {
@@ -60,7 +59,6 @@ export default function RoleChangeHandler() {
           isRejoining.current = true;
 
           try {
-            console.log(`[RoleChangeHandler] Re-joining with new role: ${newRole}`);
             
             // Dispatch event to show re-joining state
             window.dispatchEvent(new CustomEvent('role_change_event', {
@@ -113,8 +111,6 @@ export default function RoleChangeHandler() {
                 fid: metadata.fid || ''
               })
             });
-
-            console.log(`[RoleChangeHandler] Successfully re-joined with role: ${newRole}`);
             
             // Dispatch event to show role change complete
             window.dispatchEvent(new CustomEvent('role_change_event', {
@@ -145,11 +141,9 @@ export default function RoleChangeHandler() {
       
       // Check if this is a host transfer reconnect message
       if (data && data.message === 'HOST_TRANSFER_RECONNECT') {
-        console.log('[RoleChangeHandler] Received host transfer reconnect message');
         
         // We only want to reconnect if we're the peer that was promoted to host
         if (localPeer && localPeer.roleName === 'co-host') {
-          console.log('[RoleChangeHandler] Co-host received reconnect message, initiating rejoin');
           
           // Force a page reload to properly reconnect with the new role
           window.location.reload();
