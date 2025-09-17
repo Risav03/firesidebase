@@ -12,6 +12,13 @@ import { ChatMessage } from "./ChatMessage";
 import { useGlobalContext } from "@/utils/providers/globalContext";
 import toast from "react-hot-toast";
 import sdk from "@farcaster/miniapp-sdk";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerClose,
+} from "./UI/drawer";
 
 interface ChatProps {
   isOpen: boolean;
@@ -21,16 +28,10 @@ interface ChatProps {
 
 export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   const [message, setMessage] = useState("");
-  const [isClosing, setIsClosing] = useState(false);
   const [redisMessages, setRedisMessages] = useState<RedisChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const chatRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Touch/swipe state
-  const [touchStart, setTouchStart] = useState<{ y: number; time: number } | null>(null);
-  const [touchEnd, setTouchEnd] = useState<{ y: number; time: number } | null>(null);
 
   const messages = useHMSStore(selectHMSMessages);
   const localPeer = useHMSStore(selectLocalPeer);
@@ -101,56 +102,6 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   useEffect(() => {
     adjustTextareaHeight();
   }, [message]);
-
-  // Handle closing animation
-  const handleClose = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      setIsChatOpen();
-      setIsClosing(false);
-    }, 400); // Match the CSS transition duration
-  };
-
-  // Swipe detection functions
-  const handleTouchStart = (e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    setTouchStart({
-      y: touch.clientY,
-      time: Date.now()
-    });
-    setTouchEnd(null);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    setTouchEnd({
-      y: touch.clientY,
-      time: Date.now()
-    });
-  };
-
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-
-    const deltaY = touchEnd.y - touchStart.y;
-    const deltaTime = touchEnd.time - touchStart.time;
-    const velocity = Math.abs(deltaY) / deltaTime;
-
-    // Swipe down detection: 
-    // - Must be downward (positive deltaY)
-    // - Must travel at least 100px
-    // - Must be completed within 800ms
-    // - Must have reasonable velocity (> 0.3px/ms)
-    const isSwipeDown = deltaY > 100 && deltaTime < 800 && velocity > 0.3;
-
-    if (isSwipeDown) {
-      handleClose();
-    }
-
-    // Reset touch state
-    setTouchStart(null);
-    setTouchEnd(null);
-  };
 
   const handleSendMessage = async () => {
     const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
@@ -291,59 +242,21 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
   // Always render, but control visibility through CSS classes
-  const modalClass = `chat-modal ${isOpen ? 'open' : ''} ${isClosing ? 'closing' : ''}`;
+  // const modalClass = `chat-modal ${isOpen ? 'open' : ''} ${isClosing ? 'closing' : ''}`;
 
   return (
-    <div
-      ref={chatRef}
-      className={modalClass}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      {/* Chat Header */}
-      <div className="chat-content chat-header bg-black/80 backdrop-blur-lg border-t-[1px] border-b-0 border-fireside-orange/60 px-4 py-4 rounded-t-lg flex">
-        <div className="flex items-center space-x-3 w-[50%]">
-          <div className="w-3 h-3 bg-fireside-orange rounded-full animate-pulse"></div>
-          <h3 className="font-semibold text-white">Room Chat</h3>
-          {/* <span className="text-xs text-white bg-gray-700 px-2 py-1 rounded-full">
-            {combinedMessages.length}
-          </span> */}
-        </div>
-        <div className="flex items-center space-x-2 justify-end w-[50%]">
-          <button
-            onClick={handleClose}
-            className="p-1 hover:bg-gray-100/20 bg-gray-100/10 rounded-lg transition-colors"
-            title="Close chat"
-          >
-            <svg
-              className="w-4 h-4 text-gray-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* Chat Messages */}
-      <div className="chat-content chat-messages bg-gray-100/5 backdrop-blur-sm min-h-[70vh] max-h-[70vh]">
-        {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-white text-sm">Loading messages...</div>
+    <Drawer open={isOpen} onOpenChange={setIsChatOpen} dismissible >
+      <DrawerContent className="bg-transparent border-orange-500/30 border-t-2">
+        {/* Chat Header */}
+        <div className="px-4 py-3 flex border-b border-gray-700/50">
+          <div className="flex items-center space-x-3 w-[50%]">
+            <div className="w-3 h-3 bg-fireside-orange rounded-full animate-pulse"></div>
+            <h3 className="font-semibold text-white">Room Chat</h3>
           </div>
-        ) : combinedMessages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center py-8">
-            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+          <div className="flex items-center space-x-2 justify-end w-[50%]">
+            {/* <DrawerClose className="p-1 hover:bg-gray-100/20 bg-gray-100/10 rounded-lg transition-colors">
               <svg
-                className="w-6 h-6 text-gray-400"
+                className="w-4 h-4 text-gray-600"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -352,81 +265,108 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                  d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
-            </div>
-            <p className="text-sm text-white mb-1">No messages yet</p>
-            <p className="text-xs text-gray-400">Start the conversation!</p>
+            </DrawerClose> */}
           </div>
-        ) : (
-          <>
-            {combinedMessages.map((msg) => {
-              // Compare the message userId with the current user's fid
-              const isOwn = msg.userId === user?.fid;
-              
-              return (
-                <ChatMessage
-                  key={msg.id}
-                  message={msg}
-                  isOwnMessage={isOwn}
-                />
-              );
-            })}
-            <div ref={messagesEndRef} />
-          </>
-        )}
-      </div>
-
-      <div className="w-full flex items-center justify-center absolute bottom-24"><div className="px-4 py-1 w-fit h-fit rounded-full bg-black/20 shadow-lg border-b-[0.5px] border-fireside-orange/60 text-[8px] text-white/70 backdrop-blur-sm">Swipe down to close</div></div>
-
-      {/* Chat Input */}
-      <div className="chat-content chat-input rounded-b-none bg-gray-800 border-0">
-        <div className="flex items-end space-x-3">
-          <div className="flex-1 items-center justify-center">
-            <textarea
-              ref={textareaRef}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Type a message..."
-              className="w-full px-4 py-3 bg-white/10 text-white rounded-2xl border border-white/50 focus:border-fireside-orange focus:ring-2 focus:ring-fireside-orange focus:ring-opacity-20 outline-none transition-all duration-200 text-base resize-none min-h-[48px] max-h-[120px] leading-relaxed"
-              maxLength={500}
-              rows={1}
-              style={{ 
-                transition: 'height 0.2s ease-out',
-                fontFamily: 'inherit',
-                lineHeight: '1.5'
-              }}
-            />
-          </div>
-          <button
-            onClick={handleSendMessage}
-            disabled={!message.trim()}
-            className="w-10 h-10 bg-fireside-orange text-white rounded-full flex items-center justify-center transition-all duration-200 hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95 flex-shrink-0 self-end mb-0"
-            title="Send message"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-              />
-            </svg>
-          </button>
         </div>
-        {message.length > 400 && (
-          <div className="text-xs text-gray-500 mt-1 text-right">
-            {message.length}/500
+
+        {/* Chat Messages */}
+        <div className="p-4 flex-grow overflow-y-auto h-[55vh]">
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-white text-sm">Loading messages...</div>
+            </div>
+          ) : combinedMessages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center py-8">
+              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+                <svg
+                  className="w-6 h-6 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                  />
+                </svg>
+              </div>
+              <p className="text-sm text-white mb-1">No messages yet</p>
+              <p className="text-xs text-gray-400">Start the conversation!</p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-4">
+                {combinedMessages.map((msg) => {
+                  // Compare the message userId with the current user's fid
+                  const isOwn = msg.userId === user?.fid;
+                  
+                  return (
+                    <ChatMessage
+                      key={msg.id}
+                      message={msg}
+                      isOwnMessage={isOwn}
+                    />
+                  );
+                })}
+              </div>
+              <div ref={messagesEndRef} />
+            </>
+          )}
+        </div>
+
+        {/* Chat Input */}
+        <div className="p-4 border-t border-gray-700/50">
+          <div className="flex items-center space-x-3">
+            <div className="flex-1">
+              <textarea
+                ref={textareaRef}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Type a message..."
+                className="w-full px-4 py-3 bg-white/10 text-white rounded-2xl border border-white/30 focus:border-fireside-orange focus:ring-2 focus:ring-fireside-orange focus:ring-opacity-20 outline-none resize-none min-h-[48px]"
+                maxLength={500}
+                rows={1}
+                style={{ 
+                  transition: 'height 0.2s ease-out',
+                  fontFamily: 'inherit',
+                  lineHeight: '1.5'
+                }}
+              />
+            </div>
+            <button
+              onClick={handleSendMessage}
+              disabled={!message.trim()}
+              className="w-10 h-10 bg-fireside-orange text-white rounded-full flex items-center justify-center transition-all hover:bg-fireside-orange/80 disabled:bg-gray-500 disabled:opacity-50"
+              title="Send message"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                />
+              </svg>
+            </button>
           </div>
-        )}
-      </div>
-    </div>
+          {message.length > 400 && (
+            <div className="text-xs text-gray-400 mt-1 text-right">
+              {message.length}/500
+            </div>
+          )}
+        </div>
+      </DrawerContent>
+    </Drawer>
   );
 }
