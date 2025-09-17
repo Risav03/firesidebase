@@ -258,7 +258,7 @@ export default function CallClient({ roomId }: CallClientProps) {
   const navigate = useNavigateWithLoader()
 
 
-  if (error !== "Failed to fetch room codes") {
+  if (error && error !== "Failed to fetch room codes") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
