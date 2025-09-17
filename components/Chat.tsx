@@ -246,7 +246,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
   return (
     <Drawer open={isOpen} onOpenChange={setIsChatOpen} dismissible >
-      <DrawerContent className="bg-transparent border-orange-500/30 border-t-2">
+      <DrawerContent className="bg-transparent border-orange-500/30 border-t-2 border-x-0 border-b-0">
         {/* Chat Header */}
         <div className="px-4 py-3 flex border-b border-gray-700/50">
           <div className="flex items-center space-x-3 w-[50%]">
