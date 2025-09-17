@@ -37,6 +37,8 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   const hmsActions = useHMSActions();
   const { user } = useGlobalContext();
 
+  console.log(localPeer)
+
   useEffect(() => {
     const loadMessages = async () => {
       if (!roomId) return;
@@ -164,7 +166,13 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
     try {
       // Send to HMS for real-time broadcast
-      hmsActions.sendBroadcastMessage(messageText);
+      // Format the message to include user fid for identification
+      const messageWithMetadata = JSON.stringify({
+        text: messageText,
+        userFid: user.fid,
+        type: 'chat'
+      });
+      hmsActions.sendBroadcastMessage(messageWithMetadata);
 
       const env = process.env.NEXT_PUBLIC_ENV;
         
@@ -217,7 +225,16 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
     if ('timestamp' in msg && 'message' in msg && typeof msg.message === 'string') return true;
     
     // For HMS messages
-    if ('time' in msg && 'message' in msg && typeof msg.message === 'string') return true;
+    if ('time' in msg && 'message' in msg) {
+      // Check if the message is a JSON string containing our metadata
+      try {
+        const parsedMessage = JSON.parse(msg.message);
+        return typeof parsedMessage === 'object' && 'text' in parsedMessage;
+      } catch (e) {
+        // If it's not parseable as JSON, check if it's a plain string message
+        return typeof msg.message === 'string';
+      }
+    }
     
     return false;
   };
@@ -229,22 +246,46 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       if (!isValidMessageStructure(msg)) return false;
       
       // Check if this message already exists in Redis
+      // For HMS messages that contain JSON, we need to extract the text part
+      let messageText;
+      try {
+        const parsedMsg = JSON.parse(msg.message);
+        messageText = parsedMsg.text;
+      } catch (e) {
+        messageText = msg.message;
+      }
+
       return !validRedisMessages.some(redisMsg =>
-        redisMsg.message === msg.message &&
+        redisMsg.message === messageText &&
         Math.abs(new Date(redisMsg.timestamp).getTime() - msg.time.getTime()) < 5000
       );
     })
-    .map(hmsMsg => ({
-      id: `hms_${hmsMsg.id}`,
-      roomId: roomId,
-      userId: user.fid || hmsMsg.sender || 'unknown',
-      username: hmsMsg.senderName || hmsMsg.sender || 'Unknown',
-      displayName: hmsMsg.senderName || hmsMsg.sender || 'Unknown',
-      pfp_url: '',
-      message: hmsMsg.message,
-      timestamp: hmsMsg.time.toISOString(),
-      type: 'text' as const
-    }));
+    .map(hmsMsg => {
+      // Try to parse the message as JSON to extract user fid
+      let messageText = hmsMsg.message;
+      let messageFid = '';
+      
+      try {
+        const parsedMsg = JSON.parse(hmsMsg.message);
+        messageText = parsedMsg.text;
+        messageFid = parsedMsg.userFid || '';
+      } catch (e) {
+        // If parsing fails, use the message as is
+        messageText = hmsMsg.message;
+      }
+      
+      return {
+        id: `hms_${hmsMsg.id}`,
+        roomId: roomId,
+        userId: messageFid || user.fid || hmsMsg.sender || 'unknown',
+        username: hmsMsg.senderName || hmsMsg.sender || 'Unknown',
+        displayName: hmsMsg.senderName || hmsMsg.sender || 'Unknown',
+        pfp_url: '',
+        message: messageText,
+        timestamp: hmsMsg.time.toISOString(),
+        type: 'text' as const
+      };
+    });
 
   const combinedMessages = [...validRedisMessages, ...validHMSMessages]
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
@@ -321,11 +362,9 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         ) : (
           <>
             {combinedMessages.map((msg) => {
-              // For Redis messages, check against user fid; for HMS messages, check against peer name
-              const isOwn = msg.userId === user?.fid
-
-              console.log(msg, user);
-
+              // Compare the message userId with the current user's fid
+              const isOwn = msg.userId === user?.fid;
+              
               return (
                 <ChatMessage
                   key={msg.id}
