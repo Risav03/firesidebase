@@ -117,14 +117,7 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
       }
 
       sendEvent({message: "Room has been ended by the host."});
-//       const reason = 'Host ended the room'; // Reason to end the room
-// const lock = true;
 
-//       await hmsActions.endRoom(lock, reason);
-      // Wait 2 seconds before leaving
-      setTimeout(async () => {
-        router.push('/');
-      }, 2000);
     } catch (error) {
       console.error('Error ending room:', error);
       setError(error instanceof Error ? error.message : 'Failed to end room. Please try again.');
