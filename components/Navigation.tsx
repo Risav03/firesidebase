@@ -20,16 +20,16 @@ export default function Navigation() {
   const isHomePage = pathname === '/';
   const isProfilePage = pathname === '/profile';
 
-  // Position the indicator based on active tab
-  useEffect(() => {
-    if (indicatorRef.current) {
-      if (isHomePage) {
-        indicatorRef.current.style.transform = 'translateX(0)';
-      } else if (isProfilePage) {
-        indicatorRef.current.style.transform = 'translateX(200%)';
-      }
-    }
-  }, [isHomePage, isProfilePage]);
+  // Since we're using inline styling, we can remove this effect
+  // useEffect(() => {
+  //   if (indicatorRef.current) {
+  //     if (isHomePage) {
+  //       indicatorRef.current.style.transform = 'translateX(0%)';
+  //     } else if (isProfilePage) {
+  //       indicatorRef.current.style.transform = 'translateX(200%)';
+  //     }
+  //   }
+  // }, [pathname, isHomePage, isProfilePage]);
 
   const handleCreateRoom = () => {
     setShowCreateModal(true);
@@ -54,7 +54,8 @@ export default function Navigation() {
               className="absolute bottom-0 w-1/3 h-1 gradient-fire transition-transform duration-300 ease-in-out"
               style={{ 
                 bottom: '-8px',
-                opacity: isHomePage || isProfilePage ? 1 : 0
+                opacity: isHomePage || isProfilePage ? 1 : 0,
+                transform: isHomePage ? 'translateX(0%)' : isProfilePage ? 'translateX(200%)' : 'translateX(0%)'
               }}
             />
           </div>

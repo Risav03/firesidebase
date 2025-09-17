@@ -3,10 +3,11 @@
 import { HMSRoomProvider } from "@100mslive/react-sdk";
 import { MiniKitProvider } from "@coinbase/onchainkit/minikit";
 import { base } from "wagmi/chains";
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { Toaster } from "react-hot-toast";
 import Rainbow from "./rainbow";
 import { GlobalProvider } from "./globalContext";
+import { initViewportFix } from "../viewport";
 
 interface ProvidersProps {
   children: ReactNode;
@@ -15,6 +16,12 @@ interface ProvidersProps {
 import ProgressBar from "@/components/UI/ProgressBar";
 
 export default function Providers({ children }: ProvidersProps) {
+  // Initialize viewport fix for mobile
+  useEffect(() => {
+    const cleanup = initViewportFix();
+    return cleanup;
+  }, []);
+
   return (
     <>
       <ProgressBar />

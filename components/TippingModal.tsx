@@ -57,6 +57,12 @@ export default function TippingModal({
   const [selectedTip, setSelectedTip] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [availableRoles, setAvailableRoles] = useState<Record<string, boolean>>({
+    host: false,
+    "co-host": false,
+    speaker: false,
+    listener: false
+  });
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { user } = useGlobalContext();
@@ -83,6 +89,22 @@ export default function TippingModal({
             );
 
             setParticipants(activeParticipants);
+            
+            // Process participants to determine which roles are available
+            const rolePresence: Record<string, boolean> = {
+              host: false,
+              "co-host": false,
+              speaker: false,
+              listener: false
+            };
+            
+            activeParticipants.forEach((participant: Participant) => {
+              if (participant.role && rolePresence.hasOwnProperty(participant.role)) {
+                rolePresence[participant.role] = true;
+              }
+            });
+            
+            setAvailableRoles(rolePresence);
           }
         })
         .catch((error) => console.error("Error fetching participants:", error))
@@ -455,6 +477,11 @@ export default function TippingModal({
   };
 
   const handleRoleSelection = (role: string) => {
+    // Skip if the role has no participants
+    if (!availableRoles[role]) {
+      return;
+    }
+    
     if (selectedRoles.includes(role)) {
       setSelectedRoles((prev) => prev.filter((r) => r !== role));
     } else {
@@ -494,10 +521,14 @@ export default function TippingModal({
                   <button
                     key={role}
                     onClick={() => handleRoleSelection(role)}
+                    disabled={!availableRoles[role]}
+                    title={!availableRoles[role] ? `No ${role}s in this room` : `Select all ${role}s`}
                     className={`px-4 py-2 rounded-lg font-semibold flex-1 transition-colors text-white ${
                       selectedRoles.includes(role)
                         ? "gradient-fire border-white border-2"
-                        : "bg-white/10 border-transparent hover:bg-white/20"
+                        : availableRoles[role]
+                          ? "bg-white/10 border-transparent hover:bg-white/20"
+                          : "bg-white/5 border-transparent text-white/50 cursor-not-allowed"
                     }`}
                   >
                     {role}

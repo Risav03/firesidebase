@@ -30,16 +30,22 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
   
   // Check if this is the local user
   const isLocalUser = peer.id === localPeer?.id;
+  
+  // Check if target peer is a host (to prevent co-hosts from accessing host's context menu)
+  const isTargetPeerHost = peer.roleName === 'host';
+  
+  // Check if local user is co-host trying to access host's menu (not allowed)
+  const isCoHostTryingToAccessHost = localPeer?.roleName === 'co-host' && isTargetPeerHost;
 
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
   useEffect(() => {
-    if (isVisible) {
+    if (isVisible && !isCoHostTryingToAccessHost) {
       setIsOpen(true);
       // Prevent body scroll when modal is open
       document.body.style.overflow = 'hidden';
     }
-  }, [isVisible]);
+  }, [isVisible, isCoHostTryingToAccessHost]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -50,11 +56,14 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
 
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      // Restore body scroll when modal is not open
+      document.body.style.overflow = 'unset';
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      // Restore body scroll when modal closes
+      // Restore body scroll when component unmounts
       document.body.style.overflow = 'unset';
     };
   }, [isOpen, onClose]);
@@ -221,7 +230,8 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
   const isMuted = !isPeerAudioEnabled;
 
   // Only return nothing if we're not a host OR if this is the local user
-  if (!isHostOrCoHost || isLocalUser) {
+  // OR if we're a co-host trying to access the host's menu
+  if (!isHostOrCoHost || isLocalUser || isCoHostTryingToAccessHost) {
     return null;
   }
 
@@ -229,7 +239,7 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
     <>
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
         onClick={onClose}
       />
       
