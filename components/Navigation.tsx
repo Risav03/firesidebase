@@ -125,12 +125,12 @@ export default function Navigation() {
       </nav>
 
       {/* Create Room Modal */}
-      {showCreateModal && (
+      {/* {showCreateModal && ( */}
         <CreateRoomModal
           isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
         />
-      )}
+      {/* )} */}
     </>
   );
 }

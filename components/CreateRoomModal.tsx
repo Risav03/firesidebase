@@ -6,6 +6,7 @@ import { useGlobalContext } from '@/utils/providers/globalContext';
 import toast from 'react-hot-toast';
 import { topics } from '@/utils/constants';
 import sdk from "@farcaster/miniapp-sdk";
+import Modal from '@/components/UI/Modal';
 
 interface CreateRoomModalProps {
   isOpen: boolean;
@@ -86,21 +87,18 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-screen overflow-y-auto">
+    <Modal isOpen={isOpen} onClose={onClose}>
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-white">Create New Room</h2>
-          <button
+          <h2 className="text-2xl font-semibold text-white">Create New Room</h2>
+          {/* <button
             onClick={onClose}
             className="text-gray-400 hover:text-white"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
-          </button>
+          </button> */}
         </div>
         
         <form onSubmit={createRoom} className="space-y-4">
@@ -119,7 +117,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                   setNameError('');
                 }
               }}
-              className={`w-full px-3 py-2 bg-gray-700 border ${nameError ? 'border-red-500' : 'border-gray-600'} rounded-md text-white`}
+              className={`w-full bg-white/10 text-white p-2 rounded-lg border ${nameError ? 'border-red-500' : 'border-orange-500/30'} focus:outline-none focus:border-orange-500 transition-colors`}
               required
             />
             {nameError && <p className="text-red-500 text-sm mt-1">{nameError}</p>}
@@ -132,7 +130,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
+              className="w-full bg-white/10 text-white p-2 rounded-lg border border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors"
               rows={3}
             />
           </div>
@@ -161,7 +159,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                   <button
                     type="button"
                     key={tag}
-                    className={`px-3 py-1 rounded-full border text-sm transition-colors ${selectedTags.includes(tag) ? 'gradient-fire font-bold text-white border-none' : 'bg-gray-700 text-gray-300 border-gray-500'} ${selectedTags.length >= 3 && !selectedTags.includes(tag) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`px-3 py-1 rounded-full border text-sm transition-colors ${selectedTags.includes(tag) ? 'gradient-fire font-bold text-white border-none' : 'bg-white/5 text-gray-300 border-orange-500/30'} ${selectedTags.length >= 3 && !selectedTags.includes(tag) ? 'opacity-50 cursor-not-allowed' : ''}`}
                     onClick={() => {
                       if (selectedTags.includes(tag)) {
                         setSelectedTags(selectedTags.filter(t => t !== tag));
@@ -183,7 +181,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+              className="flex-1 bg-white/10 hover:bg-white/10 text-white font-medium py-2 px-4 rounded-md transition-colors"
             >
               Cancel
             </button>
@@ -196,7 +194,6 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

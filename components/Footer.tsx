@@ -615,13 +615,13 @@ export default function Footer({ roomId }: { roomId: string }) {
       </div>
 
       {/* Tipping Modal */}
-      {isTippingModalOpen && (
+      {/* {isTippingModalOpen && ( */}
         <TippingModal
           isOpen={isTippingModalOpen}
           onClose={() => setIsTippingModalOpen(false)}
           roomId={roomId}
         />
-      )}
+      {/* )} */}
 
       {/* Ads Modal */}
       <AdsModal participants={room.peerCount || 0} isAdsModalOpen={isAdsModalOpen} setIsAdsModalOpen={setIsAdsModalOpen} isHost={isHost} adsEnabled={adsEnabled} setAdsEnabled={setAdsEnabled} />

@@ -20,6 +20,7 @@ import sdk from "@farcaster/miniapp-sdk";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import { encodeFunctionData, numberToHex } from "viem";
 import { erc20Abi } from "@/utils/contract/abis/erc20abi";
+import Modal from "@/components/UI/Modal";
 import {
   createBaseAccountSDK,
   getCryptoKeyAccount,
@@ -471,50 +472,29 @@ export default function TippingModal({
     setSelectedRoles([]); // Clear role selection when users are selected
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black w-screen h-screen overflow-hidden bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-black/30 backdrop-blur-lg border border-orange-500/50 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-        {false ? (
-          <div className="w-full flex items-center justify-center">
-            {" "}
-            <CustomConnect />{" "}
-          </div>
-        ) : (
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth="max-w-md">
+      {false ? (
+        <div className="w-full flex items-center justify-center">
+          {" "}
+          <CustomConnect />{" "}
+        </div>
+      ) : (
           <>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-white">Send a Tip</h2>
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-white"
-              >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
             </div>
 
             <div className="mb-6">
               <label className="block text-lg font-bold text-orange-400 mb-3">
                 Select multiple roles
               </label>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 grid-flow-row gap-2">
                 {["host", "co-host", "speaker", "listener"].map((role) => (
                   <button
                     key={role}
                     onClick={() => handleRoleSelection(role)}
-                    className={`px-4 py-2 rounded-lg font-semibold transition-colors text-white ${
+                    className={`px-4 py-2 rounded-lg font-semibold flex-1 transition-colors text-white ${
                       selectedRoles.includes(role)
                         ? "gradient-fire border-white border-2"
                         : "bg-white/10 border-transparent hover:bg-white/20"
@@ -679,11 +659,11 @@ export default function TippingModal({
               <button
                 onClick={() => handleETHTip()}
                 disabled={isLoading}
-                className={`flex-1 text-white bg-white/10 hover:bg-white/20 font-semibold py-3 px-4 rounded-lg transition-colors border border-white/20 hover:border-white/40 ${
+                className={`flex-1 text-white bg-indigo-400 text-nowrap font-semibold py-3 px-4 rounded-lg transition-colors border border-white/20 hover:border-white/40 ${
                   isLoading ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
-                <span className="flex gap-2 items-center justify-center">
+                <span className="flex gap-2 items-center justify-center text-nowrap">
                   {isLoading ? (
                     <RiLoader5Fill className="animate-spin" />
                   ) : (
@@ -695,11 +675,11 @@ export default function TippingModal({
               <button
                 onClick={() => handleUSDCTip()}
                 disabled={isLoading}
-                className={`flex-1 gradient-fire text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 ${
+                className={`flex-1 gradient-fire text-white font-semibold text-nowrap py-3 px-4 rounded-lg transition-colors disabled:opacity-50 ${
                   isLoading ? "cursor-not-allowed" : ""
                 }`}
               >
-                <span className="flex gap-2 items-center justify-center">
+                <span className="flex gap-2 items-center justify-center text-nowrap">
                   {isLoading ? (
                     <RiLoader5Fill className="animate-spin" />
                   ) : (
@@ -711,7 +691,6 @@ export default function TippingModal({
             </div>
           </>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 }
