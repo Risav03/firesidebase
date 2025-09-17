@@ -14,6 +14,7 @@ import RoleChangeHandler from "@/components/RoleChangeHandler";
 import { Loader } from "@/components/Loader";
 import toast from "react-hot-toast";
 import sdk from "@farcaster/miniapp-sdk";
+import { useNavigateWithLoader } from "@/utils/useNavigateWithLoader";
 
 interface RoomCode {
   id: string;
@@ -254,8 +255,10 @@ export default function CallClient({ roomId }: CallClientProps) {
     };
   }, [user, roomId]);
 
+  const navigate = useNavigateWithLoader()
 
-  if (error) {
+
+  if (error !== "Failed to fetch room codes") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -264,7 +267,25 @@ export default function CallClient({ roomId }: CallClientProps) {
           </h1>
           <p className="text-red-400 mb-4">{error}</p>
           <button
-            onClick={() => window.history.back()}
+            onClick={() => navigate("/")}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if(error === "Failed to fetch room codes") {
+     return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-white mb-4">
+            Room has already ended
+          </h1>
+          <button
+            onClick={() => navigate("/")}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
           >
             Go Back

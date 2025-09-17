@@ -63,6 +63,9 @@ module.exports = {
       },
       animation: {
         'slide-up': 'slide-up 0.3s ease-out'
+      },
+      height: {
+        'screen-real': 'calc(var(--vh, 1vh) * 100)',
       }
     },
   },

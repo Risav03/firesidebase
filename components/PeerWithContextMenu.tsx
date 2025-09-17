@@ -19,9 +19,16 @@ export default function PeerWithContextMenu({ peer }: PeerWithContextMenuProps) 
   
   // Check if this is the local user
   const isLocalUser = peer.id === localPeer?.id;
+  
+  // Check if target peer is a host (to prevent co-hosts from accessing host's context menu)
+  const isTargetPeerHost = peer.roleName === 'host';
+  
+  // Check if local user is co-host trying to access host's menu (not allowed)
+  const isCoHostTryingToAccessHost = localPeer?.roleName === 'co-host' && isTargetPeerHost;
 
   const handlePeerClick = (event: React.MouseEvent) => {
-    if (!isHostOrCoHost || isLocalUser) return;
+    // Prevent co-hosts from accessing host's context menu
+    if (!isHostOrCoHost || isLocalUser || isCoHostTryingToAccessHost) return;
 
     event.preventDefault();
     event.stopPropagation();
@@ -38,7 +45,7 @@ export default function PeerWithContextMenu({ peer }: PeerWithContextMenuProps) 
         <Peer peer={peer} />
       </div>
 
-      {isHostOrCoHost && !isLocalUser && (<UserContextMenu
+      {isHostOrCoHost && !isLocalUser && !isCoHostTryingToAccessHost && (<UserContextMenu
         peer={peer}
         isVisible={showContextMenu}
         onClose={handleContextMenuClose}
