@@ -19,6 +19,7 @@ type FetchOptions = {
  */
 export async function fetchAPI(url: string, options: FetchOptions = {}) {
   try {
+    console.log(`Server fetch to: ${url} with options:`, options);
     const {
       method = 'GET',
       body,
