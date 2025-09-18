@@ -56,6 +56,8 @@ export async function fetchAPI(url: string, options: FetchOptions = {}) {
     
     // Parse response
     const data = await response.json();
+
+    console.log("response", data);    
     
     // Return formatted response
     return {
