@@ -15,6 +15,7 @@ import { Loader } from "@/components/Loader";
 import toast from "react-hot-toast";
 import sdk from "@farcaster/miniapp-sdk";
 import { useNavigateWithLoader } from "@/utils/useNavigateWithLoader";
+import { fetchAPI, fetchRoomCodes, addParticipantToRoom, removeParticipantFromRoom } from "@/utils/serverActions";
 
 interface RoomCode {
   id: string;
@@ -60,22 +61,20 @@ export default function CallClient({ roomId }: CallClientProps) {
 
        
 
-        const response = await fetch(`${URL}/api/rooms/public/${roomId}/codes`);
-        const data = await response.json();
-
-        if (!data.success) {
-          throw new Error(data.error || "Failed to fetch room codes");
+        const response = await fetchRoomCodes(roomId);
+        
+        if (!response.ok) {
+          throw new Error(response.data.error || "Failed to fetch room codes");
         }
 
-        const roomCodes: RoomCode[] = data.data.roomCodes;
+        const roomCodes: RoomCode[] = response.data.data.roomCodes;
 
         let roomCode = "";
         let role = "listener";
 
-        const roomResponse = await fetch(`${URL}/api/rooms/public/${roomId}`);
-        const roomData = await roomResponse.json();
+        const roomResponse = await fetchAPI(`${URL}/api/rooms/public/${roomId}`);
 
-        if (roomData.success && roomData.data.room.host._id === user._id) {
+        if (roomResponse.ok && roomResponse.data.data.room.host._id === user._id) {
           const hostCode = roomCodes.find((code) => code.role === "host");
           if (hostCode) {
             roomCode = hostCode.code;
@@ -85,24 +84,18 @@ export default function CallClient({ roomId }: CallClientProps) {
 
         if (!roomCode) {
           try {
-            const response = await fetch(
+            const response = await fetchAPI(
               `${URL}/api/rooms/protected/${roomId}/my-code`,
               {
-                method: "GET",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
+                authToken: token
               }
             );
 
-            const data = await response.json();
-
-            if (data.success) {
-              roomCode = data.data.code;
-              role = data.data.role;
+            if (response.ok && response.data.success) {
+              roomCode = response.data.data.code;
+              role = response.data.data.role;
             } else {
-              console.error("Failed to get user role:", data.error);
+              console.error("Failed to get user role:", response.data.error);
               // Fallback to listener role
               const listenerCode = roomCodes.find(
                 (code) => code.role === "listener"
@@ -178,28 +171,21 @@ export default function CallClient({ roomId }: CallClientProps) {
         };
 
         try {
-          const response = await fetch(
-            `${URL}/api/rooms/protected/${roomId}/join`,
+          const response = await addParticipantToRoom(
+            roomId,
             {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                userFid: user.fid,
-                role: role || "listener",
-              }),
-            }
+              userFid: user.fid,
+              role: role || "listener",
+            },
+            token
           );
 
-          const data = await response.json();
-          if (data.success) {
+          if (response.ok && response.data.success) {
             // User added to Redis participants
           } else {
             console.error(
               "Failed to add user to Redis participants:",
-              data.error
+              response.data.error
             );
           }
         } catch (error) {
@@ -224,16 +210,13 @@ export default function CallClient({ roomId }: CallClientProps) {
 
       if (user?.fid) {
         try {
-          await fetch(`${URL}/api/rooms/protected/${roomId}/leave`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
+          await removeParticipantFromRoom(
+            roomId,
+            {
               userFid: user.fid,
-            }),
-          });
+            },
+            token
+          );
           // User removed from Redis participants
         } catch (error) {
           console.error("Error removing participant from Redis:", error);

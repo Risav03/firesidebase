@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { FaArrowLeft, FaPlay, FaPause, FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
+import { fetchRoomRecordings } from '@/utils/serverActions';
 
 interface RecordingResponse {
   success: boolean;
@@ -30,17 +31,16 @@ export default function RecordingsPage() {
   const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    const fetchRecordings = async () => {
+    const fetchRecordingsData = async () => {
       try {
-        const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
         setLoading(true);
-        const response = await fetch(`${URL}/api/rooms/public/${roomId}/recordings`);
+        const response = await fetchRoomRecordings(roomId);
 
         if (!response.ok) {
           throw new Error('Failed to fetch recordings');
         }
         
-        const data = await response.json();
+        const data = response.data;
         if (data.success && data.data.recordings.length > 0) {
           setRecordings(data.data.recordings);
           setSelectedRecording(data.data.recordings[0]);
@@ -56,7 +56,7 @@ export default function RecordingsPage() {
     };
 
     if (roomId) {
-      fetchRecordings();
+      fetchRecordingsData();
     }
   }, [roomId]);
 

@@ -12,6 +12,12 @@ import TopicSelector from "./TopicSelector";
 import CreateRoomModal from "./CreateRoomModal";
 import sdk from "@farcaster/miniapp-sdk";
 import { useRouter } from "next/navigation";
+import { 
+  updateUserTopics, 
+  fetchUserByHandle, 
+  fetchRoomsByTopics, 
+  fetchAllRooms 
+} from "@/utils/serverActions";
 
 interface Room {
   _id: string;
@@ -56,7 +62,6 @@ export default function Explore({ rooms }: ExploreProps) {
   // Handle topic selection and PATCH request
   const handleTopicSubmit = async (selectedTopics: string[]) => {
     try {
-      const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
       var token: any = "";
       const env = process.env.NEXT_PUBLIC_ENV;
 
@@ -64,26 +69,18 @@ export default function Explore({ rooms }: ExploreProps) {
         token = ((await sdk.quickAuth.getToken()).token);
       }
 
-      const res = await fetch(`${URL}/users/protected/topics`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({ topics: selectedTopics }),
-      });
-      const data = await res.json();
-      if (data.success) {
+      const res = await updateUserTopics(selectedTopics, token);
+      
+      if (res.data.success) {
         toast.success("Topics updated!");
+        
         // Refetch user
-        const userRes = await fetch(`${URL}/users/protected/handle`, {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${token}` },
-        });
-        const userData = await userRes.json();
-        setUser(userData.data.user);
+        const userData = await fetchUserByHandle(token);
+        if (userData.data.success) {
+          setUser(userData.data.data.user);
+        }
       } else {
-        toast.error(data.error || "Failed to update topics");
+        toast.error(res.data.error || "Failed to update topics");
       }
     } catch (err) {
       toast.error("Error updating topics");
@@ -96,36 +93,30 @@ export default function Explore({ rooms }: ExploreProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   // Fetch rooms by user's topics
   useEffect(() => {
-    const fetchRoomsByTopics = async () => {
-      const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+    const getRoomsByTopics = async () => {
       if (user?.topics?.length > 0) {
         try {
-          const res = await fetch(`${URL}/api/rooms/public/by-topics`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ topics: user.topics }),
-          });
-          const data = await res.json();
-          if (data.success) {
-            setTopicRooms(data.data.rooms);
+          const res = await fetchRoomsByTopics(user.topics);
+          
+          if (res.data.success) {
+            setTopicRooms(res.data.data.rooms);
           }
         } catch (err) {
           setTopicRooms([]);
         }
       }
     };
-    fetchRoomsByTopics();
+    getRoomsByTopics();
   }, [user?.topics]);
 
   // Refresh rooms client-side
   const refreshRooms = async () => {
     try {
-      const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
       setLoading(true);
-      const response = await fetch(`${URL}/api/rooms/public/`);
-      const data = await response.json();
-      if (data.success) {
-        setLocalRooms(data.data.rooms);
+      const response = await fetchAllRooms();
+      
+      if (response.data.success) {
+        setLocalRooms(response.data.data.rooms);
         toast.success("Rooms refreshed!");
       }
     } catch (error) {

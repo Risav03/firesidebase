@@ -4,6 +4,7 @@ import NavigationWrapper from '@/components/NavigationWrapper';
 import NotificationDrawer from '@/components/NotificationDrawer';
 import TopRooms from '@/components/TopRooms';
 import MainHeader from '@/components/UI/MainHeader';
+import { fetchAPI } from '@/utils/serverActions';
 import { Metadata } from 'next';
 import { Suspense } from 'react';
 
@@ -49,13 +50,12 @@ export async function generateMetadata(): Promise<Metadata> {
 async function fetchRooms(): Promise<Room[]> {
   try {
     const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-    const response = await fetch(`${URL}/api/rooms/public`, {
-      cache: 'no-store'
+    const response = await fetchAPI(`${URL}/api/rooms/public`, { 
+      cache: 'no-store' 
     });
-    const data = await response.json();
     
-    if (data.success) {
-      return data.data.rooms;
+    if (response.ok && response.data.success) {
+      return response.data.data.rooms;
     }
     return [];
   } catch (error) {
