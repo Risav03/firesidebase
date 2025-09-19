@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useGlobalContext } from '@/utils/providers/globalContext';
 import sdk from "@farcaster/miniapp-sdk";
 import Modal from '@/components/UI/Modal';
+import { endProtectedRoom } from '@/utils/serverActions';
 
 interface RoomEndModalProps {
   isVisible: boolean;
@@ -93,28 +94,21 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
   const handleEndRoomConfirm = async () => {
     const env = process.env.NEXT_PUBLIC_ENV;
         
-        var token: any = "";
-        if (env !== "DEV") {
-          token = (await sdk.quickAuth.getToken()).token;
-        };
+    var token: any = "";
+    if (env !== "DEV") {
+      token = (await sdk.quickAuth.getToken()).token;
+    };
+    
     try {
       setError(null);
       setAction('end');
       setIsLoading(true);
 
       // Call our API to end the room
-      const response = await fetch(`${URL}/api/rooms/protected/${roomId}/end`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ userId: user._id }),
-      });
+      const response = await endProtectedRoom(roomId, user._id, token);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to end room');
+        throw new Error(response.data.error || 'Failed to end room');
       }
 
       sendEvent({message: "Room has been ended by the host."});

@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { topics } from '@/utils/constants';
 import sdk from "@farcaster/miniapp-sdk";
 import Modal from '@/components/UI/Modal';
+import { createRoom } from '@/utils/serverActions';
 
 interface CreateRoomModalProps {
   isOpen: boolean;
@@ -25,7 +26,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
   const { user } = useGlobalContext();
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
-  const createRoom = async (e: React.FormEvent) => {
+  const createRoomHandler = async (e: React.FormEvent) => {
     e.preventDefault();
     // Allow all characters in room name
     if (formData.name.trim() === '') {
@@ -46,37 +47,29 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
       toast.loading('Creating room...');
       const env = process.env.NEXT_PUBLIC_ENV;
 
-      let token
+      let token: any = null;
       if (env !== "DEV") {
         token = (await sdk.quickAuth.getToken()).token;
       }
 
-      const response = await fetch(`${URL}/api/rooms/protected`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          ...formData,
-          host: user?.fid || '',
-          startTime: new Date().toISOString(),
-          topics: selectedTags
-        }),
-      });
+      const response = await createRoom({
+        ...formData,
+        host: user?.fid || '',
+        startTime: new Date().toISOString(),
+        topics: selectedTags
+      }, token);
       
-      const data = await response.json();
-      if (data.success) {
+      if (response.data.success) {
         toast.dismiss();
         toast.success('Room created successfully! Redirecting...');
         setFormData({ name: '', description: '' });
         setSelectedTags([]);
         onClose();
         // Redirect to the room page
-        navigate('/call/' + data.data._id);
+        navigate('/call/' + response.data.data._id);
       } else {
         toast.dismiss();
-        toast.error('Error creating room: ' + data.error);
+        toast.error('Error creating room: ' + response.data.error);
       }
     } catch (error) {
       console.error('Error creating room:', error);
@@ -101,7 +94,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
           </button> */}
         </div>
         
-        <form onSubmit={createRoom} className="space-y-4">
+        <form onSubmit={createRoomHandler} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Room Name*

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { IoIosArrowBack } from 'react-icons/io';
+import { fetchAPI } from '@/utils/serverActions';
 
 interface Props {
 	params: { username: string };
@@ -9,11 +10,11 @@ export default async function UserProfilePage({ params }: Props) {
 	const { username } = params;
 	const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 	// Fetch user and rooms via API
-	const res = await fetch(`${URL}/api/users/public/username/${username}`);
-	if (!res.ok) {
+	const response = await fetchAPI(`${URL}/api/users/public/username/${username}`);
+	if (!response.ok) {
 		return <div className="text-center py-10 text-red-500">User not found</div>;
 	}
-	const { user, rooms } = await res.json();
+	const { user, rooms } = response.data;
 
 	return (
 		<div className="max-w-2xl mx-auto p-4 text-white min-h-screen">

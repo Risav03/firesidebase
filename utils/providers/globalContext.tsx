@@ -12,6 +12,7 @@ import React, {
 } from "react";
 import { generateNonce } from "@farcaster/auth-client";
 import { useAddFrame, useNotification } from "@coinbase/onchainkit/minikit";
+import { fetchAPI } from "@/utils/serverActions";
 
 interface GlobalContextProps {
   user: any;
@@ -44,14 +45,12 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
       
       if (result) {
-        await fetch(`${URL}/api/protected/user/handle`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
+        await fetchAPI(`${URL}/api/protected/user/handle`, {
+          method: 'PATCH',
+          body: {
             token: result.token || Date.now(),
-          }),
+          },
+          authToken: token
         });
 
         await sendNotification({
@@ -102,7 +101,6 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
 
   const handleSignIn = useCallback(async (): Promise<void> => {
     try {
-
       const env = process.env.NEXT_PUBLIC_ENV;
       var token:any ;
       if (env !== "DEV" && !token) {
@@ -113,20 +111,17 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
         token = ((await sdk.quickAuth.getToken()).token);
       }
 
-      const createUserRes = await fetch(
-        `${URL}/api/users/protected/handle`,
-        {
-          method: "POST",
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
-        }
-      );
+      const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      const createUserRes = await fetchAPI(`${URL}/api/users/protected/handle`, {
+        method: 'POST',
+        authToken: token
+      });
 
       if (!createUserRes.ok) {
-        console.error("Failed to create user:", await createUserRes.text());
+        console.error("Failed to create user:", createUserRes.data);
       }
-      const localUser = (await createUserRes.json()).data.user;
+      
+      const localUser = createUserRes.data.data.user;
       setUser(localUser);
 
       if(!localUser?.token || localUser?.token === ""){

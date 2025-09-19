@@ -16,6 +16,7 @@ import { useGlobalContext } from "@/utils/providers/globalContext";
 import { useHMSNotifications, HMSNotificationTypes } from '@100mslive/react-sdk';
 import RoomEndScreen from "./RoomEndScreen";
 import toast from "react-hot-toast";
+import { fetchRoomDetails, endRoom } from "@/utils/serverActions";
 
 
 export default function Conference({ roomId }: { roomId: string }) {
@@ -67,15 +68,21 @@ useEffect(() => {
   }, [notification])
 
   useEffect(() => {
-    async function fetchRoomDetails() {
-      const response = await fetch(`${URL}/api/rooms/public/${roomId}`);
-      const data = await response.json();
-      if (data.success) {
-        setRoomDetails({ name: data.data.room.name, description: data.data.room.description });
+    async function getRoomDetails() {
+      try {
+        const response = await fetchRoomDetails(roomId);
+        if (response.data.success) {
+          setRoomDetails({ 
+            name: response.data.data.room.name, 
+            description: response.data.data.room.description 
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching room details:', error);
       }
     }
 
-    fetchRoomDetails();
+    getRoomDetails();
   }, [roomId]);
 
   // Function to handle ending room when empty - memoized with useCallback
@@ -85,24 +92,15 @@ useEffect(() => {
 
     try {
       setIsEndingRoom(true);
-      const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
       // Call API to end the room
-      const response = await fetch(`${URL}/api/rooms/${roomId}/end`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId: user._id }),
-      });
+      const response = await endRoom(roomId, user._id);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Failed to end empty room:', errorData.error);
+        console.error('Failed to end empty room:', response.data.error);
         setIsEndingRoom(false);
         return;
       }
-
 
       // Leave the room
       await hmsActions.leave();

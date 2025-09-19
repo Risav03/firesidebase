@@ -26,6 +26,11 @@ import {
   getCryptoKeyAccount,
   base,
 } from "@base-org/account";
+import {
+  fetchRoomParticipants,
+  fetchRoomParticipantsByRole,
+  sendChatMessage
+} from "@/utils/serverActions";
 
 interface TippingModalProps {
   isOpen: boolean;
@@ -80,11 +85,10 @@ export default function TippingModal({
   useEffect(() => {
     if (isOpen) {
       setIsLoadingUsers(true);
-      fetch(`${URL}/api/rooms/public/${roomId}/participants`)
-        .then((response) => response.json())
+      fetchRoomParticipants(roomId)
         .then((data) => {
-          if (data.success) {
-            const activeParticipants = data.data.participants.filter(
+          if (data.data.success) {
+            const activeParticipants = data.data.data.participants.filter(
               (participant: Participant) => participant.status === "active"
             );
 
@@ -145,22 +149,18 @@ export default function TippingModal({
     // Store in Redis for persistence
     try {
       const {token} = await sdk.quickAuth.getToken();
-      const response = await fetch(`${URL}/api/rooms/protected/${roomId}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+      
+      const response = await sendChatMessage(
+        roomId,
+        {
           message,
-          userFid,
-        }),
-      });
+          userFid
+        },
+        token
+      );
 
-      const data = await response.json();
-
-      if (!data.success) {
-        console.error("Failed to store tip message in Redis:", data.error);
+      if (!response.data.success) {
+        console.error("Failed to store tip message in Redis:", response.data.error);
       }
     } catch (error) {
       console.error("Error saving tip message to Redis:", error);
@@ -194,21 +194,14 @@ export default function TippingModal({
         usersToSend = selectedUsers.map((user) => user.wallet);
       } else {
         for (const role of selectedRoles) {
-          const res = await fetch(`${URL}/api/rooms/public/${roomId}/participants?role=${role}&activeOnly=true`, {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              // "Authorization": `Bearer ${token}`
-            }
-          });
-
-          const data = await res.json();
-          if (data.success) {
+          const response = await fetchRoomParticipantsByRole(roomId, role);
+          
+          if (response.data.success) {
             usersToSend.push(
-              ...data.participants.map((user: Participant) => user.wallet)
+              ...response.data.participants.map((user: Participant) => user.wallet)
             );
           } else {
-            console.error("Failed to fetch participants by role:", data.error);
+            console.error("Failed to fetch participants by role:", response.data.error);
           }
         }
       }
@@ -299,21 +292,14 @@ export default function TippingModal({
         usersToSend = selectedUsers.map((user) => user.wallet);
       } else {
         for (const role of selectedRoles) {
-          const res = await fetch(`${URL}/api/rooms/public/${roomId}/participants?role=${role}&activeOnly=true`, {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              // 'x-user-fid': user.fid
-            }
-          });
-
-          const data = await res.json();
-          if (data.success) {
+          const response = await fetchRoomParticipantsByRole(roomId, role);
+          
+          if (response.data.success) {
             usersToSend.push(
-              ...data.participants.map((user: Participant) => user.wallet)
+              ...response.data.participants.map((user: Participant) => user.wallet)
             );
           } else {
-            console.error("Failed to fetch participants by role:", data.error);
+            console.error("Failed to fetch participants by role:", response.data.error);
           }
         }
       }
@@ -512,7 +498,7 @@ export default function TippingModal({
               <h2 className="text-2xl font-bold text-white">Send a Tip</h2>
             </div>
 
-            <div className="mb-6">
+            {/* <div className="mb-6">
               <label className="block text-lg font-bold text-orange-400 mb-3">
                 Select multiple roles
               </label>
@@ -541,7 +527,7 @@ export default function TippingModal({
               <div className="flex-1 h-px bg-white/20"></div>
               <span className="px-4 text-sm font-medium">OR</span>
               <div className="flex-1 h-px bg-white/20"></div>
-            </div>
+            </div> */}
 
             <div className="mb-6">
               <label className="block text-lg font-bold text-orange-400 mb-3">

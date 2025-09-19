@@ -8,6 +8,7 @@ import { IoIosArrowBack } from 'react-icons/io';
 import { IoRefreshOutline } from 'react-icons/io5';
 import toast from 'react-hot-toast';
 import sdk from '@farcaster/miniapp-sdk';
+import { fetchUserRooms, refreshUserProfile } from '@/utils/serverActions';
 
 export default function ProfilePage() {
   const { user, setUser } = useGlobalContext();
@@ -16,15 +17,15 @@ export default function ProfilePage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
-    const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
     if (!user) {
       router.push('/');
     } else if (user.hostedRooms && user.hostedRooms.length > 0) {
       // Fetch hosted rooms details from API
-      fetch(`${URL}/api/users/public/username/${user.username}`)
-        .then(res => res.json())
-        .then(data => {
-          setHostedRooms(data.data.rooms || []);
+      fetchUserRooms(user.username)
+        .then(response => {
+          if (response.ok) {
+            setHostedRooms(response.data.data.rooms || []);
+          }
         });
     } else {
       setHostedRooms([]);
@@ -36,23 +37,16 @@ export default function ProfilePage() {
     
     setIsRefreshing(true);
     try {
-      const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
       var token:any ;
       const env = process.env.NEXT_PUBLIC_ENV;
-            if (env !== "DEV" && !token) {
-              token = ((await sdk.quickAuth.getToken()).token);
-            }
-      const response = await fetch(`${URL}/api/users/protected/update?query=profile`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-      });
+      if (env !== "DEV" && !token) {
+        token = ((await sdk.quickAuth.getToken()).token);
+      }
+      
+      const response = await refreshUserProfile(token);
       
       if (response.ok) {
         toast.success('Profile refreshed successfully!');
-
         window.location.reload();
       } else {
         console.error('Failed to refresh profile');

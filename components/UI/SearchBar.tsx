@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigateWithLoader } from '@/utils/useNavigateWithLoader';
 import { twMerge } from 'tailwind-merge';
 import { IoSearchOutline } from 'react-icons/io5';
+import { searchUsersAndRooms } from '@/utils/serverActions';
 
 
 const SearchBar: React.FC<{ className?: string }> = ({ className }) => {
@@ -35,9 +36,8 @@ const SearchBar: React.FC<{ className?: string }> = ({ className }) => {
     }
     setLoading(true);
     try {
-      const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-      const res = await fetch(`${URL}/api/search?q=${encodeURIComponent(searchValue.trim())}`);
-      const data = await res.json();
+      const response = await searchUsersAndRooms(searchValue);
+      const data = response.data;
 
       if (data.success) {
         // Flatten results for display

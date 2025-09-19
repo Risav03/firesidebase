@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useHMSNotifications, useHMSActions, useHMSStore, selectLocalPeer } from '@100mslive/react-sdk';
 import { HMSNotificationTypes } from '@100mslive/hms-video-store';
 import { useParams } from 'next/navigation';
+import { fetchRoomCodes } from '@/utils/serverActions';
 
 interface RoomCode {
   id: string;
@@ -66,14 +67,13 @@ export default function RoleChangeHandler() {
             }));
             
             // Get room codes for the new role
-            const response = await fetch(`${URL}/api/rooms/public/${roomId}/codes`);
-            const data = await response.json();
-
-            if (!data.success) {
-              throw new Error(data.error || 'Failed to fetch room codes');
+            const response = await fetchRoomCodes(roomId);
+            
+            if (!response.data.success) {
+              throw new Error(response.data.error || 'Failed to fetch room codes');
             }
 
-            const roomCodes: RoomCode[] = data.data.roomCodes;
+            const roomCodes: RoomCode[] = response.data.data.roomCodes;
             const roleCode = roomCodes.find(code => code.role === newRole);
 
             if (!roleCode) {

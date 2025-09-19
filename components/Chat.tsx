@@ -19,6 +19,7 @@ import {
   DrawerTitle,
   DrawerClose,
 } from "./UI/drawer";
+import { fetchChatMessages, sendChatMessage } from "@/utils/serverActions";
 
 interface ChatProps {
   isOpen: boolean;
@@ -46,7 +47,6 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
       setLoading(true);
       try {
-        const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
         const env = process.env.NEXT_PUBLIC_ENV;
         
         var token: any = "";
@@ -54,15 +54,10 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
           token = (await sdk.quickAuth.getToken()).token;
         };
 
-        const response = await fetch(`${URL}/api/rooms/public/${roomId}/messages?limit=50`, {
-          // headers: {
-          //   'Authorization': `Bearer ${token}`
-          // }
-        });
-        const data = await response.json();
-
-        if (data.success) {
-          setRedisMessages(data.data.messages);
+        const response = await fetchChatMessages(roomId, 50);
+        
+        if (response.data.success) {
+          setRedisMessages(response.data.data.messages);
         }
       } catch (error) {
         console.error('Failed to load messages:', error);
@@ -127,31 +122,26 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
       const env = process.env.NEXT_PUBLIC_ENV;
         
-        var token: any = "";
-        if (env !== "DEV") {
-          token = (await sdk.quickAuth.getToken()).token;
-        };
+      var token: any = "";
+      if (env !== "DEV") {
+        token = (await sdk.quickAuth.getToken()).token;
+      };
 
       // Store in Redis for persistence
-      const response = await fetch(`${URL}/api/rooms/protected/${roomId}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
+      const response = await sendChatMessage(
+        roomId,
+        {
           message: messageText,
           userFid: user.fid
-        }),
-      });
+        },
+        token
+      );
 
-      const data = await response.json();
-
-      if (data.success) {
+      if (response.data.success) {
         // Add the new message to our local state
-        setRedisMessages(prev => [...prev, data.data.message]);
+        setRedisMessages(prev => [...prev, response.data.data.message]);
       } else {
-        console.error('Failed to store message:', data.error);
+        console.error('Failed to store message:', response.data.error);
         toast.error('Failed to send message. Please try again.');
       }
     } catch (error) {
@@ -246,7 +236,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
   return (
     <Drawer open={isOpen} onOpenChange={setIsChatOpen} dismissible >
-      <DrawerContent className="bg-transparent border-orange-500/30 border-t-2 border-x-0 border-b-0">
+      <DrawerContent className="backdrop-blur-2xl border-orange-500/30 border-t-2 border-x-0 border-b-0">
         {/* Chat Header */}
         <div className="px-4 py-3 flex border-b border-gray-700/50">
           <div className="flex items-center space-x-3 w-[50%]">
