@@ -221,7 +221,7 @@ export default function TippingModal({
         if (!ethPrice || isNaN(ethPrice)) {
           throw new Error("Invalid ETH price");
         }
-        return Number((tipAmount * usersToSend.length / ethPrice).toFixed(6));
+        return Number((tipAmount * usersToSend.length / ethPrice).toFixed(8));
       })();
 
       const res = await writeContract(config, {
