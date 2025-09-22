@@ -20,6 +20,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
     description: ''
   });
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [sponsorshipEnabled, setSponsorshipEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState('');
   const navigate = useNavigateWithLoader();
@@ -56,14 +57,14 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         ...formData,
         host: user?.fid || '',
         startTime: new Date().toISOString(),
-        topics: selectedTags
-      }, token);
-      
-      if (response.data.success) {
+        topics: selectedTags,
+        sponsorshipEnabled
+      }, token);      if (response.data.success) {
         toast.dismiss();
         toast.success('Room created successfully! Redirecting...');
         setFormData({ name: '', description: '' });
         setSelectedTags([]);
+        setSponsorshipEnabled(false);
         onClose();
         // Redirect to the room page
         navigate('/call/' + response.data.data._id);
@@ -168,6 +169,21 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
               </div>
               {selectedTags.length === 0 && <p className="text-red-500 text-sm mt-1">Please select at least one topic.</p>}
               {selectedTags.length > 3 && <p className="text-red-500 text-sm mt-1">You can select up to 3 topics only.</p>}
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <label className="block text-sm font-medium text-gray-300">
+                Enable Sponsorship
+              </label>
+              <div 
+                className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer ${sponsorshipEnabled ? 'bg-orange-500' : 'bg-white/10'}`}
+                onClick={() => setSponsorshipEnabled(!sponsorshipEnabled)}
+              >
+                <div 
+                  className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${sponsorshipEnabled ? 'translate-x-6' : 'translate-x-0'}`} 
+                />
+              </div>
+              <span className="text-sm text-gray-300">{sponsorshipEnabled ? 'On' : 'Off'}</span>
             </div>
           
           <div className="flex space-x-3 pt-2">

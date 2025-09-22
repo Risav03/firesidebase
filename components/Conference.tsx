@@ -9,6 +9,7 @@ import {
 } from "@100mslive/react-sdk";
 import PeerWithContextMenu from "./PeerWithContextMenu";
 import { ScreenTile } from "./ScreenTile";
+import RoomSponsor from "./RoomSponsor";
 import { useEffect, useState, useRef, useCallback } from "react";
 import sdk from "@farcaster/miniapp-sdk";
 import { useRouter } from "next/navigation";
@@ -38,7 +39,7 @@ export default function Conference({ roomId }: { roomId: string }) {
   const [roomEnded, setRoomEnded] = useState(false);
 
   //function to fetch room details and save name and description in a useState. Call the function in useEffect
-  const [roomDetails, setRoomDetails] = useState<{ name: string; description: string } | null>(null);
+  const [roomDetails, setRoomDetails] = useState<{ name: string; description: string, sponsorshipEnabled: boolean } | null>(null);
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
 
@@ -74,7 +75,8 @@ useEffect(() => {
         if (response.data.success) {
           setRoomDetails({ 
             name: response.data.data.room.name, 
-            description: response.data.data.room.description 
+            description: response.data.data.room.description,
+            sponsorshipEnabled: response.data.data.room.sponsorshipEnabled
           });
         }
       } catch (error) {
@@ -215,6 +217,7 @@ useEffect(() => {
 
     return (
       <div className="pt-20 pb-32 px-6">
+        {roomDetails?.sponsorshipEnabled && <RoomSponsor roomId={roomId} />}
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-4 mt-6">
             <h2 className="text-3xl font-bold text-white mb-2">

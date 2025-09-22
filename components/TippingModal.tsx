@@ -22,6 +22,12 @@ import { encodeFunctionData, numberToHex } from "viem";
 import { erc20Abi } from "@/utils/contract/abis/erc20abi";
 import Modal from "@/components/UI/Modal";
 import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle
+} from "@/components/UI/drawer";
+import {
   createBaseAccountSDK,
   getCryptoKeyAccount,
   base,
@@ -486,18 +492,19 @@ export default function TippingModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} maxWidth="max-w-md">
-      {false ? (
-        <div className="w-full flex items-center justify-center">
-          {" "}
-          <CustomConnect />{" "}
-        </div>
-      ) : (
-          <>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-white">Send a Tip</h2>
-            </div>
-
+    <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DrawerContent className="bg-black/50 backdrop-blur-2xl text-white border-t border-fireside-orange/30">
+        <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-fireside-orange/30"></div>
+        <DrawerHeader>
+          <DrawerTitle className="text-2xl font-bold text-white">Send a Tip</DrawerTitle>
+        </DrawerHeader>
+        
+        {false ? (
+          <div className="w-full flex items-center justify-center p-6">
+            <CustomConnect />
+          </div>
+        ) : (
+          <div className="px-4 pb-6">
             {/* <div className="mb-6">
               <label className="block text-lg font-bold text-orange-400 mb-3">
                 Select multiple roles
@@ -706,8 +713,9 @@ export default function TippingModal({
                 </span>
               </button>
             </div>
-          </>
+          </div>
         )}
-    </Modal>
+      </DrawerContent>
+    </Drawer>
   );
 }
