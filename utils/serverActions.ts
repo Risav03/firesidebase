@@ -287,6 +287,7 @@ export async function createRoom(roomData: {
   host: string;
   startTime: string;
   topics: string[];
+  sponsorshipEnabled?: boolean;
 }, token: string | null = null) {
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
   return fetchAPI(`${URL}/api/rooms/protected`, {

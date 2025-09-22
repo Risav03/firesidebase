@@ -79,6 +79,87 @@
     @apply bg-gradient-to-br from-orange-500 to-orange-400;
   }
   
+  /* Custom slider with fireside-orange thumb */
+  .slider-fireside {
+    @apply relative;
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 8px 0; /* Add margin to fix vertical positioning */
+  }
+  
+  .slider-fireside::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #F97316; /* fireside-orange color */
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    margin-top: -6px; /* Center the thumb on the track */
+  }
+  
+  .slider-fireside::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #F97316; /* fireside-orange color */
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  
+  .slider-fireside::-ms-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #F97316; /* fireside-orange color */
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    margin-top: 0; /* Reset for MS browsers */
+  }
+  
+  /* Add orange track fill effect */
+  .slider-fireside::-webkit-slider-runnable-track {
+    background-image: linear-gradient(to right, #F97316 var(--track-fill, 0%), rgba(255, 255, 255, 0.3) var(--track-fill, 0%));
+    border-radius: 4px;
+    height: 4px;
+    cursor: pointer;
+  }
+  
+  .slider-fireside::-moz-range-track {
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    height: 4px;
+    cursor: pointer;
+  }
+  
+  .slider-fireside::-moz-range-progress {
+    background-color: #F97316;
+    height: 4px;
+    border-radius: 4px;
+  }
+  
+  .slider-fireside::-ms-track {
+    background-color: transparent;
+    border-color: transparent;
+    color: transparent;
+    height: 4px;
+    cursor: pointer;
+  }
+  
+  .slider-fireside::-ms-fill-lower {
+    background-color: #F97316;
+    border-radius: 4px;
+  }
+  
+  .slider-fireside::-ms-fill-upper {
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+  }
+  
   .peer-avatar {
     @apply w-20 h-20 rounded-full border-4 border-white shadow-lg bg-gradient-to-br from-fireside-blue to-fireside-purple flex items-center justify-center text-white font-bold text-xl;
   }

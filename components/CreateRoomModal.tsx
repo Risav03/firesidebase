@@ -6,7 +6,13 @@ import { useGlobalContext } from '@/utils/providers/globalContext';
 import toast from 'react-hot-toast';
 import { topics } from '@/utils/constants';
 import sdk from "@farcaster/miniapp-sdk";
-import Modal from '@/components/UI/Modal';
+import { 
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerClose
+} from '@/components/UI/drawer';
 import { createRoom } from '@/utils/serverActions';
 
 interface CreateRoomModalProps {
@@ -20,6 +26,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
     description: ''
   });
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [sponsorshipEnabled, setSponsorshipEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState('');
   const navigate = useNavigateWithLoader();
@@ -56,14 +63,14 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         ...formData,
         host: user?.fid || '',
         startTime: new Date().toISOString(),
-        topics: selectedTags
-      }, token);
-      
-      if (response.data.success) {
+        topics: selectedTags,
+        sponsorshipEnabled
+      }, token);      if (response.data.success) {
         toast.dismiss();
         toast.success('Room created successfully! Redirecting...');
         setFormData({ name: '', description: '' });
         setSelectedTags([]);
+        setSponsorshipEnabled(false);
         onClose();
         // Redirect to the room page
         navigate('/call/' + response.data.data._id);
@@ -81,20 +88,13 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-semibold text-white">Create New Room</h2>
-          {/* <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button> */}
-        </div>
+    <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DrawerContent className="bg-black/90 backdrop-blur-lg border-t border-orange-500/50 text-white p-4">
+        <DrawerHeader>
+          <DrawerTitle className="text-2xl font-semibold text-white text-center">Create New Room</DrawerTitle>
+        </DrawerHeader>
         
-        <form onSubmit={createRoomHandler} className="space-y-4">
+        <form onSubmit={createRoomHandler} className="space-y-4 px-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Room Name*
@@ -169,15 +169,31 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
               {selectedTags.length === 0 && <p className="text-red-500 text-sm mt-1">Please select at least one topic.</p>}
               {selectedTags.length > 3 && <p className="text-red-500 text-sm mt-1">You can select up to 3 topics only.</p>}
             </div>
+            
+            {/* <div className="flex items-center space-x-2">
+              <label className="block text-sm font-medium text-gray-300">
+                Enable Sponsorship
+              </label>
+              <div 
+                className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer ${sponsorshipEnabled ? 'bg-orange-500' : 'bg-white/10'}`}
+                onClick={() => setSponsorshipEnabled(!sponsorshipEnabled)}
+              >
+                <div 
+                  className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${sponsorshipEnabled ? 'translate-x-6' : 'translate-x-0'}`} 
+                />
+              </div>
+              <span className="text-sm text-gray-300">{sponsorshipEnabled ? 'On' : 'Off'}</span>
+            </div> */}
           
-          <div className="flex space-x-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-white/10 hover:bg-white/10 text-white font-medium py-2 px-4 rounded-md transition-colors"
-            >
-              Cancel
-            </button>
+          <div className="flex space-x-3 pt-2 pb-6">
+            <DrawerClose asChild>
+              <button
+                type="button"
+                className="flex-1 bg-white/10 hover:bg-white/20 text-white font-medium py-2 px-4 rounded-md transition-colors"
+              >
+                Cancel
+              </button>
+            </DrawerClose>
             <button
               type="submit"
               disabled={loading}
@@ -187,6 +203,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
             </button>
           </div>
         </form>
-    </Modal>
+      </DrawerContent>
+    </Drawer>
   );
 }
