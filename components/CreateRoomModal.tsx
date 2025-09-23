@@ -170,7 +170,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
               {selectedTags.length > 3 && <p className="text-red-500 text-sm mt-1">You can select up to 3 topics only.</p>}
             </div>
             
-            {/* <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2">
               <label className="block text-sm font-medium text-gray-300">
                 Enable Sponsorship
               </label>
@@ -183,7 +183,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                 />
               </div>
               <span className="text-sm text-gray-300">{sponsorshipEnabled ? 'On' : 'Off'}</span>
-            </div> */}
+            </div>
           
           <div className="flex space-x-3 pt-2 pb-6">
             <DrawerClose asChild>

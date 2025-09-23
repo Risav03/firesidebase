@@ -10,6 +10,8 @@ import {
   DrawerTitle
 } from "@/components/UI/drawer";
 import { useHMSStore, selectPeers } from "@100mslive/react-sdk";
+import sdk from "@farcaster/miniapp-sdk";
+import { createSponsorship } from "@/utils/serverActions";
 
 interface SponsorDrawerProps {
   isOpen: boolean;
@@ -58,20 +60,12 @@ export default function SponsorDrawer({
     const baseRate = 1;
     const durationInMinutes = durationInSeconds / 60;
     
-    // Apply discount for longer durations
-    let discountFactor = 1;
-    if (durationInMinutes > 10) {
-      discountFactor = 0.9; // 10% discount for more than 10 minutes
-    } else if (durationInMinutes > 5) {
-      discountFactor = 0.95; // 5% discount for more than 5 minutes
-    }
-    
     // Factor in peer count - each additional peer increases value by 5%
     // Base is 1x for 1-5 peers, then 5% more for each additional peer up to a 50% increase
-    const peerFactor = Math.min(1 + Math.max(0, peerCount - 5) * 0.05, 1.5);
+    const peerFactor = peerCount%10;
     
     // Calculate price with all factors
-    const price = baseRate * durationInMinutes * discountFactor * peerFactor;
+    const price = baseRate * durationInMinutes * peerFactor;
     
     // Round to 2 decimal places
     return Math.round(price * 100) / 100;
@@ -120,16 +114,37 @@ export default function SponsorDrawer({
     const loadingToast = toast.loading("Processing your sponsorship request...");
 
     try {
-      // Mock API call for now
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Since selectedImage is already a base64 string, extract the base64 data
+      // We'll use the base64 string directly as the backend expects a string
+      const env = process.env.NEXT_PUBLIC_ENV;
       
-      toast.dismiss(loadingToast);
-      toast.success("Sponsorship request submitted successfully!");
+      // Extract just the base64 part without the data URL prefix
+      const base64Data = selectedImage.split(',')[1];
       
-      // Reset form and close drawer
-      setSelectedImage(null);
-      setSponsorDuration(5 * 60);
-      onClose();
+      console.log("Using base64 image data, length:", base64Data.length);
+      
+      let token:any = null;
+      if(env !== "DEV"){
+        token = (await sdk.quickAuth.getToken()).token;
+      }
+      
+      // Use the server action with the base64 string
+      const result = await createSponsorship({
+        roomId,
+        duration: sponsorDuration,
+        imageBuffer: base64Data, // send as base64 string
+      }, token);
+
+      console.log("Sponsorship creation result:", result);
+      
+      if (result.ok) {
+        toast.dismiss(loadingToast);
+        toast.success("Sponsorship created successfully!");
+        onClose();
+      } else {
+        toast.dismiss(loadingToast);
+        toast.error(`Failed to create sponsorship: ${result.data?.message || 'Unknown error'}`);
+      }
     } catch (error) {
       console.error("Error submitting sponsorship request:", error);
       toast.dismiss(loadingToast);
@@ -137,9 +152,7 @@ export default function SponsorDrawer({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  return (
+  };  return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DrawerContent className="bg-black/50 backdrop-blur-2xl text-white border-t border-fireside-orange/30">
         <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-fireside-orange/30"></div>

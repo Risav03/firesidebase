@@ -296,3 +296,52 @@ export async function createRoom(roomData: {
     authToken: token
   });
 }
+
+/**
+ * Create a sponsorship for a room
+ */
+export async function createSponsorship(sponsorshipData: {
+  roomId: string;
+  duration: number;
+  imageBuffer: string; // Changed from number[] to string to accept base64 data
+}, token: string | null = null) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+
+  console.log("Creating sponsorship with data:", {
+    ...sponsorshipData,
+    imageBuffer: sponsorshipData.imageBuffer.substring(0, 50) + '...' // Log only the start of the base64 string
+  }, "and token:", token);
+
+  return fetchAPI(`${URL}/api/sponsorships/protected/create`, {
+    method: 'POST',
+    body: sponsorshipData,
+    authToken: token
+  });
+}
+
+/**
+ * Fetch pending sponsorships for a room (host only)
+ */
+export async function fetchPendingSponsorships(roomId: string, token: string | null = null) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/sponsorships/protected/pending/${roomId}`, {
+    method: 'GET',
+    authToken: token
+  });
+}
+
+/**
+ * Update sponsorship status (approve or decline)
+ */
+export async function updateSponsorshipStatus(
+  sponsorshipId: string, 
+  status: 'approved' | 'declined', 
+  token: string | null = null
+) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/sponsorships/protected/status/${sponsorshipId}`, {
+    method: 'PATCH',
+    body: { status },
+    authToken: token
+  });
+}
