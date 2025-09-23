@@ -36,14 +36,18 @@ export default function RecordingsPage() {
         setLoading(true);
         const response = await fetchRoomRecordings(roomId);
 
+        console.log('Fetch recordings response:', response);
+
         if (!response.ok) {
           throw new Error('Failed to fetch recordings');
         }
         
         const data = response.data;
-        if (data.success && data.data.recordings.length > 0) {
-          setRecordings(data.data.recordings);
-          setSelectedRecording(data.data.recordings[0]);
+        console.log("THIS IS THE DATA", data);
+        if (data.success && data.data.recordings.recordings.length > 0) {
+          console.log("FUCKING RECORDING", data.data.recordings);
+          setRecordings(data.data.recordings.recordings);
+          setSelectedRecording(data.data.recordings.recordings[0]);
         } else {
           setError('No recordings found for this room');
         }
