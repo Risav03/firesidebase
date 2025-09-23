@@ -111,7 +111,13 @@ export default function PendingSponsorshipsDrawer({
     setProcessingIds(prev => new Set(prev).add(sponsorshipId));
     
     try {
-      const token = (await sdk.quickAuth.getToken()).token;
+      const env = process.env.NEXT_PUBLIC_ENV;
+      
+      let token:any = null;
+      if(env !== "DEV") {
+        token = (await sdk.quickAuth.getToken()).token;
+      }
+      
       const result = await updateSponsorshipStatus(sponsorshipId, status, token);
       
       if (result.ok) {
@@ -138,7 +144,7 @@ export default function PendingSponsorshipsDrawer({
 
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DrawerContent className="bg-black/50 backdrop-blur-2xl text-white border-t border-fireside-orange/30">
+      <DrawerContent className="bg-black/50 backdrop-blur-2xl text-white border-t border-fireside-orange/30 focus:outline-none">
         <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-fireside-orange/30"></div>
         <DrawerHeader>
           <DrawerTitle className="text-2xl font-bold text-white">Pending Sponsorship Requests</DrawerTitle>
@@ -156,7 +162,7 @@ export default function PendingSponsorshipsDrawer({
           ) : (
             <div className="space-y-6">
               {pendingRequests.map((request) => (
-                <div key={request.id} className="bg-black/40 rounded-lg overflow-hidden border border-white/10">
+                <div key={request.id} className="bg-black/40 rounded-lg overflow-hidden border border-white/10 transition-all hover:border-fireside-orange/30">
                   <div className="relative w-full h-40">
                     <img 
                       src={request.imageUrl} 
@@ -195,8 +201,8 @@ export default function PendingSponsorshipsDrawer({
                       <button
                         onClick={() => handleStatusUpdate(request.id, 'approved')}
                         disabled={processingIds.has(request.id)}
-                        className={`flex-1 py-2 px-4 rounded-lg bg-gradient-to-r from-green-600 to-green-500 text-white font-semibold flex items-center justify-center gap-2 ${
-                          processingIds.has(request.id) ? 'opacity-50 cursor-not-allowed' : 'hover:from-green-700 hover:to-green-600'
+                        className={`flex-1 py-2 px-4 rounded-lg bg-gradient-to-r from-green-600 to-green-500 text-white font-semibold flex items-center justify-center gap-2 transition-all ${
+                          processingIds.has(request.id) ? 'opacity-50 cursor-not-allowed' : 'hover:from-green-700 hover:to-green-600 hover:shadow-md'
                         }`}
                       >
                         {processingIds.has(request.id) ? <RiLoader5Fill className="animate-spin" /> : null}
@@ -205,8 +211,8 @@ export default function PendingSponsorshipsDrawer({
                       <button
                         onClick={() => handleStatusUpdate(request.id, 'declined')}
                         disabled={processingIds.has(request.id)}
-                        className={`flex-1 py-2 px-4 rounded-lg bg-gradient-to-r from-red-600 to-red-500 text-white font-semibold flex items-center justify-center gap-2 ${
-                          processingIds.has(request.id) ? 'opacity-50 cursor-not-allowed' : 'hover:from-red-700 hover:to-red-600'
+                        className={`flex-1 py-2 px-4 rounded-lg bg-gradient-to-r from-red-600 to-red-500 text-white font-semibold flex items-center justify-center gap-2 transition-all ${
+                          processingIds.has(request.id) ? 'opacity-50 cursor-not-allowed' : 'hover:from-red-700 hover:to-red-600 hover:shadow-md'
                         }`}
                       >
                         {processingIds.has(request.id) ? <RiLoader5Fill className="animate-spin" /> : null}
