@@ -35,11 +35,8 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const messages = useHMSStore(selectHMSMessages);
-  const localPeer = useHMSStore(selectLocalPeer);
   const hmsActions = useHMSActions();
   const { user } = useGlobalContext();
-
-  console.log(localPeer)
 
   useEffect(() => {
     const loadMessages = async () => {
