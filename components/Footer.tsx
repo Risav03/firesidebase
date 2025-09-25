@@ -137,7 +137,7 @@ const MicComponent: React.FC<MicComponentProps> = ({
     return (
       <div className="flex flex-col items-center">
         <button
-          className={`w-14 h-14 translate-x-[0.6rem] rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
+          className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
             speakerRequested ? "bg-yellow-500 text-white shadow-lg" : "bg-fireside-orange text-white shadow-lg"
           }`}
           onClick={handleRequestToSpeak}
@@ -164,7 +164,7 @@ const MicComponent: React.FC<MicComponentProps> = ({
   return (
     <div className="flex flex-col items-center justify-center">
       <button
-        className={`w-14 h-14 translate-x-[0.6rem] rounded-full flex items-center justify-center transition-all duration-200 transform ${
+        className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 transform ${
           canUnmute && !isRejoining
             ? "hover:scale-105 active:scale-95"
             : "opacity-60 cursor-not-allowed"
@@ -564,7 +564,7 @@ export default function Footer({ roomId }: { roomId: string }) {
       <Toaster position="top-center" />
       
       <div className="max-w-4xl mx-auto px-6 py-4 flex">
-        <div className="flex flex-col items-start justify-center w-[30%]">
+        <div className="flex flex-col items-center justify-center w-[30%]">
           <MicComponent
             isLocalAudioEnabled={isLocalAudioEnabled}
             toggleAudio={toggleAudio}
