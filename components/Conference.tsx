@@ -6,6 +6,7 @@ import {
   useHMSStore,
   useHMSActions,
   selectLocalPeer,
+  useCustomEvent,
 } from "@100mslive/react-sdk";
 import PeerWithContextMenu from "./PeerWithContextMenu";
 import { ScreenTile } from "./ScreenTile";
@@ -22,6 +23,7 @@ import SpeakerRequestsDrawer from "./SpeakerRequestsDrawer";
 
 
 export default function Conference({ roomId }: { roomId: string }) {
+  
   const allPeers = useHMSStore(selectPeers);
   const presenters = useHMSStore(selectPeersScreenSharing);
   const localPeer = useHMSStore(selectLocalPeer);
@@ -29,6 +31,7 @@ export default function Conference({ roomId }: { roomId: string }) {
   const router = useRouter();
   const { user } = useGlobalContext();
   const notification = useHMSNotifications();
+
   // Ref to track previous peers for empty room detection
   const previousPeersRef = useRef<any[]>([]);
 
@@ -52,7 +55,33 @@ export default function Conference({ roomId }: { roomId: string }) {
 
   //function to fetch room details and save name and description in a useState. Call the function in useEffect
   const [roomDetails, setRoomDetails] = useState<{ name: string; description: string, sponsorshipEnabled: boolean } | null>(null);
-  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  
+
+   const handleSpeakerRequest = (event: any) => {
+      const request = event.detail;
+      
+      // Only hosts and co-hosts should see requests
+      if (localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host') {
+        setSpeakerRequests((prevRequests) => {
+          // Check if this request already exists
+          const exists = prevRequests.some(req => req.peerId === request.peerId);
+          if (exists) return prevRequests;
+          
+          // Add the new request
+          return [...prevRequests, request];
+        });
+        
+        // Show toast notification
+        toast.success(`${request.peerName} has requested to speak`);
+      }
+    };
+
+  useCustomEvent({
+      type: "SPEAKER_REQUESTED",
+      onEvent: (msg: {peer:string}) => {
+        handleSpeakerRequest({ peerId: msg.peer});
+      },
+    });
 
 
   const handRaise = useHMSNotifications(HMSNotificationTypes.HAND_RAISE_CHANGED);
@@ -209,48 +238,32 @@ useEffect(() => {
     };
   }, []);
 
+
   // Handle speaker requests
-  useEffect(() => {
-    // Listen for speaker request events
-    const handleSpeakerRequest = (event: CustomEvent) => {
-      const request = event.detail;
+  // useEffect(() => {
+  //   // Listen for speaker request events
+    
+    
+  //   // Listen for speaker rejection events
+  //   const handleSpeakerRejection = (event: CustomEvent) => {
+  //     const { peerId } = event.detail;
       
-      // Only hosts and co-hosts should see requests
-      if (localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host') {
-        setSpeakerRequests((prevRequests) => {
-          // Check if this request already exists
-          const exists = prevRequests.some(req => req.peerId === request.peerId);
-          if (exists) return prevRequests;
-          
-          // Add the new request
-          return [...prevRequests, request];
-        });
-        
-        // Show toast notification
-        toast.success(`${request.peerName} has requested to speak`);
-      }
-    };
+  //     // Remove the rejected request
+  //     setSpeakerRequests((prevRequests) => 
+  //       prevRequests.filter(request => request.peerId !== peerId)
+  //     );
+  //   };
     
-    // Listen for speaker rejection events
-    const handleSpeakerRejection = (event: CustomEvent) => {
-      const { peerId } = event.detail;
-      
-      // Remove the rejected request
-      setSpeakerRequests((prevRequests) => 
-        prevRequests.filter(request => request.peerId !== peerId)
-      );
-    };
+  //   // Add event listeners
+  //   window.addEventListener('SPEAKER_REQUESTED', handleSpeakerRequest as EventListener);
+  //   window.addEventListener('SPEAKER_REJECTED', handleSpeakerRejection as EventListener);
     
-    // Add event listeners
-    window.addEventListener('SPEAKER_REQUESTED', handleSpeakerRequest as EventListener);
-    window.addEventListener('SPEAKER_REJECTED', handleSpeakerRejection as EventListener);
-    
-    // Cleanup
-    return () => {
-      window.removeEventListener('SPEAKER_REQUESTED', handleSpeakerRequest as EventListener);
-      window.removeEventListener('SPEAKER_REJECTED', handleSpeakerRejection as EventListener);
-    };
-  }, [localPeer?.roleName]);
+  //   // Cleanup
+  //   return () => {
+  //     window.removeEventListener('SPEAKER_REQUESTED', handleSpeakerRequest as EventListener);
+  //     window.removeEventListener('SPEAKER_REJECTED', handleSpeakerRejection as EventListener);
+  //   };
+  // }, [localPeer?.roleName]);
 
   // Handle request approval and rejection
   const handleApproveRequest = (request: SpeakerRequest) => {

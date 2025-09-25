@@ -26,6 +26,8 @@ import {
   selectLocalPeerID,
   selectHasPeerHandRaised,
   selectLocalPeer,
+  HMSActions,
+  HMSPeer,
 } from "@100mslive/react-sdk";
 import { RiAdvertisementFill } from "react-icons/ri";
 import { FaMoneyBill } from "react-icons/fa";
@@ -36,13 +38,178 @@ import { IoIosArrowDown } from "react-icons/io";
 import { useGlobalContext } from "../utils/providers/globalContext";
 import { MdCopyAll, MdOutlineIosShare } from "react-icons/md";
 import TippingModal from "./TippingModal";
-import toast from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 import Image from "next/image";
 
 // Dynamic import to avoid SSR issues
 let plugin: any = null;
 
 // FooterProps removed since chat state is now internal
+
+// MicComponent for handling different mic states based on roles
+interface MicComponentProps {
+  isLocalAudioEnabled: boolean;
+  toggleAudio: (() => void) | undefined;
+  canUnmute: boolean;
+  isRejoining: boolean;
+  localRoleName: string | undefined;
+  hmsActions: HMSActions;
+  localPeer: HMSPeer | undefined;
+  user: any;
+}
+
+const MicComponent: React.FC<MicComponentProps> = ({
+  isLocalAudioEnabled,
+  toggleAudio,
+  canUnmute,
+  isRejoining,
+  localRoleName,
+  hmsActions,
+  localPeer,
+  user
+}) => {
+  // State to track if a speaker request has been sent
+  const [speakerRequested, setSpeakerRequested] = useState(false);
+  
+  // Check if speaker request was previously sent (persistent across renders)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedRequest = localStorage.getItem(`speakerRequested_${localPeer?.id || user?.fid}`);
+      if (storedRequest === 'true') {
+        setSpeakerRequested(true);
+      }
+    }
+  }, [localPeer?.id, user?.fid]);
+  
+  // Custom event to request speaker role
+  const { sendEvent } = useCustomEvent({
+    type: "SPEAKER_REQUESTED",
+    onEvent: (msg: {peer:string}) => {
+      // Handle incoming speaker requests if needed
+    },
+  });
+  
+  const isListener = localRoleName === "listener";
+  
+  const handleRequestToSpeak = () => {
+    setSpeakerRequested(true);
+    
+    // Store request state in localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`speakerRequested_${localPeer?.id || user?.fid}`, 'true');
+    }
+    
+    // Send event with peer information
+    sendEvent({ 
+      peer: localPeer?.id as string
+    });
+    
+    // Show feedback to the user that request was sent
+    toast.success("Speaker request sent", { 
+      icon: "🎙️",
+      duration: 3000
+    });
+  };
+
+  // Handle role update (useful when permissions change)
+  useEffect(() => {
+    if (canUnmute && speakerRequested) {
+      // If the user can now unmute and had requested it, clear the request state
+      setSpeakerRequested(false);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(`speakerRequested_${localPeer?.id || user?.fid}`);
+      }
+      toast.success("You can now speak!", { duration: 3000 });
+    }
+  }, [canUnmute, speakerRequested, localPeer?.id, user?.fid]);
+
+  // For listeners without unmute permission, show the request to speak button
+  if (isListener && !canUnmute) {
+    return (
+      <div className="flex flex-col items-center">
+        <button
+          className={`w-14 h-14 translate-x-[0.6rem] rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
+            speakerRequested ? "bg-yellow-500 text-white shadow-lg" : "bg-fireside-orange text-white shadow-lg"
+          }`}
+          onClick={handleRequestToSpeak}
+          disabled={speakerRequested || isRejoining}
+          title={speakerRequested ? "Speaker request sent" : "Request to speak"}
+        >
+          {isRejoining ? (
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+            </svg>
+          )}
+        </button>
+        <div className="mt-3 text-center">
+          <p className="text-xs text-gray-500">
+            {speakerRequested ? "Request sent" : "Request to speak"}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center">
+      <button
+        className={`w-14 h-14 translate-x-[0.6rem] rounded-full flex items-center justify-center transition-all duration-200 transform ${
+          canUnmute && !isRejoining
+            ? "hover:scale-105 active:scale-95"
+            : "opacity-60 cursor-not-allowed"
+        } ${
+          isLocalAudioEnabled
+            ? "bg-fireside-orange text-white shadow-lg"
+            : "bg-red-500 text-white shadow-lg"
+        }`}
+        onClick={
+          canUnmute && !isRejoining
+            ? () => {
+                if (!isLocalAudioEnabled) {
+                  // Only lower hand when unmuting
+                  hmsActions?.lowerLocalPeerHand?.();
+                }
+                toggleAudio?.();
+              }
+            : undefined
+        }
+        disabled={!canUnmute || isRejoining}
+        title={
+          isRejoining
+            ? "Re-joining with new role..."
+            : canUnmute
+            ? isLocalAudioEnabled
+              ? "Mute"
+              : "Unmute"
+            : `No permission to publish audio${
+                localRoleName ? ` (${localRoleName})` : ""
+              }`
+        }
+      >
+        {isRejoining ? (
+          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        ) : isLocalAudioEnabled ? (
+          <MicOnIcon className="w-6 h-6" />
+        ) : (
+          <MicOffIcon className="w-6 h-6" />
+        )}
+      </button>
+      <div className="mt-3 text-center">
+        <p className="text-xs text-gray-500">
+          {isRejoining
+            ? "Re-joining with new role..."
+            : canUnmute
+            ? isLocalAudioEnabled
+              ? "Tap to mute"
+              : "Tap to unmute"
+            : "Role cannot unmute"}
+        </p>
+      </div>
+    </div>
+  );
+};
 
 export default function Footer({ roomId }: { roomId: string }) {
   const { isLocalAudioEnabled, toggleAudio } = useAVToggle((err) => {
@@ -77,9 +244,6 @@ export default function Footer({ roomId }: { roomId: string }) {
   const [isTippingModalOpen, setIsTippingModalOpen] = useState(false);
   const [adsEnabled, setAdsEnabled] = useState(true);
   const [isAdsModalOpen, setIsAdsModalOpen] = useState(false);
-  
-  // Speaker request state
-  const [hasRequestedToSpeak, setHasRequestedToSpeak] = useState(false);
 
   // Function to handle chat open/close and reset unread count
   const handleChatToggle = () => {
@@ -214,11 +378,6 @@ export default function Footer({ roomId }: { roomId: string }) {
         setIsRejoining(true);
       } else if (event.detail?.type === "role_change_complete") {
         setIsRejoining(false);
-        
-        // Reset speaker request status if role changes (e.g., became a speaker)
-        if (localPeer?.roleName !== 'listener') {
-          setHasRequestedToSpeak(false);
-        }
       }
     };
 
@@ -232,26 +391,66 @@ export default function Footer({ roomId }: { roomId: string }) {
         handleRoleChange as EventListener
       );
     };
-  }, [localPeer?.roleName]);
-  
-  // Listen for speaker rejection events
-  useEffect(() => {
-    const handleSpeakerRejection = (event: CustomEvent) => {
-      // Check if this is the rejection for the current user
-      if (event.detail.peerId === localPeer?.id) {
-        setHasRequestedToSpeak(false);
-        toast.error('Your request to speak was declined');
+  }, []);
+
+  // Listen for speaker requests (for hosts/co-hosts to handle)
+  useCustomEvent({
+    type: "SPEAKER_REQUESTED",
+    onEvent: (data: { peer: string }) => {
+      if (isHost) {
+        // Just use a generic name since we don't have easy access to peer names
+        const peerName = "A participant";
+        
+        // Only notify hosts about speaker requests
+        toast.custom(
+          (t) => (
+            <div className={`${
+              t.visible ? 'animate-enter' : 'animate-leave'
+            } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}>
+              <div className="flex-1 w-0 p-4">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 pt-0.5">
+                    <span role="img" aria-label="microphone" className="text-2xl">🎙️</span>
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <p className="text-sm font-medium text-gray-900">
+                      Speaker Request
+                    </p>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {peerName} would like to speak
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex border-l border-gray-200">
+                <button
+                  onClick={() => {
+                    // Grant speaker role
+                    if (data.peer) {
+                      // Change role to speaker (allow publishing audio)
+                      hmsActions.changeRole(data.peer, "speaker", true)
+                        .then(() => {
+                          toast.success(`Granted speaking permission to ${peerName}`);
+                        })
+                        .catch(err => {
+                          console.error("Error changing role:", err);
+                          toast.error("Failed to grant speaker permission");
+                        });
+                    }
+                    toast.dismiss(t.id);
+                  }}
+                  className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none"
+                >
+                  Allow
+                </button>
+              </div>
+            </div>
+          ),
+          { id: `speaker-request-${data.peer}`, duration: 10000 }
+        );
       }
-    };
-    
-    // Add event listeners
-    window.addEventListener('SPEAKER_REJECTED', handleSpeakerRejection as EventListener);
-    
-    // Cleanup
-    return () => {
-      window.removeEventListener('SPEAKER_REJECTED', handleSpeakerRejection as EventListener);
-    };
-  }, [localPeer?.id]);
+    }
+  });
 
   // Initialize plugin only on client side with dynamic import
   useEffect(() => {
@@ -347,121 +546,26 @@ export default function Footer({ roomId }: { roomId: string }) {
   const handleAdsClick = () => {
     setIsAdsModalOpen((prev) => !prev);
   };
-  
-  // Handle request to speak
-  const handleRequestToSpeak = () => {
-    // Prevent multiple requests
-    if (hasRequestedToSpeak) {
-      toast.error('You have already requested to speak');
-      return;
-    }
-    
-    // Dispatch a custom event for speaker request
-    const requestEvent = new CustomEvent('SPEAKER_REQUESTED', {
-      detail: {
-        peerId: localPeer?.id,
-        peerName: localPeer?.name,
-        peerAvatar: localPeer?.metadata ? JSON.parse(localPeer.metadata).avatar : null,
-        timestamp: new Date().toISOString()
-      }
-    });
-    window.dispatchEvent(requestEvent);
-    
-    // Update local state
-    setHasRequestedToSpeak(true);
-    
-    // Show confirmation toast
-    toast.success('Request sent to host');
-  };
 
   const isHost = localRoleName === "host" || localRoleName === "co-host";
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-black">
+      {/* Toast notifications container */}
+      <Toaster position="top-center" />
+      
       <div className="max-w-4xl mx-auto px-6 py-4 flex">
         <div className="flex flex-col items-start justify-center w-[30%]">
-          {localRoleName === 'listener' ? (
-            // Request to speak button for listeners
-            <button
-              className={`w-14 h-14 translate-x-[0.6rem] rounded-full flex items-center justify-center transition-all duration-200 transform ${
-                hasRequestedToSpeak
-                  ? "bg-gray-600 cursor-not-allowed"
-                  : "bg-fireside-orange hover:bg-orange-600 hover:scale-105 active:scale-95"
-              } text-white shadow-lg`}
-              onClick={hasRequestedToSpeak ? undefined : handleRequestToSpeak}
-              disabled={hasRequestedToSpeak || isRejoining}
-              title={
-                isRejoining
-                  ? "Re-joining with new role..."
-                  : hasRequestedToSpeak
-                  ? "Request sent"
-                  : "Request to speak"
-              }
-            >
-              {isRejoining ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : hasRequestedToSpeak ? (
-                <span className="text-xs font-semibold">Sent</span>
-              ) : (
-                <HandRaiseIcon className="w-6 h-6" />
-              )}
-            </button>
-          ) : (
-            // Regular mic button for non-listeners
-            <button
-              className={`w-14 h-14 translate-x-[0.6rem] rounded-full flex items-center justify-center transition-all duration-200 transform ${
-                canUnmute && !isRejoining
-                  ? "hover:scale-105 active:scale-95"
-                  : "opacity-60 cursor-not-allowed"
-              } ${
-                isLocalAudioEnabled
-                  ? "bg-fireside-orange text-white shadow-lg"
-                  : "bg-red-500 text-white shadow-lg"
-              }`}
-              onClick={
-                canUnmute && !isRejoining
-                  ? () => {
-                      if (!isLocalAudioEnabled) {
-                        // Only lower hand when unmuting
-                        hmsActions?.lowerLocalPeerHand?.();
-                      }
-                      toggleAudio?.();
-                    }
-                  : undefined
-              }
-              disabled={!canUnmute || isRejoining}
-              title={
-                isRejoining
-                  ? "Re-joining with new role..."
-                  : canUnmute
-                  ? isLocalAudioEnabled
-                    ? "Mute"
-                    : "Unmute"
-                  : `No permission to publish audio${
-                      localRoleName ? ` (${localRoleName})` : ""
-                    }`
-              }
-            >
-              {isRejoining ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : isLocalAudioEnabled ? (
-                <MicOnIcon className="w-6 h-6" />
-              ) : (
-                <MicOffIcon className="w-6 h-6" />
-              )}
-            </button>
-          )}
-          <div className="mt-3 text-center">
-            <p className="text-xs text-gray-500">
-              {isRejoining
-                ? "Re-joining with new role..."
-                : canUnmute
-                ? isLocalAudioEnabled
-                  ? "Tap to mute"
-                  : "Tap to unmute"
-                : "Role cannot unmute"}
-            </p>
-          </div>
+          <MicComponent
+            isLocalAudioEnabled={isLocalAudioEnabled}
+            toggleAudio={toggleAudio}
+            canUnmute={canUnmute}
+            isRejoining={isRejoining}
+            localRoleName={localRoleName}
+            hmsActions={hmsActions}
+            localPeer={localPeer}
+            user={user}
+          />
 
           {/* <button
             title="Screen share"
