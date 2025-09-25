@@ -43,9 +43,9 @@ export default function Conference({ roomId }: { roomId: string }) {
   // Speaker request management
   interface SpeakerRequest {
     peerId: string;
-    peerName: string;
-    peerAvatar: string | null;
-    timestamp: string;
+    peerName?: string;
+    peerAvatar?: string | null;
+    timestamp?: string;
   }
   
   const [speakerRequests, setSpeakerRequests] = useState<SpeakerRequest[]>([]);
@@ -58,28 +58,50 @@ export default function Conference({ roomId }: { roomId: string }) {
   
 
    const handleSpeakerRequest = (event: any) => {
-      const request = event.detail;
+      // Extract peer ID from the event
+      const peerId = event.peerId || (event.detail && event.detail.peerId);
+      
+      if (!peerId) {
+        console.error("Speaker request missing peer ID", event);
+        return;
+      }
       
       // Only hosts and co-hosts should see requests
       if (localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host') {
         setSpeakerRequests((prevRequests) => {
           // Check if this request already exists
-          const exists = prevRequests.some(req => req.peerId === request.peerId);
+          const exists = prevRequests.some(req => req.peerId === peerId);
           if (exists) return prevRequests;
           
+          // Create a new request object that matches our interface
+          const newRequest: SpeakerRequest = {
+            peerId: peerId,
+            peerName: "Unknown User", // Default name if not provided
+            timestamp: new Date().toISOString() // Current timestamp
+          };
+          
+          // Try to find peer in room to get their name
+          const peer = allPeers.find(p => p.id === peerId);
+          if (peer && peer.name) {
+            newRequest.peerName = peer.name;
+          }
+          
           // Add the new request
-          return [...prevRequests, request];
+          return [...prevRequests, newRequest];
         });
         
-        // Show toast notification
-        toast.success(`${request.peerName} has requested to speak`);
+        // Show toast notification with the peer name if available
+        const peer = allPeers.find(p => p.id === peerId);
+        const displayName = peer?.name || "Someone";
+        toast.success(`${displayName} has requested to speak`);
       }
     };
 
   useCustomEvent({
       type: "SPEAKER_REQUESTED",
       onEvent: (msg: {peer:string}) => {
-        handleSpeakerRequest({ peerId: msg.peer});
+        // Convert the message to our expected event format
+        handleSpeakerRequest({ peerId: msg.peer });
       },
     });
 
@@ -267,15 +289,31 @@ useEffect(() => {
 
   // Handle request approval and rejection
   const handleApproveRequest = (request: SpeakerRequest) => {
+    if (!request || !request.peerId) {
+      console.error("Invalid speaker request for approval", request);
+      return;
+    }
+    
     setSpeakerRequests((prevRequests) => 
       prevRequests.filter(req => req.peerId !== request.peerId)
     );
+    
+    // Log success
+    console.log(`Approved speaker request for peer: ${request.peerId}`);
   };
   
   const handleRejectRequest = (request: SpeakerRequest) => {
+    if (!request || !request.peerId) {
+      console.error("Invalid speaker request for rejection", request);
+      return;
+    }
+    
     setSpeakerRequests((prevRequests) => 
       prevRequests.filter(req => req.peerId !== request.peerId)
     );
+    
+    // Log rejection
+    console.log(`Rejected speaker request for peer: ${request.peerId}`);
   };
 
   useEffect(() => {
@@ -312,7 +350,7 @@ useEffect(() => {
             
             {/* Speaker Requests Button - Only shown to hosts/co-hosts and when there are requests */}
             {canManageSpeakers && speakerRequests.length > 0 && (
-              <div className="absolute right-0 top-1/2 -translate-y-1/2">
+              <div className="absolute bottom-0 right-0 top-1/2 -translate-y-1/2">
                 <button
                   onClick={() => setShowSpeakerRequestsDrawer(true)}
                   className="bg-fireside-orange hover:bg-orange-600 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors"
@@ -352,7 +390,7 @@ useEffect(() => {
         <SpeakerRequestsDrawer
           isOpen={showSpeakerRequestsDrawer}
           onClose={() => setShowSpeakerRequestsDrawer(false)}
-          requests={speakerRequests}
+          requests={speakerRequests} 
           onApprove={handleApproveRequest}
           onReject={handleRejectRequest}
           roomId={roomId}

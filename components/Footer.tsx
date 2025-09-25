@@ -88,6 +88,15 @@ const MicComponent: React.FC<MicComponentProps> = ({
       // Handle incoming speaker requests if needed
     },
   });
+
+  useCustomEvent({
+      type: "SPEAKER_REJECTED",
+      onEvent: (msg: {peer:string}) => {
+        if (msg.peer === (localPeer?.id || user?.fid)) {
+          setSpeakerRequested(false);
+        }
+      }})
+
   
   const isListener = localRoleName === "listener";
   
@@ -153,7 +162,7 @@ const MicComponent: React.FC<MicComponentProps> = ({
   }
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center justify-center">
       <button
         className={`w-14 h-14 translate-x-[0.6rem] rounded-full flex items-center justify-center transition-all duration-200 transform ${
           canUnmute && !isRejoining
@@ -196,7 +205,7 @@ const MicComponent: React.FC<MicComponentProps> = ({
           <MicOffIcon className="w-6 h-6" />
         )}
       </button>
-      <div className="mt-3 text-center">
+      <div className="mt-3 ">
         <p className="text-xs text-gray-500">
           {isRejoining
             ? "Re-joining with new role..."
@@ -394,63 +403,63 @@ export default function Footer({ roomId }: { roomId: string }) {
   }, []);
 
   // Listen for speaker requests (for hosts/co-hosts to handle)
-  useCustomEvent({
-    type: "SPEAKER_REQUESTED",
-    onEvent: (data: { peer: string }) => {
-      if (isHost) {
-        // Just use a generic name since we don't have easy access to peer names
-        const peerName = "A participant";
+  // useCustomEvent({
+  //   type: "SPEAKER_REQUESTED",
+  //   onEvent: (data: { peer: string }) => {
+  //     if (isHost) {
+  //       // Just use a generic name since we don't have easy access to peer names
+  //       const peerName = "A participant";
         
-        // Only notify hosts about speaker requests
-        toast.custom(
-          (t) => (
-            <div className={`${
-              t.visible ? 'animate-enter' : 'animate-leave'
-            } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}>
-              <div className="flex-1 w-0 p-4">
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 pt-0.5">
-                    <span role="img" aria-label="microphone" className="text-2xl">🎙️</span>
-                  </div>
-                  <div className="ml-3 flex-1">
-                    <p className="text-sm font-medium text-gray-900">
-                      Speaker Request
-                    </p>
-                    <p className="mt-1 text-sm text-gray-500">
-                      {peerName} would like to speak
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex border-l border-gray-200">
-                <button
-                  onClick={() => {
-                    // Grant speaker role
-                    if (data.peer) {
-                      // Change role to speaker (allow publishing audio)
-                      hmsActions.changeRole(data.peer, "speaker", true)
-                        .then(() => {
-                          toast.success(`Granted speaking permission to ${peerName}`);
-                        })
-                        .catch(err => {
-                          console.error("Error changing role:", err);
-                          toast.error("Failed to grant speaker permission");
-                        });
-                    }
-                    toast.dismiss(t.id);
-                  }}
-                  className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none"
-                >
-                  Allow
-                </button>
-              </div>
-            </div>
-          ),
-          { id: `speaker-request-${data.peer}`, duration: 10000 }
-        );
-      }
-    }
-  });
+  //       // Only notify hosts about speaker requests
+  //       toast.custom(
+  //         (t) => (
+  //           <div className={`${
+  //             t.visible ? 'animate-enter' : 'animate-leave'
+  //           } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}>
+  //             <div className="flex-1 w-0 p-4">
+  //               <div className="flex items-start">
+  //                 <div className="flex-shrink-0 pt-0.5">
+  //                   <span role="img" aria-label="microphone" className="text-2xl">🎙️</span>
+  //                 </div>
+  //                 <div className="ml-3 flex-1">
+  //                   <p className="text-sm font-medium text-gray-900">
+  //                     Speaker Request
+  //                   </p>
+  //                   <p className="mt-1 text-sm text-gray-500">
+  //                     {peerName} would like to speak
+  //                   </p>
+  //                 </div>
+  //               </div>
+  //             </div>
+  //             <div className="flex border-l border-gray-200">
+  //               <button
+  //                 onClick={() => {
+  //                   // Grant speaker role
+  //                   if (data.peer) {
+  //                     // Change role to speaker (allow publishing audio)
+  //                     hmsActions.changeRole(data.peer, "speaker", true)
+  //                       .then(() => {
+  //                         toast.success(`Granted speaking permission to ${peerName}`);
+  //                       })
+  //                       .catch(err => {
+  //                         console.error("Error changing role:", err);
+  //                         toast.error("Failed to grant speaker permission");
+  //                       });
+  //                   }
+  //                   toast.dismiss(t.id);
+  //                 }}
+  //                 className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none"
+  //               >
+  //                 Allow
+  //               </button>
+  //             </div>
+  //           </div>
+  //         ),
+  //         { id: `speaker-request-${data.peer}`, duration: 10000 }
+  //       );
+  //     }
+  //   }
+  // });
 
   // Initialize plugin only on client side with dynamic import
   useEffect(() => {
