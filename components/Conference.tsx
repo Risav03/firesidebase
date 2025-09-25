@@ -337,20 +337,13 @@ useEffect(() => {
     const canManageSpeakers = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
     
     return (
-      <div className="pt-20 pb-32 px-6">
+      <div className="pt-20 pb-32 px-6 relative">
         {roomDetails?.sponsorshipEnabled && <RoomSponsor roomId={roomId} />}
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-4 mt-6 relative">
-            <h2 className="text-3xl font-bold text-white mb-2">
-              {roomDetails?.name || ""}
-            </h2>
-            <p className="text-gray-400">
-              {roomDetails?.description || ""}
-            </p>
-            
             {/* Speaker Requests Button - Only shown to hosts/co-hosts and when there are requests */}
             {canManageSpeakers && speakerRequests.length > 0 && (
-              <div className="absolute bottom-0 right-0 top-1/2 -translate-y-1/2">
+              <div className="flex w-full justify-end mb-4">
                 <button
                   onClick={() => setShowSpeakerRequestsDrawer(true)}
                   className="bg-fireside-orange hover:bg-orange-600 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors"
@@ -362,6 +355,13 @@ useEffect(() => {
                 </button>
               </div>
             )}
+            <h2 className="text-3xl font-bold text-white mb-2">
+              {roomDetails?.name || ""}
+            </h2>
+            <p className="text-gray-400">
+              {roomDetails?.description || ""}
+            </p>
+            
           </div>
   
           <div className="">

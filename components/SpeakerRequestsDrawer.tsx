@@ -13,6 +13,8 @@ import {
   DrawerTitle,
   DrawerOverlay,
 } from "@/components/UI/drawer";
+import { FaCheck } from 'react-icons/fa';
+import { MdClose } from 'react-icons/md';
 
 interface SpeakerRequest {
   peerId: string;
@@ -123,7 +125,7 @@ export default function SpeakerRequestsDrawer({
 
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DrawerContent className="bg-gray-900 border-t border-gray-800">
+      <DrawerContent className="bg-black border-t border-fireside-orange border-t-4">
         <DrawerHeader className="border-b border-gray-800">
           <DrawerTitle className="text-white text-center">
             Speaker Requests {safeRequests.length > 0 && `(${safeRequests.length})`}
@@ -146,7 +148,7 @@ export default function SpeakerRequestsDrawer({
           ) : (
             <ul className="space-y-3">
               {safeRequests.map((request) => (
-                <li key={request.peerId} className="bg-gray-800 rounded-lg p-4 flex items-center">
+                <li key={request.peerId} className="bg-white/10 rounded-lg p-4 flex items-center">
                   <div className="mr-3">
                     {request && request.peerAvatar ? (
                       <img 
@@ -169,15 +171,15 @@ export default function SpeakerRequestsDrawer({
                   <div className="flex space-x-2">
                     <button
                       onClick={() => request && handleApprove(request)}
-                      className="bg-green-600 hover:bg-green-700 text-white py-1 px-3 rounded text-sm transition-colors"
+                      className="bg-green-600 hover:bg-green-700 text-white w-8 aspect-square rounded text-sm transition-colors"
                     >
-                      Approve
+                      <FaCheck className='mx-auto' />
                     </button>
                     <button
                       onClick={() => request && handleReject(request)}
-                      className="bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded text-sm transition-colors"
+                      className="bg-red-600 hover:bg-red-700 text-white w-8 aspect-square rounded text-sm transition-colors"
                     >
-                      Reject
+                      <MdClose className='mx-auto text-xl' />
                     </button>
                   </div>
                 </li>
