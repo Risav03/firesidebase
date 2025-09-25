@@ -316,6 +316,14 @@ useEffect(() => {
     console.log(`Rejected speaker request for peer: ${request.peerId}`);
   };
 
+  useCustomEvent({
+      type: "SPEAKER_REJECTED",
+      onEvent: (msg: {peer:string}) => {
+        // if (msg.peer === (localPeer?.id || user?.fid)) {
+          handleRejectRequest({peerId: msg.peer});
+        // }
+      }})
+
   useEffect(() => {
     async function getPermission() {
       try {
