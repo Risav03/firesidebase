@@ -88,6 +88,15 @@ const MicComponent: React.FC<MicComponentProps> = ({
       // Handle incoming speaker requests if needed
     },
   });
+
+  useCustomEvent({
+      type: "SPEAKER_REJECTED",
+      onEvent: (msg: {peer:string}) => {
+        if (msg.peer === (localPeer?.id || user?.fid)) {
+          setSpeakerRequested(false);
+        }
+      }})
+
   
   const isListener = localRoleName === "listener";
   
@@ -153,7 +162,7 @@ const MicComponent: React.FC<MicComponentProps> = ({
   }
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center justify-center">
       <button
         className={`w-14 h-14 translate-x-[0.6rem] rounded-full flex items-center justify-center transition-all duration-200 transform ${
           canUnmute && !isRejoining
@@ -196,7 +205,7 @@ const MicComponent: React.FC<MicComponentProps> = ({
           <MicOffIcon className="w-6 h-6" />
         )}
       </button>
-      <div className="mt-3 text-center">
+      <div className="mt-3 ">
         <p className="text-xs text-gray-500">
           {isRejoining
             ? "Re-joining with new role..."
