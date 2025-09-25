@@ -18,6 +18,7 @@ import { useHMSNotifications, HMSNotificationTypes } from '@100mslive/react-sdk'
 import RoomEndScreen from "./RoomEndScreen";
 import toast from "react-hot-toast";
 import { fetchRoomDetails, endRoom } from "@/utils/serverActions";
+import SpeakerRequestsDrawer from "./SpeakerRequestsDrawer";
 
 
 export default function Conference({ roomId }: { roomId: string }) {
@@ -35,7 +36,18 @@ export default function Conference({ roomId }: { roomId: string }) {
   const [peers, setPeers] = useState(allPeers);
   const [removedPeers, setRemovedPeers] = useState<Set<string>>(new Set());
   const [isEndingRoom, setIsEndingRoom] = useState(false);
-
+  
+  // Speaker request management
+  interface SpeakerRequest {
+    peerId: string;
+    peerName: string;
+    peerAvatar: string | null;
+    timestamp: string;
+  }
+  
+  const [speakerRequests, setSpeakerRequests] = useState<SpeakerRequest[]>([]);
+  const [showSpeakerRequestsDrawer, setShowSpeakerRequestsDrawer] = useState(false);
+  
   const [roomEnded, setRoomEnded] = useState(false);
 
   //function to fetch room details and save name and description in a useState. Call the function in useEffect
@@ -197,6 +209,62 @@ useEffect(() => {
     };
   }, []);
 
+  // Handle speaker requests
+  useEffect(() => {
+    // Listen for speaker request events
+    const handleSpeakerRequest = (event: CustomEvent) => {
+      const request = event.detail;
+      
+      // Only hosts and co-hosts should see requests
+      if (localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host') {
+        setSpeakerRequests((prevRequests) => {
+          // Check if this request already exists
+          const exists = prevRequests.some(req => req.peerId === request.peerId);
+          if (exists) return prevRequests;
+          
+          // Add the new request
+          return [...prevRequests, request];
+        });
+        
+        // Show toast notification
+        toast.success(`${request.peerName} has requested to speak`);
+      }
+    };
+    
+    // Listen for speaker rejection events
+    const handleSpeakerRejection = (event: CustomEvent) => {
+      const { peerId } = event.detail;
+      
+      // Remove the rejected request
+      setSpeakerRequests((prevRequests) => 
+        prevRequests.filter(request => request.peerId !== peerId)
+      );
+    };
+    
+    // Add event listeners
+    window.addEventListener('SPEAKER_REQUESTED', handleSpeakerRequest as EventListener);
+    window.addEventListener('SPEAKER_REJECTED', handleSpeakerRejection as EventListener);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('SPEAKER_REQUESTED', handleSpeakerRequest as EventListener);
+      window.removeEventListener('SPEAKER_REJECTED', handleSpeakerRejection as EventListener);
+    };
+  }, [localPeer?.roleName]);
+
+  // Handle request approval and rejection
+  const handleApproveRequest = (request: SpeakerRequest) => {
+    setSpeakerRequests((prevRequests) => 
+      prevRequests.filter(req => req.peerId !== request.peerId)
+    );
+  };
+  
+  const handleRejectRequest = (request: SpeakerRequest) => {
+    setSpeakerRequests((prevRequests) => 
+      prevRequests.filter(req => req.peerId !== request.peerId)
+    );
+  };
+
   useEffect(() => {
     async function getPermission() {
       try {
@@ -214,18 +282,35 @@ useEffect(() => {
     return <RoomEndScreen onComplete={() => router.push("/")} />
   }
   else{
-
+    // Only show speaker requests button for hosts and co-hosts
+    const canManageSpeakers = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
+    
     return (
       <div className="pt-20 pb-32 px-6">
         {roomDetails?.sponsorshipEnabled && <RoomSponsor roomId={roomId} />}
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-4 mt-6">
+          <div className="text-center mb-4 mt-6 relative">
             <h2 className="text-3xl font-bold text-white mb-2">
               {roomDetails?.name || ""}
             </h2>
             <p className="text-gray-400">
               {roomDetails?.description || ""}
             </p>
+            
+            {/* Speaker Requests Button - Only shown to hosts/co-hosts and when there are requests */}
+            {canManageSpeakers && speakerRequests.length > 0 && (
+              <div className="absolute right-0 top-1/2 -translate-y-1/2">
+                <button
+                  onClick={() => setShowSpeakerRequestsDrawer(true)}
+                  className="bg-fireside-orange hover:bg-orange-600 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                >
+                  <span>Speaker Requests</span>
+                  <span className="bg-white text-fireside-orange rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
+                    {speakerRequests.length}
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
   
           <div className="">
@@ -249,6 +334,16 @@ useEffect(() => {
             )}
           </div>
         </div>
+        
+        {/* Speaker Requests Drawer */}
+        <SpeakerRequestsDrawer
+          isOpen={showSpeakerRequestsDrawer}
+          onClose={() => setShowSpeakerRequestsDrawer(false)}
+          requests={speakerRequests}
+          onApprove={handleApproveRequest}
+          onReject={handleRejectRequest}
+          roomId={roomId}
+        />
       </div>
     );
   }

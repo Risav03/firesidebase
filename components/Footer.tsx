@@ -77,6 +77,9 @@ export default function Footer({ roomId }: { roomId: string }) {
   const [isTippingModalOpen, setIsTippingModalOpen] = useState(false);
   const [adsEnabled, setAdsEnabled] = useState(true);
   const [isAdsModalOpen, setIsAdsModalOpen] = useState(false);
+  
+  // Speaker request state
+  const [hasRequestedToSpeak, setHasRequestedToSpeak] = useState(false);
 
   // Function to handle chat open/close and reset unread count
   const handleChatToggle = () => {
@@ -211,6 +214,11 @@ export default function Footer({ roomId }: { roomId: string }) {
         setIsRejoining(true);
       } else if (event.detail?.type === "role_change_complete") {
         setIsRejoining(false);
+        
+        // Reset speaker request status if role changes (e.g., became a speaker)
+        if (localPeer?.roleName !== 'listener') {
+          setHasRequestedToSpeak(false);
+        }
       }
     };
 
@@ -224,7 +232,26 @@ export default function Footer({ roomId }: { roomId: string }) {
         handleRoleChange as EventListener
       );
     };
-  }, []);
+  }, [localPeer?.roleName]);
+  
+  // Listen for speaker rejection events
+  useEffect(() => {
+    const handleSpeakerRejection = (event: CustomEvent) => {
+      // Check if this is the rejection for the current user
+      if (event.detail.peerId === localPeer?.id) {
+        setHasRequestedToSpeak(false);
+        toast.error('Your request to speak was declined');
+      }
+    };
+    
+    // Add event listeners
+    window.addEventListener('SPEAKER_REJECTED', handleSpeakerRejection as EventListener);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('SPEAKER_REJECTED', handleSpeakerRejection as EventListener);
+    };
+  }, [localPeer?.id]);
 
   // Initialize plugin only on client side with dynamic import
   useEffect(() => {
@@ -320,6 +347,32 @@ export default function Footer({ roomId }: { roomId: string }) {
   const handleAdsClick = () => {
     setIsAdsModalOpen((prev) => !prev);
   };
+  
+  // Handle request to speak
+  const handleRequestToSpeak = () => {
+    // Prevent multiple requests
+    if (hasRequestedToSpeak) {
+      toast.error('You have already requested to speak');
+      return;
+    }
+    
+    // Dispatch a custom event for speaker request
+    const requestEvent = new CustomEvent('SPEAKER_REQUESTED', {
+      detail: {
+        peerId: localPeer?.id,
+        peerName: localPeer?.name,
+        peerAvatar: localPeer?.metadata ? JSON.parse(localPeer.metadata).avatar : null,
+        timestamp: new Date().toISOString()
+      }
+    });
+    window.dispatchEvent(requestEvent);
+    
+    // Update local state
+    setHasRequestedToSpeak(true);
+    
+    // Show confirmation toast
+    toast.success('Request sent to host');
+  };
 
   const isHost = localRoleName === "host" || localRoleName === "co-host";
 
@@ -327,48 +380,77 @@ export default function Footer({ roomId }: { roomId: string }) {
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-black">
       <div className="max-w-4xl mx-auto px-6 py-4 flex">
         <div className="flex flex-col items-start justify-center w-[30%]">
-          <button
-            className={`w-14 h-14 translate-x-[0.6rem] rounded-full flex items-center justify-center transition-all duration-200 transform ${
-              canUnmute && !isRejoining
-                ? "hover:scale-105 active:scale-95"
-                : "opacity-60 cursor-not-allowed"
-            } ${
-              isLocalAudioEnabled
-                ? "bg-fireside-orange text-white shadow-lg"
-                : "bg-red-500 text-white shadow-lg"
-            }`}
-            onClick={
-              canUnmute && !isRejoining
-                ? () => {
-                    if (!isLocalAudioEnabled) {
-                      // Only lower hand when unmuting
-                      hmsActions?.lowerLocalPeerHand?.();
+          {localRoleName === 'listener' ? (
+            // Request to speak button for listeners
+            <button
+              className={`w-14 h-14 translate-x-[0.6rem] rounded-full flex items-center justify-center transition-all duration-200 transform ${
+                hasRequestedToSpeak
+                  ? "bg-gray-600 cursor-not-allowed"
+                  : "bg-fireside-orange hover:bg-orange-600 hover:scale-105 active:scale-95"
+              } text-white shadow-lg`}
+              onClick={hasRequestedToSpeak ? undefined : handleRequestToSpeak}
+              disabled={hasRequestedToSpeak || isRejoining}
+              title={
+                isRejoining
+                  ? "Re-joining with new role..."
+                  : hasRequestedToSpeak
+                  ? "Request sent"
+                  : "Request to speak"
+              }
+            >
+              {isRejoining ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : hasRequestedToSpeak ? (
+                <span className="text-xs font-semibold">Sent</span>
+              ) : (
+                <HandRaiseIcon className="w-6 h-6" />
+              )}
+            </button>
+          ) : (
+            // Regular mic button for non-listeners
+            <button
+              className={`w-14 h-14 translate-x-[0.6rem] rounded-full flex items-center justify-center transition-all duration-200 transform ${
+                canUnmute && !isRejoining
+                  ? "hover:scale-105 active:scale-95"
+                  : "opacity-60 cursor-not-allowed"
+              } ${
+                isLocalAudioEnabled
+                  ? "bg-fireside-orange text-white shadow-lg"
+                  : "bg-red-500 text-white shadow-lg"
+              }`}
+              onClick={
+                canUnmute && !isRejoining
+                  ? () => {
+                      if (!isLocalAudioEnabled) {
+                        // Only lower hand when unmuting
+                        hmsActions?.lowerLocalPeerHand?.();
+                      }
+                      toggleAudio?.();
                     }
-                    toggleAudio?.();
-                  }
-                : undefined
-            }
-            disabled={!canUnmute || isRejoining}
-            title={
-              isRejoining
-                ? "Re-joining with new role..."
-                : canUnmute
-                ? isLocalAudioEnabled
-                  ? "Mute"
-                  : "Unmute"
-                : `No permission to publish audio${
-                    localRoleName ? ` (${localRoleName})` : ""
-                  }`
-            }
-          >
-            {isRejoining ? (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : isLocalAudioEnabled ? (
-              <MicOnIcon className="w-6 h-6" />
-            ) : (
-              <MicOffIcon className="w-6 h-6" />
-            )}
-          </button>
+                  : undefined
+              }
+              disabled={!canUnmute || isRejoining}
+              title={
+                isRejoining
+                  ? "Re-joining with new role..."
+                  : canUnmute
+                  ? isLocalAudioEnabled
+                    ? "Mute"
+                    : "Unmute"
+                  : `No permission to publish audio${
+                      localRoleName ? ` (${localRoleName})` : ""
+                    }`
+              }
+            >
+              {isRejoining ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : isLocalAudioEnabled ? (
+                <MicOnIcon className="w-6 h-6" />
+              ) : (
+                <MicOffIcon className="w-6 h-6" />
+              )}
+            </button>
+          )}
           <div className="mt-3 text-center">
             <p className="text-xs text-gray-500">
               {isRejoining
