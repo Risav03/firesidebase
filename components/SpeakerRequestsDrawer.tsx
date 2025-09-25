@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react';
-import { useHMSActions } from '@100mslive/react-sdk';
+import { useCustomEvent, useHMSActions } from '@100mslive/react-sdk';
 import { updateParticipantRole } from '@/utils/serverActions';
 import sdk from "@farcaster/miniapp-sdk";
 
@@ -68,16 +68,16 @@ export default function SpeakerRequestsDrawer({
     }
   };
 
+  const {sendEvent} = useCustomEvent({
+        type: "SPEAKER_REJECTED",
+        onEvent: (msg: {peer:string}) => {
+          //do something with msg
+        },
+      });
+
   const handleReject = (request: SpeakerRequest) => {
     // Trigger the SPEAKER_REJECTED event
-    const rejectEvent = new CustomEvent('SPEAKER_REJECTED', {
-      detail: {
-        peerId: request.peerId
-      }
-    });
-    window.dispatchEvent(rejectEvent);
-    
-    // Call the onReject callback to update state
+    sendEvent({peer: request.peerId});
     onReject(request);
   };
 
