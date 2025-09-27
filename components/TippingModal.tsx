@@ -243,7 +243,11 @@ export default function TippingModal({
         return;
       }
 
+      console.log("Users to send tip to:", usersToSend);
+
       const ethPrice = await getEthPrice();
+
+      console.log("Current ETH price:", ethPrice);
 
       const tipAmount = selectedTip ? selectedTip : parseFloat(customTip);
       if (!tipAmount || isNaN(tipAmount)) {
@@ -256,15 +260,30 @@ export default function TippingModal({
       // Process in batches using environment variable
       const splitArr = splitIntoBatches(usersToSend);
 
-      const sendingCalls = splitArr.map((batch) => ({
-        to: contractAdds.tipping as `0x${string}`,
-        value: BigInt(tipAmount / batch.length),
-        data: encodeFunctionData({
-          abi: firebaseTipsAbi,
-          functionName: "distributeETH",
-          args: [batch],
-        }),
-      }));
+      console.log("Split users into batches:", splitArr);
+      console.log(Number(tipAmount / ethPrice))
+      
+      const sendingCalls = splitArr.map((batch) => {
+        // Calculate ETH value per batch in decimal form
+        const ethValuePerBatchDecimal = Number(tipAmount / (ethPrice * batch.length));
+        // Convert to Wei (10^18) and ensure it's a valid integer by using Math.floor
+        const ethValueInWei = BigInt(Math.floor(ethValuePerBatchDecimal * 1e18));
+
+        console.log("ETH value per batch (decimal):", ethValuePerBatchDecimal);
+        console.log("ETH value per batch (Wei):", ethValueInWei);
+
+        return {
+          to: contractAdds.tipping as `0x${string}`,
+          value: ethValueInWei,
+          data: encodeFunctionData({
+            abi: firebaseTipsAbi,
+            functionName: "distributeETH",
+            args: [batch],
+          }),
+        };
+      });
+
+      console.log("Prepared sending calls:", sendingCalls);
 
       sendCalls({
           calls: sendingCalls,
@@ -368,7 +387,7 @@ export default function TippingModal({
       const approveCall = [
         {
           to: USDC_ADDRESS as `0x${string}`,
-          value: "0x0",
+          value: context?.client.clientFid !== 309857 ? BigInt(0) : "0x0",
           data: encodeFunctionData({
             abi: erc20Abi,
             functionName: "approve",
@@ -377,18 +396,23 @@ export default function TippingModal({
         },
       ];
 
-      const sendingCalls = splitArr.map((batch) => ({
+      const remCals = splitArr.map((batch) => ({
         to: contractAdds.tipping as `0x${string}`,
-        value: BigInt(0),
+        value: context?.client.clientFid !== 309857 ? BigInt(0) : "0x0",
         data: encodeFunctionData({
           abi: firebaseTipsAbi,
           functionName: "distributeToken",
-          args: [USDC_ADDRESS, batch, BigInt(usdcAmount / batch.length)],
+          args: [USDC_ADDRESS, batch, BigInt((usdcAmount / batch.length) * 1e6)],
         }),
       }));
 
+      const sendingCalls = [...approveCall, ...remCals];
+
+      console.log("Prepared sending calls:", sendingCalls);
+
       if (context?.client.clientFid !== 309857) {
         sendCalls({
+          // @ts-ignore
           calls: sendingCalls,
         });
 
@@ -406,10 +430,6 @@ export default function TippingModal({
           appChainIds: [base.constants.CHAIN_IDS.base],
         }).getProvider();
 
-        const callsToSend = [...approveCall, ...sendingCalls];
-
-        const calls = callsToSend;
-
         const cryptoAccount = await getCryptoKeyAccount();
         const fromAddress = cryptoAccount?.account?.address;
 
@@ -421,7 +441,7 @@ export default function TippingModal({
               from: fromAddress,
               chainId: numberToHex(base.constants.CHAIN_IDS.base),
               atomicRequired: true,
-              calls: calls,
+              calls: sendingCalls,
             },
           ],
         });
