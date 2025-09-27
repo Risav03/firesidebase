@@ -6,7 +6,7 @@ import { config } from "@/utils/providers/rainbow";
 import { readContract, writeContract } from "@wagmi/core";
 import { firebaseTipsAbi } from "@/utils/contract/abis/firebaseTipsAbi";
 import { contractAdds } from "@/utils/contract/contractAdds";
-import { useAccount, useWriteContract } from "wagmi";
+import { useAccount, useSendCalls, useWriteContract } from "wagmi";
 import { CustomConnect } from "./UI/connectButton";
 import toast from "react-hot-toast";
 import { getEthPrice } from "@/utils/commons";
@@ -87,6 +87,8 @@ export default function TippingModal({
   const hmsActions = useHMSActions();
 
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+
+  const { sendCalls } = useSendCalls()
 
   useEffect(() => {
     if (isOpen) {
@@ -325,64 +327,30 @@ export default function TippingModal({
 
       if (context?.client.clientFid !== 309857) {
 
-        const provider = new ethers.providers.JsonRpcProvider(
-          "https://base-mainnet.g.alchemy.com/v2/CA4eh0FjTxMenSW3QxTpJ7D-vWMSHVjq"
-        );
-
-        const contract = new ethers.Contract(USDC_ADDRESS, usdcAbi, provider);
-        const nonce = BigInt(await contract.nonces(address));
-
-        const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600); // +1 hour
-
-        const domain = {
-          name: "USD Coin",
-          version: "2",
-          chainId: 8453,
-          verifyingContract: USDC_ADDRESS,
-          primaryType: "Permit",
-        } as const;
-
-        const types = {
-          Permit: [
-            { name: "owner", type: "address" },
-            { name: "spender", type: "address" },
-            { name: "value", type: "uint256" },
-            { name: "nonce", type: "uint256" },
-            { name: "deadline", type: "uint256" },
-          ],
-        } as const;
-
-        const values = {
-          owner: address as `0x${string}`,
-          spender: contractAdds.tipping as `0x${string}`,
-          value: usdcAmount,
-          nonce,
-          deadline,
-        };
-
-        const signature = await signTypedDataAsync({
-          domain,
-          primaryType: "Permit",
-          types,
-          message: values,
-        });
-
-        const { v, r, s } = splitSignature(signature);
-
-        const res = await writeContract(config, {
-          abi: firebaseTipsAbi,
-          address: contractAdds.tipping as `0x${string}`,
-          functionName: "distributeTokenWithPermit",
-          args: [
-            USDC_ADDRESS,
+        sendCalls({
+          calls:[
+            {
+              to: USDC_ADDRESS,
+              value: BigInt(0),
+              data: encodeFunctionData({
+                abi: erc20Abi,
+                functionName: "approve",
+                args: [contractAdds.tipping, usdcAmount],
+              }),
+            },
+            {
+              to: contractAdds.tipping as `0x${string}`,
+              value: BigInt(0),
+              data: encodeFunctionData({
+                abi: firebaseTipsAbi,
+                functionName: "distributeToken",
+                args: [ USDC_ADDRESS,
             usersToSend,
-            usdcAmount, // must be uint256 with 6 decimals
-            deadline,
-            v,
-            r,
-            s,
-          ],
-        });
+            usdcAmount],
+              }),
+            }
+          ]
+        })
 
         // Dismiss loading toast and show success
         toast.dismiss(loadingToast);
