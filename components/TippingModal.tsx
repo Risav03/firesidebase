@@ -402,7 +402,7 @@ export default function TippingModal({
         data: encodeFunctionData({
           abi: firebaseTipsAbi,
           functionName: "distributeToken",
-          args: [USDC_ADDRESS, batch, BigInt((usdcAmount / batch.length) * 1e6)],
+          args: [USDC_ADDRESS, batch, BigInt(Math.floor(usdcAmount / batch.length))],
         }),
       }));
 
