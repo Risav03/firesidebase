@@ -25,7 +25,7 @@ import {
   Drawer,
   DrawerContent,
   DrawerHeader,
-  DrawerTitle
+  DrawerTitle,
 } from "@/components/UI/drawer";
 import {
   createBaseAccountSDK,
@@ -35,7 +35,7 @@ import {
 import {
   fetchRoomParticipants,
   fetchRoomParticipantsByRole,
-  sendChatMessage
+  sendChatMessage,
 } from "@/utils/serverActions";
 
 interface TippingModalProps {
@@ -68,13 +68,26 @@ export default function TippingModal({
   const [selectedTip, setSelectedTip] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-  const [availableRoles, setAvailableRoles] = useState<Record<string, boolean>>({
-    host: false,
-    "co-host": false,
-    speaker: false,
-    listener: false
-  });
+  const [availableRoles, setAvailableRoles] = useState<Record<string, boolean>>(
+    {
+      host: false,
+      "co-host": false,
+      speaker: false,
+      listener: false,
+    }
+  );
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const batchSize = parseInt(process.env.NEXT_PUBLIC_BATCH_SIZE || "20");
+
+  // Helper function to split arrays into batches of specified size
+  const splitIntoBatches = (array: any[]) => {
+    const batches = [];
+    for (let i = 0; i < array.length; i += batchSize) {
+      batches.push(array.slice(i, i + batchSize));
+    }
+    return batches;
+  };
 
   const { user } = useGlobalContext();
   const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Base USDC
@@ -86,9 +99,9 @@ export default function TippingModal({
   const { address } = useAccount();
   const hmsActions = useHMSActions();
 
-  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
-  const { sendCalls } = useSendCalls()
+  const { sendCalls } = useSendCalls();
 
   useEffect(() => {
     if (isOpen) {
@@ -101,21 +114,24 @@ export default function TippingModal({
             );
 
             setParticipants(activeParticipants);
-            
+
             // Process participants to determine which roles are available
             const rolePresence: Record<string, boolean> = {
               host: false,
               "co-host": false,
               speaker: false,
-              listener: false
+              listener: false,
             };
-            
+
             activeParticipants.forEach((participant: Participant) => {
-              if (participant.role && rolePresence.hasOwnProperty(participant.role)) {
+              if (
+                participant.role &&
+                rolePresence.hasOwnProperty(participant.role)
+              ) {
                 rolePresence[participant.role] = true;
               }
             });
-            
+
             setAvailableRoles(rolePresence);
           }
         })
@@ -156,19 +172,22 @@ export default function TippingModal({
 
     // Store in Redis for persistence
     try {
-      const {token} = await sdk.quickAuth.getToken();
-      
+      const { token } = await sdk.quickAuth.getToken();
+
       const response = await sendChatMessage(
         roomId,
         {
           message,
-          userFid
+          userFid,
         },
         token
       );
 
       if (!response.data.success) {
-        console.error("Failed to store tip message in Redis:", response.data.error);
+        console.error(
+          "Failed to store tip message in Redis:",
+          response.data.error
+        );
       }
     } catch (error) {
       console.error("Error saving tip message to Redis:", error);
@@ -177,11 +196,11 @@ export default function TippingModal({
 
   const handleETHTip = async () => {
     const env = process.env.NEXT_PUBLIC_ENV;
-        
-        var token: any = "";
-        if (env !== "DEV") {
-          token = (await sdk.quickAuth.getToken()).token;
-        };
+
+    var token: any = "";
+    if (env !== "DEV") {
+      token = (await sdk.quickAuth.getToken()).token;
+    }
     try {
       setIsLoading(true);
       if (!selectedUsers.length && !selectedRoles.length) {
@@ -203,13 +222,18 @@ export default function TippingModal({
       } else {
         for (const role of selectedRoles) {
           const response = await fetchRoomParticipantsByRole(roomId, role);
-          
+
           if (response.data.success) {
             usersToSend.push(
-              ...response.data.participants.map((user: Participant) => user.wallet)
+              ...response.data.participants.map(
+                (user: Participant) => user.wallet
+              )
             );
           } else {
-            console.error("Failed to fetch participants by role:", response.data.error);
+            console.error(
+              "Failed to fetch participants by role:",
+              response.data.error
+            );
           }
         }
       }
@@ -221,24 +245,31 @@ export default function TippingModal({
 
       const ethPrice = await getEthPrice();
 
-      const cryptoAmount = (() => {
-        const tipAmount = selectedTip ? selectedTip : parseFloat(customTip);
-        if (!tipAmount || isNaN(tipAmount)) {
-          throw new Error("Invalid tip amount");
-        }
-        if (!ethPrice || isNaN(ethPrice)) {
-          throw new Error("Invalid ETH price");
-        }
-        return Number((tipAmount * usersToSend.length / ethPrice).toFixed(8));
-      })();
+      const tipAmount = selectedTip ? selectedTip : parseFloat(customTip);
+      if (!tipAmount || isNaN(tipAmount)) {
+        throw new Error("Invalid tip amount");
+      }
+      if (!ethPrice || isNaN(ethPrice)) {
+        throw new Error("Invalid ETH price");
+      }
 
-      const res = await writeContract(config, {
-        abi: firebaseTipsAbi,
-        address: contractAdds.tipping as `0x${string}`,
-        functionName: "distributeETH",
-        args: [usersToSend],
-        value: BigInt(cryptoAmount * 1e18),
-      });
+      // Process in batches using environment variable
+      const splitArr = splitIntoBatches(usersToSend);
+
+      const sendingCalls = splitArr.map((batch) => ({
+        to: contractAdds.tipping as `0x${string}`,
+        value: BigInt(tipAmount / batch.length),
+        data: encodeFunctionData({
+          abi: firebaseTipsAbi,
+          functionName: "distributeETH",
+          args: [batch],
+        }),
+      }));
+
+      sendCalls({
+          calls: sendingCalls,
+        });
+
 
       // Dismiss loading toast and show success
       toast.dismiss(loadingToast);
@@ -301,13 +332,18 @@ export default function TippingModal({
       } else {
         for (const role of selectedRoles) {
           const response = await fetchRoomParticipantsByRole(roomId, role);
-          
+
           if (response.data.success) {
             usersToSend.push(
-              ...response.data.participants.map((user: Participant) => user.wallet)
+              ...response.data.participants.map(
+                (user: Participant) => user.wallet
+              )
             );
           } else {
-            console.error("Failed to fetch participants by role:", response.data.error);
+            console.error(
+              "Failed to fetch participants by role:",
+              response.data.error
+            );
           }
         }
       }
@@ -318,39 +354,43 @@ export default function TippingModal({
       }
 
       const usdcAmount = (() => {
-          const tipAmount = selectedTip ? (selectedTip*usersToSend.length) : parseFloat(String(Number(customTip)*usersToSend.length));
-          if (!tipAmount || isNaN(tipAmount)) {
-            throw new Error("Invalid tip amount");
-          }
-          return BigInt(tipAmount * 1e6);
-        })();
+        const tipAmount = selectedTip
+          ? selectedTip * usersToSend.length
+          : parseFloat(String(Number(customTip) * usersToSend.length));
+        if (!tipAmount || isNaN(tipAmount)) {
+          throw new Error("Invalid tip amount");
+        }
+        return tipAmount * 1e6;
+      })();
+
+      const splitArr = splitIntoBatches(usersToSend);
+
+      const approveCall = [
+        {
+          to: USDC_ADDRESS as `0x${string}`,
+          value: "0x0",
+          data: encodeFunctionData({
+            abi: erc20Abi,
+            functionName: "approve",
+            args: [contractAdds.tipping, BigInt(usdcAmount)],
+          }),
+        },
+      ];
+
+      const sendingCalls = splitArr.map((batch) => ({
+        to: contractAdds.tipping as `0x${string}`,
+        value: BigInt(0),
+        data: encodeFunctionData({
+          abi: firebaseTipsAbi,
+          functionName: "distributeToken",
+          args: [USDC_ADDRESS, batch, BigInt(usdcAmount / batch.length)],
+        }),
+      }));
 
       if (context?.client.clientFid !== 309857) {
-
         sendCalls({
-          calls:[
-            {
-              to: USDC_ADDRESS,
-              value: BigInt(0),
-              data: encodeFunctionData({
-                abi: erc20Abi,
-                functionName: "approve",
-                args: [contractAdds.tipping, usdcAmount],
-              }),
-            },
-            {
-              to: contractAdds.tipping as `0x${string}`,
-              value: BigInt(0),
-              data: encodeFunctionData({
-                abi: firebaseTipsAbi,
-                functionName: "distributeToken",
-                args: [ USDC_ADDRESS,
-            usersToSend,
-            usdcAmount],
-              }),
-            }
-          ]
-        })
+          calls: sendingCalls,
+        });
 
         // Dismiss loading toast and show success
         toast.dismiss(loadingToast);
@@ -361,51 +401,32 @@ export default function TippingModal({
         );
       } else {
         const provider = createBaseAccountSDK({
-        appName: "Bill test app",
-        appLogoUrl: "https://farcaster-miniapp-chi.vercel.app/pfp.jpg",
-        appChainIds: [base.constants.CHAIN_IDS.base],
-      }).getProvider();
-        const calls = [
+          appName: "Bill test app",
+          appLogoUrl: "https://farcaster-miniapp-chi.vercel.app/pfp.jpg",
+          appChainIds: [base.constants.CHAIN_IDS.base],
+        }).getProvider();
+
+        const callsToSend = [...approveCall, ...sendingCalls];
+
+        const calls = callsToSend;
+
+        const cryptoAccount = await getCryptoKeyAccount();
+        const fromAddress = cryptoAccount?.account?.address;
+
+        const result = await provider.request({
+          method: "wallet_sendCalls",
+          params: [
             {
-              to: USDC_ADDRESS,
-              value: "0x0",
-              data: encodeFunctionData({
-                abi: erc20Abi,
-                functionName: "approve",
-                args: [contractAdds.tipping, usdcAmount],
-              }),
+              version: "2.0.0",
+              from: fromAddress,
+              chainId: numberToHex(base.constants.CHAIN_IDS.base),
+              atomicRequired: true,
+              calls: calls,
             },
-            {
-              to: contractAdds.tipping,
-              value: "0x0",
-              data: encodeFunctionData({
-                abi: firebaseTipsAbi,
-                functionName: "distributeToken",
-                args: [ USDC_ADDRESS,
-            usersToSend,
-            usdcAmount],
-              }),
-            },
-          ];
-          
-          const cryptoAccount = await getCryptoKeyAccount();
-          const fromAddress = cryptoAccount?.account?.address;
-        
-          
-          const result = await provider.request({
-            method: "wallet_sendCalls",
-            params: [
-              {
-                version: "2.0.0",
-                from: fromAddress,
-                chainId: numberToHex(base.constants.CHAIN_IDS.base),
-                atomicRequired: true,
-                calls: calls,
-              },
-            ],
-          });
-          
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+          ],
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
 
       const tipper = user?.username || "Someone";
@@ -441,7 +462,7 @@ export default function TippingModal({
     if (!availableRoles[role]) {
       return;
     }
-    
+
     if (selectedRoles.includes(role)) {
       setSelectedRoles((prev) => prev.filter((r) => r !== role));
     } else {
@@ -464,9 +485,11 @@ export default function TippingModal({
       <DrawerContent className="bg-black/50 backdrop-blur-2xl text-white border-t border-fireside-orange/30">
         <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-fireside-orange/30"></div>
         <DrawerHeader>
-          <DrawerTitle className="text-2xl font-bold text-white">Send a Tip</DrawerTitle>
+          <DrawerTitle className="text-2xl font-bold text-white">
+            Send a Tip
+          </DrawerTitle>
         </DrawerHeader>
-        
+
         {false ? (
           <div className="w-full flex items-center justify-center p-6">
             <CustomConnect />
@@ -525,7 +548,9 @@ export default function TippingModal({
                             alt={user.username}
                             className="w-5 h-5 rounded-full mr-2"
                           />
-                          <span className="text-sm font-medium">{user.username}</span>
+                          <span className="text-sm font-medium">
+                            {user.username}
+                          </span>
                         </div>
                       ))}
                     </div>
