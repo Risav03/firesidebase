@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react';
-import { useCustomEvent, useHMSActions } from '@100mslive/react-sdk';
+import { useHMSActions } from '@100mslive/react-sdk';
+import { useSpeakerRejectionEvent } from '@/utils/events';
 import { updateParticipantRole } from '@/utils/serverActions';
 import sdk from "@farcaster/miniapp-sdk";
 import { 
@@ -84,12 +85,8 @@ export default function SpeakerRequestsDrawer({
     }
   };
 
-  const {sendEvent} = useCustomEvent({
-        type: "SPEAKER_REJECTED",
-        onEvent: (msg: {peer:string}) => {
-          //do something with msg
-        },
-      });
+  // Use the utility function for speaker rejections
+  const { rejectSpeakerRequest } = useSpeakerRejectionEvent();
 
   const handleReject = (request: SpeakerRequest) => {
     // Validate the request object
@@ -99,7 +96,7 @@ export default function SpeakerRequestsDrawer({
     }
     
     // Trigger the SPEAKER_REJECTED event
-    sendEvent({peer: request.peerId});
+    rejectSpeakerRequest(request.peerId);
     onReject(request);
   };
 

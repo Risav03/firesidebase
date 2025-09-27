@@ -345,3 +345,31 @@ export async function updateSponsorshipStatus(
     authToken: token
   });
 }
+
+/**
+ * Fetch sponsorship status for a user
+ */
+export async function fetchSponsorshipStatus(
+  sponsorshipId: string,
+  token: string | null = null
+) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/sponsorships/protected/${sponsorshipId}`, {
+    method: 'GET',
+    authToken: token
+  });
+}
+
+/**
+ * Withdraw a sponsorship request
+ */
+export async function withdrawSponsorshipRequest(
+  sponsorshipId: string,
+  token: string | null = null
+) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/sponsorships/protected/${sponsorshipId}/withdraw`, {
+    method: 'DELETE',
+    authToken: token
+  });
+}
