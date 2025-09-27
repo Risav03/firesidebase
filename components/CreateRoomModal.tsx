@@ -64,7 +64,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         host: user?.fid || '',
         startTime: new Date().toISOString(),
         topics: selectedTags,
-        sponsorshipEnabled
+        sponsorshipEnabled: user?.fid == 1129842
       }, token);      if (response.data.success) {
         toast.dismiss();
         toast.success('Room created successfully! Redirecting...');
