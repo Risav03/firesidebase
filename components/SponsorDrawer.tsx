@@ -184,7 +184,7 @@ export default function SponsorDrawer({
     } catch (error) {
       console.error("Error submitting sponsorship request:", error);
       toast.dismiss(loadingToast);
-      toast.error("Failed to submit sponsorship request. Please try again.");
+      toast.error("Failed to submit sponsorship request. Make sure image size is below 5mb.");
     } finally {
       setIsLoading(false);
     }
@@ -470,7 +470,7 @@ export default function SponsorDrawer({
                         Recommended size: 1500x500
                       </span>
                       <span className="block text-xs text-gray-500">
-                        Larger images will be scaled to fit
+                        Larger images will be scaled to fit. Max size: 5MB
                       </span>
                     </p>
                     </div>
