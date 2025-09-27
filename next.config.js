@@ -4,6 +4,9 @@ const nextConfig = {
   swcMinify: true,
   experimental: {
     esmExternals: false,
+    serverActions: {
+      bodySizeLimit:'10mb'
+    }
   },
   images: {
     remotePatterns: [
