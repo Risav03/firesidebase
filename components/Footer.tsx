@@ -19,7 +19,6 @@ import {
   useAVToggle,
   useHMSActions,
   useHMSStore,
-  useCustomEvent,
   HMSNotificationTypes,
   useHMSNotifications,
   selectBroadcastMessages,
@@ -29,6 +28,7 @@ import {
   HMSActions,
   HMSPeer,
 } from "@100mslive/react-sdk";
+import { useSpeakerRequestEvent, useSpeakerRejectionEvent, useEmojiReactionEvent } from "@/utils/events";
 import { RiAdvertisementFill } from "react-icons/ri";
 import { FaMoneyBill } from "react-icons/fa";
 import { TbShare3 } from "react-icons/tb";
@@ -82,20 +82,13 @@ const MicComponent: React.FC<MicComponentProps> = ({
   }, [localPeer?.id, user?.fid]);
   
   // Custom event to request speaker role
-  const { sendEvent } = useCustomEvent({
-    type: "SPEAKER_REQUESTED",
-    onEvent: (msg: {peer:string}) => {
-      // Handle incoming speaker requests if needed
-    },
-  });
+  const { requestToSpeak } = useSpeakerRequestEvent();
 
-  useCustomEvent({
-      type: "SPEAKER_REJECTED",
-      onEvent: (msg: {peer:string}) => {
-        if (msg.peer === (localPeer?.id || user?.fid)) {
-          setSpeakerRequested(false);
-        }
-      }})
+  useSpeakerRejectionEvent((msg) => {
+    if (msg.peer === (localPeer?.id || user?.fid)) {
+      setSpeakerRequested(false);
+    }
+  })
 
   
   const isListener = localRoleName === "listener";
@@ -109,9 +102,7 @@ const MicComponent: React.FC<MicComponentProps> = ({
     }
     
     // Send event with peer information
-    sendEvent({ 
-      peer: localPeer?.id as string
-    });
+    requestToSpeak(localPeer?.id as string);
     
     // Show feedback to the user that request was sent
     toast.success("Speaker request sent", { 
@@ -345,22 +336,19 @@ export default function Footer({ roomId }: { roomId: string }) {
     }
   }, [hmsActions, isHandRaised, handRaiseDisabled]);
 
-  const { sendEvent } = useCustomEvent({
-    type: "EMOJI_REACTION",
-    onEvent: (msg: { emoji: string; sender: string }) => {
-      const uniqueMsg = {
-        ...msg,
-        id: Date.now(),
-        position: Math.random() * 30, // Random position within 150px from the right
-        fontSize: (Math.random() * 0.5 + 1).toFixed(1) // Store a random font size between 1.2 and 1.7 rem
-      };
-      setFloatingEmojis((prev) => [...prev, uniqueMsg]);
+  const { sendEmoji } = useEmojiReactionEvent((msg: { emoji: string; sender: string }) => {
+    const uniqueMsg = {
+      ...msg,
+      id: Date.now(),
+      position: Math.random() * 30, // Random position within 150px from the right
+      fontSize: (Math.random() * 0.5 + 1).toFixed(1) // Store a random font size between 1.2 and 1.7 rem
+    };
+    setFloatingEmojis((prev) => [...prev, uniqueMsg]);
 
-      // Ensure emojis are cleared only after their dedicated timeout
-      setTimeout(() => {
-        setFloatingEmojis((prev) => prev.filter((e) => e.id !== uniqueMsg.id));
-      }, 5000);
-    },
+    // Ensure emojis are cleared only after their dedicated timeout
+    setTimeout(() => {
+      setFloatingEmojis((prev) => prev.filter((e) => e.id !== uniqueMsg.id));
+    }, 5000);
   });
 
         hmsActions.ignoreMessageTypes(['EMOJI_REACTION']);
@@ -373,8 +361,7 @@ export default function Footer({ roomId }: { roomId: string }) {
 
     // Send emoji with a very short timeout to prevent rapid firing but still be responsive
     emojiTimeout = setTimeout(() => {
-      const newEmoji = { emoji: emoji.emoji, sender: user?.pfp_url };
-      sendEvent(newEmoji);
+      sendEmoji(emoji.emoji, user?.pfp_url);
       emojiTimeout = null;
     }, 700); // Reduced from 1000ms to 700ms for better responsiveness
   };

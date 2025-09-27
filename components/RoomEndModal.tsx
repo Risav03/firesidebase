@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react';
-import { useHMSActions, useHMSStore, selectLocalPeer, useCustomEvent } from '@100mslive/react-sdk';
+import { useHMSActions, useHMSStore, selectLocalPeer } from '@100mslive/react-sdk';
+import { useRoomEndedEvent } from '@/utils/events';
 import { useRouter } from 'next/navigation';
 import { useGlobalContext } from '@/utils/providers/globalContext';
 import sdk from "@farcaster/miniapp-sdk";
@@ -26,12 +27,8 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
   const { user } = useGlobalContext();
   const localPeer = useHMSStore(selectLocalPeer);
 
-   const { sendEvent } = useCustomEvent({
-          type: "ROOM_ENDED",
-          onEvent: (msg: {message:string}) => {
-            // Room ended event received
-          },
-        });
+   // Use the utility function for room ended events
+   const { endRoom } = useRoomEndedEvent();
 
   // Check if local user is host or co-host
   const isHostOrCoHost = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
@@ -111,7 +108,7 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
         throw new Error(response.data.error || 'Failed to end room');
       }
 
-      sendEvent({message: "Room has been ended by the host."});
+      endRoom("Room has been ended by the host.");
 
     } catch (error) {
       console.error('Error ending room:', error);

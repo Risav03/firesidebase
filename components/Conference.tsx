@@ -6,8 +6,8 @@ import {
   useHMSStore,
   useHMSActions,
   selectLocalPeer,
-  useCustomEvent,
 } from "@100mslive/react-sdk";
+import { useSpeakerRequestEvent, useSpeakerRejectionEvent } from "@/utils/events";
 import PeerWithContextMenu from "./PeerWithContextMenu";
 import { ScreenTile } from "./ScreenTile";
 import RoomSponsor from "./RoomSponsor";
@@ -97,13 +97,11 @@ export default function Conference({ roomId }: { roomId: string }) {
       }
     };
 
-  useCustomEvent({
-      type: "SPEAKER_REQUESTED",
-      onEvent: (msg: {peer:string}) => {
-        // Convert the message to our expected event format
-        handleSpeakerRequest({ peerId: msg.peer });
-      },
-    });
+  // Use the custom hook for speaker requests
+  useSpeakerRequestEvent((msg) => {
+    // Convert the message to our expected event format
+    handleSpeakerRequest({ peerId: msg.peer });
+  });
 
 
   const handRaise = useHMSNotifications(HMSNotificationTypes.HAND_RAISE_CHANGED);
@@ -316,13 +314,10 @@ useEffect(() => {
     console.log(`Rejected speaker request for peer: ${request.peerId}`);
   };
 
-  useCustomEvent({
-      type: "SPEAKER_REJECTED",
-      onEvent: (msg: {peer:string}) => {
-        // if (msg.peer === (localPeer?.id || user?.fid)) {
-          handleRejectRequest({peerId: msg.peer});
-        // }
-      }})
+  // Use the custom hook for speaker rejections
+  useSpeakerRejectionEvent((msg) => {
+    handleRejectRequest({peerId: msg.peer});
+  })
 
   useEffect(() => {
     async function getPermission() {
