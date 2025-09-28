@@ -96,3 +96,28 @@ export const useEmojiReactionEvent = (
 
   return { sendEmoji, sendEvent };
 };
+
+/**
+ * Custom hook for handling new sponsor events
+ * @param onEvent Callback function called when a new sponsor event is received
+ * @returns Object containing sendEvent function to broadcast a new sponsor notification
+ */
+export const useNewSponsorEvent = (
+  onEvent?: (msg: { sponsorId: string; sponsorshipId: string }) => void
+) => {
+  const { sendEvent } = useCustomEvent({
+    type: "NEW_SPONSOR",
+    onEvent: onEvent || ((msg: { sponsorId: string; sponsorshipId: string }) => {}),
+  });
+
+  /**
+   * Broadcast a new sponsor event to all room participants
+   * @param sponsorId The ID of the sponsor user
+   * @param sponsorshipId The ID of the sponsorship
+   */
+  const notifyNewSponsor = (sponsorId: string, sponsorshipId: string) => {
+    sendEvent({ sponsorId, sponsorshipId });
+  };
+
+  return { notifyNewSponsor, sendEvent };
+};

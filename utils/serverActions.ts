@@ -379,3 +379,31 @@ export async function withdrawSponsorshipRequest(
     authToken: token
   });
 }
+
+/**
+ * Activate an approved sponsorship after successful payment
+ */
+export async function activateSponsorship(
+  sponsorshipId: string,
+  token: string | null = null
+) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/sponsorships/protected/${sponsorshipId}/activate`, {
+    method: 'POST',
+    authToken: token
+  });
+}
+
+/**
+ * Fetch live sponsorships for a room
+ */
+export async function fetchLiveSponsorships(
+  roomId: string,
+  token: string | null = null
+) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/sponsorships/protected/live/${roomId}`, {
+    method: 'GET',
+    authToken: token
+  });
+}

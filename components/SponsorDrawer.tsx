@@ -13,8 +13,9 @@ import {
 } from "@/components/UI/drawer";
 import { useHMSStore, selectPeers, useHMSActions } from "@100mslive/react-sdk";
 import sdk from "@farcaster/miniapp-sdk";
-import { createSponsorship, fetchSponsorshipStatus, withdrawSponsorshipRequest, fetchLiveParticipants, sendChatMessage } from "@/utils/serverActions";
+import { createSponsorship, fetchSponsorshipStatus, withdrawSponsorshipRequest, fetchLiveParticipants, sendChatMessage, activateSponsorship } from "@/utils/serverActions";
 import { useGlobalContext } from "@/utils/providers/globalContext";
+import { useNewSponsorEvent } from "@/utils/events";
 import Modal from "@/components/UI/Modal";
 import { useAccount, useSendCalls, useWriteContract, useSignTypedData } from "wagmi";
 import { encodeFunctionData, numberToHex } from "viem";
@@ -31,7 +32,15 @@ import {
 
 interface SponsorDrawerProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose: (sponsorshipData?: {
+    id: string;
+    sponsor: string;
+    amount: number;
+    currency: string;
+    roomId: string;
+    endsAt: string;
+    startedAt: string;
+  }) => void;
   roomId: string;
 }
 
@@ -81,6 +90,7 @@ export default function SponsorDrawer({
     userFid: string;
   } | null>(null);
   const batchSize = parseInt(process.env.NEXT_PUBLIC_BATCH_SIZE || "20");
+  const { notifyNewSponsor } = useNewSponsorEvent();
   
   // Check if user has a pending sponsorship request
   useEffect(() => {
@@ -201,34 +211,72 @@ export default function SponsorDrawer({
   useEffect(() => {
     // When transaction succeeds
     if (isSuccess && transactionToastId && transactionData) {
-      // Dismiss loading toast
-      toast.dismiss(transactionToastId);
-      
-      // Show success toast
-      toast.success("Sponsorship payment completed successfully!");
-      
-      // Send chat message
-      const sendMessage = async () => {
+      // Process successful transaction
+      const processSuccess = async () => {
         try {
-          await sendSponsorMessage(
-            transactionData.sponsor,
-            transactionData.amount,
-            transactionData.currency,
-            transactionData.userFid
-          );
+          // Activate the sponsorship
+          if (pendingSponsorship?.id) {
+            const env = process.env.NEXT_PUBLIC_ENV;
+            let token: any = null;
+            if (env !== "DEV") {
+              token = (await sdk.quickAuth.getToken()).token;
+            }
+            
+            const activateResult = await activateSponsorship(pendingSponsorship.id, token);
+            
+            if (!activateResult.ok) {
+              console.error("Failed to activate sponsorship:", activateResult.data);
+              // Continue anyway since payment was successful
+            } else {
+              // Extract sponsorship data
+              const startedAt = activateResult.data?.startedAt || new Date().toISOString();
+              const endsAt = activateResult.data?.endsAt || new Date().toISOString();
+              
+              // Notify about new sponsorship using event system
+              notifyNewSponsor(transactionData.sponsor, pendingSponsorship.id);
+              
+              // Send the sponsorship data to the parent component through onClose
+              onClose({
+                id: pendingSponsorship.id,
+                sponsor: transactionData.sponsor,
+                amount: transactionData.amount,
+                currency: transactionData.currency,
+                roomId,
+                endsAt,
+                startedAt
+              });
+            }
+          }
+          
+          // Dismiss loading toast and show success
+          toast.dismiss(transactionToastId);
+          toast.success("Sponsorship payment completed successfully!");
+          
+          // Close modals and reset state if not already done by onClose
+          setIsTransactionModalOpen(false);
+          if (!pendingSponsorship?.id) {
+            onClose();
+          }
+          setProcessingTx(false);
+          setTransactionToastId(null);
+          setTransactionData(null);
         } catch (error) {
-          console.error("Error sending sponsor message:", error);
+          console.error("Error in post-transaction processing:", error);
+          
+          // Still show success since the payment was successful
+          toast.dismiss(transactionToastId);
+          toast.success("Payment successful, but there was an issue activating the sponsorship.");
+          
+          // Close modals and reset state
+          setIsTransactionModalOpen(false);
+          onClose();
+          setProcessingTx(false);
+          setTransactionToastId(null);
+          setTransactionData(null);
         }
       };
       
-      sendMessage();
-      
-      // Close modals and reset state
-      setIsTransactionModalOpen(false);
-      onClose();
-      setProcessingTx(false);
-      setTransactionToastId(null);
-      setTransactionData(null);
+      processSuccess();
     } 
     // When transaction fails (status === 'error')
     else if (status === 'error' && transactionToastId) {
@@ -238,7 +286,7 @@ export default function SponsorDrawer({
       setTransactionToastId(null);
       setTransactionData(null);
     }
-  }, [isSuccess, status, transactionToastId, transactionData, onClose]);
+  }, [isSuccess, status, transactionToastId, transactionData, onClose, pendingSponsorship?.id, roomId, notifyNewSponsor]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -571,7 +619,7 @@ export default function SponsorDrawer({
         const fromAddress = cryptoAccount?.account?.address;
 
         try {
-          await provider.request({
+          const res:any = await provider.request({
             method: "wallet_sendCalls",
             params: [
               {
@@ -583,23 +631,79 @@ export default function SponsorDrawer({
               },
             ],
           });
+
+          await res.wait();
           
-          // For Base Account SDK, we need to manually handle success since it doesn't use Wagmi hooks
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+          // Activate the sponsorship
+          if (pendingSponsorship?.id && transactionData) {
+            try {
+              const activateResult = await activateSponsorship(pendingSponsorship.id, token);
+              
+              if (!activateResult.ok) {
+                console.error("Failed to activate sponsorship:", activateResult.data);
+                // Continue anyway since payment was successful
+              } else {
+                // Extract sponsorship data
+                const startedAt = activateResult.data?.startedAt || new Date().toISOString();
+                const endsAt = activateResult.data?.endsAt || new Date().toISOString();
+                
+                // Notify about new sponsorship using event system
+                notifyNewSponsor(transactionData.sponsor, pendingSponsorship.id);
+                
+                // Send the sponsorship data to the parent component through onClose
+                onClose({
+                  id: pendingSponsorship.id,
+                  sponsor: transactionData.sponsor,
+                  amount: transactionData.amount,
+                  currency: transactionData.currency,
+                  roomId,
+                  endsAt,
+                  startedAt
+                });
+              }
+            } catch (activateError) {
+              console.error("Error activating sponsorship:", activateError);
+              // Continue anyway since payment was successful
+            }
+          }
           
           // Send chat message
-          await sendSponsorMessage(
-            user?.username || "Someone",
-            sponsorPrice,
-            "USDC",
-            user?.fid || "unknown"
-          );
-          
+          try {
+            await sendSponsorMessage(
+              user?.username || "Someone",
+              sponsorPrice,
+              "USDC",
+              user?.fid || "unknown"
+            );
+          } catch (chatError) {
+            console.error("Error sending sponsorship message:", chatError);
+            // Continue anyway since payment was successful
+          }
+
           // Show success message and close modal for Base Account SDK
           toast.dismiss(loadingToastId);
           toast.success("Sponsorship payment completed successfully!");
           setIsTransactionModalOpen(false);
-          onClose();
+          
+          // If activateResult has data, use it; otherwise, create defaults
+          const startedAt = new Date().toISOString();
+          const endsAt = new Date(Date.now() + (pendingSponsorship?.duration || 300) * 1000).toISOString();
+          
+          // Close with sponsorship data
+          if (transactionData && pendingSponsorship?.id) {
+            onClose({
+              id: pendingSponsorship.id,
+              sponsor: transactionData.sponsor,
+              amount: transactionData.amount,
+              currency: transactionData.currency,
+              roomId,
+              endsAt,
+              startedAt
+            });
+          } else {
+            onClose();
+          }
+          
           setProcessingTx(false);
           setTransactionToastId(null);
           setTransactionData(null);
