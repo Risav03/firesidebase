@@ -306,6 +306,7 @@ export default function SponsorDrawer({
     if (!pendingSponsorship?.id) return;
     
     // Show transaction modal with price and payment options
+    onClose()
     setIsTransactionModalOpen(true);
   };
   
