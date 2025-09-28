@@ -19,7 +19,7 @@ import Modal from "@/components/UI/Modal";
 import { useAccount, useSendCalls, useWriteContract, useSignTypedData } from "wagmi";
 import { encodeFunctionData, numberToHex } from "viem";
 import { erc20Abi } from "@/utils/contract/abis/erc20abi";
-import { firebaseTipsAbi } from "@/utils/contract/abis/firebaseTipsAbi";
+import { firebaseAdsAbi } from "@/utils/contract/abis/firebaseAdsAbi";
 import { contractAdds } from "@/utils/contract/contractAdds";
 import { getEthPrice } from "@/utils/commons";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
@@ -72,7 +72,14 @@ export default function SponsorDrawer({
   const { context, isFrameReady } = useMiniKit();
   const { address } = useAccount();
   const hmsActions = useHMSActions();
-  const { sendCalls } = useSendCalls();
+  const { sendCalls, isSuccess, status } = useSendCalls();
+  const [transactionToastId, setTransactionToastId] = useState<string | null>(null);
+  const [transactionData, setTransactionData] = useState<{
+    sponsor: string;
+    amount: number;
+    currency: string;
+    userFid: string;
+  } | null>(null);
   const batchSize = parseInt(process.env.NEXT_PUBLIC_BATCH_SIZE || "20");
   
   // Check if user has a pending sponsorship request
@@ -189,6 +196,49 @@ export default function SponsorDrawer({
       console.error("Error saving sponsorship message to Redis:", error);
     }
   };
+  
+  // Watch for transaction success/failure
+  useEffect(() => {
+    // When transaction succeeds
+    if (isSuccess && transactionToastId && transactionData) {
+      // Dismiss loading toast
+      toast.dismiss(transactionToastId);
+      
+      // Show success toast
+      toast.success("Sponsorship payment completed successfully!");
+      
+      // Send chat message
+      const sendMessage = async () => {
+        try {
+          await sendSponsorMessage(
+            transactionData.sponsor,
+            transactionData.amount,
+            transactionData.currency,
+            transactionData.userFid
+          );
+        } catch (error) {
+          console.error("Error sending sponsor message:", error);
+        }
+      };
+      
+      sendMessage();
+      
+      // Close modals and reset state
+      setIsTransactionModalOpen(false);
+      onClose();
+      setProcessingTx(false);
+      setTransactionToastId(null);
+      setTransactionData(null);
+    } 
+    // When transaction fails (status === 'error')
+    else if (status === 'error' && transactionToastId) {
+      toast.dismiss(transactionToastId);
+      toast.error("Transaction failed. Please try again.");
+      setProcessingTx(false);
+      setTransactionToastId(null);
+      setTransactionData(null);
+    }
+  }, [isSuccess, status, transactionToastId, transactionData, onClose]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -258,7 +308,7 @@ export default function SponsorDrawer({
       
       if (result.ok) {
         toast.dismiss(loadingToast);
-        toast.success("Sponsorship created successfully!");
+        toast.success("Sponsorship request sent to host!");
         onClose();
       } else {
         toast.dismiss(loadingToast);
@@ -314,7 +364,8 @@ export default function SponsorDrawer({
     if (!pendingSponsorship?.id) return;
     
     setProcessingTx(true);
-    const loadingToast = toast.loading("Processing transaction...");
+    const loadingToastId = toast.loading("Processing transaction...");
+    setTransactionToastId(loadingToastId);
     
     try {
       const env = process.env.NEXT_PUBLIC_ENV;
@@ -378,10 +429,10 @@ export default function SponsorDrawer({
         console.log("ETH value per batch (Wei):", ethValueInWei);
 
         return {
-          to: contractAdds.tipping as `0x${string}`,
+          to: contractAdds.sponsor as `0x${string}`,
           value: ethValueInWei,
           data: encodeFunctionData({
-            abi: firebaseTipsAbi,
+            abi: firebaseAdsAbi,
             functionName: "distributeETH",
             args: [batch],
           }),
@@ -390,29 +441,28 @@ export default function SponsorDrawer({
 
       console.log("Prepared sending calls:", sendingCalls);
 
+      // Store transaction data for use in the success handler
+      setTransactionData({
+        sponsor: user?.username || "Someone",
+        amount: sponsorPrice,
+        currency: "ETH",
+        userFid: user?.fid || "unknown"
+      });
+
+      // Submit transaction
       sendCalls({
         calls: sendingCalls,
       });
       
-      // Send a message to the chat
-      await sendSponsorMessage(
-        user?.username || "Someone",
-        sponsorPrice,
-        "ETH",
-        user?.fid || "unknown"
-      );
+      // Note: Success handling is moved to the useEffect watching for isSuccess
       
-      // Success
-      toast.dismiss(loadingToast);
-      toast.success("Sponsorship payment completed successfully!");
-      setIsTransactionModalOpen(false);
-      onClose();
     } catch (error) {
       console.error("Error processing ETH transaction:", error);
-      toast.dismiss(loadingToast);
+      toast.dismiss(loadingToastId);
       toast.error("Transaction failed. Please try again.");
-    } finally {
       setProcessingTx(false);
+      setTransactionToastId(null);
+      setTransactionData(null);
     }
   };
   
@@ -420,7 +470,8 @@ export default function SponsorDrawer({
     if (!pendingSponsorship?.id) return;
     
     setProcessingTx(true);
-    const loadingToast = toast.loading("Processing USDC transaction...");
+    const loadingToastId = toast.loading("Processing USDC transaction...");
+    setTransactionToastId(loadingToastId);
     
     try {
       const env = process.env.NEXT_PUBLIC_ENV;
@@ -475,16 +526,16 @@ export default function SponsorDrawer({
           data: encodeFunctionData({
             abi: erc20Abi,
             functionName: "approve",
-            args: [contractAdds.tipping, usdcAmount],
+            args: [contractAdds.sponsor, usdcAmount],
           }),
         },
       ];
 
       const remCals = splitArr.map((batch) => ({
-        to: contractAdds.tipping as `0x${string}`,
+        to: contractAdds.sponsor as `0x${string}`,
         value: context?.client.clientFid !== 309857 ? BigInt(0) : "0x0",
         data: encodeFunctionData({
-          abi: firebaseTipsAbi,
+          abi: firebaseAdsAbi,
           functionName: "distributeToken",
           args: [USDC_ADDRESS, batch, BigInt(Math.floor(Number(usdcAmount) / batch.length))],
         }),
@@ -494,12 +545,22 @@ export default function SponsorDrawer({
 
       console.log("Prepared sending calls:", sendingCalls);
 
+      // Store transaction data for use in the success handler
+      setTransactionData({
+        sponsor: user?.username || "Someone",
+        amount: sponsorPrice,
+        currency: "USDC",
+        userFid: user?.fid || "unknown"
+      });
+
       if (context?.client.clientFid !== 309857) {
+        // Use Wagmi's sendCalls for regular Ethereum wallets
         sendCalls({
           // @ts-ignore
           calls: sendingCalls,
         });
       } else {
+        // Use Base Account SDK for specific wallets
         const provider = createBaseAccountSDK({
           appName: "Fireside",
           appLogoUrl: "https://fireside-interface.vercel.app/pfp.png",
@@ -509,41 +570,53 @@ export default function SponsorDrawer({
         const cryptoAccount = await getCryptoKeyAccount();
         const fromAddress = cryptoAccount?.account?.address;
 
-        await provider.request({
-          method: "wallet_sendCalls",
-          params: [
-            {
-              version: "2.0.0",
-              from: fromAddress,
-              chainId: numberToHex(base.constants.CHAIN_IDS.base),
-              atomicRequired: true,
-              calls: sendingCalls,
-            },
-          ],
-        });
-
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        try {
+          await provider.request({
+            method: "wallet_sendCalls",
+            params: [
+              {
+                version: "2.0.0",
+                from: fromAddress,
+                chainId: numberToHex(base.constants.CHAIN_IDS.base),
+                atomicRequired: true,
+                calls: sendingCalls,
+              },
+            ],
+          });
+          
+          // For Base Account SDK, we need to manually handle success since it doesn't use Wagmi hooks
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          
+          // Send chat message
+          await sendSponsorMessage(
+            user?.username || "Someone",
+            sponsorPrice,
+            "USDC",
+            user?.fid || "unknown"
+          );
+          
+          // Show success message and close modal for Base Account SDK
+          toast.dismiss(loadingToastId);
+          toast.success("Sponsorship payment completed successfully!");
+          setIsTransactionModalOpen(false);
+          onClose();
+          setProcessingTx(false);
+          setTransactionToastId(null);
+          setTransactionData(null);
+        } catch (error) {
+          throw error; // Re-throw to be caught by the outer catch block
+        }
       }
       
-      // Send a message to the chat
-      await sendSponsorMessage(
-        user?.username || "Someone",
-        sponsorPrice,
-        "USDC",
-        user?.fid || "unknown"
-      );
+      // Note: For non-Base Account transactions, success handling is moved to the useEffect watching for isSuccess
       
-      // Success
-      toast.dismiss(loadingToast);
-      toast.success("Sponsorship payment completed successfully!");
-      setIsTransactionModalOpen(false);
-      onClose();
     } catch (error) {
       console.error("Error processing USDC transaction:", error);
-      toast.dismiss(loadingToast);
+      toast.dismiss(loadingToastId);
       toast.error("Transaction failed. Please try again.");
-    } finally {
       setProcessingTx(false);
+      setTransactionToastId(null);
+      setTransactionData(null);
     }
   };
   
