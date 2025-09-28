@@ -356,10 +356,11 @@ export async function updateSponsorshipStatus(
  */
 export async function fetchSponsorshipStatus(
   sponsorshipId: string,
+  roomId: string,
   token: string | null = null
 ) {
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-  return fetchAPI(`${URL}/api/sponsorships/protected/${sponsorshipId}`, {
+  return fetchAPI(`${URL}/api/sponsorships/protected/${sponsorshipId}/${roomId}`, {
     method: 'GET',
     authToken: token
   });

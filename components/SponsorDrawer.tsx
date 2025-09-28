@@ -87,7 +87,7 @@ export default function SponsorDrawer({
             token = (await sdk.quickAuth.getToken()).token;
           }
           
-          const result = await fetchSponsorshipStatus(user._id, token);
+          const result = await fetchSponsorshipStatus(user._id, roomId, token);
           
           if (result.ok && result.data) {
             console.log("Fetched sponsorship status:", result.data);
