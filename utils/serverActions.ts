@@ -233,6 +233,11 @@ export async function fetchRoomParticipants(roomId: string) {
   return fetchAPI(`${URL}/api/rooms/public/${roomId}/participants`);
 }
 
+export async function fetchLiveParticipants(roomId: string) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/rooms/public/${roomId}/participants-live`);
+}
+
 /**
  * Fetch room participants by role
  */

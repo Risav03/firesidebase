@@ -3,21 +3,46 @@
 import { useState, useRef, useEffect } from "react";
 import toast from "react-hot-toast";
 import { RiLoader5Fill } from "react-icons/ri";
+import { FaEthereum } from "react-icons/fa";
+import { BiSolidDollarCircle } from "react-icons/bi";
 import {
   Drawer,
   DrawerContent,
   DrawerHeader,
   DrawerTitle
 } from "@/components/UI/drawer";
-import { useHMSStore, selectPeers } from "@100mslive/react-sdk";
+import { useHMSStore, selectPeers, useHMSActions } from "@100mslive/react-sdk";
 import sdk from "@farcaster/miniapp-sdk";
-import { createSponsorship, fetchSponsorshipStatus, withdrawSponsorshipRequest } from "@/utils/serverActions";
+import { createSponsorship, fetchSponsorshipStatus, withdrawSponsorshipRequest, fetchLiveParticipants, sendChatMessage } from "@/utils/serverActions";
 import { useGlobalContext } from "@/utils/providers/globalContext";
+import Modal from "@/components/UI/Modal";
+import { useAccount, useSendCalls, useWriteContract, useSignTypedData } from "wagmi";
+import { encodeFunctionData, numberToHex } from "viem";
+import { erc20Abi } from "@/utils/contract/abis/erc20abi";
+import { firebaseTipsAbi } from "@/utils/contract/abis/firebaseTipsAbi";
+import { contractAdds } from "@/utils/contract/contractAdds";
+import { getEthPrice } from "@/utils/commons";
+import { useMiniKit } from "@coinbase/onchainkit/minikit";
+import {
+  createBaseAccountSDK,
+  getCryptoKeyAccount,
+  base,
+} from "@base-org/account";
 
 interface SponsorDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   roomId: string;
+}
+
+interface Participant {
+  id: string;
+  name: string;
+  user_id?: string;
+  metadata?: string;
+  role: string;
+  joined_at: string;
+  left_at?: string;
 }
 
 export default function SponsorDrawer({
@@ -33,10 +58,22 @@ export default function SponsorDrawer({
   const [pendingSponsorship, setPendingSponsorship] = useState<any>(null);
   const [loadingStatus, setLoadingStatus] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+  const [processingTx, setProcessingTx] = useState(false);
   
   // Get all peers in the room
   const peers = useHMSStore(selectPeers);
   const peerCount = peers.length;
+  
+  // Tipping related
+  const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Base USDC
+  const { signTypedDataAsync } = useSignTypedData();
+  const { writeContractAsync } = useWriteContract();
+  const { context, isFrameReady } = useMiniKit();
+  const { address } = useAccount();
+  const hmsActions = useHMSActions();
+  const { sendCalls } = useSendCalls();
+  const batchSize = parseInt(process.env.NEXT_PUBLIC_BATCH_SIZE || "20");
   
   // Check if user has a pending sponsorship request
   useEffect(() => {
@@ -105,6 +142,52 @@ export default function SponsorDrawer({
     
     // Round to 2 decimal places
     return Math.round(price * 100) / 100;
+  };
+
+  // Helper function to split arrays into batches of specified size
+  const splitIntoBatches = (array: any[]) => {
+    const batches = [];
+    for (let i = 0; i < array.length; i += batchSize) {
+      batches.push(array.slice(i, i + batchSize));
+    }
+    return batches;
+  };
+
+  // Send a chat message about the sponsorship payment
+  const sendSponsorMessage = async (
+    sponsor: string,
+    amount: number,
+    currency: string,
+    userFid: string
+  ) => {
+    const emoji = amount >= 100 ? "💸" : amount >= 25 ? "🎉" : "👍";
+    const message = `${emoji} ${sponsor} sponsored this room for $${amount} in ${currency}!`;
+
+    // Send to HMS for real-time broadcast
+    hmsActions.sendBroadcastMessage(message);
+
+    // Store in Redis for persistence
+    try {
+      const { token } = await sdk.quickAuth.getToken();
+
+      const response = await sendChatMessage(
+        roomId,
+        {
+          message,
+          userFid,
+        },
+        token
+      );
+
+      if (!response.data.success) {
+        console.error(
+          "Failed to store sponsorship message in Redis:",
+          response.data.error
+        );
+      }
+    } catch (error) {
+      console.error("Error saving sponsorship message to Redis:", error);
+    }
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -222,39 +305,255 @@ export default function SponsorDrawer({
   const handleTransaction = async () => {
     if (!pendingSponsorship?.id) return;
     
-    setIsLoading(true);
+    // Show transaction modal with price and payment options
+    setIsTransactionModalOpen(true);
+  };
+  
+  const handleETHPayment = async () => {
+    if (!pendingSponsorship?.id) return;
+    
+    setProcessingTx(true);
     const loadingToast = toast.loading("Processing transaction...");
     
     try {
       const env = process.env.NEXT_PUBLIC_ENV;
-      let token:any = null;
-      if(env !== "DEV"){
+      let token: any = null;
+      if (env !== "DEV") {
         token = (await sdk.quickAuth.getToken()).token;
       }
       
-      // TODO: Implement actual transaction logic here
-      // This is a placeholder for now
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Get participants from the API
+      const response = await fetchLiveParticipants(roomId);
       
+      if (!response.ok || !response.data.success) {
+        throw new Error("Failed to fetch room participants");
+      }
+      
+      // Parse metadata and extract wallets
+      const participants = response.data.data.peers;
+      
+      // Process participants to extract wallet addresses
+      const wallets = participants
+        .map((peer: Participant) => {
+          if (!peer.metadata) return null;
+          try {
+            const metadata = JSON.parse(peer.metadata);
+            return metadata.wallet || null;
+          } catch (err) {
+            console.error("Error parsing metadata:", err);
+            return null;
+          }
+        })
+        .filter((wallet: string | null): wallet is string => wallet !== null && wallet !== '');
+      
+      if (wallets.length === 0) {
+        throw new Error("No valid wallet addresses found for distribution");
+      }
+      
+      console.log("Wallets for distribution:", wallets);
+      
+      // Calculate price using the calculatePrice function
+      const sponsorPrice = calculatePrice(pendingSponsorship.duration || 300);
+      
+      // Get ETH price for conversion
+      const ethPrice = await getEthPrice();
+      console.log("Current ETH price:", ethPrice);
+      
+      if (!ethPrice || isNaN(ethPrice)) {
+        throw new Error("Invalid ETH price");
+      }
+      
+      // Process in batches
+      const splitArr = splitIntoBatches(wallets);
+      console.log("Split wallets into batches:", splitArr);
+      
+      const sendingCalls = splitArr.map((batch) => {
+        // Calculate ETH value per batch in decimal form
+        const ethValuePerBatchDecimal = Number(sponsorPrice / (ethPrice * batch.length));
+        // Convert to Wei (10^18) and ensure it's a valid integer by using Math.floor
+        const ethValueInWei = BigInt(Math.floor(ethValuePerBatchDecimal * 1e18));
+
+        console.log("ETH value per batch (decimal):", ethValuePerBatchDecimal);
+        console.log("ETH value per batch (Wei):", ethValueInWei);
+
+        return {
+          to: contractAdds.tipping as `0x${string}`,
+          value: ethValueInWei,
+          data: encodeFunctionData({
+            abi: firebaseTipsAbi,
+            functionName: "distributeETH",
+            args: [batch],
+          }),
+        };
+      });
+
+      console.log("Prepared sending calls:", sendingCalls);
+
+      sendCalls({
+        calls: sendingCalls,
+      });
+      
+      // Send a message to the chat
+      await sendSponsorMessage(
+        user?.username || "Someone",
+        sponsorPrice,
+        "ETH",
+        user?.fid || "unknown"
+      );
+      
+      // Success
       toast.dismiss(loadingToast);
-      toast.success("Transaction completed successfully!");
+      toast.success("Sponsorship payment completed successfully!");
+      setIsTransactionModalOpen(false);
       onClose();
     } catch (error) {
-      console.error("Error processing transaction:", error);
+      console.error("Error processing ETH transaction:", error);
       toast.dismiss(loadingToast);
       toast.error("Transaction failed. Please try again.");
     } finally {
-      setIsLoading(false);
+      setProcessingTx(false);
+    }
+  };
+  
+  const handleUSDCPayment = async () => {
+    if (!pendingSponsorship?.id) return;
+    
+    setProcessingTx(true);
+    const loadingToast = toast.loading("Processing USDC transaction...");
+    
+    try {
+      const env = process.env.NEXT_PUBLIC_ENV;
+      let token: any = null;
+      if (env !== "DEV") {
+        token = (await sdk.quickAuth.getToken()).token;
+      }
+      
+      // Get participants from the API
+      const response = await fetchLiveParticipants(roomId);
+      
+      if (!response.ok || !response.data.success) {
+        throw new Error("Failed to fetch room participants");
+      }
+      
+      // Parse metadata and extract wallets
+      const participants = response.data.data.peers;
+      
+      // Process participants to extract wallet addresses
+      const wallets = participants
+        .map((peer: Participant) => {
+          if (!peer.metadata) return null;
+          try {
+            const metadata = JSON.parse(peer.metadata);
+            return metadata.wallet || null;
+          } catch (err) {
+            console.error("Error parsing metadata:", err);
+            return null;
+          }
+        })
+        .filter((wallet: string | null): wallet is string => wallet !== null && wallet !== '');
+      
+      if (wallets.length === 0) {
+        throw new Error("No valid wallet addresses found for distribution");
+      }
+      
+      console.log("Wallets for distribution:", wallets);
+      
+      // Calculate price using the calculatePrice function
+      const sponsorPrice = calculatePrice(pendingSponsorship.duration || 300);
+      
+      // Calculate USDC amount (price in USD * 10^6 for USDC decimals)
+      const usdcAmount = BigInt(Math.floor(sponsorPrice * 1e6));
+      
+      // Process in batches
+      const splitArr = splitIntoBatches(wallets);
+      
+      const approveCall = [
+        {
+          to: USDC_ADDRESS as `0x${string}`,
+          value: context?.client.clientFid !== 309857 ? BigInt(0) : "0x0",
+          data: encodeFunctionData({
+            abi: erc20Abi,
+            functionName: "approve",
+            args: [contractAdds.tipping, usdcAmount],
+          }),
+        },
+      ];
+
+      const remCals = splitArr.map((batch) => ({
+        to: contractAdds.tipping as `0x${string}`,
+        value: context?.client.clientFid !== 309857 ? BigInt(0) : "0x0",
+        data: encodeFunctionData({
+          abi: firebaseTipsAbi,
+          functionName: "distributeToken",
+          args: [USDC_ADDRESS, batch, BigInt(Math.floor(Number(usdcAmount) / batch.length))],
+        }),
+      }));
+
+      const sendingCalls = [...approveCall, ...remCals];
+
+      console.log("Prepared sending calls:", sendingCalls);
+
+      if (context?.client.clientFid !== 309857) {
+        sendCalls({
+          // @ts-ignore
+          calls: sendingCalls,
+        });
+      } else {
+        const provider = createBaseAccountSDK({
+          appName: "Fireside",
+          appLogoUrl: "https://fireside-interface.vercel.app/pfp.png",
+          appChainIds: [base.constants.CHAIN_IDS.base],
+        }).getProvider();
+
+        const cryptoAccount = await getCryptoKeyAccount();
+        const fromAddress = cryptoAccount?.account?.address;
+
+        await provider.request({
+          method: "wallet_sendCalls",
+          params: [
+            {
+              version: "2.0.0",
+              from: fromAddress,
+              chainId: numberToHex(base.constants.CHAIN_IDS.base),
+              atomicRequired: true,
+              calls: sendingCalls,
+            },
+          ],
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+      
+      // Send a message to the chat
+      await sendSponsorMessage(
+        user?.username || "Someone",
+        sponsorPrice,
+        "USDC",
+        user?.fid || "unknown"
+      );
+      
+      // Success
+      toast.dismiss(loadingToast);
+      toast.success("Sponsorship payment completed successfully!");
+      setIsTransactionModalOpen(false);
+      onClose();
+    } catch (error) {
+      console.error("Error processing USDC transaction:", error);
+      toast.dismiss(loadingToast);
+      toast.error("Transaction failed. Please try again.");
+    } finally {
+      setProcessingTx(false);
     }
   };
   
   return (
-    <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DrawerContent className="bg-black/50 backdrop-blur-2xl text-white border-t border-fireside-orange/30 focus:outline-none">
-        <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-fireside-orange/30"></div>
-        <DrawerHeader>
-          <DrawerTitle className="text-2xl font-bold text-white">Sponsor This Room</DrawerTitle>
-        </DrawerHeader>
+    <>
+      <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DrawerContent className="bg-black/50 backdrop-blur-2xl text-white border-t border-fireside-orange/30 focus:outline-none">
+          <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-fireside-orange/30"></div>
+          <DrawerHeader>
+            <DrawerTitle className="text-2xl font-bold text-white">Sponsor This Room</DrawerTitle>
+          </DrawerHeader>
         
         {loadingStatus ? (
           <div className="flex flex-col items-center justify-center py-12">
@@ -529,5 +828,61 @@ export default function SponsorDrawer({
         )}
       </DrawerContent>
     </Drawer>
+    
+    {/* Payment Transaction Modal */}
+    <Modal
+      isOpen={isTransactionModalOpen}
+      onClose={() => setIsTransactionModalOpen(false)}
+      maxWidth="max-w-lg"
+    >
+      <div className="space-y-6">
+        <div className="text-center">
+          <h3 className="text-xl font-bold text-fireside-orange mb-2">Sponsorship Payment</h3>
+          <p className="text-gray-400 text-sm">Complete your sponsorship payment to promote your banner</p>
+        </div>
+        
+        <div className="bg-black/40 rounded-lg p-4 border border-fireside-orange/20">
+          <p className="text-sm text-gray-300 mb-2">Estimated Price:</p>
+          <p className="text-3xl font-bold text-white text-center">
+            ${calculatePrice(pendingSponsorship?.duration || 300)}
+          </p>
+          <p className="text-xs text-gray-400 mt-2 text-center">
+            Based on {formatTime(pendingSponsorship?.duration || 300)} duration with {peerCount} participants
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <button
+            onClick={handleETHPayment}
+            disabled={processingTx}
+            className={`flex flex-col items-center justify-center bg-indigo-900/40 hover:bg-indigo-900/60 border border-indigo-500/30 text-white p-4 rounded-lg transition-colors ${
+              processingTx ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+          >
+            <FaEthereum className="text-3xl mb-2" />
+            <span className="font-semibold">Pay with ETH</span>
+            {processingTx && <RiLoader5Fill className="animate-spin mt-2" />}
+          </button>
+          
+          <button
+            onClick={handleUSDCPayment}
+            disabled={processingTx}
+            className={`flex flex-col items-center justify-center gradient-fire text-white p-4 rounded-lg transition-colors ${
+              processingTx ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+          >
+            <BiSolidDollarCircle className="text-3xl mb-2" />
+            <span className="font-semibold">Pay with USDC</span>
+            {processingTx && <RiLoader5Fill className="animate-spin mt-2" />}
+          </button>
+        </div>
+        
+        <div className="text-xs text-gray-400 mt-4 text-center">
+          <p>Payment will be distributed to all participants in this room</p>
+          <p className="mt-1">Transaction cannot be reversed once processed</p>
+        </div>
+      </div>
+    </Modal>
+  </>
   );
 }
