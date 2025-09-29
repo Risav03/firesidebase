@@ -7,7 +7,7 @@ import {
   useHMSActions,
   selectLocalPeer,
 } from "@100mslive/react-sdk";
-import { useSpeakerRequestEvent, useSpeakerRejectionEvent } from "@/utils/events";
+import { useSpeakerRequestEvent, useSpeakerRejectionEvent, useNewSponsorEvent } from "@/utils/events";
 import PeerWithContextMenu from "./PeerWithContextMenu";
 import { ScreenTile } from "./ScreenTile";
 import RoomSponsor from "./RoomSponsor";
@@ -20,6 +20,7 @@ import RoomEndScreen from "./RoomEndScreen";
 import toast from "react-hot-toast";
 import { fetchRoomDetails, endRoom } from "@/utils/serverActions";
 import SpeakerRequestsDrawer from "./SpeakerRequestsDrawer";
+import PendingSponsorshipsDrawer from "./PendingSponsorshipsDrawer";
 
 
 export default function Conference({ roomId }: { roomId: string }) {
@@ -50,6 +51,7 @@ export default function Conference({ roomId }: { roomId: string }) {
   
   const [speakerRequests, setSpeakerRequests] = useState<SpeakerRequest[]>([]);
   const [showSpeakerRequestsDrawer, setShowSpeakerRequestsDrawer] = useState(false);
+  const [showPendingSponsorshipsDrawer, setShowPendingSponsorshipsDrawer] = useState(false);
   
   const [roomEnded, setRoomEnded] = useState(false);
 
@@ -317,7 +319,55 @@ useEffect(() => {
   // Use the custom hook for speaker rejections
   useSpeakerRejectionEvent((msg) => {
     handleRejectRequest({peerId: msg.peer});
-  })
+  });
+
+  // Listen for new sponsorship requests and show a toast to admins
+  useNewSponsorEvent((msg) => {
+    // Only show the notification to hosts
+    if (localPeer?.roleName === 'host') {
+      toast.custom(
+        (t) => (
+          <div
+            className={`${
+              t.visible ? 'animate-enter' : 'animate-leave'
+            } max-w-md w-full bg-black/80 shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-fireside-orange/30 mb-2 border border-fireside-orange/30`}
+          >
+            <div className="flex-1 w-0 p-4">
+              <div className="flex items-start">
+                <div className="flex-shrink-0 pt-0.5">
+                  <div className="h-10 w-10 rounded-full bg-fireside-orange/20 flex items-center justify-center">
+                    <svg className="h-6 w-6 text-fireside-orange" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="ml-3 flex-1">
+                  <p className="text-sm font-medium text-fireside-orange">
+                    New Sponsorship Request
+                  </p>
+                  <p className="mt-1 text-sm text-gray-300">
+                    A user has submitted a new sponsorship request for this room.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex border-l border-fireside-orange/30">
+              <button
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  setShowPendingSponsorshipsDrawer(true);
+                }}
+                className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-fireside-orange hover:text-fireside-orange/70 focus:outline-none"
+              >
+                View
+              </button>
+            </div>
+          </div>
+        ),
+        { duration: 8000 }
+      );
+    }
+  });
 
   useEffect(() => {
     async function getPermission() {
@@ -398,6 +448,15 @@ useEffect(() => {
           onReject={handleRejectRequest}
           roomId={roomId}
         />
+
+        {/* Pending Sponsorships Drawer - Only visible for hosts */}
+        {localPeer?.roleName === 'host' && (
+          <PendingSponsorshipsDrawer
+            isOpen={showPendingSponsorshipsDrawer}
+            onClose={() => setShowPendingSponsorshipsDrawer(false)}
+            roomId={roomId}
+          />
+        )}
       </div>
     );
   }
