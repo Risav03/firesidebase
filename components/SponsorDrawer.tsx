@@ -269,9 +269,6 @@ export default function SponsorDrawer({
               const startedAt = activateResult.data?.startedAt || new Date().toISOString();
               const endsAt = activateResult.data?.endsAt || new Date().toISOString();
               
-              // Notify about new sponsorship using event system
-              notifyNewSponsor(transactionData.sponsor, pendingSponsorship.id);
-              
               // Send the sponsorship data to the parent component through onClose
               onClose({
                 id: pendingSponsorship.id,
@@ -323,7 +320,7 @@ export default function SponsorDrawer({
       setTransactionToastId(null);
       setTransactionData(null);
     }
-  }, [isSuccess, status, transactionToastId, transactionData, onClose, pendingSponsorship?.id, roomId, notifyNewSponsor]);
+  }, [isSuccess, status, transactionToastId, transactionData, onClose, pendingSponsorship?.id, roomId]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -394,6 +391,8 @@ export default function SponsorDrawer({
       if (result.ok) {
         toast.dismiss(loadingToast);
         toast.success("Sponsorship request sent to host!");
+
+        notifyNewSponsor(user?._id || "unknown", pendingSponsorship.id);
         onClose();
       } else {
         toast.dismiss(loadingToast);
@@ -685,9 +684,6 @@ export default function SponsorDrawer({
                 // Extract sponsorship data
                 const startedAt = activateResult.data?.startedAt || new Date().toISOString();
                 const endsAt = activateResult.data?.endsAt || new Date().toISOString();
-                
-                // Notify about new sponsorship using event system
-                notifyNewSponsor(user?._id || "unknown", pendingSponsorship.id);
                 
                 // Send the sponsorship data to the parent component through onClose
                 onClose({
