@@ -835,7 +835,7 @@ export default function SponsorDrawer({
               </div>
               
               <div className="mt-8 p-4 bg-black/30 rounded border border-green-500/20 text-sm text-green-300">
-                <p>Your sponsorship is currently active! Your banner is being displayed to all room participants.</p>
+                <p>Your sponsorship is currently active!</p>
                 <p className="mt-2">When this sponsorship expires, you can create a new one.</p>
               </div>
             </div>
