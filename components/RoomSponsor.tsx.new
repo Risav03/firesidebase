@@ -56,7 +56,7 @@ export default function RoomSponsor({ roomId }: { roomId: string }) {
   
   // Function to fetch sponsorships
   const fetchSponsors = useCallback(async () => {
-    if (!roomId) return;
+    if (!roomId || isLoading) return;
     
     setIsLoading(true);
     try {
@@ -67,12 +67,11 @@ export default function RoomSponsor({ roomId }: { roomId: string }) {
       if (response.ok && response.data) {
         // Get sponsorships from the response
         const sponsorships = response.data.data || [];
-        console.log(`Fetched Sponsorships: ${sponsorships.length}`, sponsorships);
         setLiveSponsorships(sponsorships);
         
         // Initialize countdown timers based on server values
         const initialCountdowns: Record<string, number> = {};
-        sponsorships.forEach((sponsorship:any) => {
+        sponsorships.forEach(sponsorship => {
           initialCountdowns[sponsorship.id] = sponsorship.remainingTime;
         });
         setCountdowns(initialCountdowns);
@@ -84,23 +83,20 @@ export default function RoomSponsor({ roomId }: { roomId: string }) {
     } finally {
       setIsLoading(false);
     }
-  }, [roomId, getAuthToken]);
+  }, [roomId, isLoading, getAuthToken]);
   
-  // Listen for new sponsor events with a custom callback that has access to current state
-  const handleNewSponsorEvent = useCallback((msg: { sponsorId: string; sponsorshipId: string }) => {
+  // Listen for new sponsor events
+  useNewSponsorEvent((msg) => {
     console.log("New sponsor event received:", msg);
     
-    // Check current state of sponsorships
+    // Only fetch if we don't have any active sponsorships
     if (liveSponsorships.length === 0) {
       console.log("No active sponsorships - fetching due to NEW_SPONSOR event");
       fetchSponsors();
     } else {
-      console.log("Skipping fetch - active sponsorships already exist:", liveSponsorships.length);
+      console.log("Skipping fetch - active sponsorships already exist");
     }
-  }, [liveSponsorships.length, fetchSponsors]);
-  
-  // Register the event handler
-  useNewSponsorEvent(handleNewSponsorEvent);
+  });
   
   // Fetch sponsorships on component mount
   useEffect(() => {

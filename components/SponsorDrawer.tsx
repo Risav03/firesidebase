@@ -44,6 +44,17 @@ interface SponsorDrawerProps {
   roomId: string;
 }
 
+interface ActiveSponsorship {
+  id: string;
+  sponsorId: string;
+  roomId: string;
+  imageUrl: string;
+  startedAt: string;
+  remainingTime: number;
+  amount?: number;
+  currency?: string;
+}
+
 interface Participant {
   id: string;
   name: string;
@@ -65,6 +76,7 @@ export default function SponsorDrawer({
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [pendingSponsorship, setPendingSponsorship] = useState<any>(null);
+  const [activeSponsorship, setActiveSponsorship] = useState<ActiveSponsorship | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
@@ -92,7 +104,7 @@ export default function SponsorDrawer({
   const batchSize = parseInt(process.env.NEXT_PUBLIC_BATCH_SIZE || "20");
   const { notifyNewSponsor } = useNewSponsorEvent();
   
-  // Check if user has a pending sponsorship request
+  // Check if user has a pending or active sponsorship
   useEffect(() => {
     const checkSponsorshipStatus = async () => {
       if (user?._id && isOpen) {
@@ -105,16 +117,32 @@ export default function SponsorDrawer({
           }
           
           const result = await fetchSponsorshipStatus(user._id, roomId, token);
+
+          console.log("Fetched sponsorship status:", result);
           
           if (result.ok && result.data) {
-            console.log("Fetched sponsorship status:", result.data);
-            setPendingSponsorship(result.data.data);
+            console.log("Fetched sponsorship status:", result.data, result.data.data.activeSponsorships
+);
+            
+            // Check if there are any active sponsorships
+            if (result.data.data.activeSponsorships && result.data.data.activeSponsorships.length > 0) {
+              // Use the first active sponsorship
+              console.log("Setting active sponsorship:", result.data.data.activeSponsorships[0]);
+              setActiveSponsorship(result.data.data.activeSponsorships[0]);
+              setPendingSponsorship(null);
+            } else {
+              // Otherwise, set pending sponsorship if available
+              setActiveSponsorship(null);
+              setPendingSponsorship(result.data.data);
+            }
           } else {
             setPendingSponsorship(null);
+            setActiveSponsorship(null);
           }
         } catch (error) {
           console.error("Error fetching sponsorship status:", error);
           setPendingSponsorship(null);
+          setActiveSponsorship(null);
         } finally {
           setLoadingStatus(false);
         }
@@ -122,7 +150,7 @@ export default function SponsorDrawer({
     };
     
     checkSponsorshipStatus();
-  }, [user, isOpen]);
+  }, [user, isOpen, roomId]);
 
   const maxDuration = 15 * 60; // 15 minutes in seconds
   
@@ -143,6 +171,15 @@ export default function SponsorDrawer({
       return `${hours} hr${hours !== 1 ? 's' : ''} ${mins > 0 ? `${mins} min${mins !== 1 ? 's' : ''}` : ''}`;
     }
   };
+  
+  // Reset states when drawer closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedImage(null);
+      setSponsorDuration(5 * 60);
+      setIsDragging(false);
+    }
+  }, [isOpen]);
 
   // Calculate estimated price based on duration
   const calculatePrice = (durationInSeconds: number) => {
@@ -454,7 +491,8 @@ export default function SponsorDrawer({
       
       // Calculate price using the calculatePrice function
       const sponsorPrice = calculatePrice(pendingSponsorship.duration || 300);
-      
+
+      //COMMENT START
       // Get ETH price for conversion
       const ethPrice = await getEthPrice();
       console.log("Current ETH price:", ethPrice);
@@ -501,6 +539,7 @@ export default function SponsorDrawer({
       sendCalls({
         calls: sendingCalls,
       });
+      //COMMENT END
       
       // Note: Success handling is moved to the useEffect watching for isSuccess
       
@@ -648,7 +687,7 @@ export default function SponsorDrawer({
                 const endsAt = activateResult.data?.endsAt || new Date().toISOString();
                 
                 // Notify about new sponsorship using event system
-                notifyNewSponsor(transactionData.sponsor, pendingSponsorship.id);
+                notifyNewSponsor(user?._id || "unknown", pendingSponsorship.id);
                 
                 // Send the sponsorship data to the parent component through onClose
                 onClose({
@@ -737,6 +776,81 @@ export default function SponsorDrawer({
           <div className="flex flex-col items-center justify-center py-12">
             <RiLoader5Fill className="w-12 h-12 text-fireside-orange animate-spin" />
             <p className="mt-4 text-gray-300">Checking sponsorship status...</p>
+          </div>
+        ) : activeSponsorship ? (
+          <div className="px-4 pb-6">
+            <div className="mb-6 p-4 bg-black/40 border border-green-500/30 rounded-lg">
+              <div className="text-center mb-4">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/20 mb-2">
+                  <svg className="w-8 h-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-white">Active Sponsorship</h3>
+              </div>
+              
+              <div className="mb-6">
+                <p className="text-sm text-gray-400 mb-2">Your active banner:</p>
+                <div className="rounded-lg overflow-hidden border border-green-500/30 aspect-[3/1]">
+                  {activeSponsorship.imageUrl ? (
+                    <img 
+                      src={activeSponsorship.imageUrl} 
+                      alt="Active sponsorship banner" 
+                      className="w-full object-cover aspect-[3/1]"
+                    />
+                  ) : (
+                    <div className="w-full h-32 bg-black/40 flex items-center justify-center">
+                      <p className="text-gray-400 text-sm">Image not available</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Status:</span>
+                  <span className="font-semibold text-green-400">Active</span>
+                </div>
+                
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Remaining Time:</span>
+                  <span className="font-semibold text-white">
+                    {formatTime(activeSponsorship.remainingTime)}
+                  </span>
+                </div>
+                
+                {activeSponsorship.startedAt && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Started At:</span>
+                    <span className="font-semibold">{new Date(activeSponsorship.startedAt).toLocaleString()}</span>
+                  </div>
+                )}
+                
+                {activeSponsorship.amount && activeSponsorship.currency && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Payment:</span>
+                    <span className="font-semibold">${activeSponsorship.amount} {activeSponsorship.currency}</span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="mt-8 p-4 bg-black/30 rounded border border-green-500/20 text-sm text-green-300">
+                <p>Your sponsorship is currently active! Your banner is being displayed to all room participants.</p>
+                <p className="mt-2">When this sponsorship expires, you can create a new one.</p>
+              </div>
+            </div>
+            
+            <button
+              onClick={() => onClose()}
+              className="w-full bg-green-900/40 hover:bg-green-900/60 border border-green-500/30 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+            >
+              <span className="flex gap-2 items-center justify-center">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Close
+              </span>
+            </button>
           </div>
         ) : pendingSponsorship ? (
           <div className="px-4 pb-6">
