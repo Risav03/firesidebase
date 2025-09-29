@@ -35,6 +35,9 @@ export default function RoomSponsor({ roomId }: { roomId: string }) {
   const localPeer = useHMSStore(selectLocalPeer);
   const isHost = localPeer?.roleName === "host";
   
+  // Add state to track sponsorships with local countdown
+  const [localCountdowns, setLocalCountdowns] = useState<Record<string, number>>({});
+  
   // Function to fetch auth token
   const getAuthToken = useCallback(async () => {
     let token: string | null = null;
@@ -64,13 +67,42 @@ export default function RoomSponsor({ roomId }: { roomId: string }) {
       const response = await fetchLiveSponsorships(roomId, token);
       
       if (response.ok && response.data) {
-        const sponsorships = response.data.data || [];
-        setLiveSponsorships(sponsorships);
+        const newSponsorships = response.data.data || [];
         
-        // If we have sponsorships with time left, start countdown timer
-        if (sponsorships.length > 0 && !isTimerRunning) {
-          startSponsorCountdown(sponsorships);
-        }
+        // Keep track of current active sponsorships and their remaining time
+        setLiveSponsorships(prevSponsorships => {
+          // Create a map of existing sponsorship IDs and their remaining time
+          const existingSponsorships = new Map<string, number>();
+          prevSponsorships.forEach(s => {
+            const remainingTime = localCountdowns[s.id] || s.remainingTime;
+            if (remainingTime > 0) {
+              existingSponsorships.set(s.id, remainingTime);
+            }
+          });
+          
+          // Merge new sponsorships with existing ones that are still active
+          const mergedSponsorships = [
+            // Include existing sponsorships that are still active and not in the new set
+            ...prevSponsorships
+              .filter(s => {
+                const isStillActive = (localCountdowns[s.id] || s.remainingTime) > 0;
+                const isInNewSet = newSponsorships.some((ns: LiveSponsorship) => ns.id === s.id);
+                return isStillActive && !isInNewSet;
+              }),
+            
+            // Include all new sponsorships
+            ...newSponsorships
+          ];
+          
+          console.log("Merged sponsorships:", mergedSponsorships.map(s => s.id));
+          
+          // If we have sponsorships with time left, start countdown timer
+          if (mergedSponsorships.length > 0 && !isTimerRunning) {
+            startSponsorCountdown(mergedSponsorships);
+          }
+          
+          return mergedSponsorships;
+        });
       }
     } catch (error) {
       console.error("Error fetching live sponsorships:", error);
@@ -78,7 +110,7 @@ export default function RoomSponsor({ roomId }: { roomId: string }) {
       setIsLoading(false);
       isRefetchQueued.current = false;
     }
-  }, [roomId, isTimerRunning]);
+  }, [roomId, localCountdowns, isTimerRunning]);
   
   // Function to start countdown timer for sponsorships
   const startSponsorCountdown = useCallback((sponsorships: LiveSponsorship[]) => {
@@ -116,12 +148,11 @@ export default function RoomSponsor({ roomId }: { roomId: string }) {
   useNewSponsorEvent((msg) => {
     console.log("New sponsor event received:", msg);
     
-    // Only refetch if we don't have a timer running
-    if (!isTimerRunning && !isRefetchQueued.current) {
-      console.log("Triggering refetch due to new sponsor event");
-      isRefetchQueued.current = true;
-      fetchSponsors();
-    }
+    // Always fetch new sponsorships when a new one is added
+    // But we'll preserve existing ones that haven't expired yet
+    console.log("Triggering refetch due to new sponsor event");
+    isRefetchQueued.current = true;
+    fetchSponsors();
   });
   
   // Fetch live sponsorships on initial load and every 60 seconds as a fallback
@@ -144,9 +175,6 @@ export default function RoomSponsor({ roomId }: { roomId: string }) {
       }
     };
   }, [fetchSponsors, isTimerRunning]);
-
-  // Add state to track sponsorships with local countdown
-  const [localCountdowns, setLocalCountdowns] = useState<Record<string, number>>({});
   
   // Update local countdown every second
   useEffect(() => {
@@ -155,7 +183,12 @@ export default function RoomSponsor({ roomId }: { roomId: string }) {
     // Initialize local countdowns when sponsorships change
     const initialCountdowns: Record<string, number> = {};
     liveSponsorships.forEach(sponsorship => {
-      initialCountdowns[sponsorship.id] = sponsorship.remainingTime;
+      // Preserve existing countdown for sponsorships that already have one
+      if (localCountdowns[sponsorship.id] && localCountdowns[sponsorship.id] > 0) {
+        initialCountdowns[sponsorship.id] = localCountdowns[sponsorship.id];
+      } else {
+        initialCountdowns[sponsorship.id] = sponsorship.remainingTime;
+      }
     });
     setLocalCountdowns(initialCountdowns);
     
@@ -164,19 +197,31 @@ export default function RoomSponsor({ roomId }: { roomId: string }) {
       setLocalCountdowns(prev => {
         const updated: Record<string, number> = {};
         let allExpired = true;
+        let hasExpired = false;
         
         Object.entries(prev).forEach(([id, time]) => {
           const newTime = Math.max(0, time - 1);
           updated[id] = newTime;
-          if (newTime > 0) allExpired = false;
+          if (newTime > 0) {
+            allExpired = false;
+          } else {
+            hasExpired = true;
+          }
         });
         
-        // If all sponsorships expired, clear them after a 2 second delay
-        if (allExpired) {
+        // If any sponsorships expired, remove only those from the list
+        if (hasExpired) {
+          // Schedule removal of expired sponsorships
           setTimeout(() => {
-            console.log("All sponsorships expired, clearing display");
-            setLiveSponsorships([]);
-            setIsTimerRunning(false);
+            console.log("Removing expired sponsorships");
+            setLiveSponsorships(current => 
+              current.filter(s => (updated[s.id] || 0) > 0)
+            );
+            
+            // If all expired, also stop the timer
+            if (allExpired) {
+              setIsTimerRunning(false);
+            }
           }, 2000);
         }
         
@@ -185,7 +230,7 @@ export default function RoomSponsor({ roomId }: { roomId: string }) {
     }, 1000);
     
     return () => clearInterval(countdownInterval);
-  }, [liveSponsorships]);
+  }, [liveSponsorships, localCountdowns]);
   
   // Format remaining time in a human-readable way
   const formatRemainingTime = (seconds: number) => {
