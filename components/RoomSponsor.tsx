@@ -86,22 +86,6 @@ export default function RoomSponsor({ roomId }: { roomId: string }) {
     }
   }, [roomId, getAuthToken]);
   
-  // Listen for new sponsor events with a custom callback that has access to current state
-  const handleNewSponsorEvent = useCallback((msg: { sponsorId: string; sponsorshipId: string }) => {
-    console.log("New sponsor event received:", msg);
-    
-    // Check current state of sponsorships
-    if (liveSponsorships.length === 0) {
-      console.log("No active sponsorships - fetching due to NEW_SPONSOR event");
-      fetchSponsors();
-    } else {
-      console.log("Skipping fetch - active sponsorships already exist:", liveSponsorships.length);
-    }
-  }, [liveSponsorships.length, fetchSponsors]);
-  
-  // Register the event handler
-  useNewSponsorEvent(handleNewSponsorEvent);
-  
   // Fetch sponsorships on component mount
   useEffect(() => {
     console.log("Initial sponsorship fetch on component mount");
