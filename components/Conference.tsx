@@ -346,7 +346,7 @@ useEffect(() => {
                     New Sponsorship Request
                   </p>
                   <p className="mt-1 text-sm text-gray-300">
-                    A user has submitted a new sponsorship request for this room.
+                    {msg.sponsorName} has submitted a new sponsorship request for this room.
                   </p>
                 </div>
               </div>
