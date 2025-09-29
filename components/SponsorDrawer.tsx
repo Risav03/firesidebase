@@ -158,7 +158,7 @@ export default function SponsorDrawer({
     const price = baseRate * durationInMinutes * peerFactor;
     
     // Round to 2 decimal places
-    return Math.round(price * 100) / 100;
+    return Math.ceil(price * 100) / 100;
   };
 
   // Helper function to split arrays into batches of specified size
