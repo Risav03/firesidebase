@@ -147,12 +147,12 @@ export default function SponsorDrawer({
   // Calculate estimated price based on duration
   const calculatePrice = (durationInSeconds: number) => {
     // Base rate: $1 per minute
-    const baseRate = 1;
+    const baseRate = 0.1;
     const durationInMinutes = durationInSeconds / 60;
     
     // Factor in peer count - each additional peer increases value by 5%
     // Base is 1x for 1-5 peers, then 5% more for each additional peer up to a 50% increase
-    const peerFactor = peerCount%10;
+    const peerFactor = Math.ceil(peerCount / 10);
     
     // Calculate price with all factors
     const price = baseRate * durationInMinutes * peerFactor;

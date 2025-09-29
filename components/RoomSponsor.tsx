@@ -171,6 +171,15 @@ export default function RoomSponsor({ roomId }: { roomId: string }) {
           if (newTime > 0) allExpired = false;
         });
         
+        // If all sponsorships expired, clear them after a 2 second delay
+        if (allExpired) {
+          setTimeout(() => {
+            console.log("All sponsorships expired, clearing display");
+            setLiveSponsorships([]);
+            setIsTimerRunning(false);
+          }, 2000);
+        }
+        
         return updated;
       });
     }, 1000);
@@ -238,13 +247,17 @@ export default function RoomSponsor({ roomId }: { roomId: string }) {
       
       <div className="w-full max-w-6xl mx-auto mb-6">
         <div className="flex flex-col md:flex-row gap-4">
-          {/* Sponsor Upload Button (Available to Everyone) */}
+          {/* Sponsor Upload Button (Available to Everyone) - smaller when sponsorships are active */}
           <div 
-            className="flex-1 bg-white/5 flex gap-3 text-white/30 font-bold items-center justify-center border-2 border-dashed border-white/30 bg-opacity-50 rounded-lg aspect-[3/1] cursor-pointer hover:bg-white/10 transition-colors"
+            className={`${
+              liveSponsorships.length > 0 
+              ? 'md:w-1/3 py-4 aspect-auto' 
+              : 'flex-1 aspect-[3/1]'
+            } bg-white/5 flex gap-3 text-white/30 font-bold items-center justify-center border-2 border-dashed border-white/30 bg-opacity-50 rounded-lg cursor-pointer hover:bg-white/10 transition-colors`}
             onClick={() => setIsSponsorDrawerOpen(true)}
           >
             <FaCirclePlus className="flex-shrink-0" />
-            <span>Sponsor this space</span>
+            <span>Sponsor Fireside</span>
           </div>
           
           {/* Manage Sponsorships Button (Host Only) */}
