@@ -72,21 +72,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
   };
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
-  useEffect(() => {
-    (async () => {
-      // const sessionUser = sessionStorage.getItem("user");
-
-      // if (!sessionUser) {
-      //   await handleSignIn();
-      // } else {
-      //   setUser(JSON.parse(sessionUser));
-      // }
-      await handleSignIn();
-      if(process.env.NEXT_PUBLIC_ENV !== "DEV"){
-        sdk.actions.ready();
-      }
-    })();
-  }, []);
+  // useEffect for sign-in moved to a single place with hasRunRef check below
 
   const getNonce = useCallback(async (): Promise<string> => {
     try {
@@ -100,6 +86,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const handleSignIn = useCallback(async (): Promise<void> => {
+    console.log("handleSignIn called", new Date().toISOString());
     try {
       const env = process.env.NEXT_PUBLIC_ENV;
       var token:any ;
@@ -151,6 +138,8 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
         sdk.actions.ready();
       }
     })();
+    // We're using hasRunRef to ensure this only runs once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

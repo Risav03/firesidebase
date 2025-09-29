@@ -208,11 +208,7 @@ export default function RoomSponsor({ roomId }: { roomId: string }) {
         <div className="flex flex-col md:flex-row gap-4">
           {/* Sponsor Upload Button (Available to Everyone) - smaller when sponsorships are active */}
           <div 
-            className={`${
-              liveSponsorships.length > 0 
-              ? 'md:w-1/3 py-4 aspect-auto' 
-              : 'flex-1 aspect-[3/1]'
-            } bg-white/5 flex gap-3 text-white/30 font-bold items-center justify-center border-2 border-dashed border-white/30 bg-opacity-50 rounded-lg cursor-pointer hover:bg-white/10 transition-colors`}
+            className={`md:w-1/3 py-4 aspect-auto bg-white/5 flex gap-3 text-white/30 font-bold items-center justify-center border-2 border-dashed border-white/30 bg-opacity-50 rounded-lg cursor-pointer hover:bg-white/10 transition-colors`}
             onClick={() => setIsSponsorDrawerOpen(true)}
           >
             <FaCirclePlus className="flex-shrink-0" />

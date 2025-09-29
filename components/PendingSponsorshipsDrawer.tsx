@@ -11,6 +11,7 @@ import {
 } from "@/components/UI/drawer";
 import sdk from "@farcaster/miniapp-sdk";
 import { fetchPendingSponsorships, updateSponsorshipStatus } from "@/utils/serverActions";
+import { useSponsorApprovedEvent } from "@/utils/events";
 import Image from "next/image";
 
 interface PendingSponsorshipsDrawerProps {
@@ -46,6 +47,7 @@ export default function PendingSponsorshipsDrawer({
   const [pendingRequests, setPendingRequests] = useState<SponsorshipRequest[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const { notifySponsorApproved } = useSponsorApprovedEvent();
   
   // Format time duration nicely
   const formatDuration = (seconds: number) => {
@@ -123,6 +125,20 @@ export default function PendingSponsorshipsDrawer({
       if (result.ok) {
         toast.success(`Sponsorship ${status} successfully`);
         
+        // Find the request that was just processed
+        const sponsorshipRequest = pendingRequests.find(req => req.id === sponsorshipId);
+        
+        // If sponsorship was approved and we have sponsor data, send the event
+        if (status === 'approved' && sponsorshipRequest && sponsorshipRequest.sponsor) {
+          const { sponsor } = sponsorshipRequest;
+          const sponsorName = sponsor.displayName || sponsor.username || 'Unknown sponsor';
+          const userId = sponsor.fid; // Using fid as user id
+          
+          // Send the SPONSOR_APPROVED event
+          notifySponsorApproved(sponsorshipId, sponsorName, userId);
+          console.log(`Sent SPONSOR_APPROVED event for ${sponsorName}`);
+        }
+        
         // Remove the processed sponsorship from the list
         setPendingRequests(prev => prev.filter(req => req.id !== sponsorshipId));
       } else {
@@ -141,6 +157,8 @@ export default function PendingSponsorshipsDrawer({
       });
     }
   };
+
+  
 
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
