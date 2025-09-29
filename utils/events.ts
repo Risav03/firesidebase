@@ -103,11 +103,11 @@ export const useEmojiReactionEvent = (
  * @returns Object containing sendEvent function to broadcast a new sponsor notification
  */
 export const useNewSponsorEvent = (
-  onEvent?: (msg: { sponsorId: string; sponsorshipId: string }) => void
+  onEvent?: (msg: { sponsorName: string }) => void
 ) => {
   const { sendEvent } = useCustomEvent({
     type: "NEW_SPONSOR",
-    onEvent: onEvent || ((msg: { sponsorId: string; sponsorshipId: string }) => {}),
+    onEvent: onEvent || ((msg: { sponsorName: string }) => {}),
   });
 
   /**
@@ -115,8 +115,8 @@ export const useNewSponsorEvent = (
    * @param sponsorId The ID of the sponsor user
    * @param sponsorshipId The ID of the sponsorship
    */
-  const notifyNewSponsor = (sponsorId: string, sponsorshipId: string) => {
-    sendEvent({ sponsorId, sponsorshipId });
+  const notifyNewSponsor = (sponsorName: string) => {
+    sendEvent({ sponsorName });
   };
 
   return { notifyNewSponsor, sendEvent };

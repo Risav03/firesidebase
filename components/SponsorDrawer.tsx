@@ -392,7 +392,7 @@ export default function SponsorDrawer({
         toast.dismiss(loadingToast);
         toast.success("Sponsorship request sent to host!");
 
-        notifyNewSponsor(user?._id || "unknown", pendingSponsorship.id);
+        notifyNewSponsor(user.displayName || user.username || "Someone");
         onClose();
       } else {
         toast.dismiss(loadingToast);
@@ -427,6 +427,7 @@ export default function SponsorDrawer({
       toast.dismiss(loadingToast);
       toast.success("Sponsorship request withdrawn");
       setPendingSponsorship(null);
+      onClose()
     } catch (error) {
       console.error("Error withdrawing sponsorship request:", error);
       toast.dismiss(loadingToast);
