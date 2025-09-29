@@ -364,7 +364,7 @@ useEffect(() => {
             </div>
           </div>
         ),
-        { duration: 8000 }
+        { duration: 4000 }
       );
     }
   });
