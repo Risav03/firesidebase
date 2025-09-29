@@ -7,7 +7,7 @@ import {
   useHMSActions,
   selectLocalPeer,
 } from "@100mslive/react-sdk";
-import { useSpeakerRequestEvent, useSpeakerRejectionEvent, useNewSponsorEvent } from "@/utils/events";
+import { useSpeakerRequestEvent, useSpeakerRejectionEvent, useNewSponsorEvent, useSponsorApprovedEvent } from "@/utils/events";
 import PeerWithContextMenu from "./PeerWithContextMenu";
 import { ScreenTile } from "./ScreenTile";
 import RoomSponsor from "./RoomSponsor";
@@ -381,6 +381,50 @@ useEffect(() => {
 
     getPermission();
   }, []);
+
+  useSponsorApprovedEvent((msg) => {
+    // Check if the userId matches the current user's ID
+    if (user && user._id === msg.userId) {
+      toast.custom(
+        (t) => (
+          <div
+            className={`${
+              t.visible ? 'animate-enter' : 'animate-leave'
+            } max-w-md w-full bg-black/80 shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-fireside-orange/30 mb-2 border border-fireside-orange/30`}
+          >
+            <div className="flex-1 w-0 p-4">
+              <div className="flex items-start">
+                <div className="flex-shrink-0 pt-0.5">
+                  <div className="h-10 w-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <svg className="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="ml-3 flex-1">
+                  <p className="text-sm font-medium text-green-500">
+                    Sponsorship Approved
+                  </p>
+                  <p className="mt-1 text-sm text-gray-300">
+                    Your sponsorship request has been approved. Proceed to pay by clicking here or on Sponsor Fireside button.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex border-l border-green-500/30">
+              <button
+                onClick={() => toast.dismiss(t.id)}
+                className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-green-500 hover:text-green-400 focus:outline-none"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        ),
+        { duration: 6000 }
+      );
+    }
+  });
 
   if(roomEnded){
     return <RoomEndScreen onComplete={() => router.push("/")} />

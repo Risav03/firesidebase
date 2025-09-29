@@ -121,3 +121,29 @@ export const useNewSponsorEvent = (
 
   return { notifyNewSponsor, sendEvent };
 };
+
+/**
+ * Custom hook for handling sponsor approval events
+ * @param onEvent Callback function called when a sponsor is approved
+ * @returns Object containing sendEvent function to broadcast a sponsor approval notification
+ */
+export const useSponsorApprovedEvent = (
+  onEvent?: (msg: { sponsorId: string; sponsorName: string; userId: string }) => void
+) => {
+  const { sendEvent } = useCustomEvent({
+    type: "SPONSOR_APPROVED",
+    onEvent: onEvent || ((msg: { sponsorId: string; sponsorName: string; userId: string }) => {}),
+  });
+
+  /**
+   * Broadcast a sponsor approved event to all room participants
+   * @param sponsorId The ID of the sponsorship
+   * @param sponsorName The name of the sponsor
+   * @param userId The user ID of the sponsor
+   */
+  const notifySponsorApproved = (sponsorId: string, sponsorName: string, userId: string) => {
+    sendEvent({ sponsorId, sponsorName, userId });
+  };
+
+  return { notifySponsorApproved, sendEvent };
+};
