@@ -127,12 +127,12 @@ export const useNewSponsorEvent = (
  * @param onEvent Callback function called when a sponsor is approved
  * @returns Object containing sendEvent function to broadcast a sponsor approval notification
  */
-export const useSponsorApprovedEvent = (
-  onEvent?: (msg: { sponsorId: string; sponsorName: string; userId: string }) => void
+export const useSponsorStatusEvent = (
+  onEvent?: (msg: { sponsorId: string; userId: string; status: string }) => void
 ) => {
   const { sendEvent } = useCustomEvent({
-    type: "SPONSOR_APPROVED",
-    onEvent: onEvent || ((msg: { sponsorId: string; sponsorName: string; userId: string }) => {}),
+    type: "SPONSOR_STATUS",
+    onEvent: onEvent || ((msg: { sponsorId: string; userId: string; status: string }) => {}),
   });
 
   /**
@@ -141,9 +141,9 @@ export const useSponsorApprovedEvent = (
    * @param sponsorName The name of the sponsor
    * @param userId The user ID of the sponsor
    */
-  const notifySponsorApproved = (sponsorId: string, sponsorName: string, userId: string) => {
-    sendEvent({ sponsorId, sponsorName, userId });
+  const notifySponsorStatus = (sponsorId: string, userId: string, status: string) => {
+    sendEvent({ sponsorId, userId, status });
   };
 
-  return { notifySponsorApproved, sendEvent };
+  return { notifySponsorStatus, sendEvent };
 };

@@ -7,7 +7,7 @@ import {
   useHMSActions,
   selectLocalPeer,
 } from "@100mslive/react-sdk";
-import { useSpeakerRequestEvent, useSpeakerRejectionEvent, useNewSponsorEvent, useSponsorApprovedEvent } from "@/utils/events";
+import { useSpeakerRequestEvent, useSpeakerRejectionEvent, useNewSponsorEvent, useSponsorStatusEvent } from "@/utils/events";
 import PeerWithContextMenu from "./PeerWithContextMenu";
 import { ScreenTile } from "./ScreenTile";
 import RoomSponsor from "./RoomSponsor";
@@ -382,9 +382,9 @@ useEffect(() => {
     getPermission();
   }, []);
 
-  useSponsorApprovedEvent((msg) => {
+  useSponsorStatusEvent((msg) => {
     // Check if the userId matches the current user's ID
-    if (user && user._id === msg.userId) {
+    if (user && (user._id === msg.userId || user.fid === msg.userId)) {
       toast.custom(
         (t) => (
           <div
@@ -403,10 +403,10 @@ useEffect(() => {
                 </div>
                 <div className="ml-3 flex-1">
                   <p className="text-sm font-medium text-green-500">
-                    Sponsorship Approved
+                    Sponsorship ${msg.status}
                   </p>
                   <p className="mt-1 text-sm text-gray-300">
-                    Your sponsorship request has been approved. Proceed to pay by clicking here or on Sponsor Fireside button.
+                    Your sponsorship request has been ${msg.status.toUpperCase()}. {msg.status == "approved" ? "Proceed to pay by clicking here or on Sponsor Fireside button." : ""}
                   </p>
                 </div>
               </div>
