@@ -78,6 +78,10 @@
   .gradient-fire {
     @apply bg-gradient-to-br from-orange-500 to-orange-400;
   }
+
+  .gradient-emerald {
+    @apply bg-gradient-to-br from-emerald-700 to-lime-400 border-[1px] border-lime-200;
+  }
   
   /* Custom slider with fireside-orange thumb */
   .slider-fireside {
