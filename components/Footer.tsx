@@ -38,7 +38,7 @@ import { IoIosArrowDown } from "react-icons/io";
 import { useGlobalContext } from "../utils/providers/globalContext";
 import { MdCopyAll, MdOutlineIosShare } from "react-icons/md";
 import TippingModal from "./TippingModal";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import Image from "next/image";
 
 // Dynamic import to avoid SSR issues
@@ -547,9 +547,6 @@ export default function Footer({ roomId }: { roomId: string }) {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-black">
-      {/* Toast notifications container */}
-      <Toaster position="top-center" />
-      
       <div className="max-w-4xl mx-auto px-6 py-4 flex">
         <div className="flex flex-col items-center justify-center w-[30%]">
           <MicComponent
