@@ -480,10 +480,10 @@ export default function SponsorDrawer({
           if (!peer.metadata) return null;
           try {
             const metadata = JSON.parse(peer.metadata);
-            return metadata.wallet || null;
+            return metadata.wallet || address;
           } catch (err) {
             console.error("Error parsing metadata:", err);
-            return null;
+            return address;
           }
         })
         .filter((wallet: string | null): wallet is string => wallet !== null && wallet !== '');
@@ -588,10 +588,10 @@ export default function SponsorDrawer({
           if (!peer.metadata) return null;
           try {
             const metadata = JSON.parse(peer.metadata);
-            return metadata.wallet || null;
+            return metadata.wallet || address;
           } catch (err) {
             console.error("Error parsing metadata:", err);
-            return null;
+            return address;
           }
         })
         .filter((wallet: string | null): wallet is string => wallet !== null && wallet !== '');
