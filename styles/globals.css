@@ -80,7 +80,7 @@
   }
 
   .gradient-emerald {
-    @apply bg-gradient-to-br from-emerald-700 to-lime-400 border-[1px] border-lime-200;
+    @apply bg-gradient-to-br from-red-700 to-red-600 border-[1px] border-red-200;
   }
   
   /* Custom slider with fireside-orange thumb */

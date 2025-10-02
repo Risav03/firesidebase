@@ -372,7 +372,7 @@ useEffect(() => {
                 className="h-full bg-fireside-orange transition-all duration-100 ease-linear"
                 style={{
                   width: t.visible ? '100%' : '0%',
-                  animation: t.visible ? 'toast-timer 6s linear forwards' : 'none'
+                  animation: t.visible ? 'toast-timer 4s linear forwards' : 'none'
                 }}
               />
             </div>
@@ -383,8 +383,7 @@ useEffect(() => {
               }
             `}</style>
           </div>
-        ),
-        { duration: 6000 }
+        )
       );
     }
   });
@@ -453,7 +452,7 @@ useEffect(() => {
                 className={`h-full ${msg.status == "approved" ? "bg-green-500" : "bg-red-500"} transition-all duration-100 ease-linear`}
                 style={{
                   width: t.visible ? '100%' : '0%',
-                  animation: t.visible ? 'toast-timer 6s linear forwards' : 'none'
+                  animation: t.visible ? 'toast-timer 4s linear forwards' : 'none'
                 }}
               />
             </div>
@@ -464,8 +463,7 @@ useEffect(() => {
               }
             `}</style>
           </div>
-        ),
-        { duration: 6000 }
+        )
       );
     }
   });

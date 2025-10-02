@@ -158,11 +158,11 @@ export default function RoomSponsor({ roomId }: { roomId: string }) {
     <>
       {/* Display active sponsorships if any exist */}
       {liveSponsorships.length > 0 && (
-        <div className="w-full max-w-6xl mx-auto mb-6">
+        <div className="w-screen absolute z-[10000] right-0 max-w-6xl mx-auto">
           {liveSponsorships.map((sponsorship) => (
-            <div key={sponsorship.id} className="fixed bottom-[6.2rem] left-0 w-screen overflow-hidden mb-4">
+            <div key={sponsorship.id} className="fixed bottom-28 left-0 w-screen overflow-hidden">
               {/* Sponsorship Banner */}
-              <div className="w-full aspect-[3/1] relative">
+              <div className="w-full aspect-[5/1] relative">
                 <img 
                   src={sponsorship.imageUrl} 
                   alt="Sponsorship banner"

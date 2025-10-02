@@ -228,7 +228,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12">
+              <div className="text-left ">
                 <p className="text-white/70 mb-4">No live conversations right now</p>
                 <button
                   className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-md font-semibold"
