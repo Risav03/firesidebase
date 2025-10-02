@@ -372,7 +372,7 @@ useEffect(() => {
                 className="h-full bg-fireside-orange transition-all duration-100 ease-linear"
                 style={{
                   width: t.visible ? '100%' : '0%',
-                  animation: t.visible ? 'toast-timer 4s linear forwards' : 'none'
+                  animation: t.visible ? 'toast-timer 6s linear forwards' : 'none'
                 }}
               />
             </div>
@@ -384,7 +384,7 @@ useEffect(() => {
             `}</style>
           </div>
         ),
-        { duration: 4000 }
+        { duration: 6000 }
       );
     }
   });
@@ -403,7 +403,7 @@ useEffect(() => {
   }, []);
 
   useSponsorStatusEvent((msg) => {
-    console.log("Received SPONSOR_STATUS event:", msg);
+
     // Check if the userId matches the current user's ID
     if (user && (Number(user.fid) === Number(msg.userId))) {
       toast.custom(
