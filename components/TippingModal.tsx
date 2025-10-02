@@ -503,7 +503,7 @@ export default function TippingModal({
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DrawerContent className="bg-black/50 backdrop-blur-2xl text-white border-t border-fireside-orange/30">
-        <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-fireside-orange/30"></div>
+        
         <DrawerHeader>
           <DrawerTitle className="text-2xl font-bold text-white">
             Send a Tip
