@@ -109,7 +109,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
 
 
   useEffect(() => {
-    if (rooms && rooms.length > 0) {
+    if (rooms) {
       setLocalRooms(rooms);
       setLoading(false);
     }
@@ -234,7 +234,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                   className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-md font-semibold"
                   onClick={() => setShowCreateModal(true)}
                 >
-                  Start a Conversation
+                  Create a Room
                 </button>
               </div>
             )}
