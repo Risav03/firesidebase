@@ -8,6 +8,7 @@ import Image from "next/image";
 import { IoMdHome } from "react-icons/io";
 import { FaPlus } from "react-icons/fa";
 import { useNavigateWithLoader } from "@/utils/useNavigateWithLoader";
+import { BiSolidVideoRecording } from "react-icons/bi";
 
 export default function Navigation() {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -19,6 +20,7 @@ export default function Navigation() {
 
   const isHomePage = pathname === '/';
   const isProfilePage = pathname === '/profile';
+  const isRecordingsPage = pathname === '/recordings';
 
   // Since we're using inline styling, we can remove this effect
   // useEffect(() => {
@@ -55,7 +57,7 @@ export default function Navigation() {
               style={{ 
                 bottom: '-8px',
                 opacity: isHomePage || isProfilePage ? 1 : 0,
-                transform: isHomePage ? 'translateX(0%)' : isProfilePage ? 'translateX(200%)' : 'translateX(0%)'
+                transform: isHomePage ? 'translateX(0%)' : isProfilePage ? 'translateX(200%)' : isRecordingsPage ? 'translateX(400%)' : 'translateX(0%)'
               }}
             />
           </div>
@@ -84,42 +86,13 @@ export default function Navigation() {
 
             {/* Profile Button */}
             <button
-              onClick={handleProfileClick}
+              onClick={() => navigate("/recordings")}
               className={`flex flex-col items-center w-1/3 space-y-1 transition-colors ${
-                isProfilePage ? "text-white" : "text-gray-300 hover:text-white"
+                isRecordingsPage ? "text-white" : "text-gray-300 hover:text-white"
               }`}
             >
-              {user ? (
-                <>
-                  <div>
-                    <Image
-                      src={user.pfp_url}
-                      alt={user.displayName}
-                      width={120}
-                      height={120}
-                      className={`w-6 h-6 rounded-full ${isProfilePage ? "ring-2 ring-orange-500" : ""}`}
-                    />
-                  </div>
-                  <span className="text-xs">{user.displayName}</span>
-                </>
-              ) : (
-                <>
-                  <svg
-                    className={`w-6 h-6 ${isProfilePage ? "text-orange-500" : "text-white"}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
-                  <span className="text-xs">Profile</span>
-                </>
-              )}
+              <BiSolidVideoRecording className={`w-6 h-6 text-2xl ${isRecordingsPage ? "text-orange-500" : "text-white"}`} />
+              <span className="text-xs">Recordings</span>
             </button>
           </div>
         </div>

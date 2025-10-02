@@ -1,5 +1,6 @@
 'use server'
 import Explore from '@/components/Explore';
+import LiveRoomList from '@/components/LiveRoomList';
 import NavigationWrapper from '@/components/NavigationWrapper';
 import NotificationDrawer from '@/components/NotificationDrawer';
 import TopRooms from '@/components/TopRooms';
@@ -8,7 +9,7 @@ import { fetchAPI } from '@/utils/serverActions';
 import { Metadata } from 'next';
 import { Suspense } from 'react';
 
-interface Room {
+export interface Room {
   _id: string;
   name: string;
   description: string;
@@ -20,6 +21,9 @@ interface Room {
   };
   status: string;
   startTime: string;
+  strength: number;
+  sponsorshipEnabled: boolean;
+  topics: string[];
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -70,8 +74,8 @@ export default async function Home() {
   return (
     <>
       <MainHeader/>
-      <TopRooms rooms={rooms}/>
-      <Explore rooms={rooms} />
+      {/* <TopRooms rooms={rooms}/> */}
+      <LiveRoomList rooms={rooms} />
       <NavigationWrapper />
       {/* <NotificationDrawer /> */}
     </>
