@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigateWithLoader } from '@/utils/useNavigateWithLoader';
 import { useGlobalContext } from '@/utils/providers/globalContext';
 import toast from 'react-hot-toast';
@@ -29,9 +29,87 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
   const [sponsorshipEnabled, setSponsorshipEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState('');
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const navigate = useNavigateWithLoader();
   const { user } = useGlobalContext();
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  
+  const formRef = useRef<HTMLFormElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const descriptionInputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Handle mobile keyboard visibility
+  useEffect(() => {
+    if (typeof window === 'undefined' || !isOpen) return;
+
+    let initialViewportHeight = window.innerHeight;
+    
+    const handleResize = () => {
+      const currentHeight = window.innerHeight;
+      
+      // More reliable keyboard detection
+      const heightDifference = initialViewportHeight - currentHeight;
+      const keyboardThreshold = 150; // Minimum height change to consider keyboard visible
+      
+      setKeyboardVisible(heightDifference > keyboardThreshold);
+    };
+
+    const handleFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        // Ensure the focused element is within our modal
+        const modal = formRef.current;
+        if (modal && modal.contains(target)) {
+          // Multiple timeouts to handle different keyboard animation speeds
+          setTimeout(() => {
+            target.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'center',
+              inline: 'nearest'
+            });
+          }, 100);
+          
+          // Additional scroll after keyboard is fully shown
+          setTimeout(() => {
+            target.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'center',
+              inline: 'nearest'
+            });
+          }, 400);
+        }
+      }
+    };
+
+    const handleVisualViewportChange = () => {
+      if (window.visualViewport) {
+        const heightDifference = window.innerHeight - window.visualViewport.height;
+        setKeyboardVisible(heightDifference > 150);
+      }
+    };
+
+    // Store initial height when modal opens
+    initialViewportHeight = window.innerHeight;
+
+    window.addEventListener('resize', handleResize);
+    document.addEventListener('focusin', handleFocusIn);
+    
+    // Use Visual Viewport API if available (better for mobile)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleVisualViewportChange);
+    }
+    
+    // Initial check
+    handleResize();
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      document.removeEventListener('focusin', handleFocusIn);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleVisualViewportChange);
+      }
+    };
+  }, [isOpen]);
 
   const createRoomHandler = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,17 +167,33 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
 
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DrawerContent className="bg-black/90 backdrop-blur-lg border-t border-orange-500/50 text-white p-4">
+      <DrawerContent 
+        className={` backdrop-blur-lg border-t border-orange-500/50 text-white p-4 mobile-drawer-content ${
+          keyboardVisible ? 'keyboard-visible' : ''
+        }`}
+        style={{
+          // Use CSS custom properties for better mobile support
+          maxHeight: keyboardVisible 
+            ? 'calc(100vh - env(keyboard-inset-height, 300px))' 
+            : '85vh',
+          overflowY: 'auto'
+        }}
+      >
         <DrawerHeader>
           <DrawerTitle className="text-2xl font-semibold text-white text-center">Create New Room</DrawerTitle>
         </DrawerHeader>
         
-        <form onSubmit={createRoomHandler} className="space-y-4 px-4">
+        <form 
+          ref={formRef}
+          onSubmit={createRoomHandler} 
+          className="space-y-4 px-4 pb-safe"
+        >
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Room Name*
             </label>
             <input
+              ref={nameInputRef}
               type="text"
               value={formData.name}
               onChange={(e) => {
@@ -109,6 +203,16 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                 } else {
                   setNameError('');
                 }
+              }}
+              onFocus={(e) => {
+                // Ensure the input is visible when focused
+                setTimeout(() => {
+                  e.target.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center',
+                    inline: 'nearest'
+                  });
+                }, 100);
               }}
               className={`w-full bg-white/10 text-white p-2 rounded-lg border ${nameError ? 'border-red-500' : 'border-orange-500/30'} focus:outline-none focus:border-orange-500 transition-colors`}
               required
@@ -121,8 +225,19 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
               Description
             </label>
             <textarea
+              ref={descriptionInputRef}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onFocus={(e) => {
+                // Ensure the textarea is visible when focused
+                setTimeout(() => {
+                  e.target.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center',
+                    inline: 'nearest'
+                  });
+                }, 100);
+              }}
               className="w-full bg-white/10 text-white p-2 rounded-lg border border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors"
               rows={3}
             />
