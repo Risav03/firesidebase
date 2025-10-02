@@ -21,6 +21,7 @@ import toast from "react-hot-toast";
 import { fetchRoomDetails, endRoom } from "@/utils/serverActions";
 import SpeakerRequestsDrawer from "./SpeakerRequestsDrawer";
 import PendingSponsorshipsDrawer from "./PendingSponsorshipsDrawer";
+import SponsorDrawer from "./SponsorDrawer";
 
 
 export default function Conference({ roomId }: { roomId: string }) {
@@ -52,6 +53,7 @@ export default function Conference({ roomId }: { roomId: string }) {
   const [speakerRequests, setSpeakerRequests] = useState<SpeakerRequest[]>([]);
   const [showSpeakerRequestsDrawer, setShowSpeakerRequestsDrawer] = useState(false);
   const [showPendingSponsorshipsDrawer, setShowPendingSponsorshipsDrawer] = useState(false);
+  const [showSponsorDrawer, setShowSponsorDrawer] = useState(false);
   
   const [roomEnded, setRoomEnded] = useState(false);
 
@@ -330,38 +332,56 @@ useEffect(() => {
           <div
             className={`${
               t.visible ? 'animate-enter' : 'animate-leave'
-            } max-w-md w-full bg-black/80 shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-fireside-orange/30 mb-2 border border-fireside-orange/30`}
+            } max-w-md w-full bg-black/80 shadow-lg rounded-lg pointer-events-auto ring-1 ring-fireside-orange/30 mb-2 border border-fireside-orange/30 relative overflow-hidden`}
           >
-            <div className="flex-1 w-0 p-4">
-              <div className="flex items-start">
-                <div className="flex-shrink-0 pt-0.5">
-                  <div className="h-10 w-10 rounded-full bg-fireside-orange/20 flex items-center justify-center">
-                    <svg className="h-6 w-6 text-fireside-orange" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+            <div className="flex">
+              <div className="flex-1 w-0 p-4">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 pt-0.5">
+                    <div className="h-10 w-10 rounded-full bg-fireside-orange/20 flex items-center justify-center">
+                      <svg className="h-6 w-6 text-fireside-orange" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <p className="text-sm font-medium text-fireside-orange">
+                      New Sponsorship Request
+                    </p>
+                    <p className="mt-1 text-sm text-gray-300">
+                      {msg.sponsorName} has submitted a new sponsorship request for this room.
+                    </p>
                   </div>
                 </div>
-                <div className="ml-3 flex-1">
-                  <p className="text-sm font-medium text-fireside-orange">
-                    New Sponsorship Request
-                  </p>
-                  <p className="mt-1 text-sm text-gray-300">
-                    {msg.sponsorName} has submitted a new sponsorship request for this room.
-                  </p>
-                </div>
+              </div>
+              <div className="flex border-l border-fireside-orange/30">
+                <button
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    setShowPendingSponsorshipsDrawer(true);
+                  }}
+                  className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-fireside-orange hover:text-fireside-orange/70 focus:outline-none"
+                >
+                  View
+                </button>
               </div>
             </div>
-            <div className="flex border-l border-fireside-orange/30">
-              <button
-                onClick={() => {
-                  toast.dismiss(t.id);
-                  setShowPendingSponsorshipsDrawer(true);
+            {/* Timer bar */}
+            <div className="absolute bottom-0 left-0 w-full h-1 bg-fireside-orange/20">
+              <div 
+                className="h-full bg-fireside-orange transition-all duration-100 ease-linear"
+                style={{
+                  width: t.visible ? '100%' : '0%',
+                  animation: t.visible ? 'toast-timer 4s linear forwards' : 'none'
                 }}
-                className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-fireside-orange hover:text-fireside-orange/70 focus:outline-none"
-              >
-                View
-              </button>
+              />
             </div>
+            <style jsx>{`
+              @keyframes toast-timer {
+                from { width: 100%; }
+                to { width: 0%; }
+              }
+            `}</style>
           </div>
         ),
         { duration: 4000 }
@@ -391,35 +411,58 @@ useEffect(() => {
           <div
             className={`${
               t.visible ? 'animate-enter' : 'animate-leave'
-            } max-w-md w-full bg-black/80 shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-fireside-orange/30 mb-2 border border-fireside-orange/30`}
+            } max-w-md w-full bg-black/80 shadow-lg rounded-lg pointer-events-auto ring-1 ring-fireside-orange/30 mb-2 border border-fireside-orange/30 relative overflow-hidden`}
           >
-            <div className="flex-1 w-0 p-4">
-              <div className="flex items-start">
-                <div className="flex-shrink-0 pt-0.5">
-                  <div className="h-10 w-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                    <svg className="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
+            <div className="flex">
+              <div className="flex-1 w-0 p-4">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 pt-0.5">
+                    <div className="h-10 w-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                      <svg className="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <p className={`text-sm font-medium ${msg.status == "approved" ? "text-green-500" : "text-red-500"}`}>
+                      Sponsorship {msg.status}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-300">
+                      {msg.status == "approved" ? "Proceed to pay by clicking here or on Sponsor Fireside button." : ""}
+                    </p>
                   </div>
                 </div>
-                <div className="ml-3 flex-1">
-                  <p className="text-sm font-medium text-green-500">
-                    Sponsorship ${msg.status}
-                  </p>
-                  <p className="mt-1 text-sm text-gray-300">
-                    Your sponsorship request has been ${msg.status.toUpperCase()}. {msg.status == "approved" ? "Proceed to pay by clicking here or on Sponsor Fireside button." : ""}
-                  </p>
-                </div>
+              </div>
+              <div className={`flex border-l ${msg.status == "approved" ? "border-green-500/30" : "border-red-500/30"}`}>
+                <button
+                  onClick={() => { 
+                    if (msg.status == "approved"){
+                      setShowSponsorDrawer(true);
+                    }
+                    toast.dismiss(t.id);
+                  }}
+                  className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-green-500 hover:text-green-400 focus:outline-none"
+                >
+                  {msg.status == "approved" ? "Go Live!" : "Got it"}
+                </button>
               </div>
             </div>
-            <div className="flex border-l border-green-500/30">
-              <button
-                onClick={() => toast.dismiss(t.id)}
-                className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-green-500 hover:text-green-400 focus:outline-none"
-              >
-                Got it
-              </button>
+            {/* Timer bar */}
+            <div className={`absolute bottom-0 left-0 w-full h-1 ${msg.status == "approved" ? "bg-green-500/20" : "bg-red-500/20"}`}>
+              <div 
+                className={`h-full ${msg.status == "approved" ? "bg-green-500" : "bg-red-500"} transition-all duration-100 ease-linear`}
+                style={{
+                  width: t.visible ? '100%' : '0%',
+                  animation: t.visible ? 'toast-timer 6s linear forwards' : 'none'
+                }}
+              />
             </div>
+            <style jsx>{`
+              @keyframes toast-timer {
+                from { width: 100%; }
+                to { width: 0%; }
+              }
+            `}</style>
           </div>
         ),
         { duration: 6000 }
@@ -502,6 +545,13 @@ useEffect(() => {
             roomId={roomId}
           />
         )}
+
+        {/* Sponsor Drawer */}
+        <SponsorDrawer
+          isOpen={showSponsorDrawer}
+          onClose={() => setShowSponsorDrawer(false)}
+          roomId={roomId}
+        />
       </div>
     );
   }
