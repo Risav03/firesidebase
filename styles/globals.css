@@ -413,4 +413,43 @@
       @apply left-2 right-2 w-auto;
     }
   }
+
+  /* Mobile keyboard handling */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 1rem);
+  }
+
+  /* Improved mobile viewport handling */
+  @supports (height: 100dvh) {
+    .mobile-vh {
+      height: 100dvh;
+    }
+  }
+
+  @supports not (height: 100dvh) {
+    .mobile-vh {
+      height: calc(var(--vh, 1vh) * 100);
+    }
+  }
+
+  /* Mobile keyboard adjustments */
+  @media (max-width: 768px) {
+    .mobile-drawer-content {
+      max-height: calc(100vh - env(keyboard-inset-height, 0px));
+      transition: max-height 0.3s ease-in-out;
+    }
+    
+    .mobile-drawer-content.keyboard-visible {
+      max-height: calc(100vh - env(keyboard-inset-height, 300px));
+    }
+  }
+
+  /* Smooth scrolling for mobile inputs */
+  @media (max-width: 768px) {
+    input:focus,
+    textarea:focus {
+      scroll-margin-top: 100px;
+      scroll-margin-bottom: 100px;
+    }
+  }
 }
