@@ -168,7 +168,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DrawerContent 
-        className={` backdrop-blur-lg border-t border-orange-500/50 text-white p-4 mobile-drawer-content ${
+        className={` backdrop-blur-lg border-t border-orange-500/50 text-white p-4 mobile-drawer-content pb-20 ${
           keyboardVisible ? 'keyboard-visible' : ''
         }`}
         style={{
