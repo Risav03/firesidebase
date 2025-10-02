@@ -15,7 +15,7 @@ import { useHMSStore, selectPeers, useHMSActions } from "@100mslive/react-sdk";
 import sdk from "@farcaster/miniapp-sdk";
 import { createSponsorship, fetchSponsorshipStatus, withdrawSponsorshipRequest, fetchLiveParticipants, sendChatMessage, activateSponsorship } from "@/utils/serverActions";
 import { useGlobalContext } from "@/utils/providers/globalContext";
-import { useNewSponsorEvent } from "@/utils/events";
+import { useActiveSponsor, useNewSponsorEvent } from "@/utils/events";
 import Modal from "@/components/UI/Modal";
 import { useAccount, useSendCalls, useWriteContract, useSignTypedData } from "wagmi";
 import { encodeFunctionData, numberToHex } from "viem";
@@ -103,6 +103,7 @@ export default function SponsorDrawer({
   } | null>(null);
   const batchSize = parseInt(process.env.NEXT_PUBLIC_BATCH_SIZE || "20");
   const { notifyNewSponsor } = useNewSponsorEvent();
+  const { activateSponsor } = useActiveSponsor();
   
   // Check if user has a pending or active sponsorship
   useEffect(() => {
@@ -285,6 +286,8 @@ export default function SponsorDrawer({
           // Dismiss loading toast and show success
           toast.dismiss(transactionToastId);
           toast.success("Sponsorship payment completed successfully!");
+
+          activateSponsor();
           
           // Close modals and reset state if not already done by onClose
           setIsTransactionModalOpen(false);
@@ -393,6 +396,7 @@ export default function SponsorDrawer({
         toast.success("Sponsorship request sent to host!");
 
         notifyNewSponsor(user.displayName || user.username || "Someone");
+        
         onClose();
       } else {
         toast.dismiss(loadingToast);

@@ -112,8 +112,7 @@ export const useNewSponsorEvent = (
 
   /**
    * Broadcast a new sponsor event to all room participants
-   * @param sponsorId The ID of the sponsor user
-   * @param sponsorshipId The ID of the sponsorship
+   * @param sponsorName The name of the sponsor
    */
   const notifyNewSponsor = (sponsorName: string) => {
     sendEvent({ sponsorName });
@@ -123,26 +122,51 @@ export const useNewSponsorEvent = (
 };
 
 /**
- * Custom hook for handling sponsor approval events
- * @param onEvent Callback function called when a sponsor is approved
- * @returns Object containing sendEvent function to broadcast a sponsor approval notification
+ * Custom hook for handling active sponsor events
+ * @param onEvent Callback function called when an active sponsor event is received
+ * @returns Object containing sendEvent function to broadcast an active sponsor notification
  */
-export const useSponsorStatusEvent = (
-  onEvent?: (msg: { sponsorId: string; userId: string; status: string }) => void
+export const useActiveSponsor = (
+  onEvent?: (msg: { sponsorshipId?: string; roomId?: string }) => void
 ) => {
   const { sendEvent } = useCustomEvent({
-    type: "SPONSOR_STATUS",
-    onEvent: onEvent || ((msg: { sponsorId: string; userId: string; status: string }) => {}),
+    type: "ACTIVE_SPONSOR",
+    onEvent: onEvent || (() => {}),
   });
 
   /**
-   * Broadcast a sponsor approved event to all room participants
-   * @param sponsorId The ID of the sponsorship
-   * @param sponsorName The name of the sponsor
-   * @param userId The user ID of the sponsor
+   * Broadcast an active sponsor event to all room participants
+   * @param sponsorshipId The ID of the sponsorship (optional)
+   * @param roomId The ID of the room (optional)
    */
-  const notifySponsorStatus = (sponsorId: string, userId: string, status: string) => {
-    sendEvent({ sponsorId, userId, status });
+  const activateSponsor = (sponsorshipId?: string, roomId?: string) => {
+    sendEvent({ sponsorshipId, roomId });
+  };
+
+  return { activateSponsor, sendEvent };
+};
+
+/**
+ * Custom hook for handling sponsor status events
+ * @param onEvent Callback function called when a sponsor status event is received
+ * @returns Object containing sendEvent function to broadcast a sponsor status notification
+ */
+export const useSponsorStatusEvent = (
+  onEvent?: (msg: { userId: string; status: string; sponsorshipId?: string }) => void
+) => {
+  const { sendEvent } = useCustomEvent({
+    type: "SPONSOR_STATUS",
+    onEvent: onEvent || ((msg: { userId: string; status: string }) => {}),
+  });
+
+  /**
+   * Broadcast a sponsor status event to all room participants
+   * @param userId The user ID of the sponsor
+   * @param status The status of the sponsorship (e.g., "approved", "rejected", "pending")
+   * @param sponsorshipId The ID of the sponsorship (optional)
+   */
+  const notifySponsorStatus = (userId: string, status: string, sponsorshipId?: string) => {
+    sendEvent({ userId, status, sponsorshipId });
   };
 
   return { notifySponsorStatus, sendEvent };

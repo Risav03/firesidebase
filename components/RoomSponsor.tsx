@@ -8,7 +8,7 @@ import PendingSponsorshipsDrawer from "./PendingSponsorshipsDrawer";
 import { fetchLiveSponsorships } from "@/utils/serverActions";
 import sdk from "@farcaster/miniapp-sdk";
 import { useGlobalContext } from "@/utils/providers/globalContext";
-import { useNewSponsorEvent } from "@/utils/events";
+import { useActiveSponsor } from "@/utils/events";
 
 interface LiveSponsorship {
   id: string;
@@ -85,6 +85,12 @@ export default function RoomSponsor({ roomId }: { roomId: string }) {
       setIsLoading(false);
     }
   }, [roomId, getAuthToken]);
+
+  // Listen for active sponsor events and fetch sponsorships when triggered
+  useActiveSponsor(() => {
+    if(liveSponsorships.length === 0)
+    fetchSponsors();
+  });
   
   // Fetch sponsorships on component mount
   useEffect(() => {

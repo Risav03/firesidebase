@@ -383,8 +383,9 @@ useEffect(() => {
   }, []);
 
   useSponsorStatusEvent((msg) => {
+    console.log("Received SPONSOR_STATUS event:", msg);
     // Check if the userId matches the current user's ID
-    if (user && (user._id === msg.userId || user.fid === msg.userId)) {
+    if (user && (Number(user.fid) === Number(msg.userId))) {
       toast.custom(
         (t) => (
           <div
