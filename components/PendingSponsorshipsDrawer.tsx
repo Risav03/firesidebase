@@ -131,12 +131,11 @@ export default function PendingSponsorshipsDrawer({
         // If sponsorship was approved and we have sponsor data, send the event
         if (sponsorshipRequest && sponsorshipRequest.sponsor) {
           const { sponsor } = sponsorshipRequest;
-          const sponsorName = sponsor.displayName || sponsor.username || 'Unknown sponsor';
           const userId = sponsor.fid; // Using fid as user id
 
-          // Send the SPONSOR_STATUS event
-          notifySponsorStatus(sponsorshipId, userId, status);
-          console.log(`Sent SPONSOR_STATUS event for ${sponsorName}`);
+          console.log(`Preparing to send SPONSOR_STATUS event for ${userId} with status ${status}`);
+
+          notifySponsorStatus(userId, status);
         }
         
         // Remove the processed sponsorship from the list
