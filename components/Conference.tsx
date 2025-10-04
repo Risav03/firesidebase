@@ -97,7 +97,10 @@ export default function Conference({ roomId }: { roomId: string }) {
         // Show toast notification with the peer name if available
         const peer = allPeers.find(p => p.id === peerId);
         const displayName = peer?.name || "Someone";
-        toast.success(`${displayName} has requested to speak`);
+        toast.success(`${displayName} has requested to speak`, {
+          duration: 3000,
+          id: `speaker-request-${peerId}-${Date.now()}`
+        });
       }
     };
 
@@ -113,7 +116,10 @@ export default function Conference({ roomId }: { roomId: string }) {
 
 useEffect(() => {
     if (peer && !peer.isLocal && peer.isHandRaised) {
-        toast(`${peer.name} raised their hand.`);
+        toast(`${peer.name} raised their hand.`, {
+          duration: 3000,
+          id: `hand-raise-${peer.id}-${Date.now()}`
+        });
     }
 }, [peer]);
 
@@ -383,7 +389,11 @@ useEffect(() => {
               }
             `}</style>
           </div>
-        )
+        ),
+        {
+          duration: 4000, // Auto-dismiss after 4 seconds
+          id: `sponsorship-request-${msg.sponsorName}-${Date.now()}` // Unique ID to prevent duplicates
+        }
       );
     }
   });
@@ -463,7 +473,11 @@ useEffect(() => {
               }
             `}</style>
           </div>
-        )
+        ),
+        {
+          duration: 4000, // Auto-dismiss after 4 seconds
+          id: `sponsor-status-${msg.userId}-${msg.status}-${Date.now()}` // Unique ID to prevent duplicates
+        }
       );
     }
   });

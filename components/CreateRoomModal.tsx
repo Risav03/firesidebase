@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigateWithLoader } from '@/utils/useNavigateWithLoader';
 import { useGlobalContext } from '@/utils/providers/globalContext';
 import toast from 'react-hot-toast';
@@ -33,25 +33,44 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
   const { user } = useGlobalContext();
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
+  // Cleanup toasts when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      // Dismiss any lingering toasts when modal closes
+      const timeoutId = setTimeout(() => {
+        toast.dismiss();
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isOpen]);
+
   const createRoomHandler = async (e: React.FormEvent) => {
     e.preventDefault();
     // Allow all characters in room name
     if (formData.name.trim() === '') {
       setNameError('Room name cannot be empty.');
-      toast.error('Room name is required');
+      toast.error('Room name is required', {
+        duration: 3000,
+        id: `room-name-error-${Date.now()}`
+      });
       return;
     }
     setNameError('');
     setLoading(true);
 
       if (selectedTags.length === 0) {
-        toast.error('Please select at least one topic tag.');
+        toast.error('Please select at least one topic tag.', {
+          duration: 3000,
+          id: `topic-error-${Date.now()}`
+        });
         setLoading(false);
         return;
       }
     
     try {
-      toast.loading('Creating room...');
+      // Create a loading toast and store its ID
+      const loadingToastId = toast.loading('Creating room...');
       const env = process.env.NEXT_PUBLIC_ENV;
 
       let token: any = null;
@@ -65,9 +84,17 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         startTime: new Date().toISOString(),
         topics: selectedTags,
         sponsorshipEnabled
-      }, token);      if (response.data.success) {
-        toast.dismiss();
-        toast.success('Room created successfully! Redirecting...');
+      }, token);      
+      
+      if (response.data.success) {
+        // Dismiss the specific loading toast and show success
+        toast.dismiss(loadingToastId);
+        setTimeout(() => {
+          toast.success('Room created successfully! Redirecting...', {
+            duration: 3000,
+            id: `room-created-${Date.now()}`
+          });
+        }, 50);
         setFormData({ name: '', description: '' });
         setSelectedTags([]);
         setSponsorshipEnabled(false);
@@ -75,13 +102,25 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         // Redirect to the room page
         navigate('/call/' + response.data.data._id);
       } else {
-        toast.dismiss();
-        toast.error('Error creating room: ' + response.data.error);
+        // Dismiss the specific loading toast and show error
+        toast.dismiss(loadingToastId);
+        setTimeout(() => {
+          toast.error('Error creating room: ' + response.data.error, {
+            duration: 4000,
+            id: `room-error-${Date.now()}`
+          });
+        }, 50);
       }
     } catch (error) {
       console.error('Error creating room:', error);
+      // Dismiss all toasts and show error
       toast.dismiss();
-      toast.error('Error creating room. Please try again.');
+      setTimeout(() => {
+        toast.error('Error creating room. Please try again.', {
+          duration: 4000,
+          id: `room-error-catch-${Date.now()}`
+        });
+      }, 50);
     } finally {
       setLoading(false);
     }
