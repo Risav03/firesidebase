@@ -4,6 +4,7 @@ import { fetchAPI } from "@/utils/serverActions";
 import { Room } from "../page";
 import RecordingsList from "@/components/Recordings";
 import NavigationWrapper from "@/components/NavigationWrapper";
+import MainHeader from "@/components/UI/MainHeader";
 
 // Server-side function to fetch rooms
 async function fetchRooms(): Promise<Room[]> {
@@ -26,6 +27,7 @@ async function fetchRooms(): Promise<Room[]> {
 export default async function Recordings() {
   return (
     <div>
+      <MainHeader/>
       <RecordingsList rooms={await fetchRooms()} />
       <NavigationWrapper />
     </div>

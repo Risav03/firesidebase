@@ -16,7 +16,7 @@ export default function MainHeader() {
   };
 
   return (
-    <header className="bg-black text-white py-4 w-screen flex items-center justify-center">
+    <header className=" absolute top-0 left-0 right-0 bg-black text-white py-4 w-screen flex items-center justify-center">
       <FiresideLogo className="w-32" />
       <button
         onClick={handleProfileClick}
