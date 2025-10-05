@@ -10,7 +10,7 @@ import {
 } from "@100mslive/react-sdk";
 import { ChatMessage } from "./ChatMessage";
 import { useGlobalContext } from "@/utils/providers/globalContext";
-import toast from "react-hot-toast";
+import { toast } from "react-toastify";
 import sdk from "@farcaster/miniapp-sdk";
 import {
   Drawer,

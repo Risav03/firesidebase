@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { FaPlay } from "react-icons/fa";
 import { IoIosRefresh } from "react-icons/io";
-import toast from "react-hot-toast";
+import { toast } from "react-toastify";
 import { useGlobalContext } from "@/utils/providers/globalContext";
 import RoomsList from "./RoomsList";
 import UserDisplay from "./UserDisplay";

@@ -38,7 +38,7 @@ import { IoIosArrowDown } from "react-icons/io";
 import { useGlobalContext } from "../utils/providers/globalContext";
 import { MdCopyAll, MdOutlineIosShare } from "react-icons/md";
 import TippingModal from "./TippingModal";
-import toast from "react-hot-toast";
+import { toast } from "react-toastify";
 import Image from "next/image";
 
 // Dynamic import to avoid SSR issues
@@ -105,9 +105,8 @@ const MicComponent: React.FC<MicComponentProps> = ({
     requestToSpeak(localPeer?.id as string);
     
     // Show feedback to the user that request was sent
-    toast.success("Speaker request sent", { 
-      icon: "🎙️",
-      duration: 3000
+    toast.success("🎙️ Speaker request sent", { 
+      autoClose: 3000
     });
   };
 
@@ -119,7 +118,7 @@ const MicComponent: React.FC<MicComponentProps> = ({
       if (typeof window !== 'undefined') {
         localStorage.removeItem(`speakerRequested_${localPeer?.id || user?.fid}`);
       }
-      toast.success("You can now speak!", { duration: 3000 });
+      toast.success("You can now speak!", { autoClose: 3000 });
     }
   }, [canUnmute, speakerRequested, localPeer?.id, user?.fid]);
 

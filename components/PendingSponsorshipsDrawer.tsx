@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import toast from "react-hot-toast";
+import { toast } from "react-toastify";
 import { RiLoader5Fill } from "react-icons/ri";
 import {
   Drawer,

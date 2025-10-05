@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigateWithLoader } from '@/utils/useNavigateWithLoader';
 import { useGlobalContext } from '@/utils/providers/globalContext';
-import toast from 'react-hot-toast';
+import { toast } from 'react-toastify';
 import { topics } from '@/utils/constants';
 import sdk from "@farcaster/miniapp-sdk";
 import { 
@@ -51,8 +51,8 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
     if (formData.name.trim() === '') {
       setNameError('Room name cannot be empty.');
       toast.error('Room name is required', {
-        duration: 3000,
-        id: `room-name-error-${Date.now()}`
+        autoClose: 3000,
+        toastId: `room-name-error-${Date.now()}`
       });
       return;
     }
@@ -61,8 +61,8 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
 
       if (selectedTags.length === 0) {
         toast.error('Please select at least one topic tag.', {
-          duration: 3000,
-          id: `topic-error-${Date.now()}`
+          autoClose: 3000,
+          toastId: `topic-error-${Date.now()}`
         });
         setLoading(false);
         return;
@@ -91,8 +91,8 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         toast.dismiss(loadingToastId);
         setTimeout(() => {
           toast.success('Room created successfully! Redirecting...', {
-            duration: 3000,
-            id: `room-created-${Date.now()}`
+            autoClose: 3000,
+            toastId: `room-created-${Date.now()}`
           });
         }, 50);
         setFormData({ name: '', description: '' });
@@ -106,8 +106,8 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         toast.dismiss(loadingToastId);
         setTimeout(() => {
           toast.error('Error creating room: ' + response.data.error, {
-            duration: 4000,
-            id: `room-error-${Date.now()}`
+            autoClose: 4000,
+            toastId: `room-error-${Date.now()}`
           });
         }, 50);
       }
@@ -117,8 +117,8 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
       toast.dismiss();
       setTimeout(() => {
         toast.error('Error creating room. Please try again.', {
-          duration: 4000,
-          id: `room-error-catch-${Date.now()}`
+          autoClose: 4000,
+          toastId: `room-error-catch-${Date.now()}`
         });
       }, 50);
     } finally {

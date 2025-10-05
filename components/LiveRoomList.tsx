@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { FaHeadphones } from "react-icons/fa";
 import { IoIosRefresh } from "react-icons/io";
-import toast from "react-hot-toast";
+import { toast } from "react-toastify";
 import { useGlobalContext } from "@/utils/providers/globalContext";
 import UserDisplay from "./UserDisplay";
 import SearchBar from "./UI/SearchBar";

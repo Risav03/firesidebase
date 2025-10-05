@@ -12,7 +12,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import RoleChangeHandler from "@/components/RoleChangeHandler";
 import { Loader } from "@/components/Loader";
-import toast from "react-hot-toast";
+import { toast } from "react-toastify";
 import sdk from "@farcaster/miniapp-sdk";
 import { useNavigateWithLoader } from "@/utils/useNavigateWithLoader";
 import { fetchAPI, fetchRoomCodes, addParticipantToRoom, removeParticipantFromRoom } from "@/utils/serverActions";

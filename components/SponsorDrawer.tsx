@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import toast from "react-hot-toast";
+import { toast } from "react-toastify";
 import { RiLoader5Fill } from "react-icons/ri";
 import { FaEthereum } from "react-icons/fa";
 import { BiSolidDollarCircle } from "react-icons/bi";
@@ -455,7 +455,7 @@ export default function SponsorDrawer({
     
     setProcessingTx(true);
     const loadingToastId = toast.loading("Processing transaction...");
-    setTransactionToastId(loadingToastId);
+    setTransactionToastId(String(loadingToastId));
     
     try {
       const env = process.env.NEXT_PUBLIC_ENV;
@@ -563,7 +563,7 @@ export default function SponsorDrawer({
     
     setProcessingTx(true);
     const loadingToastId = toast.loading("Processing USDC transaction...");
-    setTransactionToastId(loadingToastId);
+    setTransactionToastId(String(loadingToastId));
     
     try {
       const env = process.env.NEXT_PUBLIC_ENV;
