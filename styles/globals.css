@@ -456,4 +456,44 @@
       scroll-margin-bottom: 100px;
     }
   }
+
+  /* React Toastify Custom Styles */
+  .Toastify__toast--success {
+    background: #059669 !important;
+    border: 1px solid #10b981 !important;
+  }
+
+  .Toastify__toast--error {
+    background: #dc2626 !important;
+    border: 1px solid #ef4444 !important;
+  }
+
+  .Toastify__toast--info {
+    background: #1f2937 !important;
+    color: #fff !important;
+    border: 1px solid #374151 !important;
+  }
+
+  .Toastify__toast--warning {
+    background: #d97706 !important;
+    border: 1px solid #f59e0b !important;
+  }
+
+  .Toastify__toast {
+    background: #1f2937 !important;
+    color: #fff !important;
+    border: 1px solid #374151 !important;
+  }
+
+  /* Custom toast styles for transparent background */
+  .custom-toast {
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  .custom-toast-body {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
 }

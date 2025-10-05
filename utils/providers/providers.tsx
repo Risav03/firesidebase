@@ -4,7 +4,8 @@ import { HMSRoomProvider } from "@100mslive/react-sdk";
 import { MiniKitProvider } from "@coinbase/onchainkit/minikit";
 import { base } from "wagmi/chains";
 import { ReactNode, useEffect } from "react";
-import { Toaster } from "react-hot-toast";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import Rainbow from "./rainbow";
 import { GlobalProvider } from "./globalContext";
 import { initViewportFix } from "../viewport";
@@ -35,27 +36,21 @@ export default function Providers({ children }: ProvidersProps) {
         </Rainbow>
         </GlobalProvider>
       </MiniKitProvider>
-      <Toaster
+      <ToastContainer
         position="top-center"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: '#1f2937',
-            color: '#fff',
-            border: '1px solid #374151',
-          },
-          success: {
-            style: {
-              background: '#059669',
-              border: '1px solid #10b981',
-            },
-          },
-          error: {
-            style: {
-              background: '#dc2626',
-              border: '1px solid #ef4444',
-            },
-          },
+        autoClose={4000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+        toastStyle={{
+          background: '#1f2937',
+          color: '#fff',
+          border: '1px solid #374151',
         }}
       />
     </>

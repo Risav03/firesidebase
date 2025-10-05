@@ -8,7 +8,7 @@ import { firebaseTipsAbi } from "@/utils/contract/abis/firebaseTipsAbi";
 import { contractAdds } from "@/utils/contract/contractAdds";
 import { useAccount, useSendCalls, useWriteContract } from "wagmi";
 import { CustomConnect } from "./UI/connectButton";
-import toast from "react-hot-toast";
+import { toast } from "react-toastify";
 import { getEthPrice } from "@/utils/commons";
 import { ethers } from "ethers";
 import { usdcAbi } from "@/utils/contract/abis/usdcabi";

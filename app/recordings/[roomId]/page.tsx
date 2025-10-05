@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { FaArrowLeft, FaPlay, FaPause, FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
-import { toast } from 'react-hot-toast';
+import { toast } from 'react-toastify';
 import Image from 'next/image';
 import { fetchRoomRecordings } from '@/utils/serverActions';
 

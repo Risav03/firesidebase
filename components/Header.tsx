@@ -13,7 +13,7 @@ import RoomEndModal from './RoomEndModal';
 import { TbShare3 } from "react-icons/tb";
 import { MdCopyAll, MdOutlineIosShare } from "react-icons/md";
 import { sdk } from "@farcaster/miniapp-sdk";
-import toast from "react-hot-toast";
+import { toast } from "react-toastify";
 
 interface HeaderProps {
   onToggleChat?: () => void;

@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import NavigationWrapper from '@/components/NavigationWrapper';
 import { IoIosArrowBack } from 'react-icons/io';
 import { IoRefreshOutline } from 'react-icons/io5';
-import toast from 'react-hot-toast';
+import { toast } from 'react-toastify';
 import sdk from '@farcaster/miniapp-sdk';
 import { fetchUserRooms, refreshUserProfile } from '@/utils/serverActions';
 
