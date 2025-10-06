@@ -483,6 +483,7 @@ export default function Footer({ roomId }: { roomId: string }) {
     width: "100%",
     height: "400px",
     margin: "auto",
+    zIndex: 1000
   };
 
   // Add CSS for animations

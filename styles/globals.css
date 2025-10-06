@@ -446,6 +446,27 @@
     .mobile-drawer-content.keyboard-visible {
       max-height: calc(100vh - env(keyboard-inset-height, 300px));
     }
+
+    /* Chat drawer specific mobile keyboard handling */
+    .mobile-keyboard-active {
+      position: fixed !important;
+      bottom: 0 !important;
+      transform: translateY(0) !important;
+      transition: all 0.3s ease-in-out;
+    }
+
+    /* Prevent body scroll when keyboard is active */
+    body:has(.mobile-keyboard-active) {
+      overflow: hidden;
+      position: fixed;
+      width: 100%;
+    }
+
+    /* Enhanced input focus behavior for chat */
+    .mobile-keyboard-active textarea:focus {
+      scroll-margin-bottom: 20px;
+      scroll-behavior: smooth;
+    }
   }
 
   /* Smooth scrolling for mobile inputs */
@@ -454,6 +475,19 @@
     textarea:focus {
       scroll-margin-top: 100px;
       scroll-margin-bottom: 100px;
+    }
+
+    /* Specific handling for chat drawer inputs */
+    [data-vaul-drawer] textarea:focus {
+      scroll-margin-bottom: 10px;
+    }
+
+    /* Prevent zoom on input focus for iOS */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    textarea {
+      font-size: 16px;
     }
   }
 

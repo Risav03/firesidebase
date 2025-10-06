@@ -17,7 +17,7 @@ interface SponsorStatusToastProps extends CustomToastProps {
 }
 
 const SponsorshipRequestToast: React.FC<SponsorshipToastProps> = ({ sponsorName, onView }) => (
-  <div className="max-w-md w-full bg-black/80 backdrop-blur-sm shadow-lg rounded-lg pointer-events-auto ring-1 ring-fireside-orange/30 mb-2 border border-fireside-orange/30 relative overflow-hidden">
+  <div className="max-w-md w-full bg-black/90 backdrop-blur-sm shadow-lg rounded-lg pointer-events-auto ring-1 ring-fireside-orange/30 mb-2 border border-fireside-orange/30 relative overflow-hidden">
     <div className="flex">
       <div className="flex-1 w-0 p-4">
         <div className="flex items-start">
