@@ -350,9 +350,12 @@ export default function Footer({ roomId }: { roomId: string }) {
     }, 5000);
   });
 
-        hmsActions.ignoreMessageTypes(['EMOJI_REACTION']);
+  // Initialize emoji message filtering only once when component mounts
+  useEffect(() => {
+    hmsActions.ignoreMessageTypes(['EMOJI_REACTION']);
+  }, [hmsActions]);
 
-        var emojiTimeout: NodeJS.Timeout | null = null;
+  var emojiTimeout: NodeJS.Timeout | null = null;
 
   // Simple direct emoji handling with reduced timeout
   const handleEmojiSelect = (emoji: { emoji: string }) => {
