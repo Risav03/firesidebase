@@ -112,6 +112,8 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
     if (rooms) {
       setLocalRooms(rooms);
       setLoading(false);
+    } else {
+      setLoading(true); // Ensure loading state remains true until rooms are fetched
     }
   }, [rooms]);
 

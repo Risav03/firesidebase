@@ -81,7 +81,7 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
       setIsLoading(true);
       
       // Change role in HMS
-      await hmsActions.changeRole(peer.id, newRole, true);
+      await hmsActions.changeRoleOfPeer(peer.id, newRole, true);
       
       // Sync role change with Redis if we have user metadata
       try {

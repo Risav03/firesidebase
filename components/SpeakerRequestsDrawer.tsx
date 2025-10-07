@@ -58,28 +58,28 @@ export default function SpeakerRequestsDrawer({
       onApprove(request);
 
       // Then attempt to change the peer's role to speaker
-      await hmsActions.changeRole(request.peerId, 'speaker', true);
+      await hmsActions.changeRoleOfPeer(request.peerId, 'speaker', true);
       
       // Try to update the role in Redis too if metadata is available
-      try {
-        // Get authentication token for non-dev environments
-        const env = process.env.NEXT_PUBLIC_ENV;
-        let token: string = "";
-        if (env !== "DEV") {
-          const authResult = await sdk.quickAuth.getToken();
-          token = authResult.token;
-        }
+      // try {
+      //   // Get authentication token for non-dev environments
+      //   const env = process.env.NEXT_PUBLIC_ENV;
+      //   let token: string = "";
+      //   if (env !== "DEV") {
+      //     const authResult = await sdk.quickAuth.getToken();
+      //     token = authResult.token;
+      //   }
 
-        // For the peer metadata, we can use the peerId to send to the server
-        const userFid = request.peerId; // This will need to be handled differently in your server action
+      //   // For the peer metadata, we can use the peerId to send to the server
+      //   const userFid = request.peerId; // This will need to be handled differently in your server action
         
-        if (userFid) {
-          await updateParticipantRole(roomId, userFid, 'speaker', token);
-        }
-      } catch (redisError) {
-        console.error('Error updating role in Redis:', redisError);
-        // Don't fail the main operation if Redis sync fails
-      }
+      //   if (userFid) {
+      //     await updateParticipantRole(roomId, userFid, 'speaker', token);
+      //   }
+      // } catch (redisError) {
+      //   console.error('Error updating role in Redis:', redisError);
+      //   // Don't fail the main operation if Redis sync fails
+      // }
     } catch (error) {
       console.error('Error approving speaker request:', error);
     }
