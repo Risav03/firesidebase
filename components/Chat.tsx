@@ -139,6 +139,16 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
     }
   }, [messages, redisMessages, isKeyboardVisible]);
 
+  // Scroll to bottom when chat drawer opens
+  useEffect(() => {
+    if (isOpen && messagesEndRef.current) {
+      // Small delay to ensure the drawer is fully rendered
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }
+  }, [isOpen]);
+
   // Auto-resize textarea based on content
   const adjustTextareaHeight = () => {
     const textarea = textareaRef.current;
