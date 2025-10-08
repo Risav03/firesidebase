@@ -41,6 +41,16 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   const hmsActions = useHMSActions();
   const { user } = useGlobalContext();
 
+  // Scroll to bottom function
+  const scrollToBottom = useCallback((immediate = false) => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: immediate ? "auto" : "smooth",
+        block: "end"
+      });
+    }
+  }, []);
+
   // Mobile keyboard detection and viewport management
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -98,11 +108,9 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   const handleInputBlur = useCallback(() => {
     // Reset any scroll adjustments when keyboard closes
     setTimeout(() => {
-      if (messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-      }
+      scrollToBottom();
     }, 100);
-  }, []);
+  }, [scrollToBottom]);
 
   useEffect(() => {
     const loadMessages = async () => {
@@ -135,19 +143,26 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   // Auto-scroll to bottom when new messages arrive (but not when keyboard is visible)
   useEffect(() => {
     if (!isKeyboardVisible) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      scrollToBottom();
     }
-  }, [messages, redisMessages, isKeyboardVisible]);
+  }, [messages, redisMessages, isKeyboardVisible, scrollToBottom]);
 
   // Scroll to bottom when chat drawer opens
   useEffect(() => {
-    if (isOpen && messagesEndRef.current) {
-      // Small delay to ensure the drawer is fully rendered
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
+    if (isOpen) {
+      // Multiple attempts to ensure scroll works after drawer animation
+      setTimeout(() => scrollToBottom(true), 50);   // Immediate scroll
+      setTimeout(() => scrollToBottom(), 200);      // After drawer animation
+      setTimeout(() => scrollToBottom(), 500);      // Final fallback
     }
-  }, [isOpen]);
+  }, [isOpen, scrollToBottom]);
+
+  // Scroll to bottom when messages are loaded
+  useEffect(() => {
+    if (isOpen && !loading && (redisMessages.length > 0 || messages.length > 0)) {
+      setTimeout(() => scrollToBottom(), 100);
+    }
+  }, [isOpen, loading, redisMessages.length, messages.length, scrollToBottom]);
 
   // Auto-resize textarea based on content
   const adjustTextareaHeight = () => {

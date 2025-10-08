@@ -1,13 +1,8 @@
 'use server'
-import Explore from '@/components/Explore';
 import LiveRoomList from '@/components/LiveRoomList';
 import NavigationWrapper from '@/components/NavigationWrapper';
-import NotificationDrawer from '@/components/NotificationDrawer';
-import TopRooms from '@/components/TopRooms';
 import MainHeader from '@/components/UI/MainHeader';
-import { fetchAPI } from '@/utils/serverActions';
 import { Metadata } from 'next';
-import { Suspense } from 'react';
 
 export interface Room {
   _id: string;
@@ -50,34 +45,12 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-// Server-side function to fetch rooms
-async function fetchRooms(): Promise<Room[]> {
-  try {
-    const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-    const response = await fetchAPI(`${URL}/api/rooms/public`, { 
-      cache: 'no-store' 
-    });
-    
-    if (response.ok && response.data.success) {
-      return response.data.data.rooms;
-    }
-    return [];
-  } catch (error) {
-    console.error("Error fetching rooms:", error);
-    return [];
-  }
-}
-
 export default async function Home() {
-  const rooms = await fetchRooms();
-  
   return (
     <>
       <MainHeader/>
-      {/* <TopRooms rooms={rooms}/> */}
-      <LiveRoomList rooms={rooms} />
+      <LiveRoomList />
       <NavigationWrapper />
-      {/* <NotificationDrawer /> */}
     </>
   );
 }

@@ -36,7 +36,7 @@ interface Room {
 }
 
 interface LiveRoomListProps {
-  rooms: Room[];
+  rooms?: Room[];
 }
 
 // Array of different welcome messages
@@ -54,8 +54,8 @@ const welcomeMessages = [
 ];
 
 export default function LiveRoomList({ rooms }: LiveRoomListProps) {
-  const [localRooms, setLocalRooms] = useState<Room[]>(rooms || []);
-  const [loading, setLoading] = useState(!rooms || rooms.length === 0);
+  const [localRooms, setLocalRooms] = useState<Room[]>([]);
+  const [loading, setLoading] = useState(true);
   const [welcomeMessage, setWelcomeMessage] = useState("");
   const { user, setUser, isUserLoading } = useGlobalContext();
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -89,6 +89,23 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
     }
   };
 
+  // Fetch rooms client-side when user is loaded
+  const fetchRooms = async () => {
+    try {
+      setLoading(true);
+      const response = await fetchAllRooms();
+      
+      if (response.data.success) {
+        setLocalRooms(response.data.data.rooms);
+      }
+    } catch (error) {
+      console.error("Error fetching rooms:", error);
+      toast.error("Error loading rooms. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Refresh rooms client-side
   const refreshRooms = async () => {
     try {
@@ -108,12 +125,18 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
   };
 
 
+  // Fetch rooms when user is loaded
   useEffect(() => {
-    if (rooms) {
+    if (!isUserLoading && user) {
+      fetchRooms();
+    }
+  }, [user, isUserLoading]);
+
+  // Handle initial rooms prop if provided
+  useEffect(() => {
+    if (rooms && rooms.length > 0) {
       setLocalRooms(rooms);
       setLoading(false);
-    } else {
-      setLoading(true); // Ensure loading state remains true until rooms are fetched
     }
   }, [rooms]);
 
@@ -144,8 +167,8 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
           <SearchBar className="w-full" />
         </div>
 
-        {/* Loading state */}
-        {loading && (
+        {/* Loading state - show when user is loading or rooms are loading */}
+        {(isUserLoading || loading) && (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
               <div
@@ -169,7 +192,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
         )}
 
         {/* Live Rooms Display */}
-        {!loading && !isUserLoading && user?.topics?.length > 0 && (
+        {!loading && !isUserLoading && user && user?.topics?.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-white text-xl font-bold">
