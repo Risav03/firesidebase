@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigateWithLoader } from '@/utils/useNavigateWithLoader';
 import { useGlobalContext } from '@/utils/providers/globalContext';
 import { toast } from 'react-toastify';
@@ -29,9 +29,52 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
   const [sponsorshipEnabled, setSponsorshipEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState('');
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(0);
   const navigate = useNavigateWithLoader();
   const { user } = useGlobalContext();
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  
+  // Refs for input elements and drawer
+  const drawerContentRef = useRef<HTMLDivElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Mobile keyboard detection and viewport management
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleViewportChange = () => {
+      const currentHeight = window.visualViewport?.height || window.innerHeight;
+      const fullHeight = window.screen.height;
+      
+      setViewportHeight(currentHeight);
+      
+      // Detect if keyboard is visible (viewport height significantly reduced)
+      const keyboardThreshold = fullHeight * 0.75;
+      setIsKeyboardVisible(currentHeight < keyboardThreshold);
+    };
+
+    // Initial setup
+    handleViewportChange();
+
+    // Listen for viewport changes
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportChange);
+      window.visualViewport.addEventListener('scroll', handleViewportChange);
+    } else {
+      window.addEventListener('resize', handleViewportChange);
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleViewportChange);
+        window.visualViewport.removeEventListener('scroll', handleViewportChange);
+      } else {
+        window.removeEventListener('resize', handleViewportChange);
+      }
+    };
+  }, []);
 
   // Cleanup toasts when modal closes
   useEffect(() => {
@@ -44,6 +87,33 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
       return () => clearTimeout(timeoutId);
     }
   }, [isOpen]);
+
+  // Handle input focus for mobile
+  const handleInputFocus = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    
+    // Small delay to ensure keyboard is fully visible
+    setTimeout(() => {
+      if (drawerContentRef.current) {
+        // Scroll the drawer content to ensure input is visible
+        drawerContentRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'end',
+          inline: 'nearest'
+        });
+      }
+    }, 300);
+  }, []);
+
+  // Handle input blur
+  const handleInputBlur = useCallback(() => {
+    // Reset any scroll adjustments when keyboard closes
+    setTimeout(() => {
+      if (drawerContentRef.current) {
+        drawerContentRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  }, []);
 
   const createRoomHandler = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,7 +198,20 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
 
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DrawerContent className="bg-black/90 backdrop-blur-lg border-t border-orange-500/50 text-white p-4">
+      <DrawerContent 
+        ref={drawerContentRef}
+        className={`bg-black/90 backdrop-blur-lg border-t border-orange-500/50 text-white p-4 transition-all duration-300 ${
+          isKeyboardVisible ? 'mobile-keyboard-active' : ''
+        }`}
+        style={{
+          maxHeight: isKeyboardVisible && viewportHeight > 0 
+            ? `${viewportHeight}px` 
+            : undefined,
+          transform: isKeyboardVisible 
+            ? 'translateY(0)' 
+            : undefined
+        }}
+      >
       
         <DrawerHeader>
           <DrawerTitle className="text-2xl font-semibold text-white text-center">Create New Room</DrawerTitle>
@@ -140,6 +223,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
               Room Name*
             </label>
             <input
+              ref={nameInputRef}
               type="text"
               value={formData.name}
               onChange={(e) => {
@@ -150,6 +234,8 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                   setNameError('');
                 }
               }}
+              onFocus={handleInputFocus}
+              onBlur={handleInputBlur}
               className={`w-full bg-white/10 text-white p-2 rounded-lg border ${nameError ? 'border-red-500' : 'border-orange-500/30'} focus:outline-none focus:border-orange-500 transition-colors`}
               required
             />
@@ -161,8 +247,11 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
               Description
             </label>
             <textarea
+              ref={descriptionTextareaRef}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onFocus={handleInputFocus}
+              onBlur={handleInputBlur}
               className="w-full bg-white/10 text-white p-2 rounded-lg border border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors"
               rows={3}
             />
