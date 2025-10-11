@@ -3,9 +3,6 @@ export const topics = [
 	'Ethereum',
 	'NFTs',
 	'Farcaster',
-	'Defi',
-	'AI',
-	'Memes',
+	'DeFi',
 	'Gaming',
-	'Film'
 ]

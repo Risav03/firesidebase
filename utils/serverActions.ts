@@ -407,3 +407,26 @@ export async function fetchLiveSponsorships(
     authToken: token
   });
 }
+
+/**
+ * Update room (for setting reminders or other updates)
+ */
+export async function updateRoom(
+  roomId: string, 
+  updateData: {
+    interested?: string;
+    status?: string;
+    endTime?: string;
+    participants?: string[];
+    action?: 'add' | 'remove';
+    sponsorshipEnabled?: boolean;
+  }, 
+  token: string | null = null
+) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/rooms/protected/${roomId}`, {
+    method: 'PUT',
+    body: updateData,
+    authToken: token
+  });
+}

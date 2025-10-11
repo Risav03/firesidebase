@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigateWithLoader } from '@/utils/useNavigateWithLoader';
 import { useGlobalContext } from '@/utils/providers/globalContext';
 import { toast } from 'react-toastify';
@@ -20,18 +20,77 @@ interface CreateRoomModalProps {
   onClose: () => void;
 }
 
+// Helper function to get current date/time in user's timezone for datetime-local input
+const getCurrentLocalDateTime = () => {
+  const now = new Date();
+  // Get timezone offset and adjust for local time
+  const offset = now.getTimezoneOffset() * 60000;
+  const localISOTime = new Date(now.getTime() - offset).toISOString();
+  return localISOTime.slice(0, 16);
+};
+
+// Helper function to convert datetime-local input to proper Date object
+const convertLocalDateTimeToUTC = (localDateTime: string) => {
+  // Create date object from local datetime string (this treats it as local time)
+  return new Date(localDateTime);
+};
+
 export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProps) {
   const [formData, setFormData] = useState({
     name: '',
-    description: ''
+    description: '',
+    startTime: getCurrentLocalDateTime() // Initialize with current local time
   });
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [sponsorshipEnabled, setSponsorshipEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState('');
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(0);
   const navigate = useNavigateWithLoader();
   const { user } = useGlobalContext();
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  
+  // Refs for input elements and drawer
+  const drawerContentRef = useRef<HTMLDivElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Mobile keyboard detection and viewport management
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleViewportChange = () => {
+      const currentHeight = window.visualViewport?.height || window.innerHeight;
+      const fullHeight = window.screen.height;
+      
+      setViewportHeight(currentHeight);
+      
+      // Detect if keyboard is visible (viewport height significantly reduced)
+      const keyboardThreshold = fullHeight * 0.75;
+      setIsKeyboardVisible(currentHeight < keyboardThreshold);
+    };
+
+    // Initial setup
+    handleViewportChange();
+
+    // Listen for viewport changes
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportChange);
+      window.visualViewport.addEventListener('scroll', handleViewportChange);
+    } else {
+      window.addEventListener('resize', handleViewportChange);
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleViewportChange);
+        window.visualViewport.removeEventListener('scroll', handleViewportChange);
+      } else {
+        window.removeEventListener('resize', handleViewportChange);
+      }
+    };
+  }, []);
 
   // Cleanup toasts when modal closes
   useEffect(() => {
@@ -45,6 +104,47 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
     }
   }, [isOpen]);
 
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        name: '',
+        description: '',
+        startTime: getCurrentLocalDateTime() // Reset to current time when modal opens
+      });
+      setSelectedTags([]);
+      setSponsorshipEnabled(false);
+      setNameError('');
+    }
+  }, [isOpen]);
+
+  // Handle input focus for mobile
+  const handleInputFocus = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    
+    // Small delay to ensure keyboard is fully visible
+    setTimeout(() => {
+      if (drawerContentRef.current) {
+        // Scroll the drawer content to ensure input is visible
+        drawerContentRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'end',
+          inline: 'nearest'
+        });
+      }
+    }, 300);
+  }, []);
+
+  // Handle input blur
+  const handleInputBlur = useCallback(() => {
+    // Reset any scroll adjustments when keyboard closes
+    setTimeout(() => {
+      if (drawerContentRef.current) {
+        drawerContentRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  }, []);
+
   const createRoomHandler = async (e: React.FormEvent) => {
     e.preventDefault();
     // Allow all characters in room name
@@ -56,6 +156,19 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
       });
       return;
     }
+    
+    // Validate start time is not in the past
+    const selectedTime = convertLocalDateTimeToUTC(formData.startTime);
+    const now = new Date();
+    
+    if (selectedTime < now) {
+      toast.error('Start time cannot be in the past', {
+        autoClose: 3000,
+        toastId: `time-error-${Date.now()}`
+      });
+      return;
+    }
+    
     setNameError('');
     setLoading(true);
 
@@ -78,13 +191,16 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         token = (await sdk.quickAuth.getToken()).token;
       }
 
-      const response = await createRoom({
+      // Convert local datetime to proper Date object for backend
+      const roomData = {
         ...formData,
+        startTime: convertLocalDateTimeToUTC(formData.startTime).toISOString(), // Send as ISO string to backend
         host: user?.fid || '',
-        startTime: new Date().toISOString(),
         topics: selectedTags,
         sponsorshipEnabled
-      }, token);      
+      };
+
+      const response = await createRoom(roomData, token);      
       
       if (response.data.success) {
         // Dismiss the specific loading toast and show success
@@ -95,12 +211,16 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
             toastId: `room-created-${Date.now()}`
           });
         }, 50);
-        setFormData({ name: '', description: '' });
+        setFormData({ name: '', description: '', startTime: getCurrentLocalDateTime() });
         setSelectedTags([]);
         setSponsorshipEnabled(false);
         onClose();
         // Redirect to the room page
-        navigate('/call/' + response.data.data._id);
+
+        //if current time is less than start time, dont navigate
+        if (new Date() <= new Date(formData.startTime)) {
+          navigate('/call/' + response.data.data._id);
+        }
       } else {
         // Dismiss the specific loading toast and show error
         toast.dismiss(loadingToastId);
@@ -128,18 +248,32 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
 
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DrawerContent className="bg-black/90 backdrop-blur-lg border-t border-orange-500/50 text-white p-4">
+      <DrawerContent 
+        ref={drawerContentRef}
+        className={`bg-black/90 backdrop-blur-lg border-t border-orange-500/50 text-white p-4 transition-all duration-300 ${
+          isKeyboardVisible ? 'mobile-keyboard-active' : ''
+        }`}
+        style={{
+          maxHeight: isKeyboardVisible && viewportHeight > 0 
+            ? `${viewportHeight}px` 
+            : undefined,
+          transform: isKeyboardVisible 
+            ? 'translateY(0)' 
+            : undefined
+        }}
+      >
       
         <DrawerHeader>
           <DrawerTitle className="text-2xl font-semibold text-white text-center">Create New Room</DrawerTitle>
         </DrawerHeader>
         
-        <form onSubmit={createRoomHandler} className="space-y-4 px-4">
+        <form onSubmit={createRoomHandler} className="space-y-2 px-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Room Name*
             </label>
             <input
+              ref={nameInputRef}
               type="text"
               value={formData.name}
               onChange={(e) => {
@@ -150,6 +284,8 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                   setNameError('');
                 }
               }}
+              onFocus={handleInputFocus}
+              onBlur={handleInputBlur}
               className={`w-full bg-white/10 text-white p-2 rounded-lg border ${nameError ? 'border-red-500' : 'border-orange-500/30'} focus:outline-none focus:border-orange-500 transition-colors`}
               required
             />
@@ -161,27 +297,34 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
               Description
             </label>
             <textarea
+              ref={descriptionTextareaRef}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full bg-white/10 text-white p-2 rounded-lg border border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors"
+              onFocus={handleInputFocus}
+              onBlur={handleInputBlur}
+              className="w-full bg-white/10 text-white p-2 rounded-lg border border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors h-16"
               rows={3}
             />
           </div>
           
-          {/*
+          
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Start Time*
+              Start Time* (Your Local Time)
             </label>
             <input
               type="datetime-local"
               value={formData.startTime}
+              min={getCurrentLocalDateTime()} // Prevent selecting past times
               onChange={(e) => setFormData({...formData, startTime: e.target.value})}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
+              className="w-full px-3 py-2 bg-white/10 border border-orange-500/30 rounded-lg text-white focus:outline-none focus:border-orange-500 transition-colors [color-scheme:dark]"
               required
             />
+            <p className="text-xs text-gray-400 mt-1">
+              Time zone: {Intl.DateTimeFormat().resolvedOptions().timeZone}
+            </p>
           </div>
-          */}
+         
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">

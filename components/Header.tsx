@@ -50,7 +50,7 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
   async function composeCast() {
     try {
       await sdk.actions.composeCast({
-        text: `Join this awesome room! https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/call/${roomId}`,
+        text: `I've just sparked up a Fireside! Come join the conversation https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/call/${roomId}`,
         embeds: [`https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/call/${roomId}`],
       });
     } catch (e) {
