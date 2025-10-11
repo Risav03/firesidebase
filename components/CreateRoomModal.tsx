@@ -285,17 +285,18 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
           isKeyboardVisible ? 'mobile-keyboard-active' : ''
         }`}
         style={{
-          height: isKeyboardVisible && viewportHeight > 0 
-            ? `${viewportHeight - 40}px` 
-            : 'auto',
-          maxHeight: isKeyboardVisible && viewportHeight > 0 
-            ? `${viewportHeight - 40}px` 
-            : 'calc(100vh - 100px)',
-          overflowY: 'auto',
-          paddingBottom: isKeyboardVisible ? '40px' : '20px',
-          position: isKeyboardVisible ? 'fixed' : 'relative',
-          bottom: isKeyboardVisible ? '0' : 'auto',
-          transform: isKeyboardVisible ? 'translateY(0)' : undefined
+          ...(isKeyboardVisible && viewportHeight > 0 ? {
+            height: `${viewportHeight - 40}px`,
+            maxHeight: `${viewportHeight - 40}px`,
+            position: 'fixed',
+            bottom: '0',
+            transform: 'translateY(0)',
+            paddingBottom: '40px'
+          } : {
+            maxHeight: 'calc(100vh - 100px)',
+            paddingBottom: '20px'
+          }),
+          overflowY: 'auto'
         }}
       >
       
