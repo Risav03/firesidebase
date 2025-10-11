@@ -119,30 +119,32 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
   }, [isOpen]);
 
   // Handle input focus for mobile
-  const handleInputFocus = useCallback(() => {
+  const handleInputFocus = useCallback((event: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (typeof window === 'undefined') return;
     
     // Small delay to ensure keyboard is fully visible
     setTimeout(() => {
-      if (drawerContentRef.current) {
-        // Scroll the drawer content to ensure input is visible
-        drawerContentRef.current.scrollIntoView({
-          behavior: 'smooth',
-          block: 'end',
-          inline: 'nearest'
-        });
+      const focusedElement = event.target;
+      if (focusedElement && isKeyboardVisible) {
+        // Calculate the position to scroll the focused element into view
+        const elementRect = focusedElement.getBoundingClientRect();
+        const viewportHeight = window.visualViewport?.height || window.innerHeight;
+        
+        // If element is below the visible area (hidden by keyboard)
+        if (elementRect.bottom > viewportHeight - 100) { // 100px buffer
+          focusedElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center', // Center the input in the visible area
+            inline: 'nearest'
+          });
+        }
       }
     }, 300);
-  }, []);
+  }, [isKeyboardVisible]);
 
   // Handle input blur
   const handleInputBlur = useCallback(() => {
-    // Reset any scroll adjustments when keyboard closes
-    setTimeout(() => {
-      if (drawerContentRef.current) {
-        drawerContentRef.current.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 100);
+    // No need to reset scroll when keyboard closes as the viewport will adjust automatically
   }, []);
 
   const createRoomHandler = async (e: React.FormEvent) => {
@@ -259,7 +261,8 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
             : undefined,
           transform: isKeyboardVisible 
             ? 'translateY(0)' 
-            : undefined
+            : undefined,
+          overflowY: isKeyboardVisible ? 'auto' : undefined
         }}
       >
       
