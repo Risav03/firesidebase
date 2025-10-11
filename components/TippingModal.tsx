@@ -68,8 +68,6 @@ export default function TippingModal({
   const [selectedTip, setSelectedTip] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
-  const [viewportHeight, setViewportHeight] = useState(0);
   const [availableRoles, setAvailableRoles] = useState<Record<string, boolean>>(
     {
       host: false,
@@ -79,9 +77,6 @@ export default function TippingModal({
     }
   );
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const drawerContentRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const customTipInputRef = useRef<HTMLInputElement>(null);
 
   const batchSize = parseInt(process.env.NEXT_PUBLIC_BATCH_SIZE || "20");
 
@@ -107,42 +102,6 @@ export default function TippingModal({
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
   const { sendCalls } = useSendCalls();
-
-  // Mobile keyboard detection and viewport management
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const handleViewportChange = () => {
-      const currentHeight = window.visualViewport?.height || window.innerHeight;
-      const fullHeight = window.screen.height;
-      
-      setViewportHeight(currentHeight);
-      
-      // Detect if keyboard is visible (viewport height significantly reduced)
-      const keyboardThreshold = fullHeight * 0.75;
-      setIsKeyboardVisible(currentHeight < keyboardThreshold);
-    };
-
-    // Initial setup
-    handleViewportChange();
-
-    // Listen for viewport changes
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleViewportChange);
-      window.visualViewport.addEventListener('scroll', handleViewportChange);
-    } else {
-      window.addEventListener('resize', handleViewportChange);
-    }
-
-    return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleViewportChange);
-        window.visualViewport.removeEventListener('scroll', handleViewportChange);
-      } else {
-        window.removeEventListener('resize', handleViewportChange);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -196,33 +155,6 @@ export default function TippingModal({
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
-
-  // Handle input focus for mobile
-  const handleInputFocus = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    
-    // Small delay to ensure keyboard is fully visible
-    setTimeout(() => {
-      if (drawerContentRef.current) {
-        // Scroll the drawer content to ensure input is visible
-        drawerContentRef.current.scrollIntoView({
-          behavior: 'smooth',
-          block: 'end',
-          inline: 'nearest'
-        });
-      }
-    }, 300);
-  }, []);
-
-  // Handle input blur
-  const handleInputBlur = useCallback(() => {
-    // Reset any scroll adjustments when keyboard closes
-    setTimeout(() => {
-      if (drawerContentRef.current) {
-        drawerContentRef.current.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 100);
   }, []);
 
   const sendTipMessage = async (
@@ -571,18 +503,7 @@ export default function TippingModal({
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DrawerContent 
-        ref={drawerContentRef}
-        className={`bg-black/50 backdrop-blur-2xl text-white border-t border-fireside-orange/30 transition-all duration-300 ${
-          isKeyboardVisible ? 'mobile-keyboard-active' : ''
-        }`}
-        style={{
-          maxHeight: isKeyboardVisible && viewportHeight > 0 
-            ? `${viewportHeight}px` 
-            : undefined,
-          transform: isKeyboardVisible 
-            ? 'translateY(0)' 
-            : undefined
-        }}
+        className="bg-black/50 backdrop-blur-2xl text-white border-t border-fireside-orange/30"
       >
         
         <DrawerHeader>
@@ -670,13 +591,11 @@ export default function TippingModal({
                       <>
                         <div className="p-3">
                           <input
-                            ref={searchInputRef}
+                          onPointerDown={(e) => e.stopPropagation()}
                             type="text"
                             placeholder="Search users..."
                             className="w-full bg-white/10 text-white p-2 rounded-lg border border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors"
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            onFocus={handleInputFocus}
-                            onBlur={handleInputBlur}
                           />
                         </div>
                         {participants
@@ -765,7 +684,7 @@ export default function TippingModal({
               </label>
 
               <input
-                ref={customTipInputRef}
+              onPointerDown={(e) => e.stopPropagation()}
                 type="number"
                 placeholder="Custom amount"
                 value={customTip}
@@ -773,8 +692,6 @@ export default function TippingModal({
                   setCustomTip(e.target.value);
                   setSelectedTip(null);
                 }}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
                 className="px-4 py-2 rounded-lg text-white bg-white/10 border w-full border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors"
               />
             </div>
