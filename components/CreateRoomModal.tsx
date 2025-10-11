@@ -45,58 +45,9 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
   const [sponsorshipEnabled, setSponsorshipEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState('');
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
-  const [viewportHeight, setViewportHeight] = useState(0);
   const navigate = useNavigateWithLoader();
   const { user } = useGlobalContext();
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-  
-  // Refs for input elements and drawer
-  const drawerContentRef = useRef<HTMLDivElement>(null);
-  const nameInputRef = useRef<HTMLInputElement>(null);
-  const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Mobile keyboard detection and viewport management
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const handleViewportChange = () => {
-      const currentHeight = window.visualViewport?.height || window.innerHeight;
-      const fullHeight = window.innerHeight; // Use innerHeight instead of screen.height
-      
-      setViewportHeight(currentHeight);
-      
-      // Detect if keyboard is visible (viewport height significantly reduced)
-      const keyboardThreshold = fullHeight * 0.75;
-      const keyboardVisible = currentHeight < keyboardThreshold;
-      setIsKeyboardVisible(keyboardVisible);
-      
-      // Force a re-render when keyboard state changes
-      if (keyboardVisible && drawerContentRef.current) {
-        drawerContentRef.current.style.maxHeight = `${currentHeight - 20}px`;
-      }
-    };
-
-    // Initial setup
-    handleViewportChange();
-
-    // Listen for viewport changes
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleViewportChange);
-      window.visualViewport.addEventListener('scroll', handleViewportChange);
-    } else {
-      window.addEventListener('resize', handleViewportChange);
-    }
-
-    return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleViewportChange);
-        window.visualViewport.removeEventListener('scroll', handleViewportChange);
-      } else {
-        window.removeEventListener('resize', handleViewportChange);
-      }
-    };
-  }, []);
 
   // Cleanup toasts when modal closes
   useEffect(() => {
@@ -123,58 +74,6 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
       setNameError('');
     }
   }, [isOpen]);
-
-  // Handle input focus for mobile
-  const handleInputFocus = useCallback((event: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    if (typeof window === 'undefined') return;
-    
-    // Immediate scroll to prevent keyboard hiding the input
-    const focusedElement = event.target;
-    if (focusedElement) {
-      // Use multiple strategies to ensure the input stays visible
-      
-      // Strategy 1: Scroll element into view immediately
-      focusedElement.scrollIntoView({
-        behavior: 'instant',
-        block: 'center',
-        inline: 'nearest'
-      });
-
-      // Strategy 2: Use timeout for after keyboard appears
-      setTimeout(() => {
-        const elementRect = focusedElement.getBoundingClientRect();
-        const viewportHeight = window.visualViewport?.height || window.innerHeight;
-        
-        // If element is still not visible or in bottom half, scroll again
-        if (elementRect.top > viewportHeight * 0.5 || elementRect.bottom > viewportHeight - 50) {
-          focusedElement.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start',
-            inline: 'nearest'
-          });
-        }
-      }, 100);
-
-      // Strategy 3: Another check after keyboard is fully visible
-      setTimeout(() => {
-        const elementRect = focusedElement.getBoundingClientRect();
-        const viewportHeight = window.visualViewport?.height || window.innerHeight;
-        
-        if (elementRect.bottom > viewportHeight - 20) {
-          focusedElement.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start',
-            inline: 'nearest'
-          });
-        }
-      }, 300);
-    }
-  }, []);
-
-  // Handle input blur
-  const handleInputBlur = useCallback(() => {
-    // No need to reset scroll when keyboard closes as the viewport will adjust automatically
-  }, []);
 
   const createRoomHandler = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -280,22 +179,10 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DrawerContent 
-        ref={drawerContentRef}
-        className={`bg-black/90 backdrop-blur-lg border-t border-orange-500/50 text-white p-4 transition-all duration-300 ${
-          isKeyboardVisible ? 'mobile-keyboard-active' : ''
-        }`}
+        className="bg-black/90 backdrop-blur-lg border-t border-orange-500/50 text-white p-4"
         style={{
-          ...(isKeyboardVisible && viewportHeight > 0 ? {
-            height: `${viewportHeight - 40}px`,
-            maxHeight: `${viewportHeight - 40}px`,
-            position: 'fixed',
-            bottom: '0',
-            transform: 'translateY(0)',
-            paddingBottom: '40px'
-          } : {
-            maxHeight: 'calc(100vh - 100px)',
-            paddingBottom: '20px'
-          }),
+          maxHeight: 'calc(100vh - 100px)',
+          paddingBottom: '20px',
           overflowY: 'auto'
         }}
       >
@@ -304,13 +191,13 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
           <DrawerTitle className="text-2xl font-semibold text-white text-center">Create New Room</DrawerTitle>
         </DrawerHeader>
         
-        <form onSubmit={createRoomHandler} className="space-y-2 px-4" style={{ paddingBottom: isKeyboardVisible ? '100px' : '0px' }}>
+        <form onSubmit={createRoomHandler} className="space-y-2 px-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Room Name*
             </label>
             <input
-              ref={nameInputRef}
+            onPointerDown={(e) => e.stopPropagation()}
               type="text"
               value={formData.name}
               onChange={(e) => {
@@ -321,8 +208,6 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                   setNameError('');
                 }
               }}
-              onFocus={handleInputFocus}
-              onBlur={handleInputBlur}
               className={`w-full bg-white/10 text-white p-2 rounded-lg border ${nameError ? 'border-red-500' : 'border-orange-500/30'} focus:outline-none focus:border-orange-500 transition-colors`}
               required
             />
@@ -334,11 +219,9 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
               Description
             </label>
             <textarea
-              ref={descriptionTextareaRef}
+            onPointerDown={(e) => e.stopPropagation()}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              onFocus={handleInputFocus}
-              onBlur={handleInputBlur}
               className="w-full bg-white/10 text-white p-2 rounded-lg border border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors h-16"
               rows={3}
             />
@@ -350,12 +233,11 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
               Start Time* (Your Local Time)
             </label>
             <input
+            onPointerDown={(e) => e.stopPropagation()}
               type="datetime-local"
               value={formData.startTime}
               min={getCurrentLocalDateTime()} // Prevent selecting past times
               onChange={(e) => setFormData({...formData, startTime: e.target.value})}
-              onFocus={handleInputFocus}
-              onBlur={handleInputBlur}
               className="w-full px-3 py-2 bg-white/10 border border-orange-500/30 rounded-lg text-white focus:outline-none focus:border-orange-500 transition-colors [color-scheme:dark]"
               required
             />

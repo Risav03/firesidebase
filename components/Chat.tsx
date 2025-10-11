@@ -31,11 +31,8 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   const [message, setMessage] = useState("");
   const [redisMessages, setRedisMessages] = useState<RedisChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
-  const [viewportHeight, setViewportHeight] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const drawerContentRef = useRef<HTMLDivElement>(null);
 
   const messages = useHMSStore(selectHMSMessages);
   const hmsActions = useHMSActions();
@@ -50,67 +47,6 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       });
     }
   }, []);
-
-  // Mobile keyboard detection and viewport management
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const handleViewportChange = () => {
-      const currentHeight = window.visualViewport?.height || window.innerHeight;
-      const fullHeight = window.screen.height;
-      
-      setViewportHeight(currentHeight);
-      
-      // Detect if keyboard is visible (viewport height significantly reduced)
-      const keyboardThreshold = fullHeight * 0.75;
-      setIsKeyboardVisible(currentHeight < keyboardThreshold);
-    };
-
-    // Initial setup
-    handleViewportChange();
-
-    // Listen for viewport changes
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleViewportChange);
-      window.visualViewport.addEventListener('scroll', handleViewportChange);
-    } else {
-      window.addEventListener('resize', handleViewportChange);
-    }
-
-    return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleViewportChange);
-        window.visualViewport.removeEventListener('scroll', handleViewportChange);
-      } else {
-        window.removeEventListener('resize', handleViewportChange);
-      }
-    };
-  }, []);
-
-  // Handle input focus for mobile
-  const handleInputFocus = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    
-    // Small delay to ensure keyboard is fully visible
-    setTimeout(() => {
-      if (textareaRef.current && drawerContentRef.current) {
-        // Scroll the input into view
-        textareaRef.current.scrollIntoView({
-          behavior: 'smooth',
-          block: 'end',
-          inline: 'nearest'
-        });
-      }
-    }, 300);
-  }, []);
-
-  // Handle input blur
-  const handleInputBlur = useCallback(() => {
-    // Reset any scroll adjustments when keyboard closes
-    setTimeout(() => {
-      scrollToBottom();
-    }, 100);
-  }, [scrollToBottom]);
 
   useEffect(() => {
     const loadMessages = async () => {
@@ -140,12 +76,10 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
     loadMessages();
   }, [roomId]);
 
-  // Auto-scroll to bottom when new messages arrive (but not when keyboard is visible)
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (!isKeyboardVisible) {
-      scrollToBottom();
-    }
-  }, [messages, redisMessages, isKeyboardVisible, scrollToBottom]);
+    scrollToBottom();
+  }, [messages, redisMessages, scrollToBottom]);
 
   // Scroll to bottom when chat drawer opens
   useEffect(() => {
@@ -248,20 +182,8 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
     }
   };
 
-  // Calculate dynamic height based on viewport and keyboard state
+  // Calculate dynamic height
   const getMessagesHeight = () => {
-    if (typeof window === 'undefined') return '55vh';
-    
-    if (isKeyboardVisible && viewportHeight > 0) {
-      // When keyboard is visible, use available viewport height minus header and input areas
-      const headerHeight = 60; // Approximate header height
-      const inputHeight = 80; // Approximate input area height
-      const safeArea = 20; // Safe area padding
-      const availableHeight = viewportHeight - headerHeight - inputHeight - safeArea;
-      return `${Math.max(availableHeight, 200)}px`;
-    }
-    
-    // Default height when keyboard is not visible
     return '55vh';
   };
 
@@ -344,18 +266,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   return (
     <Drawer open={isOpen} onOpenChange={setIsChatOpen} dismissible >
       <DrawerContent 
-        ref={drawerContentRef}
-        className={`backdrop-blur-2xl border-fireside-orange/30 border-t-2 border-x-0 border-b-0 transition-all duration-300 ${
-          isKeyboardVisible ? 'mobile-keyboard-active' : ''
-        }`}
-        style={{
-          maxHeight: isKeyboardVisible && viewportHeight > 0 
-            ? `${viewportHeight}px` 
-            : undefined,
-          transform: isKeyboardVisible 
-            ? 'translateY(0)' 
-            : undefined
-        }}
+        className="backdrop-blur-2xl border-fireside-orange/30 border-t-2 border-x-0 border-b-0"
       >
         
         {/* Chat Header */}
@@ -438,12 +349,11 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
           <div className="flex items-center space-x-3">
             <div className="flex-1">
               <textarea
+              onPointerDown={(e) => e.stopPropagation()}
                 ref={textareaRef}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
                 placeholder="Type a message..."
                 className="w-full px-4 py-3 bg-white/10 text-white rounded-2xl border border-white/30 focus:border-fireside-orange focus:ring-2 focus:ring-fireside-orange focus:ring-opacity-20 outline-none resize-none min-h-[48px]"
                 maxLength={500}
