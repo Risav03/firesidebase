@@ -17,6 +17,8 @@ import {
   updateUserTopics,
   fetchUserByHandle,
   fetchAllRooms,
+  fetchAPI,
+  startRoom,
 } from "@/utils/serverActions";
 import { useNavigateWithLoader } from "@/utils/useNavigateWithLoader";
 
@@ -63,7 +65,11 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const router = useRouter();
 
+  const [myUpcomingRooms, setMyUpcomingRooms] = useState<Room[]>([]);
+
   const navigate = useNavigateWithLoader()
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+
 
   // Handle topic selection and PATCH request
   const handleTopicSubmit = async (selectedTopics: string[]) => {
@@ -110,6 +116,66 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
     }
   };
 
+  const fetchMyUpcomingRooms = async () => {
+    try{
+      var token:any ;
+                const env = process.env.NEXT_PUBLIC_ENV;
+                if (env !== "DEV" && !token) {
+                  token = ((await sdk.quickAuth.getToken()).token);
+                }
+      const response = await fetchAPI(`${URL}/api/rooms/protected/upcoming`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+
+      console.log("Fetch my upcoming rooms response:", response);
+
+      if(response.data.success){
+        setMyUpcomingRooms(response.data.data.rooms);
+        console.log("My upcoming rooms:", response.data.data.rooms);
+      }
+
+    }
+    catch(error){
+      console.error("Error fetching my upcoming rooms:", error);
+    }
+  }
+
+  const handleGoLive = async (roomId: string) => {
+    try {
+      var token: any = "";
+      const env = process.env.NEXT_PUBLIC_ENV;
+
+      if (env !== "DEV") {
+        token = (await sdk.quickAuth.getToken()).token;
+      }
+
+      toast.loading("Starting room...", { toastId: "starting-room" });
+
+      const response = await startRoom(roomId, token);
+
+      if (response.data.success) {
+        const updatedRoom = response.data.data;
+        toast.dismiss("starting-room");
+        toast.success("Room started successfully!");
+        
+        // Navigate to the call page with the room ID
+        navigate(`/call/${updatedRoom._id}`);
+      } else {
+        toast.dismiss("starting-room");
+        toast.error(response.data.error || "Failed to start room");
+      }
+    } catch (error) {
+      console.error("Error starting room:", error);
+      toast.dismiss("starting-room");
+      toast.error("Error starting room. Please try again.");
+    }
+  };
+
+
   // Refresh rooms client-side
   const refreshRooms = async () => {
     try {
@@ -132,6 +198,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
   useEffect(() => {
     if (!isUserLoading && user) {
       fetchRooms();
+      fetchMyUpcomingRooms();
     }
   }, [user, isUserLoading]);
 
@@ -157,7 +224,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
     <div className="pt-16 min-h-screen">
       <div className="max-w-4xl mx-auto p-4 sm:p-6 pb-24">
         <div className="text-left mb-8">
-          <h1 className="text-2xl font-bold flex items-center gap-2 text-white mb-2">
+          <h1 className="text-2xl font-bold flex items-center gap-2 text-white">
             Welcome,{" "}
             {isUserLoading ? (
               <div className="h-8 w-40 bg-white/20 rounded animate-pulse"></div>
@@ -199,6 +266,57 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
         {/* Live Rooms Display */}
         {!loading && !isUserLoading && user && user?.topics?.length > 0 && (
           <div>
+            {/* My Upcoming Rooms Section */}
+            {myUpcomingRooms.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-white text-xl font-bold mb-6">
+                  My Upcoming Rooms
+                </h2>
+                <div className="space-y-3">
+                  {myUpcomingRooms.map((room) => (
+                    <div
+                      key={room._id}
+                      className="gradient-emerald rounded-lg p-4  backdrop-blur-sm text-white"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="relative">
+                          <Image
+                            src={`${process.env.NEXT_PUBLIC_URL}/waves.gif`}
+                            width={1920}
+                            height={1080}
+                            alt="Fireside Logo"
+                            className="w-12 h-12 rounded-full absolute left-0 top-0 p-1 brightness-0 invert grayscale opacity-70"
+                          />
+                          <Image
+                            width={1080}
+                            height={1080}
+                            src={room.host.pfp_url}
+                            alt={room.host.displayName}
+                            className="w-12 h-12 rounded-full border-2 border-white"
+                          />
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1 justify-between">
+                            <h3 className="text-lg text-white font-bold truncate">
+                              {room.name}
+                            </h3>
+                            <button
+                              onClick={() => handleGoLive(room._id)}
+                              className="gradient-fire text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+                            >
+                              Go Live
+                            </button>
+                          </div>
+                          
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-white text-xl font-bold">
                 Live Conversations
@@ -220,7 +338,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                     key={room._id}
                     className={`flex items-center gap-3 w-full p-4 font-bold cursor-pointer hover:opacity-80 transition-opacity ${
                       room.sponsorshipEnabled
-                        ? "gradient-emerald"
+                        ? "gradient-red"
                         : "border border-orange-500 rounded-lg p-4 bg-white/5 backdrop-blur-sm flex items-center justify-between cursor-pointer hover:bg-orange-900/20 transition-colors"
                     } rounded-lg text-white`}
                   >

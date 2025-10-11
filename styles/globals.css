@@ -79,8 +79,12 @@
     @apply bg-gradient-to-br from-orange-500 to-orange-400;
   }
 
-  .gradient-emerald {
+  .gradient-red {
     @apply bg-gradient-to-br from-red-700 to-red-600 border-[1px] border-red-200;
+  }
+
+  .gradient-emerald {
+    @apply bg-gradient-to-br from-emerald-800 to-emerald-600 border-[1px] border-emerald-700;
   }
 
   .gradient-yellow {

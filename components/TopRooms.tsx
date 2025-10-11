@@ -14,7 +14,7 @@ export default function TopRooms({ rooms }: { rooms?: any[] }) {
           <div
             onClick={() => router.push(`/call/${room._id}`)}
             key={room._id}
-            className={`flex items-center gap-2 w-72 truncate text-white p-1 font-bold ${room.sponsorshipEnabled ? "gradient-emerald" : "gradient-fire"}  pr-3 rounded-full text-nowrap`}
+            className={`flex items-center gap-2 w-72 truncate text-white p-1 font-bold ${room.sponsorshipEnabled ? "gradient-red" : "gradient-fire"}  pr-3 rounded-full text-nowrap`}
           >
             <div className="relative">
               <Image

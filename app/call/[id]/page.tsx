@@ -8,7 +8,11 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 
   const data = response.data;
 
+  console.log("Room metadata response:", data);
+
   const hostName = data.data.room.host.displayName;
+
+  console.log("Host name:", hostName);
 
   return {
     title: `${data.data.room.name}`,
@@ -22,7 +26,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
           action: {
             type: "launch_frame",
             name: "Fireside 100ms",
-            url: URL+ '/call/' + params.id,
+            url: process.env.NEXT_PUBLIC_URL+ '/call/' + params.id,
             splashImageUrl: "https://firesidebase.vercel.app/fireside-logo.svg",
             splashBackgroundColor: "#000000",
           },

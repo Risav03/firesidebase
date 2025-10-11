@@ -21,7 +21,6 @@ interface GlobalContextProps {
   setIsUserLoading: (value: boolean) => void;
   isPopupOpen: boolean;
   setIsPopupOpen: (value: boolean) => void;
-  handleAddFrame: () => Promise<void>;
 }
 
 const GlobalContext = createContext<GlobalContextProps | undefined>(undefined);
@@ -31,50 +30,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
   const [isUserLoading, setIsUserLoading] = useState<boolean>(true);
   const [isPopupOpen, setIsPopupOpen] = useState<boolean>(false);
   
-  const addFrame = useAddFrame();
-  const sendNotification = useNotification();
 
-  const handleAddFrame = async () => {
-    try {
-      var token:any ;
-      const env = process.env.NEXT_PUBLIC_ENV;
-      if (env !== "DEV" && !token) {
-        token = ((await sdk.quickAuth.getToken()).token);
-      }
-      const result = await addFrame();
-      const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-      
-      
-        const res = await fetchAPI(`${URL}/api/protected/user/update`, {
-          method: 'PATCH',
-          body: {
-            token: result?.token || Date.now(),
-          },
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          }
-        });
-
-        console.log(res);
-
-        await sendNotification({
-          title: "Notification Enabled",
-          body: "You chose the best channel to receive Base news!",
-        });
-
-        setTimeout(() => {
-          setIsPopupOpen(false);
-        }, 2000);
-
-        window.location.reload();
-      
-    } catch (error) {
-      console.error("Error saving notification details:", error);
-    } finally {
-      setIsPopupOpen(false);
-    }
-  };
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
   // useEffect for sign-in moved to a single place with hasRunRef check below
@@ -148,7 +104,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <GlobalContext.Provider value={{ user, setUser, isUserLoading, setIsUserLoading, isPopupOpen, setIsPopupOpen, handleAddFrame }}>
+    <GlobalContext.Provider value={{ user, setUser, isUserLoading, setIsUserLoading, isPopupOpen, setIsPopupOpen }}>
       {children}
     </GlobalContext.Provider>
   );
