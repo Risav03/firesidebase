@@ -47,6 +47,8 @@ export default function CallClient({ roomId }: CallClientProps) {
     const joinRoom = async () => {
       try {
         const env = process.env.NEXT_PUBLIC_ENV;
+
+        console.log("Starting join process", new Date().toISOString());
         
         var token: any = "";
         if (env !== "DEV") {
@@ -59,9 +61,11 @@ export default function CallClient({ roomId }: CallClientProps) {
           return;
         }
 
-       
+        console.log("Joining room with ID:", roomId);
 
         const response = await fetchRoomCodes(roomId);
+
+        console.log("Room codes response:", response);
         
         if (!response.ok) {
           throw new Error(response.data.error || "Failed to fetch room codes");
