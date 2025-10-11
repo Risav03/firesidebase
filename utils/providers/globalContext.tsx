@@ -45,7 +45,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
       
       if (result) {
-        await fetchAPI(`${URL}/api/protected/user/handle`, {
+        await fetchAPI(`${URL}/api/protected/user/update`, {
           method: 'PATCH',
           body: {
             token: result.token || Date.now(),
