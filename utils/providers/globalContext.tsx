@@ -44,14 +44,19 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       const result = await addFrame();
       const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
       
-      if (result) {
-        await fetchAPI(`${URL}/api/protected/user/update`, {
+      
+        const res = await fetchAPI(`${URL}/api/protected/user/update`, {
           method: 'PATCH',
           body: {
-            token: result.token || Date.now(),
+            token: result?.token || Date.now(),
           },
-          authToken: token
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          }
         });
+
+        console.log(res);
 
         await sendNotification({
           title: "Notification Enabled",
@@ -63,7 +68,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
         }, 2000);
 
         window.location.reload();
-      }
+      
     } catch (error) {
       console.error("Error saving notification details:", error);
     } finally {
