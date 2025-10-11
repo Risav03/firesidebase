@@ -82,6 +82,10 @@
   .gradient-emerald {
     @apply bg-gradient-to-br from-red-700 to-red-600 border-[1px] border-red-200;
   }
+
+  .gradient-yellow {
+    @apply bg-gradient-to-br from-yellow-700 to-yellow-600 border-[1px] border-yellow-300;
+  }
   
   /* Custom slider with fireside-orange thumb */
   .slider-fireside {

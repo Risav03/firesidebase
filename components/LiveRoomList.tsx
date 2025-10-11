@@ -9,14 +9,16 @@ import UserDisplay from "./UserDisplay";
 import SearchBar from "./UI/SearchBar";
 import TopicSelector from "./TopicSelector";
 import CreateRoomModal from "./CreateRoomModal";
+import Countdown from "./Countdown";
 import sdk from "@farcaster/miniapp-sdk";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { 
-  updateUserTopics, 
-  fetchUserByHandle, 
-  fetchAllRooms 
+import {
+  updateUserTopics,
+  fetchUserByHandle,
+  fetchAllRooms,
 } from "@/utils/serverActions";
+import { useNavigateWithLoader } from "@/utils/useNavigateWithLoader";
 
 interface Room {
   _id: string;
@@ -61,6 +63,8 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const router = useRouter();
 
+  const navigate = useNavigateWithLoader()
+
   // Handle topic selection and PATCH request
   const handleTopicSubmit = async (selectedTopics: string[]) => {
     try {
@@ -68,14 +72,14 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
       const env = process.env.NEXT_PUBLIC_ENV;
 
       if (env !== "DEV") {
-        token = ((await sdk.quickAuth.getToken()).token);
+        token = (await sdk.quickAuth.getToken()).token;
       }
 
       const res = await updateUserTopics(selectedTopics, token);
-      
+
       if (res.data.success) {
         toast.success("Topics updated!");
-        
+
         // Refetch user
         const userData = await fetchUserByHandle(token);
         if (userData.data.success) {
@@ -94,7 +98,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
     try {
       setLoading(true);
       const response = await fetchAllRooms();
-      
+
       if (response.data.success) {
         setLocalRooms(response.data.data.rooms);
       }
@@ -111,7 +115,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
     try {
       setLoading(true);
       const response = await fetchAllRooms();
-      
+
       if (response.data.success) {
         setLocalRooms(response.data.data.rooms);
         toast.success("Rooms refreshed!");
@@ -123,7 +127,6 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
       setLoading(false);
     }
   };
-
 
   // Fetch rooms when user is loaded
   useEffect(() => {
@@ -147,14 +150,16 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
   }, []);
 
   // Filter only live/ongoing rooms
-  const liveRooms = localRooms.filter(room => room.status === "ongoing");
+  const liveRooms = localRooms.filter((room) => room.status === "ongoing");
+  const upcomingRooms = localRooms.filter((room) => room.status === "upcoming");
 
   return (
     <div className="pt-16 min-h-screen">
       <div className="max-w-4xl mx-auto p-4 sm:p-6 pb-24">
         <div className="text-left mb-8">
           <h1 className="text-2xl font-bold flex items-center gap-2 text-white mb-2">
-            Welcome, {isUserLoading ? (
+            Welcome,{" "}
+            {isUserLoading ? (
               <div className="h-8 w-40 bg-white/20 rounded animate-pulse"></div>
             ) : (
               <UserDisplay />
@@ -214,7 +219,9 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                     onClick={() => router.push(`/call/${room._id}`)}
                     key={room._id}
                     className={`flex items-center gap-3 w-full p-4 font-bold cursor-pointer hover:opacity-80 transition-opacity ${
-                      room.sponsorshipEnabled ? "gradient-emerald" : "border border-orange-500 rounded-lg p-4 bg-white/5 backdrop-blur-sm flex items-center justify-between cursor-pointer hover:bg-orange-900/20 transition-colors"
+                      room.sponsorshipEnabled
+                        ? "gradient-emerald"
+                        : "border border-orange-500 rounded-lg p-4 bg-white/5 backdrop-blur-sm flex items-center justify-between cursor-pointer hover:bg-orange-900/20 transition-colors"
                     } rounded-lg text-white`}
                   >
                     <div className="relative">
@@ -236,14 +243,16 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg text-white font-bold truncate">
-                          {room.name.slice(0, 30)}{room.name.length > 30 ? '...' : ''}
+                          {room.name.slice(0, 30)}
+                          {room.name.length > 30 ? "..." : ""}
                         </h3>
                         <span className="text-white flex gap-1 items-center justify-center ml-2">
                           {room.strength || 0} <FaHeadphones />
                         </span>
                       </div>
                       <p className="text-white/80 text-sm truncate">
-                        {room.description.slice(0, 60)}{room.description.length > 60 ? '...' : ''}
+                        {room.description.slice(0, 60)}
+                        {room.description.length > 60 ? "..." : ""}
                       </p>
                       <p className="text-white/70 text-xs">
                         Host: {room.host.displayName || room.host.username}
@@ -254,13 +263,68 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
               </div>
             ) : (
               <div className="text-left ">
-                <p className="text-white/70 mb-4">No live conversations right now</p>
+                <p className="text-white/70 mb-4">
+                  No live conversations right now
+                </p>
                 <button
                   className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-md font-semibold"
                   onClick={() => setShowCreateModal(true)}
                 >
                   Create a Room
                 </button>
+              </div>
+            )}
+
+            {/* Upcoming Rooms Section */}
+            {upcomingRooms.length > 0 && (
+              <div className="mt-8">
+                <h2 className="text-white text-xl font-bold mb-6">
+                  Upcoming Conversations
+                </h2>
+                <div className="space-y-3 relative">
+                  {upcomingRooms.map((room) => (
+                    <div
+                      onClick={() => navigate(`/room/${room._id}`)}
+                      key={room._id}
+                      className={`flex items-center gap-3 w-full p-4 font-bold cursor-pointer hover:opacity-80 transition-opacity gradient-yellow rounded-lg text-white`}
+                    >
+                      <div className="relative">
+                        <Image
+                          src={`${process.env.NEXT_PUBLIC_URL}/waves.gif`}
+                          width={1920}
+                          height={1080}
+                          alt="Fireside Logo"
+                          className="w-12 h-12 rounded-full absolute left-0 top-0 p-1 brightness-0 invert grayscale opacity-70"
+                        />
+                        <Image
+                          width={1080}
+                          height={1080}
+                          src={room.host.pfp_url}
+                          alt={room.host.displayName}
+                          className="w-12 h-12 rounded-full border-2 border-white opacity-70"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg text-white font-bold truncate">
+                            {room.name.slice(0, 30)}
+                            {room.name.length > 30 ? "..." : ""}
+                          </h3>
+                        </div>
+
+                        <p className="text-white/70 text-xs">
+                          Host: {room.host.displayName || room.host.username}
+                        </p>
+                        <div className="absolute bottom-2 right-2 bg-black/10 rounded-full px-2 pb-1">
+                          <Countdown
+                            targetTime={room.startTime}
+                            className="text-yellow-200 text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
