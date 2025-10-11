@@ -14,7 +14,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
     <html lang="en" className="h-full">
       <head>
         <meta charSet="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, height=device-height" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover, height=device-height" />
       </head>
       <body className="text-white relative max-h-screen overflow-x-hidden">
         <Background />

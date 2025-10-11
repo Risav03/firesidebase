@@ -62,13 +62,19 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
 
     const handleViewportChange = () => {
       const currentHeight = window.visualViewport?.height || window.innerHeight;
-      const fullHeight = window.screen.height;
+      const fullHeight = window.innerHeight; // Use innerHeight instead of screen.height
       
       setViewportHeight(currentHeight);
       
       // Detect if keyboard is visible (viewport height significantly reduced)
       const keyboardThreshold = fullHeight * 0.75;
-      setIsKeyboardVisible(currentHeight < keyboardThreshold);
+      const keyboardVisible = currentHeight < keyboardThreshold;
+      setIsKeyboardVisible(keyboardVisible);
+      
+      // Force a re-render when keyboard state changes
+      if (keyboardVisible && drawerContentRef.current) {
+        drawerContentRef.current.style.maxHeight = `${currentHeight - 20}px`;
+      }
     };
 
     // Initial setup
@@ -122,25 +128,48 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
   const handleInputFocus = useCallback((event: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (typeof window === 'undefined') return;
     
-    // Small delay to ensure keyboard is fully visible
-    setTimeout(() => {
-      const focusedElement = event.target;
-      if (focusedElement && isKeyboardVisible) {
-        // Calculate the position to scroll the focused element into view
+    // Immediate scroll to prevent keyboard hiding the input
+    const focusedElement = event.target;
+    if (focusedElement) {
+      // Use multiple strategies to ensure the input stays visible
+      
+      // Strategy 1: Scroll element into view immediately
+      focusedElement.scrollIntoView({
+        behavior: 'instant',
+        block: 'center',
+        inline: 'nearest'
+      });
+
+      // Strategy 2: Use timeout for after keyboard appears
+      setTimeout(() => {
         const elementRect = focusedElement.getBoundingClientRect();
         const viewportHeight = window.visualViewport?.height || window.innerHeight;
         
-        // If element is below the visible area (hidden by keyboard)
-        if (elementRect.bottom > viewportHeight - 100) { // 100px buffer
+        // If element is still not visible or in bottom half, scroll again
+        if (elementRect.top > viewportHeight * 0.5 || elementRect.bottom > viewportHeight - 50) {
           focusedElement.scrollIntoView({
             behavior: 'smooth',
-            block: 'center', // Center the input in the visible area
+            block: 'start',
             inline: 'nearest'
           });
         }
-      }
-    }, 300);
-  }, [isKeyboardVisible]);
+      }, 100);
+
+      // Strategy 3: Another check after keyboard is fully visible
+      setTimeout(() => {
+        const elementRect = focusedElement.getBoundingClientRect();
+        const viewportHeight = window.visualViewport?.height || window.innerHeight;
+        
+        if (elementRect.bottom > viewportHeight - 20) {
+          focusedElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+            inline: 'nearest'
+          });
+        }
+      }, 300);
+    }
+  }, []);
 
   // Handle input blur
   const handleInputBlur = useCallback(() => {
@@ -219,8 +248,8 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         onClose();
         // Redirect to the room page
 
-        //if current time is less than start time, dont navigate
-        if (new Date() <= new Date(formData.startTime)) {
+        //if current time is greater than or equal to start time, navigate (room should be starting now or already started)
+        if (new Date() >= new Date(formData.startTime)) {
           navigate('/call/' + response.data.data._id);
         }
       } else {
@@ -256,13 +285,17 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
           isKeyboardVisible ? 'mobile-keyboard-active' : ''
         }`}
         style={{
+          height: isKeyboardVisible && viewportHeight > 0 
+            ? `${viewportHeight - 40}px` 
+            : 'auto',
           maxHeight: isKeyboardVisible && viewportHeight > 0 
-            ? `${viewportHeight}px` 
-            : undefined,
-          transform: isKeyboardVisible 
-            ? 'translateY(0)' 
-            : undefined,
-          overflowY: isKeyboardVisible ? 'auto' : undefined
+            ? `${viewportHeight - 40}px` 
+            : 'calc(100vh - 100px)',
+          overflowY: 'auto',
+          paddingBottom: isKeyboardVisible ? '40px' : '20px',
+          position: isKeyboardVisible ? 'fixed' : 'relative',
+          bottom: isKeyboardVisible ? '0' : 'auto',
+          transform: isKeyboardVisible ? 'translateY(0)' : undefined
         }}
       >
       
@@ -270,7 +303,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
           <DrawerTitle className="text-2xl font-semibold text-white text-center">Create New Room</DrawerTitle>
         </DrawerHeader>
         
-        <form onSubmit={createRoomHandler} className="space-y-2 px-4">
+        <form onSubmit={createRoomHandler} className="space-y-2 px-4" style={{ paddingBottom: isKeyboardVisible ? '100px' : '0px' }}>
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Room Name*
@@ -320,6 +353,8 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
               value={formData.startTime}
               min={getCurrentLocalDateTime()} // Prevent selecting past times
               onChange={(e) => setFormData({...formData, startTime: e.target.value})}
+              onFocus={handleInputFocus}
+              onBlur={handleInputBlur}
               className="w-full px-3 py-2 bg-white/10 border border-orange-500/30 rounded-lg text-white focus:outline-none focus:border-orange-500 transition-colors [color-scheme:dark]"
               required
             />
