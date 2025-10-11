@@ -35,14 +35,14 @@ export default function AllowNotifications() {
                     <div className="flex gap-3">
                         <button
                             onClick={handleAddFrame}
-                            className="flex-1 gradient-fire text-white py-3 px-6 rounded-xl font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
+                            className="flex-1 gradient-fire text-white py-3 px-6 rounded-lg font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
                         >
                             Allow
                         </button>
                         
                         <button
                             onClick={() => setOpen(false)}
-                            className="flex-1 bg-white/10 text-white py-3 px-6 rounded-xl font-semibold transition-all duration-200 hover:bg-white/20 active:scale-95"
+                            className="flex-1 bg-white/10 text-white py-3 px-6 rounded-lg font-semibold transition-all duration-200 hover:bg-white/20 active:scale-95"
                         >
                             Cancel
                         </button>
