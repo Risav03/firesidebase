@@ -461,19 +461,37 @@
       bottom: 0 !important;
       transform: translateY(0) !important;
       transition: all 0.3s ease-in-out;
+      height: calc(100vh - env(keyboard-inset-height, 300px)) !important;
+      max-height: calc(100vh - env(keyboard-inset-height, 300px)) !important;
+      overflow-y: auto !important;
     }
 
-    /* Prevent body scroll when keyboard is active */
+    /* Prevent body scroll when drawer with keyboard is active */
     body:has(.mobile-keyboard-active) {
       overflow: hidden;
       position: fixed;
       width: 100%;
     }
 
-    /* Enhanced input focus behavior for chat */
+    /* Enhanced input focus behavior */
+    .mobile-keyboard-active input:focus,
     .mobile-keyboard-active textarea:focus {
-      scroll-margin-bottom: 20px;
+      scroll-margin-bottom: 120px;
       scroll-behavior: smooth;
+    }
+
+    /* Specific drawer input handling */
+    [data-vaul-drawer-content] {
+      scroll-behavior: smooth;
+    }
+
+    /* Force iOS to respect our scroll positioning */
+    [data-vaul-drawer-content] input,
+    [data-vaul-drawer-content] textarea {
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      -webkit-perspective: 1000;
+      perspective: 1000;
     }
   }
 
@@ -494,6 +512,7 @@
     input[type="text"],
     input[type="email"],
     input[type="password"],
+    input[type="datetime-local"],
     textarea {
       font-size: 16px;
     }
