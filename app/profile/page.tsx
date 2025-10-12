@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import NavigationWrapper from '@/components/NavigationWrapper';
 import { IoIosArrowBack } from 'react-icons/io';
 import { IoRefreshOutline } from 'react-icons/io5';
+import { FaXTwitter } from 'react-icons/fa6';
 import { toast } from 'react-toastify';
 import sdk from '@farcaster/miniapp-sdk';
 import { fetchUserRooms, refreshUserProfile } from '@/utils/serverActions';
@@ -16,10 +17,29 @@ export default function ProfilePage() {
   const [hostedRooms, setHostedRooms] = useState<any[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Platform icons mapping
+  const platformIcons: { [key: string]: React.ReactNode } = {
+    'x': <FaXTwitter className="w-4 h-4" />,
+    'twitter': <FaXTwitter className="w-4 h-4" />,
+  };
+
+  // Platform URL mapping
+  const platformUrls: { [key: string]: string } = {
+    'x': 'https://x.com/',
+    'twitter': 'https://twitter.com/',
+  };
+
+  const handleSocialClick = (platform: string, username: string) => {
+    const baseUrl = platformUrls[platform.toLowerCase()];
+    if (baseUrl) {
+      window.open(`${baseUrl}${username}`, '_blank');
+    }
+  };
+
   useEffect(() => {
     if (!user) {
       router.push('/');
-    } else if (user.hostedRooms && user.hostedRooms.length > 0) {
+    } else if (user.hostedRooms && user?.hostedRooms?.length > 0) {
       // Fetch hosted rooms details from API
       fetchUserRooms(user.username)
         .then(response => {
@@ -118,6 +138,35 @@ export default function ProfilePage() {
                   {user.username || 'Not set'}
                 </p>
               </div>
+
+              {/* Socials Section */}
+              {user.socials && Object.keys(user.socials).length > 0 && (
+                <div className="border-b border-gray-600 pb-4">
+                  <label className="block text-sm font-medium text-gray-300 mb-3">
+                    Social Media
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(user.socials).map(([platform, username]) => (
+                      <button
+                        key={platform}
+                        onClick={() => handleSocialClick(platform, String(username))}
+                        className="flex items-center space-x-2 px-3 py-2 bg-gray-700/50 hover:bg-gray-600/50 border border-gray-600 hover:border-gray-500 rounded-lg transition-all duration-200 group cursor-pointer"
+                      >
+                        <div className="flex items-center justify-center">
+                          {platformIcons[platform.toLowerCase()] || (
+                            <span className="text-xs font-medium text-gray-300 uppercase">
+                              {platform.charAt(0)}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-sm text-white font-medium group-hover:text-orange-300 transition-colors">
+                          @{String(username)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Previous Spaces Section */}
@@ -152,7 +201,7 @@ export default function ProfilePage() {
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Total Hosted Rooms
                   </label>
-                  <p className="text-white text-lg font-medium">{user.hostedRooms.length || 0} </p>
+                  <p className="text-white text-lg font-medium">{user?.hostedRooms?.length || 0} </p>
                 </div>
 
                 <div className="border-b border-gray-600 pb-4">

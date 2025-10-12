@@ -8,6 +8,7 @@ export interface IUser extends Document {
   pfp_url: string;
   wallet:string;
   bio?: string;
+  socials?: { [platform: string]: string }; // Map of platform to username
   hostedRooms: mongoose.Types.ObjectId[]; // Array of Room ObjectIds
   coHostedRooms: mongoose.Types.ObjectId[]; // Rooms participated as co-host
   speakerRooms: mongoose.Types.ObjectId[]; // Rooms participated as speaker
@@ -22,6 +23,7 @@ const User: Schema = new Schema({
   wallet: { type: String, required: true },
   pfp_url: { type: String, required: true },
   bio: { type: String, required: false },
+  socials: { type: Map, of: String, required: false, default: {} },
   token: { type: String, required: false, default: "" },
   hostedRooms: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Room' }],
   coHostedRooms: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Room', default: [] }],
