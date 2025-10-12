@@ -176,7 +176,7 @@ export async function endRoom(roomId: string, userId: string) {
  */
 export async function updateUserTopics(topics: string[], token: string | null = null) {
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-  return fetchAPI(`${URL}/users/protected/topics`, {
+  return fetchAPI(`${URL}/api/users/protected/topics`, {
     method: 'PATCH',
     body: { topics },
     authToken: token
