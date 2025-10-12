@@ -11,9 +11,10 @@ interface UserContextMenuProps {
   isVisible: boolean;
   onClose: () => void;
   position: { x: number; y: number }; // We won't use this anymore
+  onViewProfile?: () => void;
 }
 
-export default function UserContextMenu({ peer, isVisible, onClose }: UserContextMenuProps) {
+export default function UserContextMenu({ peer, isVisible, onClose, onViewProfile }: UserContextMenuProps) {
   const hmsActions = useHMSActions();
   const localPeer = useHMSStore(selectLocalPeer);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -195,18 +196,15 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
     }
   };
 
-  if (!isVisible || !isHostOrCoHost || isLocalUser) {
+  if (!isVisible || isLocalUser) {
     return null;
   }
 
   const currentRole = peer.roleName;
   const isMuted = !isPeerAudioEnabled;
 
-  // Only return nothing if we're not a host OR if this is the local user
-  // OR if we're a co-host trying to access the host's menu
-  if (!isHostOrCoHost || isLocalUser || isCoHostTryingToAccessHost) {
-    return null;
-  }
+  // Check if user has role management permissions
+  const canManageRoles = isHostOrCoHost && !isCoHostTryingToAccessHost;
 
   return (
     <>
@@ -241,10 +239,25 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
             </div>
           </div>
 
-          {/* Role Management Options */}
+          {/* View Profile Option */}
           <div className="py-2">
-            {/* Make Speaker */}
-            {currentRole !== 'speaker' && (
+            <button
+              onClick={() => {
+                onViewProfile?.();
+                onClose();
+              }}
+              className="w-full px-6 py-3 text-left text-sm text-white hover:bg-gray-700 flex items-center space-x-3 transition-colors"
+            >
+              <span className="w-5 h-5">👤</span>
+              <span className="font-medium">View Profile</span>
+            </button>
+          </div>
+
+          {/* Role Management Options - Only show if user can manage roles */}
+          {canManageRoles && (
+            <div className="py-2 border-t border-gray-600">
+              {/* Make Speaker */}
+              {currentRole !== 'speaker' && (
               <button
                 onClick={() => handleRoleChange('speaker')}
                 disabled={isLoading}
@@ -302,19 +315,20 @@ export default function UserContextMenu({ peer, isVisible, onClose }: UserContex
               </button>
             )}
 
-            {/* Remove User (only for host) */}
-            {localPeer?.roleName === 'host' && canRemovePeer && (
-              <div className="border-t border-gray-600 mt-2 pt-2">
-                <button
-                  onClick={handleRemoveUser}
-                  className="w-full px-6 py-3 text-left text-sm text-red-400 hover:bg-red-900/20 flex items-center space-x-3 transition-colors"
-                >
-                  <span className="w-5 h-5">🚫</span>
-                  <span className="font-medium">Remove User</span>
-                </button>
-              </div>
-            )}
-          </div>
+              {/* Remove User (only for host) */}
+              {localPeer?.roleName === 'host' && canRemovePeer && (
+                <div className="border-t border-gray-600 mt-2 pt-2">
+                  <button
+                    onClick={handleRemoveUser}
+                    className="w-full px-6 py-3 text-left text-sm text-red-400 hover:bg-red-900/20 flex items-center space-x-3 transition-colors"
+                  >
+                    <span className="w-5 h-5">🚫</span>
+                    <span className="font-medium">Remove User</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Close Button */}
           <div className="px-6 py-3 border-t border-gray-600">

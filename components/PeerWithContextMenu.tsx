@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { useHMSStore, selectLocalPeer } from '@100mslive/react-sdk';
 import Peer from './Peer';
 import UserContextMenu from './UserContextMenu';
+import ViewProfileModal from './ViewProfileModal';
 
 interface PeerWithContextMenuProps {
   peer: any;
@@ -11,6 +12,7 @@ interface PeerWithContextMenuProps {
 
 export default function PeerWithContextMenu({ peer }: PeerWithContextMenuProps) {
   const [showContextMenu, setShowContextMenu] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const localPeer = useHMSStore(selectLocalPeer);
   const peerRef = useRef<HTMLDivElement>(null);
 
@@ -27,8 +29,8 @@ export default function PeerWithContextMenu({ peer }: PeerWithContextMenuProps) 
   const isCoHostTryingToAccessHost = localPeer?.roleName === 'co-host' && isTargetPeerHost;
 
   const handlePeerClick = (event: React.MouseEvent) => {
-    // Prevent co-hosts from accessing host's context menu
-    if (!isHostOrCoHost || isLocalUser || isCoHostTryingToAccessHost) return;
+    // Don't show menu for local user
+    if (isLocalUser) return;
 
     event.preventDefault();
     event.stopPropagation();
@@ -39,18 +41,35 @@ export default function PeerWithContextMenu({ peer }: PeerWithContextMenuProps) 
     setShowContextMenu(false);
   };
 
+  const handleViewProfile = () => {
+    setShowProfileModal(true);
+  };
+
+  const handleProfileModalClose = () => {
+    setShowProfileModal(false);
+  };
+
   return (
     <div ref={peerRef} className="relative">
       <div onClick={handlePeerClick}>
         <Peer peer={peer} />
       </div>
 
-      {isHostOrCoHost && !isLocalUser && !isCoHostTryingToAccessHost && (<UserContextMenu
+      {!isLocalUser && (
+        <UserContextMenu
+          peer={peer}
+          isVisible={showContextMenu}
+          onClose={handleContextMenuClose}
+          onViewProfile={handleViewProfile}
+          position={{ x: 0, y: 0 }} // Not used anymore but keeping for compatibility
+        />
+      )}
+
+      <ViewProfileModal
         peer={peer}
-        isVisible={showContextMenu}
-        onClose={handleContextMenuClose}
-        position={{ x: 0, y: 0 }} // Not used anymore but keeping for compatibility
-      />)}
+        isVisible={showProfileModal}
+        onClose={handleProfileModalClose}
+      />
     </div>
 
   );

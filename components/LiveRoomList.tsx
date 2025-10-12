@@ -82,12 +82,13 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
       }
 
       const res = await updateUserTopics(selectedTopics, token);
-
+      console.log("res", res);
       if (res.data.success) {
         toast.success("Topics updated!");
 
         // Refetch user
         const userData = await fetchUserByHandle(token);
+        console.log("userData", userData);
         if (userData.data.success) {
           setUser(userData.data.data.user);
         }

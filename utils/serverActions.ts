@@ -82,6 +82,14 @@ export async function fetchUserRooms(username: string) {
 }
 
 /**
+ * Fetch user profile by FID (for ViewProfileModal)
+ */
+export async function fetchUserByFid(fid: string) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/users/public/${fid}`);
+}
+
+/**
  * Update user profile (for profile page)
  */
 export async function refreshUserProfile(token: string) {
@@ -176,7 +184,7 @@ export async function endRoom(roomId: string, userId: string) {
  */
 export async function updateUserTopics(topics: string[], token: string | null = null) {
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-  return fetchAPI(`${URL}/users/protected/topics`, {
+  return fetchAPI(`${URL}/api/users/protected/topics`, {
     method: 'PATCH',
     body: { topics },
     authToken: token
@@ -188,7 +196,7 @@ export async function updateUserTopics(topics: string[], token: string | null = 
  */
 export async function fetchUserByHandle(token: string | null = null) {
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-  return fetchAPI(`${URL}/users/protected/handle`, {
+  return fetchAPI(`${URL}/api/users/protected/handle`, {
     method: 'POST',
     authToken: token
   });

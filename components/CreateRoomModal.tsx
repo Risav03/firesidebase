@@ -91,13 +91,13 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
     const selectedTime = convertLocalDateTimeToUTC(formData.startTime);
     const now = new Date();
     
-    if (selectedTime < now) {
-      toast.error('Start time cannot be in the past', {
-        autoClose: 3000,
-        toastId: `time-error-${Date.now()}`
-      });
-      return;
-    }
+    // if (selectedTime < now) {
+    //   toast.error('Start time cannot be in the past', {
+    //     autoClose: 3000,
+    //     toastId: `time-error-${Date.now()}`
+    //   });
+    //   return;
+    // }
     
     setNameError('');
     setLoading(true);
@@ -179,19 +179,15 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DrawerContent 
-        className="bg-black/90 backdrop-blur-lg border-t border-orange-500/50 text-white p-4"
-        style={{
-          maxHeight: 'calc(100vh - 100px)',
-          paddingBottom: '20px',
-          overflowY: 'auto'
-        }}
+        className="bg-black/90 backdrop-blur-lg border-t border-orange-500/50 text-white max-h-[85vh] flex flex-col"
       >
       
-        <DrawerHeader>
+        <DrawerHeader className="flex-shrink-0 pb-2">
           <DrawerTitle className="text-2xl font-semibold text-white text-center">Create New Room</DrawerTitle>
         </DrawerHeader>
         
-        <form onSubmit={createRoomHandler} className="space-y-2 px-4">
+        <div className="flex-1 overflow-y-auto px-4 py-2">
+          <form id="create-room-form" onSubmit={createRoomHandler} className="space-y-4 pb-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Room Name*
@@ -236,7 +232,6 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
             onPointerDown={(e) => e.stopPropagation()}
               type="datetime-local"
               value={formData.startTime}
-              min={getCurrentLocalDateTime()} // Prevent selecting past times
               onChange={(e) => setFormData({...formData, startTime: e.target.value})}
               className="w-full px-3 py-2 bg-white/10 border border-orange-500/30 rounded-lg text-white focus:outline-none focus:border-orange-500 transition-colors [color-scheme:dark]"
               required
@@ -288,25 +283,27 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
               </div>
               <span className="text-sm text-gray-300">{sponsorshipEnabled ? 'On' : 'Off'}</span>
             </div>
-          
-          <div className="flex space-x-3 pt-2 pb-6">
-            <DrawerClose asChild>
-              <button
-                type="button"
-                className="flex-1 bg-white/10 hover:bg-white/20 text-white font-medium py-2 px-4 rounded-md transition-colors"
-              >
-                Cancel
-              </button>
-            </DrawerClose>
+          </form>
+        </div>
+        
+        <div className="flex-shrink-0 flex space-x-3 p-4 pt-2 border-t border-orange-500/20">
+          <DrawerClose asChild>
             <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 gradient-fire disabled:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
+              type="button"
+              className="flex-1 bg-white/10 hover:bg-white/20 text-white font-medium py-2 px-4 rounded-md transition-colors"
             >
-              {loading ? 'Creating...' : 'Create Room'}
+              Cancel
             </button>
-          </div>
-        </form>
+          </DrawerClose>
+          <button
+            type="submit"
+            form="create-room-form"
+            disabled={loading}
+            className="flex-1 gradient-fire disabled:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
+          >
+            {loading ? 'Creating...' : 'Create Room'}
+          </button>
+        </div>
       </DrawerContent>
     </Drawer>
   );
