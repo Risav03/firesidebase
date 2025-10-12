@@ -188,7 +188,7 @@ export async function updateUserTopics(topics: string[], token: string | null = 
  */
 export async function fetchUserByHandle(token: string | null = null) {
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-  return fetchAPI(`${URL}/users/protected/handle`, {
+  return fetchAPI(`${URL}/api/users/protected/handle`, {
     method: 'POST',
     authToken: token
   });
