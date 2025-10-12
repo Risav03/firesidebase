@@ -91,13 +91,13 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
     const selectedTime = convertLocalDateTimeToUTC(formData.startTime);
     const now = new Date();
     
-    if (selectedTime < now) {
-      toast.error('Start time cannot be in the past', {
-        autoClose: 3000,
-        toastId: `time-error-${Date.now()}`
-      });
-      return;
-    }
+    // if (selectedTime < now) {
+    //   toast.error('Start time cannot be in the past', {
+    //     autoClose: 3000,
+    //     toastId: `time-error-${Date.now()}`
+    //   });
+    //   return;
+    // }
     
     setNameError('');
     setLoading(true);
@@ -236,7 +236,6 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
             onPointerDown={(e) => e.stopPropagation()}
               type="datetime-local"
               value={formData.startTime}
-              min={getCurrentLocalDateTime()} // Prevent selecting past times
               onChange={(e) => setFormData({...formData, startTime: e.target.value})}
               className="w-full px-3 py-2 bg-white/10 border border-orange-500/30 rounded-lg text-white focus:outline-none focus:border-orange-500 transition-colors [color-scheme:dark]"
               required

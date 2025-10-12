@@ -82,6 +82,14 @@ export async function fetchUserRooms(username: string) {
 }
 
 /**
+ * Fetch user profile by FID (for ViewProfileModal)
+ */
+export async function fetchUserByFid(fid: string) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/users/public/${fid}`);
+}
+
+/**
  * Update user profile (for profile page)
  */
 export async function refreshUserProfile(token: string) {
