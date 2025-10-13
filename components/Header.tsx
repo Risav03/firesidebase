@@ -12,6 +12,7 @@ import { useState } from 'react';
 import RoomEndModal from './RoomEndModal';
 import { TbShare3 } from "react-icons/tb";
 import { MdCopyAll, MdOutlineIosShare } from "react-icons/md";
+import { FaXTwitter } from "react-icons/fa6";
 import { sdk } from "@farcaster/miniapp-sdk";
 import { toast } from "react-toastify";
 
@@ -68,6 +69,13 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
     });
   };
 
+  const handleShareOnTwitter = () => {
+    const roomURL = `https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/call/${roomId}`;
+    const text = "I've just sparked up a Fireside! Come join the conversation";
+    const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(roomURL)}`;
+    window.open(intentUrl, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 bg-black px-6 h-16 my-auto border-b border-white/20">
@@ -113,6 +121,16 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
             >
               <MdOutlineIosShare className="w-5 h-5" />
               <span>Share on App</span>
+            </button>
+            <button
+              onClick={() => {
+                setIsShareMenuOpen(false);
+                handleShareOnTwitter();
+              }}
+              className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center space-x-2"
+            >
+              <FaXTwitter className="w-5 h-5" />
+              <span>Share on X</span>
             </button>
             <button
               onClick={() => {
