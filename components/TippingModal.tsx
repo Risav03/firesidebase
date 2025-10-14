@@ -591,7 +591,7 @@ export default function TippingModal({
                       <>
                         <div className="p-3">
                           <input
-                          onPointerDown={(e) => e.stopPropagation()}
+                            onPointerDown={(e) => e.stopPropagation()}
                             type="text"
                             placeholder="Search users..."
                             className="w-full bg-white/10 text-white p-2 rounded-lg border border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors"
@@ -684,7 +684,7 @@ export default function TippingModal({
               </label>
 
               <input
-              onPointerDown={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
                 type="number"
                 placeholder="Custom amount"
                 value={customTip}

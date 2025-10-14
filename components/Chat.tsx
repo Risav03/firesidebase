@@ -349,8 +349,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
           <div className="flex items-center space-x-3">
             <div className="flex-1">
               <textarea
-              onPointerDown={(e) => e.stopPropagation()}
-                ref={textareaRef}
+                onPointerDown={(e) => e.stopPropagation()}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
