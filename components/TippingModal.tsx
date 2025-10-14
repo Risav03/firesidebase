@@ -501,12 +501,12 @@ export default function TippingModal({
   };
 
   return (
-    <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()} dismissible>
       <DrawerContent 
-        className="bg-black/50 backdrop-blur-2xl text-white border-t border-fireside-orange/30"
+        className="bg-black/50 backdrop-blur-2xl text-white border-t border-fireside-orange/30 max-h-[85vh] flex flex-col"
       >
         
-        <DrawerHeader>
+        <DrawerHeader className="flex-shrink-0">
           <DrawerTitle className="text-2xl font-bold text-white">
             Send a Tip
           </DrawerTitle>
@@ -517,220 +517,197 @@ export default function TippingModal({
             <CustomConnect />
           </div>
         ) : (
-          <div className="px-4 pb-6">
-            {/* <div className="mb-6">
-              <label className="block text-lg font-bold text-orange-400 mb-3">
-                Select multiple roles
-              </label>
-              <div className="grid grid-cols-2 grid-flow-row gap-2">
-                {["host", "co-host", "speaker", "listener"].map((role) => (
-                  <button
-                    key={role}
-                    onClick={() => handleRoleSelection(role)}
-                    disabled={!availableRoles[role]}
-                    title={!availableRoles[role] ? `No ${role}s in this room` : `Select all ${role}s`}
-                    className={`px-4 py-2 rounded-lg font-semibold flex-1 transition-colors text-white ${
-                      selectedRoles.includes(role)
-                        ? "gradient-fire border-white border-2"
-                        : availableRoles[role]
-                          ? "bg-white/10 border-transparent hover:bg-white/20"
-                          : "bg-white/5 border-transparent text-white/50 cursor-not-allowed"
-                    }`}
+          <>
+            {/* Main Content Area */}
+            <div className="px-4 flex-1 overflow-y-auto">
+              {/* User Selection */}
+              <div className="mb-6">
+                <label className="block text-lg font-bold text-orange-400 mb-3">
+                  Select multiple users
+                </label>
+                <div ref={dropdownRef} className="relative">
+                  <div
+                    className="bg-white/10 border border-orange-500/50 rounded-lg text-white p-3 cursor-pointer hover:bg-white/20 transition-colors"
+                    onClick={() => setDropdownOpen((prev) => !prev)}
                   >
-                    {role}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="w-full flex items-center justify-center text-white/70 my-4">
-              <div className="flex-1 h-px bg-white/20"></div>
-              <span className="px-4 text-sm font-medium">OR</span>
-              <div className="flex-1 h-px bg-white/20"></div>
-            </div> */}
-
-            <div className="mb-6">
-              <label className="block text-lg font-bold text-orange-400 mb-3">
-                Select multiple users
-              </label>
-              <div ref={dropdownRef} className="relative">
-                <div
-                  className="bg-white/10 border border-orange-500/50 rounded-lg text-white p-3 cursor-pointer hover:bg-white/20 transition-colors"
-                  onClick={() => setDropdownOpen((prev) => !prev)}
-                >
-                  {selectedUsers.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {selectedUsers.map((user) => (
-                        <div
-                          key={user.userId}
-                          className="flex items-center bg-orange-600 rounded-full px-3 py-1"
-                        >
-                          <img
-                            src={user.pfp_url || "/default-avatar.png"}
-                            alt={user.username}
-                            className="w-5 h-5 rounded-full mr-2"
-                          />
-                          <span className="text-sm font-medium">
-                            {user.username}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <span>Choose users</span>
-                  )}
-                </div>
-
-                {dropdownOpen && (
-                  <div className="absolute top-full left-0 w-full bg-black border border-orange-500/50 rounded-lg max-h-60 overflow-y-auto mt-1 z-10">
-                    {isLoadingUsers ? (
-                      <div className="flex items-center justify-center p-4">
-                        <RiLoader5Fill className="animate-spin text-white text-2xl" />
+                    {selectedUsers.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedUsers.map((user) => (
+                          <div
+                            key={user.userId}
+                            className="flex items-center bg-orange-600 rounded-full px-3 py-1"
+                          >
+                            <img
+                              src={user.pfp_url || "/default-avatar.png"}
+                              alt={user.username}
+                              className="w-5 h-5 rounded-full mr-2"
+                            />
+                            <span className="text-sm font-medium">
+                              {user.username}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     ) : (
-                      <>
-                        <div className="p-3">
-                          <input
-                            onPointerDown={(e) => e.stopPropagation()}
-                            type="text"
-                            placeholder="Search users..."
-                            className="w-full bg-white/10 text-white p-2 rounded-lg border border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors"
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                          />
-                        </div>
-                        {participants
-                          .filter((participant) =>
-                            participant.username
-                              .toLowerCase()
-                              .includes(searchQuery.toLowerCase())
-                          )
-                          .map((participant) => (
-                            <div
-                              key={participant.userId}
-                              className={`flex items-center p-3 cursor-pointer hover:bg-white/20 transition-colors ${
-                                selectedUsers.some(
-                                  (user) => user.userId === participant.userId
-                                )
-                                  ? "bg-orange-600/30"
-                                  : ""
-                              }`}
-                              onClick={() => handleUserSelection(participant)}
-                            >
-                              <img
-                                src={
-                                  participant.pfp_url || "/default-avatar.png"
-                                }
-                                alt={participant.username}
-                                className="w-10 h-10 rounded-full mr-3"
-                              />
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-white">
-                                  {participant.username}
-                                </p>
-                                <p className="text-xs text-white/60">
-                                  {participant.role || "No domain"}
-                                </p>
-                              </div>
-                              {selectedUsers.some(
-                                (user) => user.userId === participant.userId
-                              ) && (
-                                <svg
-                                  className="w-5 h-5 text-white"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M5 13l4 4L19 7"
-                                  />
-                                </svg>
-                              )}
-                            </div>
-                          ))}
-                      </>
+                      <span>Choose users</span>
                     )}
                   </div>
-                )}
+
+                  {dropdownOpen && (
+                    <div className="absolute top-full left-0 w-full bg-black border border-orange-500/50 rounded-lg max-h-60 overflow-y-auto mt-1 z-10">
+                      {isLoadingUsers ? (
+                        <div className="flex items-center justify-center p-4">
+                          <RiLoader5Fill className="animate-spin text-white text-2xl" />
+                        </div>
+                      ) : (
+                        <>
+                          <div className="p-3">
+                            <input
+                              onPointerDown={(e) => e.stopPropagation()}
+                              type="text"
+                              placeholder="Search users..."
+                              className="w-full bg-white/10 text-white p-2 rounded-lg border border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors"
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                          </div>
+                          {participants
+                            .filter((participant) =>
+                              participant.username
+                                .toLowerCase()
+                                .includes(searchQuery.toLowerCase())
+                            )
+                            .map((participant) => (
+                              <div
+                                key={participant.userId}
+                                className={`flex items-center p-3 cursor-pointer hover:bg-white/20 transition-colors ${
+                                  selectedUsers.some(
+                                    (user) => user.userId === participant.userId
+                                  )
+                                    ? "bg-orange-600/30"
+                                    : ""
+                                }`}
+                                onClick={() => handleUserSelection(participant)}
+                              >
+                                <img
+                                  src={
+                                    participant.pfp_url || "/default-avatar.png"
+                                  }
+                                  alt={participant.username}
+                                  className="w-10 h-10 rounded-full mr-3"
+                                />
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-white">
+                                    {participant.username}
+                                  </p>
+                                  <p className="text-xs text-white/60">
+                                    {participant.role || "No domain"}
+                                  </p>
+                                </div>
+                                {selectedUsers.some(
+                                  (user) => user.userId === participant.userId
+                                ) && (
+                                  <svg
+                                    className="w-5 h-5 text-white"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M5 13l4 4L19 7"
+                                    />
+                                  </svg>
+                                )}
+                              </div>
+                            ))}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Tip Amount Selection */}
+              <div className="mb-6 w-full">
+                <label className="text-lg block font-bold text-orange-400 mb-3">
+                  Select Tip Amount
+                </label>
+                <div className="flex gap-2 w-full">
+                  {[0.1, 0.5, 1].map((amount) => (
+                    <button
+                      key={amount}
+                      onClick={() => {
+                        setSelectedTip(amount);
+                        setCustomTip("");
+                      }}
+                      className={`px-4 py-2 rounded-lg text-white font-semibold transition-colors flex-1 ${
+                        selectedTip === amount
+                          ? "gradient-fire border-white border-2"
+                          : "bg-white/10 border-transparent hover:bg-white/20"
+                      }`}
+                    >
+                      ${amount}
+                    </button>
+                  ))}
+                </div>
+                <label className="text-md block font-semibold text-white/70 mt-4 mb-2">
+                  Add Custom Tip Amount ($)
+                </label>
+
+                <input
+                  onPointerDown={(e) => e.stopPropagation()}
+                  type="number"
+                  placeholder="Custom amount"
+                  value={customTip}
+                  onChange={(e) => {
+                    setCustomTip(e.target.value);
+                    setSelectedTip(null);
+                  }}
+                  className="px-4 py-2 rounded-lg text-white bg-white/10 border w-full border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors"
+                />
               </div>
             </div>
 
-            <div className="mb-6 w-full">
-              <label className="text-lg block font-bold text-orange-400 mb-3">
-                Select Tip Amount
-              </label>
-              <div className="flex gap-2 w-full">
-                {[0.1, 0.5, 1].map((amount) => (
-                  <button
-                    key={amount}
-                    onClick={() => {
-                      setSelectedTip(amount);
-                      setCustomTip("");
-                    }}
-                    className={`px-4 py-2 rounded-lg text-white font-semibold transition-colors flex-1 ${
-                      selectedTip === amount
-                        ? "gradient-fire border-white border-2"
-                        : "bg-white/10 border-transparent hover:bg-white/20"
-                    }`}
-                  >
-                    ${amount}
-                  </button>
-                ))}
+            {/* Action Buttons - Fixed at bottom */}
+            <div className="px-4 pb-6 border-t border-gray-700/50 pt-4 bg-black/50 flex-shrink-0">
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleETHTip()}
+                  disabled={isLoading}
+                  className={`flex-1 text-white bg-indigo-400 text-nowrap font-semibold py-3 px-4 rounded-lg transition-colors border border-white/20 hover:border-white/40 ${
+                    isLoading ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                >
+                  <span className="flex gap-2 items-center justify-center text-nowrap">
+                    {isLoading ? (
+                      <RiLoader5Fill className="animate-spin" />
+                    ) : (
+                      <FaEthereum />
+                    )}
+                    Tip in ETH
+                  </span>
+                </button>
+                <button
+                  onClick={() => handleUSDCTip()}
+                  disabled={isLoading}
+                  className={`flex-1 gradient-fire text-white font-semibold text-nowrap py-3 px-4 rounded-lg transition-colors disabled:opacity-50 ${
+                    isLoading ? "cursor-not-allowed" : ""
+                  }`}
+                >
+                  <span className="flex gap-2 items-center justify-center text-nowrap">
+                    {isLoading ? (
+                      <RiLoader5Fill className="animate-spin" />
+                    ) : (
+                      <BiSolidDollarCircle />
+                    )}
+                    Tip in USDC
+                  </span>
+                </button>
               </div>
-              <label className="text-md block font-semibold text-white/70 mt-4 mb-2">
-                Add Custom Tip Amount ($)
-              </label>
-
-              <input
-                onPointerDown={(e) => e.stopPropagation()}
-                type="number"
-                placeholder="Custom amount"
-                value={customTip}
-                onChange={(e) => {
-                  setCustomTip(e.target.value);
-                  setSelectedTip(null);
-                }}
-                className="px-4 py-2 rounded-lg text-white bg-white/10 border w-full border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors"
-              />
             </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => handleETHTip()}
-                disabled={isLoading}
-                className={`flex-1 text-white bg-indigo-400 text-nowrap font-semibold py-3 px-4 rounded-lg transition-colors border border-white/20 hover:border-white/40 ${
-                  isLoading ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-              >
-                <span className="flex gap-2 items-center justify-center text-nowrap">
-                  {isLoading ? (
-                    <RiLoader5Fill className="animate-spin" />
-                  ) : (
-                    <FaEthereum />
-                  )}
-                  Tip in ETH
-                </span>
-              </button>
-              <button
-                onClick={() => handleUSDCTip()}
-                disabled={isLoading}
-                className={`flex-1 gradient-fire text-white font-semibold text-nowrap py-3 px-4 rounded-lg transition-colors disabled:opacity-50 ${
-                  isLoading ? "cursor-not-allowed" : ""
-                }`}
-              >
-                <span className="flex gap-2 items-center justify-center text-nowrap">
-                  {isLoading ? (
-                    <RiLoader5Fill className="animate-spin" />
-                  ) : (
-                    <BiSolidDollarCircle />
-                  )}
-                  Tip in USDC
-                </span>
-              </button>
-            </div>
-          </div>
+          </>
         )}
       </DrawerContent>
     </Drawer>

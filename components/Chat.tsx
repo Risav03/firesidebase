@@ -266,11 +266,11 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   return (
     <Drawer open={isOpen} onOpenChange={setIsChatOpen} dismissible >
       <DrawerContent 
-        className="backdrop-blur-2xl border-fireside-orange/30 border-t-2 border-x-0 border-b-0"
+        className="backdrop-blur-2xl border-fireside-orange/30 border-t-2 border-x-0 border-b-0 max-h-[85vh] flex flex-col"
       >
         
         {/* Chat Header */}
-        <div className="px-4 py-3 flex border-b border-gray-700/50">
+        <div className="px-4 py-3 flex border-b border-gray-700/50 flex-shrink-0">
           <div className="flex items-center space-x-3 w-[50%]">
             <div className="w-3 h-3 bg-fireside-orange rounded-full animate-pulse"></div>
             <h3 className="font-semibold text-white">Room Chat</h3>
@@ -296,8 +296,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
         {/* Chat Messages */}
         <div 
-          className="p-4 flex-grow overflow-y-auto transition-all duration-300"
-          style={{ height: getMessagesHeight() }}
+          className="p-4 flex-1 overflow-y-auto transition-all duration-300"
         >
           {loading ? (
             <div className="flex items-center justify-center h-full">
@@ -345,10 +344,11 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         </div>
 
         {/* Chat Input */}
-        <div className="p-4 border-t border-gray-700/50">
+        <div className="p-4 border-t border-gray-700/50 flex-shrink-0">
           <div className="flex items-center space-x-3">
             <div className="flex-1">
               <textarea
+                ref={textareaRef}
                 onPointerDown={(e) => e.stopPropagation()}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
