@@ -462,6 +462,40 @@
     }
   }
 
+  /* Handle virtual keyboard on mobile */
+@supports (height: env(keyboard-inset-height)) {
+  .drawer-content-keyboard {
+    height: calc(100vh - env(keyboard-inset-height));
+  }
+}
+
+/* Smooth scrolling for input focus */
+.drawer-content input:focus,
+.drawer-content textarea:focus {
+  scroll-margin-top: 20px;
+  scroll-margin-bottom: 20px;
+}
+
+/* Drawer content specific styles */
+.drawer-content {
+  /* Prevent abrupt movements */
+  transition: none !important;
+  /* Ensure proper positioning */
+  position: fixed !important;
+  bottom: 0 !important;
+  /* Better mobile handling */
+  will-change: transform;
+  /* Prevent content shift */
+  contain: layout style;
+}
+
+/* When keyboard is open, adjust drawer behavior */
+@media (max-height: 600px) {
+  .drawer-content {
+    max-height: 80vh !important;
+  }
+}
+
   /* React Toastify Custom Styles */
   .Toastify__toast--success {
     background: #059669 !important;
