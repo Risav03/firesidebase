@@ -193,7 +193,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
               Room Name*
             </label>
             <input
-            onPointerDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
               type="text"
               value={formData.name}
               onChange={(e) => {

@@ -444,68 +444,12 @@
     }
   }
 
-  /* Mobile keyboard adjustments */
-  @media (max-width: 768px) {
-    .mobile-drawer-content {
-      max-height: calc(100vh - env(keyboard-inset-height, 0px));
-      transition: max-height 0.3s ease-in-out;
-    }
-    
-    .mobile-drawer-content.keyboard-visible {
-      max-height: calc(100vh - env(keyboard-inset-height, 300px));
-    }
-
-    /* Chat drawer specific mobile keyboard handling */
-    .mobile-keyboard-active {
-      position: fixed !important;
-      bottom: 0 !important;
-      transform: translateY(0) !important;
-      transition: all 0.3s ease-in-out;
-      height: calc(100vh - env(keyboard-inset-height, 300px)) !important;
-      max-height: calc(100vh - env(keyboard-inset-height, 300px)) !important;
-      overflow-y: auto !important;
-    }
-
-    /* Prevent body scroll when drawer with keyboard is active */
-    body:has(.mobile-keyboard-active) {
-      overflow: hidden;
-      position: fixed;
-      width: 100%;
-    }
-
-    /* Enhanced input focus behavior */
-    .mobile-keyboard-active input:focus,
-    .mobile-keyboard-active textarea:focus {
-      scroll-margin-bottom: 120px;
-      scroll-behavior: smooth;
-    }
-
-    /* Specific drawer input handling */
-    [data-vaul-drawer-content] {
-      scroll-behavior: smooth;
-    }
-
-    /* Force iOS to respect our scroll positioning */
-    [data-vaul-drawer-content] input,
-    [data-vaul-drawer-content] textarea {
-      transform: translateZ(0);
-      backface-visibility: hidden;
-      -webkit-perspective: 1000;
-      perspective: 1000;
-    }
-  }
-
   /* Smooth scrolling for mobile inputs */
   @media (max-width: 768px) {
     input:focus,
     textarea:focus {
       scroll-margin-top: 100px;
       scroll-margin-bottom: 100px;
-    }
-
-    /* Specific handling for chat drawer inputs */
-    [data-vaul-drawer] textarea:focus {
-      scroll-margin-bottom: 10px;
     }
 
     /* Prevent zoom on input focus for iOS */
