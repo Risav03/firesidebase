@@ -180,7 +180,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
       />
       
       {/* Full-screen modal content */}
-      <div className="relative w-full h-full bg-black/95 backdrop-blur-lg text-white overflow-y-auto">
+      <div className="relative w-full h-full bg-black/95 backdrop-blur-lg text-white overflow-y-auto overflow-x-hidden pb-20">
         {/* Header with close button */}
         <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-lg border-b border-orange-500/30 px-4 py-4">
           <div className="flex items-center justify-between">
@@ -196,124 +196,129 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         </div>
         
         {/* Form content */}
-        <div className="px-4 py-6">
-          <form id="create-room-form" onSubmit={createRoomHandler} className="space-y-6 max-w-lg mx-auto">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Room Name*
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => {
-                  setFormData({ ...formData, name: e.target.value });
-                  if (e.target.value.trim() === '') {
-                    setNameError('Room name cannot be empty.');
-                  } else {
-                    setNameError('');
-                  }
-                }}
-                className={`w-full bg-white/10 text-white p-3 rounded-lg border ${nameError ? 'border-red-500' : 'border-orange-500/30'} focus:outline-none focus:border-orange-500 transition-colors text-base`}
-                required
-                placeholder="Enter room name"
-              />
-              {nameError && <p className="text-red-500 text-sm mt-1">{nameError}</p>}
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Description
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full bg-white/10 text-white p-3 rounded-lg border border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors text-base min-h-[80px]"
-                rows={3}
-                placeholder="Describe your room (optional)"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Start Time* (Your Local Time)
-              </label>
-              <input
-                type="datetime-local"
-                value={formData.startTime}
-                onChange={(e) => setFormData({...formData, startTime: e.target.value})}
-                className="w-full px-3 py-3 bg-white/10 border border-orange-500/30 rounded-lg text-white focus:outline-none focus:border-orange-500 transition-colors [color-scheme:dark] text-base"
-                required
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                Time zone: {Intl.DateTimeFormat().resolvedOptions().timeZone}
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Topics (up to 3)*
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {topics.map(tag => (
-                  <button
-                    type="button"
-                    key={tag}
-                    className={`px-4 py-2 rounded-full border text-sm transition-colors ${selectedTags.includes(tag) ? 'gradient-fire font-bold text-white border-none' : 'bg-white/5 text-gray-300 border-orange-500/30'} ${selectedTags.length >= 3 && !selectedTags.includes(tag) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    onClick={() => {
-                      if (selectedTags.includes(tag)) {
-                        setSelectedTags(selectedTags.filter(t => t !== tag));
-                      } else if (selectedTags.length < 3) {
-                        setSelectedTags([...selectedTags, tag]);
-                      }
-                    }}
-                    disabled={selectedTags.length >= 3 && !selectedTags.includes(tag)}
-                  >
-                    {tag}
-                  </button>
-                ))}
+        <div className="flex-1 flex flex-col px-4 py-6 w-full overflow-x-hidden">
+          <form onSubmit={createRoomHandler} className="flex-1 flex flex-col space-y-6 max-w-lg mx-auto w-full">
+            <div className="flex-1 space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Room Name*
+                </label>
+                <input
+                  type="text"
+                  name="roomName"
+                  value={formData.name}
+                  onChange={(e) => {
+                    setFormData({ ...formData, name: e.target.value });
+                    if (e.target.value.trim() === '') {
+                      setNameError('Room name cannot be empty.');
+                    } else {
+                      setNameError('');
+                    }
+                  }}
+                  className={`w-full bg-white/10 text-white p-3 rounded-lg border ${nameError ? 'border-red-500' : 'border-orange-500/30'} focus:outline-none focus:border-orange-500 transition-colors text-base`}
+                  required
+                  placeholder="Enter room name"
+                />
+                {nameError && <p className="text-red-500 text-sm mt-1">{nameError}</p>}
               </div>
-              {selectedTags.length === 0 && <p className="text-red-500 text-sm mt-1">Please select at least one topic.</p>}
-              {selectedTags.length > 3 && <p className="text-red-500 text-sm mt-1">You can select up to 3 topics only.</p>}
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <label className="block text-sm font-medium text-gray-300">
-                Enable Sponsorship
-              </label>
-              <div className="flex items-center space-x-3">
-                <div 
-                  className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${sponsorshipEnabled ? 'bg-orange-500' : 'bg-white/10'}`}
-                  onClick={() => setSponsorshipEnabled(!sponsorshipEnabled)}
-                >
-                  <div 
-                    className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${sponsorshipEnabled ? 'translate-x-6' : 'translate-x-0'}`} 
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Description
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full bg-white/10 text-white p-3 rounded-lg border border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors text-base min-h-[80px]"
+                  rows={3}
+                  placeholder="Describe your room (optional)"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Start Time* (Your Local Time)
+                </label>
+                <div className="w-full overflow-hidden">
+                  <input
+                    type="datetime-local"
+                    name="startTime"
+                    value={formData.startTime}
+                    onChange={(e) => setFormData({...formData, startTime: e.target.value})}
+                    className="w-full min-w-0 px-3 py-3 bg-white/10 border border-orange-500/30 rounded-lg text-white focus:outline-none focus:border-orange-500 transition-colors [color-scheme:dark] text-base box-border"
+                    required
+                    style={{ maxWidth: '100%' }}
                   />
                 </div>
-                <span className="text-sm text-gray-300">{sponsorshipEnabled ? 'On' : 'Off'}</span>
+                <p className="text-xs text-gray-400 mt-1">
+                  Time zone: {Intl.DateTimeFormat().resolvedOptions().timeZone}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Topics (up to 3)*
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {topics.map(tag => (
+                    <button
+                      type="button"
+                      key={tag}
+                      className={`px-4 py-2 rounded-full border text-sm transition-colors ${selectedTags.includes(tag) ? 'gradient-fire font-bold text-white border-none' : 'bg-white/5 text-gray-300 border-orange-500/30'} ${selectedTags.length >= 3 && !selectedTags.includes(tag) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      onClick={() => {
+                        if (selectedTags.includes(tag)) {
+                          setSelectedTags(selectedTags.filter(t => t !== tag));
+                        } else if (selectedTags.length < 3) {
+                          setSelectedTags([...selectedTags, tag]);
+                        }
+                      }}
+                      disabled={selectedTags.length >= 3 && !selectedTags.includes(tag)}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+                {selectedTags.length === 0 && <p className="text-red-500 text-sm mt-1">Please select at least one topic.</p>}
+                {selectedTags.length > 3 && <p className="text-red-500 text-sm mt-1">You can select up to 3 topics only.</p>}
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-medium text-gray-300">
+                  Enable Sponsorship
+                </label>
+                <div className="flex items-center space-x-3">
+                  <div 
+                    className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${sponsorshipEnabled ? 'bg-orange-500' : 'bg-white/10'}`}
+                    onClick={() => setSponsorshipEnabled(!sponsorshipEnabled)}
+                  >
+                    <div 
+                      className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${sponsorshipEnabled ? 'translate-x-6' : 'translate-x-0'}`} 
+                    />
+                  </div>
+                  <span className="text-sm text-gray-300">{sponsorshipEnabled ? 'On' : 'Off'}</span>
+                </div>
               </div>
             </div>
+            
+            {/* Form buttons */}
+            <div className="flex space-x-3 pt-6 border-t border-orange-500/20">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 bg-white/10 hover:bg-white/20 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 gradient-fire disabled:bg-gray-600 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+              >
+                {loading ? 'Creating...' : 'Create Room'}
+              </button>
+            </div>
           </form>
-        </div>
-        
-        {/* Fixed bottom buttons */}
-        <div className="sticky bottom-0 bg-black/90 backdrop-blur-lg border-t border-orange-500/30 px-4 py-4">
-          <div className="flex space-x-3 max-w-lg mx-auto">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-white/10 hover:bg-white/20 text-white font-medium py-3 px-4 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              form="create-room-form"
-              disabled={loading}
-              className="flex-1 gradient-fire disabled:bg-gray-600 text-white font-medium py-3 px-4 rounded-lg transition-colors"
-            >
-              {loading ? 'Creating...' : 'Create Room'}
-            </button>
-          </div>
         </div>
       </div>
     </div>

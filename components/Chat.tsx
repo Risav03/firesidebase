@@ -12,13 +12,7 @@ import { ChatMessage } from "./ChatMessage";
 import { useGlobalContext } from "@/utils/providers/globalContext";
 import { toast } from "react-toastify";
 import sdk from "@farcaster/miniapp-sdk";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerClose,
-} from "./UI/drawer";
+import { MdClose, MdSend } from 'react-icons/md';
 import { fetchChatMessages, sendChatMessage } from "@/utils/serverActions";
 
 interface ChatProps {
@@ -264,47 +258,41 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   // const modalClass = `chat-modal ${isOpen ? 'open' : ''} ${isClosing ? 'closing' : ''}`;
 
   return (
-    <Drawer open={isOpen} onOpenChange={setIsChatOpen} dismissible >
-      <DrawerContent 
-        className="backdrop-blur-2xl border-fireside-orange/30 border-t-2 border-x-0 border-b-0 max-h-[85vh] flex flex-col"
-      >
-        
+    <div className={`fixed inset-0 z-50 ${isOpen ? 'block' : 'hidden'}`}>
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        onClick={setIsChatOpen}
+      />
+      
+      {/* Full-screen modal content */}
+      <div className="relative w-full h-full bg-black/95 backdrop-blur-lg text-white overflow-hidden flex flex-col">
         {/* Chat Header */}
-        <div className="px-4 py-3 flex border-b border-gray-700/50 flex-shrink-0">
-          <div className="flex items-center space-x-3 w-[50%]">
-            <div className="w-3 h-3 bg-fireside-orange rounded-full animate-pulse"></div>
-            <h3 className="font-semibold text-white">Room Chat</h3>
-          </div>
-          <div className="flex items-center space-x-2 justify-end w-[50%]">
-            {/* <DrawerClose className="p-1 hover:bg-gray-100/20 bg-gray-100/10 rounded-lg transition-colors">
-              <svg
-                className="w-4 h-4 text-gray-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </DrawerClose> */}
+        <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-lg border-b border-fireside-orange/30 px-4 py-4 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-3 h-3 bg-fireside-orange rounded-full animate-pulse"></div>
+              <h2 className="text-xl font-semibold text-white">Room Chat</h2>
+            </div>
+            <button
+              onClick={setIsChatOpen}
+              className="text-gray-400 hover:text-white transition-colors p-2"
+              aria-label="Close chat"
+            >
+              <MdClose size={24} />
+            </button>
           </div>
         </div>
 
         {/* Chat Messages */}
-        <div 
-          className="p-4 flex-1 overflow-y-auto transition-all duration-300"
-        >
+        <div className="flex-1 overflow-y-auto px-4 py-4">
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-white text-sm">Loading messages...</div>
             </div>
           ) : combinedMessages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-8">
-              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+              <div className="w-12 h-12 bg-gray-100/20 rounded-full flex items-center justify-center mb-3">
                 <svg
                   className="w-6 h-6 text-gray-400"
                   fill="none"
@@ -323,75 +311,62 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
               <p className="text-xs text-gray-400">Start the conversation!</p>
             </div>
           ) : (
-            <>
-              <div className="space-y-4">
-                {combinedMessages.map((msg) => {
-                  // Compare the message userId with the current user's fid
-                  const isOwn = msg.userId === user?.fid;
-                  
-                  return (
-                    <ChatMessage
-                      key={msg.id}
-                      message={msg}
-                      isOwnMessage={isOwn}
-                    />
-                  );
-                })}
-              </div>
+            <div className="space-y-4 max-w-2xl mx-auto">
+              {combinedMessages.map((msg) => {
+                // Compare the message userId with the current user's fid
+                const isOwn = msg.userId === user?.fid;
+                
+                return (
+                  <ChatMessage
+                    key={msg.id}
+                    message={msg}
+                    isOwnMessage={isOwn}
+                  />
+                );
+              })}
               <div ref={messagesEndRef} />
-            </>
+            </div>
           )}
         </div>
 
         {/* Chat Input */}
-        <div className="p-4 border-t border-gray-700/50 flex-shrink-0">
-          <div className="flex items-center space-x-3">
-            <div className="flex-1">
-              <textarea
-                ref={textareaRef}
-                onPointerDown={(e) => e.stopPropagation()}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Type a message..."
-                className="w-full px-4 py-3 bg-white/10 text-white rounded-2xl border border-white/30 focus:border-fireside-orange focus:ring-2 focus:ring-fireside-orange focus:ring-opacity-20 outline-none resize-none min-h-[48px]"
-                maxLength={500}
-                rows={1}
-                style={{ 
-                  transition: 'height 0.2s ease-out',
-                  fontFamily: 'inherit',
-                  lineHeight: '1.5'
-                }}
-              />
-            </div>
-            <button
-              onClick={handleSendMessage}
-              disabled={!message.trim()}
-              className="w-10 h-10 bg-fireside-orange text-white rounded-full flex items-center justify-center transition-all hover:bg-fireside-orange/80 disabled:bg-gray-500 disabled:opacity-50"
-              title="Send message"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+        <div className="sticky bottom-0 bg-black/90 backdrop-blur-lg border-t border-fireside-orange/30 px-4 py-4 flex-shrink-0">
+          <div className="max-w-2xl mx-auto">
+            <div className="flex items-end space-x-3">
+              <div className="flex-1">
+                <textarea
+                  ref={textareaRef}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Type a message..."
+                  className="w-full px-4 py-3 bg-white/10 text-white rounded-2xl border border-white/30 focus:border-fireside-orange focus:ring-2 focus:ring-fireside-orange focus:ring-opacity-20 outline-none resize-none min-h-[48px] text-base"
+                  maxLength={500}
+                  rows={1}
+                  style={{ 
+                    transition: 'height 0.2s ease-out',
+                    fontFamily: 'inherit',
+                    lineHeight: '1.5'
+                  }}
                 />
-              </svg>
-            </button>
-          </div>
-          {message.length > 400 && (
-            <div className="text-xs text-gray-400 mt-1 text-right">
-              {message.length}/500
+              </div>
+              <button
+                onClick={handleSendMessage}
+                disabled={!message.trim()}
+                className="w-12 h-12 bg-fireside-orange text-white rounded-full flex items-center justify-center transition-all hover:bg-fireside-orange/80 disabled:bg-gray-500 disabled:opacity-50 flex-shrink-0"
+                title="Send message"
+              >
+                <MdSend size={20} />
+              </button>
             </div>
-          )}
+            {message.length > 400 && (
+              <div className="text-xs text-gray-400 mt-2 text-right">
+                {message.length}/500
+              </div>
+            )}
+          </div>
         </div>
-      </DrawerContent>
-    </Drawer>
+      </div>
+    </div>
   );
 }
