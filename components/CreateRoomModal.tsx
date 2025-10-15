@@ -6,13 +6,8 @@ import { useGlobalContext } from '@/utils/providers/globalContext';
 import { toast } from 'react-toastify';
 import { topics } from '@/utils/constants';
 import sdk from "@farcaster/miniapp-sdk";
-import { 
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerClose
-} from '@/components/UI/drawer';
+import Modal from '@/components/UI/Modal';
+import { MdClose } from 'react-icons/md';
 import { createRoom } from '@/utils/serverActions';
 
 interface CreateRoomModalProps {
@@ -177,70 +172,82 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
   };
 
   return (
-    <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DrawerContent 
-        className="bg-black/90 backdrop-blur-lg border-t border-orange-500/50 text-white max-h-[85vh] flex flex-col"
-      >
+    <div className={`fixed inset-0 z-50 ${isOpen ? 'block' : 'hidden'}`}>
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        onClick={onClose}
+      />
       
-        <DrawerHeader className="flex-shrink-0 pb-2">
-          <DrawerTitle className="text-2xl font-semibold text-white text-center">Create New Room</DrawerTitle>
-        </DrawerHeader>
+      {/* Full-screen modal content */}
+      <div className="relative w-full h-full bg-black/95 backdrop-blur-lg text-white overflow-y-auto">
+        {/* Header with close button */}
+        <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-lg border-b border-orange-500/30 px-4 py-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold text-white">Create New Room</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-white transition-colors p-2"
+              aria-label="Close"
+            >
+              <MdClose size={24} />
+            </button>
+          </div>
+        </div>
         
-        <div className="flex-1 overflow-y-auto px-4 py-2">
-          <form id="create-room-form" onSubmit={createRoomHandler} className="space-y-4 pb-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Room Name*
-            </label>
-            <input
-              onPointerDown={(e) => e.stopPropagation()}
-              type="text"
-              value={formData.name}
-              onChange={(e) => {
-                setFormData({ ...formData, name: e.target.value });
-                if (e.target.value.trim() === '') {
-                  setNameError('Room name cannot be empty.');
-                } else {
-                  setNameError('');
-                }
-              }}
-              className={`w-full bg-white/10 text-white p-2 rounded-lg border ${nameError ? 'border-red-500' : 'border-orange-500/30'} focus:outline-none focus:border-orange-500 transition-colors`}
-              required
-            />
-            {nameError && <p className="text-red-500 text-sm mt-1">{nameError}</p>}
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Description
-            </label>
-            <textarea
-            onPointerDown={(e) => e.stopPropagation()}
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full bg-white/10 text-white p-2 rounded-lg border border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors h-16"
-              rows={3}
-            />
-          </div>
-          
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Start Time* (Your Local Time)
-            </label>
-            <input
-            onPointerDown={(e) => e.stopPropagation()}
-              type="datetime-local"
-              value={formData.startTime}
-              onChange={(e) => setFormData({...formData, startTime: e.target.value})}
-              className="w-full px-3 py-2 bg-white/10 border border-orange-500/30 rounded-lg text-white focus:outline-none focus:border-orange-500 transition-colors [color-scheme:dark]"
-              required
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              Time zone: {Intl.DateTimeFormat().resolvedOptions().timeZone}
-            </p>
-          </div>
-         
+        {/* Form content */}
+        <div className="px-4 py-6">
+          <form id="create-room-form" onSubmit={createRoomHandler} className="space-y-6 max-w-lg mx-auto">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Room Name*
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => {
+                  setFormData({ ...formData, name: e.target.value });
+                  if (e.target.value.trim() === '') {
+                    setNameError('Room name cannot be empty.');
+                  } else {
+                    setNameError('');
+                  }
+                }}
+                className={`w-full bg-white/10 text-white p-3 rounded-lg border ${nameError ? 'border-red-500' : 'border-orange-500/30'} focus:outline-none focus:border-orange-500 transition-colors text-base`}
+                required
+                placeholder="Enter room name"
+              />
+              {nameError && <p className="text-red-500 text-sm mt-1">{nameError}</p>}
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Description
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full bg-white/10 text-white p-3 rounded-lg border border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors text-base min-h-[80px]"
+                rows={3}
+                placeholder="Describe your room (optional)"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Start Time* (Your Local Time)
+              </label>
+              <input
+                type="datetime-local"
+                value={formData.startTime}
+                onChange={(e) => setFormData({...formData, startTime: e.target.value})}
+                className="w-full px-3 py-3 bg-white/10 border border-orange-500/30 rounded-lg text-white focus:outline-none focus:border-orange-500 transition-colors [color-scheme:dark] text-base"
+                required
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Time zone: {Intl.DateTimeFormat().resolvedOptions().timeZone}
+              </p>
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -251,7 +258,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                   <button
                     type="button"
                     key={tag}
-                    className={`px-3 py-1 rounded-full border text-sm transition-colors ${selectedTags.includes(tag) ? 'gradient-fire font-bold text-white border-none' : 'bg-white/5 text-gray-300 border-orange-500/30'} ${selectedTags.length >= 3 && !selectedTags.includes(tag) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`px-4 py-2 rounded-full border text-sm transition-colors ${selectedTags.includes(tag) ? 'gradient-fire font-bold text-white border-none' : 'bg-white/5 text-gray-300 border-orange-500/30'} ${selectedTags.length >= 3 && !selectedTags.includes(tag) ? 'opacity-50 cursor-not-allowed' : ''}`}
                     onClick={() => {
                       if (selectedTags.includes(tag)) {
                         setSelectedTags(selectedTags.filter(t => t !== tag));
@@ -269,42 +276,46 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
               {selectedTags.length > 3 && <p className="text-red-500 text-sm mt-1">You can select up to 3 topics only.</p>}
             </div>
             
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center justify-between">
               <label className="block text-sm font-medium text-gray-300">
                 Enable Sponsorship
               </label>
-              <div 
-                className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer ${sponsorshipEnabled ? 'bg-orange-500' : 'bg-white/10'}`}
-                onClick={() => setSponsorshipEnabled(!sponsorshipEnabled)}
-              >
+              <div className="flex items-center space-x-3">
                 <div 
-                  className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${sponsorshipEnabled ? 'translate-x-6' : 'translate-x-0'}`} 
-                />
+                  className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${sponsorshipEnabled ? 'bg-orange-500' : 'bg-white/10'}`}
+                  onClick={() => setSponsorshipEnabled(!sponsorshipEnabled)}
+                >
+                  <div 
+                    className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${sponsorshipEnabled ? 'translate-x-6' : 'translate-x-0'}`} 
+                  />
+                </div>
+                <span className="text-sm text-gray-300">{sponsorshipEnabled ? 'On' : 'Off'}</span>
               </div>
-              <span className="text-sm text-gray-300">{sponsorshipEnabled ? 'On' : 'Off'}</span>
             </div>
           </form>
         </div>
         
-        <div className="flex-shrink-0 flex space-x-3 p-4 pt-2 border-t border-orange-500/20">
-          <DrawerClose asChild>
+        {/* Fixed bottom buttons */}
+        <div className="sticky bottom-0 bg-black/90 backdrop-blur-lg border-t border-orange-500/30 px-4 py-4">
+          <div className="flex space-x-3 max-w-lg mx-auto">
             <button
               type="button"
-              className="flex-1 bg-white/10 hover:bg-white/20 text-white font-medium py-2 px-4 rounded-md transition-colors"
+              onClick={onClose}
+              className="flex-1 bg-white/10 hover:bg-white/20 text-white font-medium py-3 px-4 rounded-lg transition-colors"
             >
               Cancel
             </button>
-          </DrawerClose>
-          <button
-            type="submit"
-            form="create-room-form"
-            disabled={loading}
-            className="flex-1 gradient-fire disabled:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
-          >
-            {loading ? 'Creating...' : 'Create Room'}
-          </button>
+            <button
+              type="submit"
+              form="create-room-form"
+              disabled={loading}
+              className="flex-1 gradient-fire disabled:bg-gray-600 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+            >
+              {loading ? 'Creating...' : 'Create Room'}
+            </button>
+          </div>
         </div>
-      </DrawerContent>
-    </Drawer>
+      </div>
+    </div>
   );
 }
