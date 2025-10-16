@@ -1048,7 +1048,7 @@ export default function SponsorDrawer({
                       </svg>
                     </button>
                     <p className="absolute bottom-2 right-2 text-xs text-white bg-black/60 px-2 py-1 rounded">
-                      Recommended size: 1500x500
+                      Recommended size: 1500x300
                     </p>
                   </div>
                 ) : (
@@ -1060,7 +1060,7 @@ export default function SponsorDrawer({
                     <p className="text-gray-300 text-sm text-center">
                       Click to upload or drag and drop
                       <span className="block text-xs text-gray-500">
-                        Recommended size: 1500x500
+                        Recommended size: 1500x300
                       </span>
                       <span className="block text-xs text-gray-500">
                         Larger images will be scaled to fit. Max size: 5MB
