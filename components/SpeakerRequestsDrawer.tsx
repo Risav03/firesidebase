@@ -42,7 +42,7 @@ export default function SpeakerRequestsDrawer({
   roomId
 }: SpeakerRequestsDrawerProps) {
 
-  console.log("REQUESTSSSS", requests);
+  // console.log("REQUESTSSSS", requests);
 
   const hmsActions = useHMSActions();
 

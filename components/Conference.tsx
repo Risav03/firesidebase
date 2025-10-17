@@ -66,8 +66,15 @@ export default function Conference({ roomId }: { roomId: string }) {
       // Extract peer ID from the event
       const peerId = event.peerId || (event.detail && event.detail.peerId);
       
+      console.log("[HMS Event - Conference] Speaker request received", {
+        peerId,
+        event,
+        localRole: localPeer?.roleName,
+        timestamp: new Date().toISOString(),
+      });
+      
       if (!peerId) {
-        console.error("Speaker request missing peer ID", event);
+        console.error("[HMS Event - Conference] Speaker request missing peer ID", event);
         return;
       }
       
@@ -107,6 +114,10 @@ export default function Conference({ roomId }: { roomId: string }) {
 
   // Use the custom hook for speaker requests
   useSpeakerRequestEvent((msg) => {
+    console.log("[HMS Event - Conference] Speaker request event received", {
+      peer: msg.peer,
+      timestamp: new Date().toISOString(),
+    });
     // Convert the message to our expected event format
     handleSpeakerRequest({ peerId: msg.peer });
   });
@@ -117,6 +128,11 @@ export default function Conference({ roomId }: { roomId: string }) {
 
 useEffect(() => {
     if (peer && !peer.isLocal && peer.isHandRaised) {
+        console.log("[HMS Event - Conference] Hand raised", {
+          peerName: peer.name,
+          peerId: peer.id,
+          timestamp: new Date().toISOString(),
+        });
         toast(`${peer.name} raised their hand.`, {
           autoClose: 3000,
           toastId: `hand-raise-${peer.id}-${Date.now()}`
@@ -126,10 +142,19 @@ useEffect(() => {
 
 
   useEffect(() => {
+    if (notification) {
+      console.log("[HMS Event - Conference]", {
+        type: notification.type,
+        timestamp: new Date().toISOString(),
+        data: notification.data,
+        localPeer: localPeer?.name,
+        localPeerId: localPeer?.id,
+      });
+    }
+    
     switch (notification?.type) {
       case HMSNotificationTypes.ROOM_ENDED:
-        
-        
+        console.log("[HMS Event - Conference] Room ended, showing end screen");
         setRoomEnded(true);
         break;
       // case HMSNotificationTypes.REMOVED_FROM_ROOM:
@@ -138,7 +163,7 @@ useEffect(() => {
       default:
         break;
     }
-  }, [notification])
+  }, [notification, localPeer])
 
   useEffect(() => {
     async function getRoomDetails() {
@@ -327,11 +352,21 @@ useEffect(() => {
 
   // Use the custom hook for speaker rejections
   useSpeakerRejectionEvent((msg) => {
+    console.log("[HMS Event - Conference] Speaker rejection event received", {
+      peer: msg.peer,
+      timestamp: new Date().toISOString(),
+    });
     handleRejectRequest({peerId: msg.peer});
   });
 
   // Listen for new sponsorship requests and show a toast to admins
   useNewSponsorEvent((msg) => {
+    console.log("[HMS Event - Conference] New sponsor event received", {
+      sponsorName: msg.sponsorName,
+      localRole: localPeer?.roleName,
+      timestamp: new Date().toISOString(),
+    });
+    
     // Only show the notification to hosts
     if (localPeer?.roleName === 'host') {
       showSponsorshipRequestToast(msg.sponsorName, () => {
@@ -355,6 +390,13 @@ useEffect(() => {
   }, []);
 
   useSponsorStatusEvent((msg) => {
+    console.log("[HMS Event - Conference] Sponsor status event received", {
+      status: msg.status,
+      userId: msg.userId,
+      userFid: user?.fid,
+      timestamp: new Date().toISOString(),
+    });
+    
     // Check if the userId matches the current user's ID
     if (user && (Number(user.fid) === Number(msg.userId))) {
       showSponsorStatusToast(msg.status, () => {
