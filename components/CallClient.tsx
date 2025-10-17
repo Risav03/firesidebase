@@ -48,7 +48,10 @@ export default function CallClient({ roomId }: CallClientProps) {
       try {
         const env = process.env.NEXT_PUBLIC_ENV;
 
-        console.log("Starting join process", new Date().toISOString());
+        console.log("[HMS Action - CallClient] Starting join process", {
+          roomId,
+          timestamp: new Date().toISOString(),
+        });
         
         var token: any = "";
         if (env !== "DEV") {
@@ -61,11 +64,14 @@ export default function CallClient({ roomId }: CallClientProps) {
           return;
         }
 
-        console.log("Joining room with ID:", roomId);
+        console.log("[HMS Action - CallClient] Joining room with ID:", roomId);
 
         const response = await fetchRoomCodes(roomId);
 
-        console.log("Room codes response:", response);
+        console.log("[HMS Action - CallClient] Room codes response:", {
+          success: response.ok,
+          timestamp: new Date().toISOString(),
+        });
         
         if (!response.ok) {
           throw new Error(response.data.error || "Failed to fetch room codes");
@@ -130,6 +136,12 @@ export default function CallClient({ roomId }: CallClientProps) {
           roomCode: roomCode,
         });
 
+        console.log("[HMS Action - CallClient] Joining room with role:", {
+          role,
+          userName: user.displayName || "Wanderer",
+          timestamp: new Date().toISOString(),
+        });
+
         await hmsActions.join({
           userName: user.displayName || "Wanderer",
           authToken,
@@ -141,9 +153,13 @@ export default function CallClient({ roomId }: CallClientProps) {
           }),
         });
 
+        console.log("[HMS Action - CallClient] Successfully joined room");
         setIsJoining(false);
       } catch (err) {
-        console.error("Error joining room:", err);
+        console.error("[HMS Action - CallClient] Error joining room:", {
+          error: err,
+          timestamp: new Date().toISOString(),
+        });
         setError(err instanceof Error ? err.message : "Failed to join room");
         setIsJoining(false);
         toast.error("Failed to join room. Please try again.");
@@ -160,8 +176,17 @@ export default function CallClient({ roomId }: CallClientProps) {
   useEffect(() => {
     if (isConnected && localPeer && user && !hasJoinedRoom) {
       const role = localPeer.roleName;
+      
+      console.log("[HMS Action - CallClient] Connected to room", {
+        role,
+        peerId: localPeer.id,
+        peerName: localPeer.name,
+        timestamp: new Date().toISOString(),
+      });
+      
       // Only auto-mute on initial join, not on subsequent peer updates
       if (role === "host" || role === "co-host" || role === "speaker") {
+        console.log("[HMS Action - CallClient] Auto-muting on join for role:", role);
         hmsActions.setLocalAudioEnabled(false);
       }
 

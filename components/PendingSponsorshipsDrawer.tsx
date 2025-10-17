@@ -87,7 +87,7 @@ export default function PendingSponsorshipsDrawer({
       const result = await fetchPendingSponsorships(roomId, token);
       
       if (result.ok) {
-        console.log("Pending and hasit",result.data)
+        // console.log("Pending and hasit",result.data)
         setPendingRequests(result.data.data);
       } else {
         console.error("Failed to fetch pending sponsorships:", result);

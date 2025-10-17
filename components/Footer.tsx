@@ -41,9 +41,6 @@ import TippingModal from "./TippingModal";
 import { toast } from "react-toastify";
 import Image from "next/image";
 
-// Dynamic import to avoid SSR issues
-let plugin: any = null;
-
 // FooterProps removed since chat state is now internal
 
 // MicComponent for handling different mic states based on roles
@@ -165,12 +162,36 @@ const MicComponent: React.FC<MicComponentProps> = ({
         }`}
         onClick={
           canUnmute && !isRejoining
-            ? () => {
-                if (!isLocalAudioEnabled) {
-                  // Only lower hand when unmuting
-                  hmsActions?.lowerLocalPeerHand?.();
+            ? async () => {
+                try {
+                  console.log("[HMS Action] Audio toggle initiated", {
+                    currentState: isLocalAudioEnabled,
+                    targetState: !isLocalAudioEnabled,
+                    peerId: localPeer?.id,
+                    peerName: localPeer?.name,
+                    role: localRoleName,
+                    timestamp: new Date().toISOString(),
+                  });
+                  
+                  if (!isLocalAudioEnabled) {
+                    // Only lower hand when unmuting
+                    console.log("[HMS Action] Lowering hand before unmuting");
+                    await hmsActions?.lowerLocalPeerHand?.();
+                  }
+                  
+                  // Safely toggle audio with error handling
+                  if (toggleAudio) {
+                    toggleAudio();
+                    console.log("[HMS Action] Audio toggle completed successfully", {
+                      newState: !isLocalAudioEnabled,
+                      timestamp: new Date().toISOString(),
+                    });
+                  }
+                } catch (error) {
+                  console.error("[HMS Action] Error toggling audio:", error);
+                  // Attempt to recover by re-initializing audio state
+                  toast.error("Failed to toggle microphone. Please try again.");
                 }
-                toggleAudio?.();
               }
             : undefined
         }
@@ -212,15 +233,14 @@ const MicComponent: React.FC<MicComponentProps> = ({
 
 export default function Footer({ roomId }: { roomId: string }) {
   const { isLocalAudioEnabled, toggleAudio } = useAVToggle((err) => {
-    console.error("useAVToggle error:", err);
+    console.error("[HMS] useAVToggle error:", err);
   });
   const amIScreenSharing = useHMSStore(selectIsLocalScreenShared);
-  const actions = useHMSActions();
+  const hmsActions = useHMSActions();
   const room = useHMSStore(selectRoom);
-  const [isPluginActive, setIsPluginActive] = useState(false);
-  const [isPluginReady, setIsPluginReady] = useState(false);
   const messages = useHMSStore(selectHMSMessages) as Array<any>;
   const localPeer = useHMSStore(selectLocalPeer);
+  const notification = useHMSNotifications();
   // Chat state
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isRejoining, setIsRejoining] = useState(false);
@@ -293,7 +313,20 @@ export default function Footer({ roomId }: { roomId: string }) {
 
   const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
 
-  const hmsActions = useHMSActions();
+  // Log all HMS notifications for debugging
+  useEffect(() => {
+    if (notification) {
+      console.log("[HMS Event]", {
+        type: notification.type,
+        timestamp: new Date().toISOString(),
+        data: notification.data,
+        localPeer: localPeer?.name,
+        localPeerId: localPeer?.id,
+        localRole: localPeer?.roleName,
+        isLocalAudioEnabled,
+      });
+    }
+  }, [notification, localPeer, isLocalAudioEnabled]);
   
   // Hand raise functionality
   const localPeerId = useHMSStore(selectLocalPeerID);
@@ -303,10 +336,19 @@ export default function Footer({ roomId }: { roomId: string }) {
   
   const toggleRaiseHand = useCallback(async () => {
     try {
+      console.log("[HMS Action] Hand raise toggle initiated", {
+        currentState: isHandRaised,
+        targetState: !isHandRaised,
+        peerId: localPeerId,
+        timestamp: new Date().toISOString(),
+      });
+      
       if (isHandRaised) {
         await hmsActions.lowerLocalPeerHand();
+        console.log("[HMS Action] Hand lowered successfully");
       } else if(!isHandRaised && !handRaiseDisabled) {
         await hmsActions.raiseLocalPeerHand();
+        console.log("[HMS Action] Hand raised successfully");
         // Set 10-second timeout on raising hand to prevent spamming
         setHandRaiseDisabled(true);
         setHandRaiseCountdown(10);
@@ -331,11 +373,17 @@ export default function Footer({ roomId }: { roomId: string }) {
         }, 10000);
       }
     } catch (error) {
-      console.error("Error toggling hand raise:", error);
+      console.error("[HMS Action] Error toggling hand raise:", error);
     }
-  }, [hmsActions, isHandRaised, handRaiseDisabled]);
+  }, [hmsActions, isHandRaised, handRaiseDisabled, localPeerId]);
 
   const { sendEmoji } = useEmojiReactionEvent((msg: { emoji: string; sender: string }) => {
+    console.log("[HMS Event] Emoji reaction received", {
+      emoji: msg.emoji,
+      sender: msg.sender,
+      timestamp: new Date().toISOString(),
+    });
+    
     const uniqueMsg = {
       ...msg,
       id: Date.now(),
@@ -360,6 +408,12 @@ export default function Footer({ roomId }: { roomId: string }) {
   // Simple direct emoji handling with reduced timeout
   const handleEmojiSelect = (emoji: { emoji: string }) => {
     if (emojiTimeout) return;
+
+    console.log("[HMS Action] Sending emoji reaction", {
+      emoji: emoji.emoji,
+      sender: user?.pfp_url,
+      timestamp: new Date().toISOString(),
+    });
 
     // Send emoji with a very short timeout to prevent rapid firing but still be responsive
     emojiTimeout = setTimeout(() => {
@@ -449,24 +503,6 @@ export default function Footer({ roomId }: { roomId: string }) {
   //     }
   //   }
   // });
-
-  // Initialize plugin only on client side with dynamic import
-  useEffect(() => {
-    if (typeof window !== "undefined" && !plugin) {
-      import("@100mslive/hms-noise-cancellation")
-        .then(({ HMSKrispPlugin }) => {
-          plugin = new HMSKrispPlugin();
-          setIsPluginReady(true);
-        })
-        .catch((error) => {
-          console.error("Failed to load noise cancellation plugin:", error);
-        });
-    }
-  }, []);
-
-  const isAudioPluginAdded = useHMSStore(
-    selectIsLocalAudioPluginPresent(plugin?.getName() || "")
-  );
 
   async function composeCast() {
     try {
@@ -562,41 +598,6 @@ export default function Footer({ roomId }: { roomId: string }) {
             localPeer={localPeer}
             user={user}
           />
-
-          {/* <button
-            title="Screen share"
-            className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
-              amIScreenSharing 
-                ? 'bg-fireside-blue text-white shadow-lg' 
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-            onClick={() => actions.setScreenShareEnabled(!amIScreenSharing)}
-          >
-            <ShareScreenIcon className="w-6 h-6" />
-          </button> */}
-
-          {/* {room?.isNoiseCancellationEnabled && isPluginReady && plugin && (
-            <button
-              title="Noise cancellation"
-              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
-                isPluginActive
-                  ? "bg-fireside-purple text-white shadow-lg"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-              }`}
-              onClick={async () => {
-                if (!plugin) return;
-                if (isAudioPluginAdded) {
-                  plugin.toggle();
-                  setIsPluginActive((prev) => !prev);
-                } else {
-                  await actions.addPluginToAudioTrack(plugin);
-                  setIsPluginActive(true);
-                }
-              }}
-            >
-              <AudioLevelIcon className="w-6 h-6" />
-            </button>
-          )} */}
 
           {/* Chat toggle button */}
         </div>
