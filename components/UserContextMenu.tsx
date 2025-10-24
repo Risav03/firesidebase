@@ -177,12 +177,54 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
   };
 
   const handleMuteToggle = async () => {
-    if (!peer.audioTrack || !canRemoteMute) return;
+    if (!peer.audioTrack || !canRemoteMute) {
+      console.warn('[UserContextMenu] Cannot perform remote mute', {
+        hasAudioTrack: !!peer.audioTrack,
+        canRemoteMute,
+        peerId: peer.id,
+        peerName: peer.name,
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+    
     try {
+      console.log('[HMS Action - Remote Mute] Initiating remote mute', {
+        targetPeer: peer.name,
+        targetPeerId: peer.id,
+        currentAudioState: isPeerAudioEnabled,
+        targetAudioState: !isPeerAudioEnabled,
+        localPeer: localPeer?.name,
+        localPeerId: localPeer?.id,
+        localRole: localPeer?.roleName,
+        timestamp: new Date().toISOString(),
+        audioTrackId: peer.audioTrack.id,
+      });
+      
+      // Add a small delay to prevent race conditions with other audio operations
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       await hmsActions.setRemoteTrackEnabled(peer.audioTrack, !isPeerAudioEnabled);
+      
+      console.log('[HMS Action - Remote Mute] Remote mute completed successfully', {
+        targetPeer: peer.name,
+        targetPeerId: peer.id,
+        newAudioState: !isPeerAudioEnabled,
+        timestamp: new Date().toISOString(),
+      });
+      
       onClose();
     } catch (err) {
-      console.error('Remote mute failed:', err);
+      console.error('[HMS Action - Remote Mute] Remote mute failed:', err);
+      console.error('[HMS Action - Remote Mute] Detailed error info', {
+        error: (err as Error).message,
+        stack: (err as Error).stack,
+        targetPeer: peer.name,
+        targetPeerId: peer.id,
+        audioTrackId: peer.audioTrack?.id,
+        localPeer: localPeer?.name,
+        timestamp: new Date().toISOString(),
+      });
     }
   };
 
