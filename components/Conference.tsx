@@ -147,6 +147,7 @@ useEffect(() => {
 
   useEffect(() => {
     if (notification) {
+
       console.log("[HMS Event - Conference]", {
         type: notification.type,
         timestamp: new Date().toISOString(),
@@ -186,6 +187,7 @@ useEffect(() => {
           })),
         });
       }
+
     }
     
     switch (notification?.type) {
