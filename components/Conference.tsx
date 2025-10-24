@@ -6,6 +6,7 @@ import {
   useHMSStore,
   useHMSActions,
   selectLocalPeer,
+  selectIsPeerAudioEnabled,
 } from "@100mslive/react-sdk";
 import { useSpeakerRequestEvent, useSpeakerRejectionEvent, useNewSponsorEvent, useSponsorStatusEvent } from "@/utils/events";
 import PeerWithContextMenu from "./PeerWithContextMenu";
@@ -34,6 +35,9 @@ export default function Conference({ roomId }: { roomId: string }) {
   const router = useRouter();
   const { user } = useGlobalContext();
   const notification = useHMSNotifications();
+  
+  // Get local peer audio state
+  const localPeerAudioEnabled = useHMSStore(selectIsPeerAudioEnabled(localPeer?.id || ''));
 
   // Ref to track previous peers for empty room detection
   const previousPeersRef = useRef<any[]>([]);
@@ -143,13 +147,47 @@ useEffect(() => {
 
   useEffect(() => {
     if (notification) {
+
       console.log("[HMS Event - Conference]", {
         type: notification.type,
         timestamp: new Date().toISOString(),
         data: notification.data,
         localPeer: localPeer?.name,
         localPeerId: localPeer?.id,
+        localRole: localPeer?.roleName,
+        // Additional audio debugging info
+        localAudioTrack: localPeer?.audioTrack,
+        localAudioEnabled: localPeerAudioEnabled,
       });
+
+      // Enhanced logging for audio-related events
+      if (notification.type === 'TRACK_ADDED' || 
+          notification.type === 'TRACK_REMOVED' || 
+          notification.type === 'TRACK_MUTED' || 
+          notification.type === 'TRACK_UNMUTED' ||
+          notification.type === 'PEER_JOINED' ||
+          notification.type === 'PEER_LEFT') {
+        console.log("[HMS Audio Event - Conference]", {
+          eventType: notification.type,
+          affectedData: notification.data,
+          allPeersCount: allPeers.length,
+          timestamp: new Date().toISOString(),
+        });
+
+        // Log all peers' audio states when there's an audio event
+        console.log("[HMS Audio State - All Peers]", {
+          timestamp: new Date().toISOString(),
+          peersAudioState: allPeers.map(peer => ({
+            id: peer.id,
+            name: peer.name,
+            role: peer.roleName,
+            hasAudioTrack: !!peer.audioTrack,
+            audioEnabled: !!peer.audioTrack, // Note: actual enabled state should use selectIsPeerAudioEnabled
+            isLocal: peer.isLocal,
+          })),
+        });
+      }
+
     }
     
     switch (notification?.type) {
@@ -163,7 +201,7 @@ useEffect(() => {
       default:
         break;
     }
-  }, [notification, localPeer])
+  }, [notification, localPeer, allPeers, localPeerAudioEnabled])
 
   useEffect(() => {
     async function getRoomDetails() {
