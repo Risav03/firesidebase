@@ -27,6 +27,7 @@ import {
   selectLocalPeer,
   HMSActions,
   HMSPeer,
+  selectIsLocalAudioEnabled,
 } from "@100mslive/react-sdk";
 import { useSpeakerRequestEvent, useSpeakerRejectionEvent, useEmojiReactionEvent } from "@/utils/events";
 import { RiAdvertisementFill } from "react-icons/ri";
@@ -232,9 +233,9 @@ const MicComponent: React.FC<MicComponentProps> = ({
 };
 
 export default function Footer({ roomId }: { roomId: string }) {
-  const { isLocalAudioEnabled, toggleAudio } = useAVToggle((err) => {
-    console.error("[HMS] useAVToggle error:", err);
-  });
+  const isLocalAudioEnabled = useHMSStore(selectIsLocalAudioEnabled);
+  const actions = useHMSActions();
+  const toggleAudio = () => actions.setLocalAudioEnabled(!isLocalAudioEnabled);
   const amIScreenSharing = useHMSStore(selectIsLocalScreenShared);
   const hmsActions = useHMSActions();
   const room = useHMSStore(selectRoom);

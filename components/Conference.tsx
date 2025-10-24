@@ -143,13 +143,13 @@ useEffect(() => {
 
   useEffect(() => {
     if (notification) {
-      console.log("[HMS Event - Conference]", {
-        type: notification.type,
-        timestamp: new Date().toISOString(),
-        data: notification.data,
-        localPeer: localPeer?.name,
-        localPeerId: localPeer?.id,
-      });
+      // console.log("[HMS Event - Conference]", {
+      //   type: notification.type,
+      //   timestamp: new Date().toISOString(),
+      //   data: notification.data,
+      //   localPeer: localPeer?.name,
+      //   localPeerId: localPeer?.id,
+      // });
     }
     
     switch (notification?.type) {
