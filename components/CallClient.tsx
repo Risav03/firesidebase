@@ -154,6 +154,12 @@ export default function CallClient({ roomId }: CallClientProps) {
         });
 
         console.log("[HMS Action - CallClient] Successfully joined room");
+        
+        // iOS/WebView: Unlock remote audio after join completes
+        if (typeof (window as any).__hmsUnlockRemoteAudio === 'function') {
+          (window as any).__hmsUnlockRemoteAudio();
+        }
+        
         setIsJoining(false);
       } catch (err) {
         console.error("[HMS Action - CallClient] Error joining room:", {

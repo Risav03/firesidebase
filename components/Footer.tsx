@@ -27,6 +27,7 @@ import {
   selectLocalPeer,
   HMSActions,
   HMSPeer,
+  selectIsLocalAudioEnabled,
 } from "@100mslive/react-sdk";
 import { useSpeakerRequestEvent, useSpeakerRejectionEvent, useEmojiReactionEvent } from "@/utils/events";
 import { RiAdvertisementFill } from "react-icons/ri";
@@ -53,6 +54,7 @@ interface MicComponentProps {
   hmsActions: HMSActions;
   localPeer: HMSPeer | undefined;
   user: any;
+  publishPermissions: any;
 }
 
 const MicComponent: React.FC<MicComponentProps> = ({
@@ -63,7 +65,8 @@ const MicComponent: React.FC<MicComponentProps> = ({
   localRoleName,
   hmsActions,
   localPeer,
-  user
+  user,
+  publishPermissions
 }) => {
   // State to track if a speaker request has been sent
   const [speakerRequested, setSpeakerRequested] = useState(false);
@@ -171,26 +174,74 @@ const MicComponent: React.FC<MicComponentProps> = ({
                     peerName: localPeer?.name,
                     role: localRoleName,
                     timestamp: new Date().toISOString(),
+                    audioTrack: localPeer?.audioTrack,
+                    audioTrackEnabled: isLocalAudioEnabled,
+                    publishPermissions: publishPermissions,
                   });
+                  
+                  // Add a small delay to prevent race conditions
+                  await new Promise(resolve => setTimeout(resolve, 100));
                   
                   if (!isLocalAudioEnabled) {
                     // Only lower hand when unmuting
                     console.log("[HMS Action] Lowering hand before unmuting");
-                    await hmsActions?.lowerLocalPeerHand?.();
+                    try {
+                      await hmsActions?.lowerLocalPeerHand?.();
+                      console.log("[HMS Action] Hand lowered successfully");
+                    } catch (handError) {
+                      console.warn("[HMS Action] Failed to lower hand:", handError);
+                      // Don't fail the entire operation if hand lowering fails
+                    }
                   }
+                  
+                  // Log the state before toggle
+                  console.log("[HMS Action] Pre-toggle state check", {
+                    isLocalAudioEnabled,
+                    audioTrack: localPeer?.audioTrack,
+                    audioTrackEnabled: isLocalAudioEnabled,
+                    canUnmute,
+                    publishPermissions: publishPermissions?.audio,
+                  });
                   
                   // Safely toggle audio with error handling
                   if (toggleAudio) {
                     toggleAudio();
+                    
+                    // iOS/WebView: Unlock remote audio after user gesture
+                    if (typeof (window as any).__hmsUnlockRemoteAudio === 'function') {
+                      (window as any).__hmsUnlockRemoteAudio();
+                    }
+                    
+                    // Wait a bit and verify the state change
+                    setTimeout(() => {
+                      console.log("[HMS Action] Post-toggle state verification", {
+                        expectedState: !isLocalAudioEnabled,
+                        actualAudioEnabled: isLocalAudioEnabled,
+                        timestamp: new Date().toISOString(),
+                      });
+                    }, 500);
+                    
                     console.log("[HMS Action] Audio toggle completed successfully", {
                       newState: !isLocalAudioEnabled,
                       timestamp: new Date().toISOString(),
                     });
+                  } else {
+                    console.error("[HMS Action] toggleAudio function is not available");
+                    toast.error("Audio toggle function not available. Please refresh the page.");
                   }
                 } catch (error) {
                   console.error("[HMS Action] Error toggling audio:", error);
                   // Attempt to recover by re-initializing audio state
                   toast.error("Failed to toggle microphone. Please try again.");
+                  
+                  // Log detailed error information
+                  console.error("[HMS Action] Detailed error info", {
+                    error: (error as Error).message,
+                    stack: (error as Error).stack,
+                    localPeer: localPeer?.id,
+                    audioTrack: localPeer?.audioTrack,
+                    timestamp: new Date().toISOString(),
+                  });
                 }
               }
             : undefined
@@ -232,9 +283,9 @@ const MicComponent: React.FC<MicComponentProps> = ({
 };
 
 export default function Footer({ roomId }: { roomId: string }) {
-  const { isLocalAudioEnabled, toggleAudio } = useAVToggle((err) => {
-    console.error("[HMS] useAVToggle error:", err);
-  });
+  const isLocalAudioEnabled = useHMSStore(selectIsLocalAudioEnabled);
+  const actions = useHMSActions();
+  const toggleAudio = () => actions.setLocalAudioEnabled(!isLocalAudioEnabled);
   const amIScreenSharing = useHMSStore(selectIsLocalScreenShared);
   const hmsActions = useHMSActions();
   const room = useHMSStore(selectRoom);
@@ -313,10 +364,10 @@ export default function Footer({ roomId }: { roomId: string }) {
 
   const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
 
-  // Log all HMS notifications for debugging
+  // Enhanced HMS notifications logging for debugging audio issues
   useEffect(() => {
     if (notification) {
-      console.log("[HMS Event]", {
+      console.log("[HMS Event - Footer]", {
         type: notification.type,
         timestamp: new Date().toISOString(),
         data: notification.data,
@@ -324,9 +375,29 @@ export default function Footer({ roomId }: { roomId: string }) {
         localPeerId: localPeer?.id,
         localRole: localPeer?.roleName,
         isLocalAudioEnabled,
+        // Additional audio debugging info
+        audioTrack: localPeer?.audioTrack,
+        audioTrackEnabled: isLocalAudioEnabled,
+        publishPermissions: publishPermissions,
+        canUnmute,
       });
+
+      // Log specific audio-related events
+      if (notification.type === 'TRACK_ADDED' || 
+          notification.type === 'TRACK_REMOVED' || 
+          notification.type === 'TRACK_MUTED' || 
+          notification.type === 'TRACK_UNMUTED') {
+        console.log("[HMS Audio Event - Footer]", {
+          eventType: notification.type,
+          affectedPeer: notification.data,
+          trackType: notification.data?.type,
+          trackEnabled: notification.data?.enabled,
+          peer: notification.data,
+          timestamp: new Date().toISOString(),
+        });
+      }
     }
-  }, [notification, localPeer, isLocalAudioEnabled]);
+  }, [notification, localPeer, isLocalAudioEnabled, publishPermissions, canUnmute]);
   
   // Hand raise functionality
   const localPeerId = useHMSStore(selectLocalPeerID);
@@ -597,6 +668,7 @@ export default function Footer({ roomId }: { roomId: string }) {
             hmsActions={hmsActions}
             localPeer={localPeer}
             user={user}
+            publishPermissions={publishPermissions}
           />
 
           {/* Chat toggle button */}
