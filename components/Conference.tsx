@@ -36,6 +36,21 @@ export default function Conference({ roomId }: { roomId: string }) {
   const { user } = useGlobalContext();
   const notification = useHMSNotifications();
 
+  // Audio debugging: Track all peer state changes
+  useEffect(() => {
+    console.group('[AUDIO DEBUG] Peer Update');
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('Total peers:', allPeers.length);
+    console.log('Peer join order:', allPeers.map(p => ({ 
+      id: p.id, 
+      name: p.name, 
+      role: p.roleName,
+      hasAudio: !!p.audioTrack,
+      audioTrackId: p.audioTrack 
+    })));
+    console.groupEnd();
+  }, [allPeers]);
+
   // Ref to track previous peers for empty room detection
   const previousPeersRef = useRef<any[]>([]);
 

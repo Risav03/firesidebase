@@ -27,6 +27,8 @@ import {
   selectLocalPeer,
   HMSActions,
   HMSPeer,
+  selectPeers,
+  HMSStore,
 } from "@100mslive/react-sdk";
 import { useSpeakerRequestEvent, useSpeakerRejectionEvent, useEmojiReactionEvent } from "@/utils/events";
 import { RiAdvertisementFill } from "react-icons/ri";
@@ -164,7 +166,8 @@ const MicComponent: React.FC<MicComponentProps> = ({
           canUnmute && !isRejoining
             ? async () => {
                 try {
-                  console.log("[HMS Action] Audio toggle initiated", {
+                  console.group('[AUDIO DEBUG] Mute/Unmute Event');
+                  console.log('Audio toggle initiated', {
                     currentState: isLocalAudioEnabled,
                     targetState: !isLocalAudioEnabled,
                     peerId: localPeer?.id,
@@ -172,6 +175,8 @@ const MicComponent: React.FC<MicComponentProps> = ({
                     role: localRoleName,
                     timestamp: new Date().toISOString(),
                   });
+                  
+                  console.groupEnd();
                   
                   if (!isLocalAudioEnabled) {
                     // Only lower hand when unmuting
@@ -182,10 +187,11 @@ const MicComponent: React.FC<MicComponentProps> = ({
                   // Safely toggle audio with error handling
                   if (toggleAudio) {
                     toggleAudio();
-                    console.log("[HMS Action] Audio toggle completed successfully", {
-                      newState: !isLocalAudioEnabled,
-                      timestamp: new Date().toISOString(),
-                    });
+                    
+                    // Log after toggle to capture any state changes
+                    setTimeout(() => {
+                      console.log('[AUDIO DEBUG] After toggle - check console for peer updates');
+                    }, 500);
                   }
                 } catch (error) {
                   console.error("[HMS Action] Error toggling audio:", error);
