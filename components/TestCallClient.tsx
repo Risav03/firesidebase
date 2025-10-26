@@ -84,19 +84,19 @@ export default function TestCallClient({ roomCode, userName }: TestCallClientPro
       hmsActions.setLocalAudioEnabled(false);
       
       // iOS autoplay fix: resume audio context if suspended
-      try {
-        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-        if (AudioContext) {
-          const testContext = new AudioContext();
-          if (testContext.state === 'suspended') {
-            console.log("[TEST] Audio context suspended, attempting to resume");
-            testContext.resume();
-          }
-          testContext.close();
-        }
-      } catch (error) {
-        console.warn("[TEST] Could not check/resume audio context:", error);
-      }
+      // try {
+      //   const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      //   if (AudioContext) {
+      //     const testContext = new AudioContext();
+      //     if (testContext.state === 'suspended') {
+      //       console.log("[TEST] Audio context suspended, attempting to resume");
+      //       testContext.resume();
+      //     }
+      //     testContext.close();
+      //   }
+      // } catch (error) {
+      //   console.warn("[TEST] Could not check/resume audio context:", error);
+      // }
     }
   }, [isConnected, localPeer, isJoining, hmsActions]);
 

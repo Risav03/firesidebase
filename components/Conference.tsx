@@ -23,7 +23,7 @@ import { showSponsorshipRequestToast, showSponsorStatusToast } from "@/utils/cus
 import SpeakerRequestsDrawer from "./SpeakerRequestsDrawer";
 import PendingSponsorshipsDrawer from "./PendingSponsorshipsDrawer";
 import SponsorDrawer from "./SponsorDrawer";
-import AudioRecoveryBanner from "./AudioRecoveryBanner";
+// import AudioRecoveryBanner from "./AudioRecoveryBanner";
 
 
 export default function Conference({ roomId }: { roomId: string }) {
@@ -220,30 +220,30 @@ useEffect(() => {
 
   // Fix for iOS WebKit one-way audio: re-set volume after state changes
   // Per 100ms docs: iOS doesn't support per-element volume, use setVolume(0|100, trackId)
-  useEffect(() => {
-    const fixWebkitAudio = async () => {
-      if (!hmsActions || allPeers.length === 0) return;
-      
-      // Get all remote peers with audio tracks
-      const remotePeers = allPeers.filter(p => !p.isLocal && p.audioTrack);
-      
-      // Re-set volume to fix WebKit one-way audio bugs
-      // According to 100ms docs: setVolume(0, trackId) mutes, setVolume(100, trackId) unmutes
-      for (const peer of remotePeers) {
-        try {
-          // Set to 100 (unmute) to kick the audio track and fix WebKit routing issues
-          await hmsActions.setVolume(100, peer.audioTrack!);
-        } catch (error) {
-          // Silently fail - track may have been removed
-          console.debug(`[Conference] Could not set volume for peer ${peer.id}:`, error);
-        }
-      }
-    };
+  // useEffect(() => {
+  //   const fixWebkitAudio = async () => {
+  //     if (!hmsActions || allPeers.length === 0) return;
+  //     
+  //     // Get all remote peers with audio tracks
+  //     const remotePeers = allPeers.filter(p => !p.isLocal && p.audioTrack);
+  //     
+  //     // Re-set volume to fix WebKit one-way audio bugs
+  //     // According to 100ms docs: setVolume(0, trackId) mutes, setVolume(100, trackId) unmutes
+  //     for (const peer of remotePeers) {
+  //       try {
+  //         // Set to 100 (unmute) to kick the audio track and fix WebKit routing issues
+  //         await hmsActions.setVolume(100, peer.audioTrack!);
+  //       } catch (error) {
+  //         // Silently fail - track may have been removed
+  //         console.debug(`[Conference] Could not set volume for peer ${peer.id}:`, error);
+  //       }
+  //     }
+  //   };
 
-    // Delay to avoid spamming on every peer update
-    const timeout = setTimeout(fixWebkitAudio, 1000);
-    return () => clearTimeout(timeout);
-  }, [allPeers.length, hmsActions]);
+  //   // Delay to avoid spamming on every peer update
+  //   const timeout = setTimeout(fixWebkitAudio, 1000);
+  //   return () => clearTimeout(timeout);
+  // }, [allPeers.length, hmsActions]);
 
   useEffect(() => {
     // Update local peers when 100ms peers change
@@ -452,7 +452,7 @@ useEffect(() => {
     
     return (
       <div className="pt-20 pb-32 px-6 relative">
-        <AudioRecoveryBanner />
+        {/* <AudioRecoveryBanner /> */}
         {roomDetails?.sponsorshipEnabled && <RoomSponsor roomId={roomId} />}
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-4 mt-6 relative">
