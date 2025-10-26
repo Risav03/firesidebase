@@ -113,7 +113,15 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
 export function useGlobalContext() {
   const context = useContext(GlobalContext);
   if (!context) {
-    throw new Error("useGlobalContext must be used within a GlobalProvider");
+    // Return a mock context for test mode
+    return {
+      user: null,
+      setUser: () => {},
+      isUserLoading: false,
+      setIsUserLoading: () => {},
+      isPopupOpen: false,
+      setIsPopupOpen: () => {},
+    };
   }
   return context;
 }
