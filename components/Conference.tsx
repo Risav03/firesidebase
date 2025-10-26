@@ -24,6 +24,7 @@ import { showSponsorshipRequestToast, showSponsorStatusToast } from "@/utils/cus
 import SpeakerRequestsDrawer from "./SpeakerRequestsDrawer";
 import PendingSponsorshipsDrawer from "./PendingSponsorshipsDrawer";
 import SponsorDrawer from "./SponsorDrawer";
+import RemoteAudioManager from "./RemoteAudioManager";
 
 
 export default function Conference({ roomId }: { roomId: string }) {
@@ -188,6 +189,23 @@ useEffect(() => {
         });
       }
 
+    }
+
+    // Replay sweep: After any relevant state change, ask all audio elements to play again.
+    // This is harmless elsewhere, and fixes WKWebView after DOM churn.
+    if (notification && [
+      HMSNotificationTypes.PEER_JOINED,
+      HMSNotificationTypes.PEER_LEFT,
+      HMSNotificationTypes.TRACK_ADDED,
+      HMSNotificationTypes.TRACK_REMOVED,
+      HMSNotificationTypes.TRACK_MUTED,
+      HMSNotificationTypes.TRACK_UNMUTED,
+      HMSNotificationTypes.ROLE_UPDATED,
+      HMSNotificationTypes.HAND_RAISE_CHANGED
+    ].includes(notification.type)) {
+      document
+        .querySelectorAll<HTMLAudioElement>('audio[data-hms-remote="true"]')
+        .forEach(el => el.play().catch(() => {}));
     }
     
     switch (notification?.type) {
@@ -449,13 +467,15 @@ useEffect(() => {
   if(roomEnded){
     return <RoomEndScreen onComplete={() => router.push("/")} />
   }
-  else{
+    else{
     // Only show speaker requests button for hosts and co-hosts
     const canManageSpeakers = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
     
     return (
-      <div className="pt-20 pb-32 px-6 relative">
-        {roomDetails?.sponsorshipEnabled && <RoomSponsor roomId={roomId} />}
+      <>
+        <RemoteAudioManager />
+        <div className="pt-20 pb-32 px-6 relative">
+          {roomDetails?.sponsorshipEnabled && <RoomSponsor roomId={roomId} />}
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-4 mt-6 relative">
             {/* Speaker Requests Button - Only shown to hosts/co-hosts and when there are requests */}
@@ -529,6 +549,7 @@ useEffect(() => {
           roomId={roomId}
         />
       </div>
+      </>
     );
   }
 

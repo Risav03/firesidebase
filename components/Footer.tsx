@@ -207,6 +207,11 @@ const MicComponent: React.FC<MicComponentProps> = ({
                   if (toggleAudio) {
                     toggleAudio();
                     
+                    // iOS/WebView: Unlock remote audio after user gesture
+                    if (typeof (window as any).__hmsUnlockRemoteAudio === 'function') {
+                      (window as any).__hmsUnlockRemoteAudio();
+                    }
+                    
                     // Wait a bit and verify the state change
                     setTimeout(() => {
                       console.log("[HMS Action] Post-toggle state verification", {
