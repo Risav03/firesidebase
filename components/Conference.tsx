@@ -165,6 +165,7 @@ useEffect(() => {
     }
   }, [notification, localPeer])
 
+
   useEffect(() => {
     async function getRoomDetails() {
       try {
@@ -192,7 +193,13 @@ useEffect(() => {
     try {
       setIsEndingRoom(true);
 
-      // Call API to end the room
+      // Call API to end the room (skip if in test mode)
+      if (!user?._id) {
+        console.log('[Conference] Test mode: skipping room end API call');
+        await hmsActions.leave();
+        router.push('/');
+        return;
+      }
       const response = await endRoom(roomId, user._id);
 
       if (!response.ok) {
@@ -397,8 +404,8 @@ useEffect(() => {
       timestamp: new Date().toISOString(),
     });
     
-    // Check if the userId matches the current user's ID
-    if (user && (Number(user.fid) === Number(msg.userId))) {
+    // Check if the userId matches the current user's ID (skip if no user)
+    if (user?.fid && (Number(user.fid) === Number(msg.userId))) {
       showSponsorStatusToast(msg.status, () => {
         if (msg.status === "approved") {
           setShowSponsorDrawer(true);

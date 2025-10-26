@@ -184,6 +184,7 @@ export default function CallClient({ roomId }: CallClientProps) {
         timestamp: new Date().toISOString(),
       });
       
+      
       // Only auto-mute on initial join, not on subsequent peer updates
       if (role === "host" || role === "co-host" || role === "speaker") {
         console.log("[HMS Action - CallClient] Auto-muting on join for role:", role);
