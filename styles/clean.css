@@ -109,6 +109,19 @@
   padding: 10px;
 }
 
+.peer-avatar {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: bold;
+  font-size: 48px;
+  border-radius: 40%;
+}
+
 .control-bar {
   display: flex;
   position: fixed;

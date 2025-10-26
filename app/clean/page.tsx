@@ -1,37 +1,49 @@
 "use client";
 
-import { useEffect } from "react";
-import { useHMSActions, useHMSStore, selectIsConnectedToRoom } from "@100mslive/react-sdk";
+import { useState } from "react";
+import dynamic from "next/dynamic";
 import JoinForm from "@/components/clean/JoinForm";
-import Conference from "@/components/clean/Conference";
-import Footer from "@/components/clean/Footer";
 import Header from "@/components/clean/Header";
 import "@/styles/clean.css";
 
-export default function CleanPage() {
-  const isConnected = useHMSStore(selectIsConnectedToRoom);
-  const hmsActions = useHMSActions();
+// Dynamically import Conference with SSR disabled since it uses browser-only Agora SDK
+const Conference = dynamic(() => import("@/components/clean/Conference"), {
+  ssr: false,
+});
 
-  useEffect(() => {
-    window.onunload = () => {
-      if (isConnected) {
-        hmsActions.leave();
-      }
-    };
-  }, [hmsActions, isConnected]);
+export default function CleanPage() {
+  const [joined, setJoined] = useState(false);
+  const [credentials, setCredentials] = useState({
+    appId: "",
+    channelName: "",
+    token: "",
+    uid: ""
+  });
+
+  const handleJoin = (appId: string, channelName: string, token: string, uid: string) => {
+    setCredentials({ appId, channelName, token, uid });
+    setJoined(true);
+  };
+
+  const handleLeave = () => {
+    setJoined(false);
+    setCredentials({ appId: "", channelName: "", token: "", uid: "" });
+  };
 
   return (
     <div className="clean-app">
       <Header />
-      {isConnected ? (
-        <>
-          <Conference />
-          <Footer />
-        </>
+      {joined ? (
+        <Conference
+          appId={credentials.appId}
+          channelName={credentials.channelName}
+          token={credentials.token}
+          uid={credentials.uid}
+          onLeave={handleLeave}
+        />
       ) : (
-        <JoinForm />
+        <JoinForm onJoin={handleJoin} />
       )}
     </div>
   );
 }
-

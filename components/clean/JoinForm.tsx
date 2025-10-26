@@ -1,13 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { useHMSActions } from "@100mslive/react-sdk";
 
-function JoinForm() {
-  const hmsActions = useHMSActions();
+interface JoinFormProps {
+  onJoin: (appId: string, channelName: string, token: string, uid: string) => void;
+}
+
+function JoinForm({ onJoin }: JoinFormProps) {
   const [inputValues, setInputValues] = useState({
-    name: "",
-    roomCode: ""
+    appId: "",
+    channelName: "",
+    token: "",
+    uid: ""
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -19,40 +23,56 @@ function JoinForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { name: userName = '', roomCode = '' } = inputValues;
-
-    try {
-      // use room code to fetch auth token
-      const authToken = await hmsActions.getAuthTokenByRoomCode({ roomCode });
-      
-      await hmsActions.join({ userName, authToken });
-    } catch (error) {
-      console.error(error);
+    const { appId, channelName, token, uid } = inputValues;
+    
+    if (appId && channelName) {
+      onJoin(appId, channelName, token || '', uid || '');
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="join-form">
-      <h2>Join Room</h2>
+      <h2>Join Agora Channel</h2>
       <div className="input-container">
         <input
           required
-          value={inputValues.name}
+          value={inputValues.appId}
           onChange={handleInputChange}
-          id="name"
+          id="appId"
           type="text"
-          name="name"
-          placeholder="Your name"
+          name="appId"
+          placeholder="App ID"
         />
       </div>
       <div className="input-container">
         <input
-          id="room-code"
-          type="text"
-          name="roomCode"
-          placeholder="Room code"
-          value={inputValues.roomCode}
+          required
+          value={inputValues.channelName}
           onChange={handleInputChange}
+          id="channelName"
+          type="text"
+          name="channelName"
+          placeholder="Channel Name"
+        />
+      </div>
+      <div className="input-container">
+        <input
+          value={inputValues.token}
+          onChange={handleInputChange}
+          id="token"
+          type="text"
+          name="token"
+          placeholder="Token (optional)"
+        />
+      </div>
+      <div className="input-container">
+        <input
+          value={inputValues.uid}
+          onChange={handleInputChange}
+          id="uid"
+          type="text"
+          name="uid"
+          placeholder="UID (optional)"
         />
       </div>
       <button className="btn-primary" type="submit">Join</button>
@@ -61,4 +81,3 @@ function JoinForm() {
 }
 
 export default JoinForm;
-
