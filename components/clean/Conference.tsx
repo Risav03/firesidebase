@@ -55,23 +55,39 @@ function Conference({ appId, channelName, token, uid, onLeave }: ConferenceProps
           if (mediaType === "audio") {
             const remoteAudioTrack = user.audioTrack;
             remoteAudioTrack?.play();
-            console.log("Remote user joined:", user.uid);
+            console.log("Remote user published:", user.uid);
+            
+            // Add user to the list when they publish
+            setRemoteUsers(prev => {
+              if (!prev.includes(user.uid)) {
+                return [...prev, user.uid];
+              }
+              return prev;
+            });
           }
         });
 
         agoraClient.on("user-joined", (user: any) => {
           console.log("User joined:", user.uid);
-          setRemoteUsers(prev => {
-            if (!prev.includes(user.uid)) {
-              return [...prev, user.uid];
-            }
-            return prev;
-          });
         });
 
         agoraClient.on("user-left", (user: any) => {
           console.log("User left:", user.uid);
           setRemoteUsers(prev => prev.filter(u => u !== user.uid));
+        });
+
+        // Subscribe to already published users in the channel
+        agoraClient.remoteUsers.forEach((user) => {
+          agoraClient.subscribe(user, "audio").then(() => {
+            user.audioTrack?.play();
+            console.log("Subscribed to existing user:", user.uid);
+            setRemoteUsers(prev => {
+              if (!prev.includes(user.uid)) {
+                return [...prev, user.uid];
+              }
+              return prev;
+            });
+          });
         });
       } catch (error) {
         console.error("Error initializing Agora:", error);
@@ -116,10 +132,15 @@ function Conference({ appId, channelName, token, uid, onLeave }: ConferenceProps
     onLeave();
   };
 
+  const totalUsers = 1 + remoteUsers.length; // Local + remote
+
   return (
     <>
       <div className="conference-section">
         <h2>Conference - {channelName}</h2>
+        <p style={{ textAlign: 'center', marginBottom: '20px', color: '#aaa' }}>
+          {totalUsers} {totalUsers === 1 ? 'person' : 'people'} in channel
+        </p>
         <div className="peers-container">
           {/* Local user */}
           <div className="peer-container">
