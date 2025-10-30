@@ -411,6 +411,7 @@ export default function Footer({ roomId }: { roomId: string }) {
         const data = JSON.parse(text);
         if (data?.type === 'REMOTE_MUTE' && String(data?.payload?.userFid || '') === String(user?.fid || '')) {
           setIsLocalAudioEnabled(false);
+          try { window.dispatchEvent(new CustomEvent('mute_state_local', { detail: { username: String(user?.username || ''), muted: true } })); } catch {}
           toast.info('You were muted by the host');
         }
         if (data?.type === 'REMOVE_PEER' && String(data?.payload?.userFid || '') === String(user?.fid || '')) {
