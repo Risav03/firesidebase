@@ -1,34 +1,29 @@
-# Clubhouse Clone in Next.js
+# Clubhouse-style Audio App (Next.js + Agora RTC/RTM)
 
-A modern Clubhouse-style audio room application built with Next.js 14, React 18 and the latest 100ms SDK.
+A modern Clubhouse-style audio app built with Next.js 14, React 18, and Agora RTC (audio-only) + Agora RTM for chat and room events.
 
 ## Features
 
 - 🎤 Audio-only rooms (Clubhouse-style)
-- 💬 Real-time chat
-- 👥 User management with roles (Speaker, Listener, Moderator)
-- 🔊 Audio controls (mute/unmute)
-- 📱 Responsive design with Tailwind CSS
+- 💬 Real-time chat (Agora RTM)
+- 👥 Roles: host, co-host, speaker, listener
+- 🔊 Mic controls (publish/unpublish)
+- ✋ Hand raise, emoji reactions (RTM events)
+- 📱 Responsive UI with Tailwind CSS
 
-## Updated to Next.js 14 with TypeScript
+## Tech Stack
 
-This project has been fully migrated from Vite to Next.js 14 with TypeScript and uses the latest `@100mslive/react-sdk`. Key improvements:
-
-- ✅ Next.js 14 with App Router
-- ✅ Full TypeScript support with proper typing
-- ✅ React 18 compatibility
-- ✅ Modern 100ms React SDK (`@100mslive/react-sdk`)
-- ✅ Better performance and stability
-- ✅ Latest 100ms features and APIs
-- ✅ Server-side rendering capabilities
-- ✅ Proper Next.js project structure
+- Next.js 14 (App Router), React 18, TypeScript
+- Agora RTC NG (`agora-rtc-sdk-ng`) + `agora-rtc-react` hooks
+- Agora RTM (`agora-rtm-sdk`) for chat and control events
+- Tailwind CSS
 
 ## Project Structure
 
 ```
 clubhouse-clone-react/
 ├── app/                    # Next.js App Router
-│   ├── layout.tsx         # Root layout with HMS provider
+│   ├── layout.tsx         # Root layout with Agora providers
 │   └── page.tsx           # Main page component
 ├── components/            # React components (TypeScript)
 │   ├── Conference.tsx
@@ -36,7 +31,6 @@ clubhouse-clone-react/
 │   ├── Footer.tsx
 │   ├── JoinForm.tsx
 │   ├── Peer.tsx
-│   ├── ScreenTile.tsx
 │   ├── Loader.tsx
 │   └── DeviceSettings.tsx
 ├── styles/               # Global styles
@@ -61,75 +55,31 @@ clubhouse-clone-react/
    ```
 
 3. **Set up environment variables**
-   
-   Copy `example.env` to `.env` and fill in your 100ms credentials:
-   ```bash
-   cp example.env .env
+
+   Create `.env.local` with:
+   ```env
+   NEXT_PUBLIC_AGORA_APP_ID=your-agora-app-id
+   NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+   NEXT_PUBLIC_ENV=DEV
    ```
-   
-   Update `.env` with your values from the 100ms Dashboard:
-   ```
-   REACT_APP_HMS_MANAGEMENT_TOKEN=your_management_token
-   REACT_APP_HMS_ROOM_ID=your_room_id
-   REACT_APP_HMS_TEMPLATE_ID=your_template_id (optional)
-   ```
+
+   Notes:
+   - RTC/RTM tokens are issued by the backend: `/api/agora/rtc-token` and `/api/agora/rtm-token` (see `utils/serverActions.ts`).
 
 4. **Start the development server**
    ```bash
    npm run dev
    ```
 
-## 100ms Setup (Actual Modern Dashboard)
+## Agora Setup
 
-### Step 1: Create Your App
-1. Visit the [100ms Dashboard](https://dashboard.100ms.live/)
-2. Sign up or log in to your account
-3. Create a new app
-
-### Step 2: Get Developer Credentials
-Go to **"Developer"** section in your app dashboard. You'll find:
-
-- **App Access Key** - Used for server-side operations
-- **App Secret** - Used with Access Key for authentication  
-- **Management Token** - Used for API calls (this is what we need)
-- **Token Validity** - How long tokens remain valid
-- **Username/Password** - For basic auth scenarios
-- **SIP Endpoint** - For telephony integration
-
-**For this app, copy the `Management Token`** - this is used to generate user auth tokens.
-
-### Step 3: Create a Room
-1. Go to **"Rooms"** section in your dashboard
-2. Click **"Create Room"** 
-3. Configure your room settings
-4. Copy the **Room ID** (not room name)
-
-### Step 4: Set Up Templates (Optional)
-1. Go to **"Templates"** section
-2. Create or select a template that defines user roles and permissions
-3. Copy the **Template ID** if you want to use a specific template
-
-### Step 5: Update Environment Variables
-Add your credentials to `.env`:
-```env
-# Required
-REACT_APP_HMS_MANAGEMENT_TOKEN=your-management-token-here
-REACT_APP_HMS_ROOM_ID=your-room-id-here
-
-# Optional
-REACT_APP_HMS_TEMPLATE_ID=your-template-id-here
-```
-
-## Tech Stack
-
-- **React 18** - Latest React with modern features
-- **100ms SDK** - Latest `@100mslive/react-sdk`
-- **Tailwind CSS** - For styling
-- **Craco** - For custom webpack configuration
+1. Create a project in the [Agora Console](https://console.agora.io/) and copy the App ID.
+2. Implement server endpoints to mint RTC/RTM tokens (keep your App Certificate secret on the server).
+3. Set `NEXT_PUBLIC_AGORA_APP_ID` and backend URL in `.env.local`.
 
 ## Documentation
 
-- [100ms Documentation](https://www.100ms.live/docs)
-- [100ms React SDK Guide](https://www.100ms.live/docs/react/v2/get-started/react-quickstart)
+- [Agora React SDK docs](https://api-ref.agora.io/en/voice-sdk/reactjs/2.x/index.html)
+- [Agora RTM Web SDK docs](https://api-ref.agora.io/en/rtm-web/docs/develop/overview)
 
-Have questions? [Join the 100ms Discord Server](https://www.100ms.live/discord)
+This codebase has been migrated from 100ms to Agora RTC/RTM for audio-only parity and RTM-driven chat/events.

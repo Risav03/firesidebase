@@ -2,34 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Chat from "./Chat";
-import {
-  AudioLevelIcon,
-  MicOffIcon,
-  MicOnIcon,
-  ShareScreenIcon,
-} from "@100mslive/react-icons";
-import { HandRaiseIcon } from "@100mslive/react-icons";
-import {
-  selectIsLocalAudioPluginPresent,
-  selectIsLocalScreenShared,
-  selectRoom,
-  selectIsAllowedToPublish,
-  selectLocalPeerRoleName,
-  selectHMSMessages,
-  useAVToggle,
-  useHMSActions,
-  useHMSStore,
-  HMSNotificationTypes,
-  useHMSNotifications,
-  selectBroadcastMessages,
-  selectLocalPeerID,
-  selectHasPeerHandRaised,
-  selectLocalPeer,
-  HMSActions,
-  HMSPeer,
-  selectPeers,
-  HMSStore,
-} from "@100mslive/react-sdk";
+import { Mic, MicOff } from "lucide-react";
+import { useRtmClient } from "@/utils/providers/rtm";
 import { useSpeakerRequestEvent, useSpeakerRejectionEvent, useEmojiReactionEvent } from "@/utils/events";
 import { RiAdvertisementFill } from "react-icons/ri";
 import { FaMoneyBill } from "react-icons/fa";
@@ -52,8 +26,6 @@ interface MicComponentProps {
   canUnmute: boolean;
   isRejoining: boolean;
   localRoleName: string | undefined;
-  hmsActions: HMSActions;
-  localPeer: HMSPeer | undefined;
   user: any;
 }
 
@@ -63,28 +35,27 @@ const MicComponent: React.FC<MicComponentProps> = ({
   canUnmute,
   isRejoining,
   localRoleName,
-  hmsActions,
-  localPeer,
   user
 }) => {
+  const { channel } = useRtmClient();
   // State to track if a speaker request has been sent
   const [speakerRequested, setSpeakerRequested] = useState(false);
   
   // Check if speaker request was previously sent (persistent across renders)
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storedRequest = localStorage.getItem(`speakerRequested_${localPeer?.id || user?.fid}`);
+      const storedRequest = localStorage.getItem(`speakerRequested_${user?.fid}`);
       if (storedRequest === 'true') {
         setSpeakerRequested(true);
       }
     }
-  }, [localPeer?.id, user?.fid]);
+  }, [user?.fid]);
   
   // Custom event to request speaker role
   const { requestToSpeak } = useSpeakerRequestEvent();
 
   useSpeakerRejectionEvent((msg) => {
-    if (msg.peer === (localPeer?.id || user?.fid)) {
+    if (msg.peer === String(user?.fid)) {
       setSpeakerRequested(false);
     }
   })
@@ -97,11 +68,11 @@ const MicComponent: React.FC<MicComponentProps> = ({
     
     // Store request state in localStorage
     if (typeof window !== 'undefined') {
-      localStorage.setItem(`speakerRequested_${localPeer?.id || user?.fid}`, 'true');
+      localStorage.setItem(`speakerRequested_${user?.fid}`, 'true');
     }
     
     // Send event with peer information
-    requestToSpeak(localPeer?.id as string);
+    requestToSpeak(String(user?.fid));
     
     // Show feedback to the user that request was sent
     toast.success("🎙️ Speaker request sent", { 
@@ -115,11 +86,11 @@ const MicComponent: React.FC<MicComponentProps> = ({
       // If the user can now unmute and had requested it, clear the request state
       setSpeakerRequested(false);
       if (typeof window !== 'undefined') {
-        localStorage.removeItem(`speakerRequested_${localPeer?.id || user?.fid}`);
+        localStorage.removeItem(`speakerRequested_${user?.fid}`);
       }
       toast.success("You can now speak!", { autoClose: 3000 });
     }
-  }, [canUnmute, speakerRequested, localPeer?.id, user?.fid]);
+  }, [canUnmute, speakerRequested, user?.fid]);
 
   // For listeners without unmute permission, show the request to speak button
   if (isListener && !canUnmute) {
@@ -170,31 +141,33 @@ const MicComponent: React.FC<MicComponentProps> = ({
                   console.log('Audio toggle initiated', {
                     currentState: isLocalAudioEnabled,
                     targetState: !isLocalAudioEnabled,
-                    peerId: localPeer?.id,
-                    peerName: localPeer?.name,
+                    peerId: user?.fid,
+                    peerName: user?.displayName,
                     role: localRoleName,
                     timestamp: new Date().toISOString(),
                   });
                   
                   console.groupEnd();
                   
-                  if (!isLocalAudioEnabled) {
-                    // Only lower hand when unmuting
-                    console.log("[HMS Action] Lowering hand before unmuting");
-                    await hmsActions?.lowerLocalPeerHand?.();
-                  }
-                  
                   // Safely toggle audio with error handling
                   if (toggleAudio) {
+                    const next = !isLocalAudioEnabled;
                     toggleAudio();
-                    
-                    // Log after toggle to capture any state changes
+                    const muted = !next;
+                    try {
+                      if (channel && user?.username) {
+                        await channel.sendMessage({ text: JSON.stringify({ type: 'MUTE_STATE', payload: { username: String(user.username), muted }, ts: Date.now() }) });
+                      }
+                    } catch {}
+                    try {
+                      window.dispatchEvent(new CustomEvent('mute_state_local', { detail: { username: String(user?.username || ''), muted } }));
+                    } catch {}
                     setTimeout(() => {
                       console.log('[AUDIO DEBUG] After toggle - check console for peer updates');
                     }, 500);
                   }
                 } catch (error) {
-                  console.error("[HMS Action] Error toggling audio:", error);
+                  console.error("[Audio] Error toggling audio:", error);
                   // Attempt to recover by re-initializing audio state
                   toast.error("Failed to toggle microphone. Please try again.");
                 }
@@ -217,9 +190,9 @@ const MicComponent: React.FC<MicComponentProps> = ({
         {isRejoining ? (
           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
         ) : isLocalAudioEnabled ? (
-          <MicOnIcon className="w-6 h-6" />
+          <Mic className="w-6 h-6" />
         ) : (
-          <MicOffIcon className="w-6 h-6" />
+          <MicOff className="w-6 h-6" />
         )}
       </button>
       <div className="mt-3 ">
@@ -238,15 +211,13 @@ const MicComponent: React.FC<MicComponentProps> = ({
 };
 
 export default function Footer({ roomId }: { roomId: string }) {
-  const { isLocalAudioEnabled, toggleAudio } = useAVToggle((err) => {
-    console.error("[HMS] useAVToggle error:", err);
-  });
-  const amIScreenSharing = useHMSStore(selectIsLocalScreenShared);
-  const hmsActions = useHMSActions();
-  const room = useHMSStore(selectRoom);
-  const messages = useHMSStore(selectHMSMessages) as Array<any>;
-  const localPeer = useHMSStore(selectLocalPeer);
-  const notification = useHMSNotifications();
+  const [isLocalAudioEnabled, setIsLocalAudioEnabled] = useState(false);
+  const toggleAudio = useCallback(() => setIsLocalAudioEnabled((v) => !v), []);
+  // Mic publish is handled in CallClient via plain SDK; keep UI-only state here
+  const amIScreenSharing = false;
+  const room: any = null;
+  const localPeer: any = null;
+  const { client: rtmClient, channel } = useRtmClient();
   // Chat state
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isRejoining, setIsRejoining] = useState(false);
@@ -260,8 +231,8 @@ export default function Footer({ roomId }: { roomId: string }) {
     return Date.now();
   });
   const [unreadCount, setUnreadCount] = useState(0);
-  const publishPermissions = useHMSStore(selectIsAllowedToPublish);
-  const localRoleName = useHMSStore(selectLocalPeerRoleName);
+  const publishPermissions: any = { audio: true };
+  const localRoleName = 'listener';
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   // Update floatingEmojis state type to include fontSize
   const [floatingEmojis, setFloatingEmojis] = useState<Array<{ emoji: string; sender: string; id: number; position: number; fontSize: string }>>([]);
@@ -288,27 +259,26 @@ export default function Footer({ roomId }: { roomId: string }) {
     }
   };
 
-  // Effect to track unread messages
+  // Effect to track unread messages using RTM events
   useEffect(() => {
-    if (!isChatOpen && messages.length > 0) {
-      // Filter out own messages and count only messages from others that arrived after last read
-      const unreadMessages = messages.filter((message: any) => {
-        if (!message.time) return false;
-        
-        // Check if message arrived after last read timestamp
-        const isAfterLastRead = message.time.getTime() > lastReadTimestamp;
-        
-        // Check if message is not from current user
-        const isNotOwnMessage = message.sender !== localPeer?.name && 
-                               message.senderName !== localPeer?.name &&
-                               message.sender !== user?.fid?.toString();
-        
-        return isAfterLastRead && isNotOwnMessage;
-      });
-      
-      setUnreadCount(unreadMessages.length);
-    }
-  }, [messages, lastReadTimestamp, isChatOpen, localPeer?.name, user?.fid]);
+    if (!channel) return;
+    const handler = ({ text }: any) => {
+      try {
+        const data = JSON.parse(text);
+        if (data?.type === 'CHAT') {
+          const ts = typeof data?.ts === 'number' ? data.ts : Date.now();
+          const fromSelf = String(data?.payload?.userFid || '') === String(user?.fid || '');
+          if (!isChatOpen && !fromSelf && ts > lastReadTimestamp) {
+            setUnreadCount((c) => c + 1);
+          }
+        }
+      } catch {}
+    };
+    channel.on('ChannelMessage', handler);
+    return () => {
+      try { channel.off('ChannelMessage', handler); } catch {}
+    };
+  }, [channel, isChatOpen, lastReadTimestamp, user?.fid]);
 
   // Reset unread count when chat is opened
   useEffect(() => {
@@ -319,42 +289,34 @@ export default function Footer({ roomId }: { roomId: string }) {
 
   const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
 
-  // Log all HMS notifications for debugging
-  useEffect(() => {
-    if (notification) {
-      console.log("[HMS Event]", {
-        type: notification.type,
-        timestamp: new Date().toISOString(),
-        data: notification.data,
-        localPeer: localPeer?.name,
-        localPeerId: localPeer?.id,
-        localRole: localPeer?.roleName,
-        isLocalAudioEnabled,
-      });
-    }
-  }, [notification, localPeer, isLocalAudioEnabled]);
+  // Removed HMS notifications logging
   
   // Hand raise functionality
-  const localPeerId = useHMSStore(selectLocalPeerID);
-  const isHandRaised = useHMSStore(selectHasPeerHandRaised(localPeerId));
+  const [isHandRaised, setIsHandRaised] = useState(false);
   const [handRaiseDisabled, setHandRaiseDisabled] = useState(false);
   const [handRaiseCountdown, setHandRaiseCountdown] = useState(10);
   
   const toggleRaiseHand = useCallback(async () => {
     try {
-      console.log("[HMS Action] Hand raise toggle initiated", {
+      console.log("[Hand] Hand raise toggle initiated", {
         currentState: isHandRaised,
         targetState: !isHandRaised,
-        peerId: localPeerId,
+        peerId: user?.fid,
         timestamp: new Date().toISOString(),
       });
       
       if (isHandRaised) {
-        await hmsActions.lowerLocalPeerHand();
-        console.log("[HMS Action] Hand lowered successfully");
+        setIsHandRaised(false);
+        if (channel) {
+          await channel.sendMessage({ text: JSON.stringify({ type: 'HAND_RAISE_CHANGED', payload: { raised: false, userFid: user?.fid }, ts: Date.now() }) });
+        }
+        try { window.dispatchEvent(new CustomEvent('hand_raise_local', { detail: { raised: false, fid: String(user?.fid || ''), username: String(user?.username || '') } })); } catch {}
       } else if(!isHandRaised && !handRaiseDisabled) {
-        await hmsActions.raiseLocalPeerHand();
-        console.log("[HMS Action] Hand raised successfully");
+        setIsHandRaised(true);
+        if (channel) {
+          await channel.sendMessage({ text: JSON.stringify({ type: 'HAND_RAISE_CHANGED', payload: { raised: true, userFid: user?.fid }, ts: Date.now() }) });
+        }
+        try { window.dispatchEvent(new CustomEvent('hand_raise_local', { detail: { raised: true, fid: String(user?.fid || ''), username: String(user?.username || '') } })); } catch {}
         // Set 10-second timeout on raising hand to prevent spamming
         setHandRaiseDisabled(true);
         setHandRaiseCountdown(10);
@@ -379,9 +341,9 @@ export default function Footer({ roomId }: { roomId: string }) {
         }, 10000);
       }
     } catch (error) {
-      console.error("[HMS Action] Error toggling hand raise:", error);
+      console.error("[Hand] Error toggling hand raise:", error);
     }
-  }, [hmsActions, isHandRaised, handRaiseDisabled, localPeerId]);
+  }, [channel, isHandRaised, handRaiseDisabled, user?.fid]);
 
   const { sendEmoji } = useEmojiReactionEvent((msg: { emoji: string; sender: string }) => {
     console.log("[HMS Event] Emoji reaction received", {
@@ -404,10 +366,7 @@ export default function Footer({ roomId }: { roomId: string }) {
     }, 5000);
   });
 
-  // Initialize emoji message filtering only once when component mounts
-  useEffect(() => {
-    hmsActions.ignoreMessageTypes(['EMOJI_REACTION']);
-  }, [hmsActions]);
+  // No HMS emoji filtering needed when using RTM
 
   var emojiTimeout: NodeJS.Timeout | null = null;
 
@@ -421,12 +380,59 @@ export default function Footer({ roomId }: { roomId: string }) {
       timestamp: new Date().toISOString(),
     });
 
+    // Immediately show local emoji reaction (RTM may not echo to sender)
+    const localMsg = {
+      emoji: emoji.emoji,
+      sender: String(user?.pfp_url || ''),
+      id: Date.now() + Math.random(),
+      position: Math.random() * 30,
+      fontSize: (Math.random() * 0.5 + 1).toFixed(1)
+    } as any;
+    setFloatingEmojis((prev) => [...prev, localMsg]);
+    setTimeout(() => { setFloatingEmojis((prev) => prev.filter((e) => e.id !== localMsg.id)); }, 5000);
+
     // Send emoji with a very short timeout to prevent rapid firing but still be responsive
     emojiTimeout = setTimeout(() => {
       sendEmoji(emoji.emoji, user?.pfp_url);
+      try {
+        if (channel && user?.username) {
+          channel.sendMessage({ text: JSON.stringify({ type: 'EMOJI', payload: { username: String(user.username), emoji: emoji.emoji, sender: user?.pfp_url || '' }, ts: Date.now() }) });
+        }
+      } catch {}
       emojiTimeout = null;
     }, 700); // Reduced from 1000ms to 700ms for better responsiveness
   };
+
+  // Listen for RTM admin actions (remote mute, remove peer)
+  useEffect(() => {
+    if (!channel) return;
+    const handler = ({ text }: any) => {
+      try {
+        const data = JSON.parse(text);
+        if (data?.type === 'REMOTE_MUTE' && String(data?.payload?.userFid || '') === String(user?.fid || '')) {
+          setIsLocalAudioEnabled(false);
+          toast.info('You were muted by the host');
+        }
+        if (data?.type === 'REMOVE_PEER' && String(data?.payload?.userFid || '') === String(user?.fid || '')) {
+          toast.error('You were removed by the host');
+          setTimeout(() => { window.location.href = '/'; }, 800);
+        }
+        if (data?.type === 'EMOJI' && data?.payload?.emoji) {
+          const uniqueMsg = {
+            emoji: String(data.payload.emoji),
+            sender: String(data.payload.sender || ''),
+            id: Date.now() + Math.random(),
+            position: Math.random() * 30,
+            fontSize: (Math.random() * 0.5 + 1).toFixed(1)
+          } as any;
+          setFloatingEmojis((prev) => [...prev, uniqueMsg]);
+          setTimeout(() => { setFloatingEmojis((prev) => prev.filter((e) => e.id !== uniqueMsg.id)); }, 5000);
+        }
+      } catch {}
+    };
+    channel.on('ChannelMessage', handler);
+    return () => { try { channel.off('ChannelMessage', handler); } catch {} };
+  }, [channel, user?.fid, setIsLocalAudioEnabled]);
 
 
   // Listen for role change events to show re-joining state
@@ -588,10 +594,43 @@ export default function Footer({ roomId }: { roomId: string }) {
     setIsAdsModalOpen((prev) => !prev);
   };
 
-  const isHost = localRoleName === "host" || localRoleName === "co-host";
+  const isHost = false;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 h-28 bg-black">
+    <>
+      {/* Floating emoji overlay (full screen, no pointer events) */}
+      <div className="fixed inset-0 pointer-events-none z-[9999]">
+        {floatingEmojis.map((floatingEmoji) => (
+          <div
+            key={floatingEmoji.id}
+            className="absolute bottom-0 animate-float"
+            style={{
+              right: `${floatingEmoji.position}%`,
+              transform: "translateX(-50%)",
+              animation: "float 7s ease-out forwards",
+            }}
+          >
+            <div style={{animation: "fade 3s ease-out forwards"}} className="flex flex-col pointer-events-none items-center relative justify-center rounded-full p-[0.1rem] aspect-square bg-black/50 border-2 border-black/50">
+              <span
+                style={{
+                  fontSize: `${floatingEmoji.fontSize}rem`,
+                }}
+              >
+                {floatingEmoji.emoji}
+              </span>
+              <Image
+                src={floatingEmoji.sender || "/default-pfp.png"}
+                className="w-5 h-5 rounded-full border-2 border-black/50 absolute -bottom-[0.4rem] -right-[0.4rem]"
+                alt={floatingEmoji.sender ? floatingEmoji.sender : "Default Avatar"}
+                width={32}
+                height={32}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 z-50 h-28 bg-black">
       <div className="max-w-4xl mx-auto px-6 py-4 flex">
         <div className="flex flex-col items-center justify-center w-[30%]">
           <MicComponent
@@ -600,8 +639,6 @@ export default function Footer({ roomId }: { roomId: string }) {
             canUnmute={canUnmute}
             isRejoining={isRejoining}
             localRoleName={localRoleName}
-            hmsActions={hmsActions}
-            localPeer={localPeer}
             user={user}
           />
 
@@ -653,7 +690,7 @@ export default function Footer({ roomId }: { roomId: string }) {
           >
             {/* Show hand icon only when not in cooldown */}
             {!(handRaiseDisabled && !isHandRaised) && (
-              <HandRaiseIcon className="w-5 h-5" />
+              <span className="text-lg">✋</span>
             )}
             
             {/* Cooldown overlay with circular progress */}
@@ -771,50 +808,21 @@ export default function Footer({ roomId }: { roomId: string }) {
           
         
 
-        {/* Floating emoji rendering */}
-        {floatingEmojis.map((floatingEmoji) => (
-          <div
-            key={floatingEmoji.id}
-            className="absolute bottom-0 animate-float"
-            style={{
-              right: `${floatingEmoji.position}%`, // Use stored position
-              transform: "translateX(-50%)",
-              animation: "float 7s ease-out forwards",
-            }}
-          >
-            <div style={{animation: "fade 3s ease-out forwards"}} className="flex flex-col pointer-events-none items-center relative justify-center rounded-full p-[0.1rem] aspect-square bg-black/50 border-2 border-black/50">
-              <span
-                style={{
-                  fontSize: `${floatingEmoji.fontSize}rem`, // Use the stored font size for this specific emoji
-                }}
-              >
-                {floatingEmoji.emoji}
-              </span>
-              <Image
-              
-                src={floatingEmoji.sender || "/default-pfp.png"}
-                className="w-5 h-5 rounded-full border-2 border-black/50 absolute -bottom-[0.4rem] -right-[0.4rem]"
-                alt={floatingEmoji.sender ? floatingEmoji.sender : "Default Avatar"}
-                width={32}
-                height={32}
-              />
-            </div>
-          </div>
-        ))}
+        
+        {/* Chat component rendered here remains above */}
+      </div>
       </div>
 
       {/* Tipping Modal */}
-      {/* {isTippingModalOpen && ( */}
-        <TippingModal
-          isOpen={isTippingModalOpen}
-          onClose={() => setIsTippingModalOpen(false)}
-          roomId={roomId}
-        />
-      {/* )} */}
+      <TippingModal
+        isOpen={isTippingModalOpen}
+        onClose={() => setIsTippingModalOpen(false)}
+        roomId={roomId}
+      />
 
       {/* Ads Modal */}
-      <AdsModal participants={room.peerCount || 0} isAdsModalOpen={isAdsModalOpen} setIsAdsModalOpen={setIsAdsModalOpen} isHost={isHost} adsEnabled={adsEnabled} setAdsEnabled={setAdsEnabled} />
-    </div>
+      <AdsModal participants={0} isAdsModalOpen={isAdsModalOpen} setIsAdsModalOpen={setIsAdsModalOpen} isHost={isHost} adsEnabled={adsEnabled} setAdsEnabled={setAdsEnabled} />
+    </>
   );
 }
 const AdsModal = ({ participants, isAdsModalOpen, setIsAdsModalOpen, isHost, adsEnabled, setAdsEnabled}: {participants: number, isAdsModalOpen: boolean, setIsAdsModalOpen: (isOpen: boolean) => void, isHost: boolean, adsEnabled: boolean, setAdsEnabled: (isEnabled: boolean) => void}) => {

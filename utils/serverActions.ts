@@ -37,6 +37,15 @@ export async function fetchAPI(url: string, options: FetchOptions = {}) {
     // Add auth header if provided
     if (authToken) {
       requestHeaders['Authorization'] = `Bearer ${authToken}`;
+    } else {
+      // DEV fallback: use NEXT_PUBLIC_DEV_HEADER as raw token (no prefix)
+      const isDevEnv = process.env.NEXT_PUBLIC_ENV === 'DEV';
+      const devToken = process.env.NEXT_PUBLIC_DEV_HEADER; // expects just the JWT (e.g., ey...)
+      const existingAuth = requestHeaders['Authorization'];
+      const isInvalidAuth = typeof existingAuth === 'string' && existingAuth.includes('undefined');
+      if (isDevEnv && devToken && (!existingAuth || isInvalidAuth)) {
+        requestHeaders['Authorization'] = `Bearer ${devToken}`;
+      }
     }
 
     // Create request options
@@ -114,6 +123,30 @@ export async function fetchRoomRecordings(roomId: string) {
 export async function fetchRoomCodes(roomId: string) {
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
   return fetchAPI(`${URL}/api/rooms/public/${roomId}/codes`);
+}
+
+/**
+ * Get Agora RTC token (server-side issued)
+ */
+export async function getAgoraRtcToken(params: { channel: string; uid: string | number; role?: 'publisher' | 'subscriber' }, authToken: string | null = null) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/agora/rtc-token`, {
+    method: 'POST',
+    body: params,
+    authToken,
+  });
+}
+
+/**
+ * Get Agora RTM token (server-side issued)
+ */
+export async function getAgoraRtmToken(params: { uid: string | number }, authToken: string | null = null) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/agora/rtm-token`, {
+    method: 'POST',
+    body: params,
+    authToken,
+  });
 }
 
 /**

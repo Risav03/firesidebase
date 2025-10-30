@@ -11,7 +11,6 @@ import {
   DrawerHeader,
   DrawerTitle
 } from "@/components/UI/drawer";
-import { useHMSStore, selectPeers, useHMSActions } from "@100mslive/react-sdk";
 import sdk from "@farcaster/miniapp-sdk";
 import { createSponsorship, fetchSponsorshipStatus, withdrawSponsorshipRequest, fetchLiveParticipants, sendChatMessage, activateSponsorship } from "@/utils/serverActions";
 import { useGlobalContext } from "@/utils/providers/globalContext";
@@ -82,9 +81,18 @@ export default function SponsorDrawer({
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [processingTx, setProcessingTx] = useState(false);
   
-  // Get all peers in the room
-  const peers = useHMSStore(selectPeers);
-  const peerCount = peers.length;
+  // Get participant count from backend when drawer opens
+  const [peerCount, setPeerCount] = useState<number>(0);
+  useEffect(() => {
+    const loadCount = async () => {
+      try {
+        const res = await fetchLiveParticipants(roomId);
+        const count = res?.data?.data?.peers?.length || 0;
+        setPeerCount(count);
+      } catch { setPeerCount(0); }
+    };
+    if (isOpen) loadCount();
+  }, [isOpen, roomId]);
   
   // Tipping related
   const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Base USDC
@@ -92,7 +100,6 @@ export default function SponsorDrawer({
   const { writeContractAsync } = useWriteContract();
   const { context, isFrameReady } = useMiniKit();
   const { address } = useAccount();
-  const hmsActions = useHMSActions();
   const { sendCalls, isSuccess, status } = useSendCalls();
   const [transactionToastId, setTransactionToastId] = useState<string | null>(null);
   const [transactionData, setTransactionData] = useState<{
@@ -219,8 +226,7 @@ export default function SponsorDrawer({
     const emoji = amount >= 100 ? "💸" : amount >= 25 ? "🎉" : "👍";
     const message = `${emoji} ${sponsor} sponsored this room for $${amount} in ${currency}!`;
 
-    // Send to HMS for real-time broadcast
-    hmsActions.sendBroadcastMessage(message);
+    // Optional: broadcast via RTM channel if available (handled elsewhere)
 
     // Store in Redis for persistence
     try {

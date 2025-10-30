@@ -20,3 +20,8 @@ type RoomParticipant = {
     status: 'active' | 'inactive';
     joinedAt: string;
 }
+
+// Ambient module declarations for external SDKs without shipped types
+declare module "agora-rtc-sdk-ng";
+declare module "agora-rtc-react";
+declare module "agora-rtm-sdk";

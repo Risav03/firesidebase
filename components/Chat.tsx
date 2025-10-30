@@ -1,13 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import {
-  selectHMSMessages,
-  selectLocalPeer,
-  useHMSActions,
-  useHMSStore,
-  HMSMessage,
-} from "@100mslive/react-sdk";
+import { useRtmClient } from "@/utils/providers/rtm";
 import { ChatMessage } from "./ChatMessage";
 import { useGlobalContext } from "@/utils/providers/globalContext";
 import { toast } from "react-toastify";
@@ -28,8 +22,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const messages = useHMSStore(selectHMSMessages);
-  const hmsActions = useHMSActions();
+  const { client: rtmClient, channel } = useRtmClient();
   const { user } = useGlobalContext();
 
   // Scroll to bottom function
@@ -56,9 +49,18 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         };
 
         const response = await fetchChatMessages(roomId, 50);
-        
         if (response.data.success) {
-          setRedisMessages(response.data.data.messages);
+          const msgs = (response.data.data?.messages || []).map((m: any) => ({
+            id: m.id || m._id || `${m.userId || m.userFid}_${m.timestamp || m.createdAt || Date.now()}`,
+            roomId: m.roomId || roomId,
+            userId: String(m.userId || m.userFid || ''),
+            username: String(m.username || ''),
+            displayName: String(m.displayName || m.name || m.username || 'Anonymous'),
+            pfp_url: String(m.pfp_url || ''),
+            message: String(m.message || m.text || ''),
+            timestamp: new Date(m.timestamp || m.createdAt || m.ts || Date.now()).toISOString(),
+          }));
+          setRedisMessages(msgs);
         }
       } catch (error) {
         console.error('Failed to load messages:', error);
@@ -73,7 +75,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     scrollToBottom();
-  }, [messages, redisMessages, scrollToBottom]);
+  }, [redisMessages, scrollToBottom]);
 
   // Scroll to bottom when chat drawer opens
   useEffect(() => {
@@ -87,10 +89,10 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
   // Scroll to bottom when messages are loaded
   useEffect(() => {
-    if (isOpen && !loading && (redisMessages.length > 0 || messages.length > 0)) {
+    if (isOpen && !loading && (redisMessages.length > 0)) {
       setTimeout(() => scrollToBottom(), 100);
     }
-  }, [isOpen, loading, redisMessages.length, messages.length, scrollToBottom]);
+  }, [isOpen, loading, redisMessages.length, scrollToBottom]);
 
   // Auto-resize textarea based on content
   const adjustTextareaHeight = () => {
@@ -129,14 +131,21 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
     }, 0);
 
     try {
-      // Send to HMS for real-time broadcast
-      // Format the message to include user fid for identification
-      const messageWithMetadata = JSON.stringify({
-        text: messageText,
-        userFid: user.fid,
-        type: 'chat'
-      });
-      hmsActions.sendBroadcastMessage(messageWithMetadata);
+      // Send to RTM for real-time broadcast (include sender metadata for correct UI on receivers)
+      if (channel) {
+        const envelope = { 
+          type: 'CHAT', 
+          payload: { 
+            text: messageText, 
+            userFid: user.fid,
+            username: String(user.username || ''),
+            displayName: String(user.displayName || user.username || ''),
+            pfp_url: String(user.pfp_url || '')
+          }, 
+          ts: Date.now() 
+        };
+        await channel.sendMessage({ text: JSON.stringify(envelope) });
+      }
 
       const env = process.env.NEXT_PUBLIC_ENV;
         
@@ -156,8 +165,19 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       );
 
       if (response.data.success) {
-        // Add the new message to our local state
-        setRedisMessages(prev => [...prev, response.data.data.message]);
+        // Normalize and add the new message to our local state (avoid Anonymous/invalid time before refresh)
+        const m = response.data.data.message || {};
+        const normalized: RedisChatMessage = {
+          id: m.id || m._id || `${user.fid}_${Date.now()}`,
+          roomId: m.roomId || roomId,
+          userId: String(m.userId || m.userFid || user.fid || ''),
+          username: String(m.username || user.username || ''),
+          displayName: String(m.displayName || user.displayName || user.username || 'Anonymous'),
+          pfp_url: String(m.pfp_url || user.pfp_url || ''),
+          message: String(m.message || m.text || messageText),
+          timestamp: new Date(m.timestamp || m.createdAt || m.ts || Date.now()).toISOString(),
+        } as any;
+        setRedisMessages(prev => [...prev, normalized]);
       } else {
         console.error('Failed to store message:', response.data.error);
         toast.error('Failed to send message. Please try again.');
@@ -203,55 +223,38 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
     return false;
   };
 
-  // Filter and combine messages
-  const validRedisMessages = redisMessages.filter(isValidMessageStructure);
-  const validHMSMessages = messages
-    .filter(msg => {
-      if (!isValidMessageStructure(msg)) return false;
-      
-      // Check if this message already exists in Redis
-      // For HMS messages that contain JSON, we need to extract the text part
-      let messageText;
-      try {
-        const parsedMsg = JSON.parse(msg.message);
-        messageText = parsedMsg.text;
-      } catch (e) {
-        messageText = msg.message;
-      }
+  // RTM live message list
+  const [liveMessages, setLiveMessages] = useState<RedisChatMessage[]>([]);
 
-      return !validRedisMessages.some(redisMsg =>
-        redisMsg.message === messageText &&
-        Math.abs(new Date(redisMsg.timestamp).getTime() - msg.time.getTime()) < 5000
-      );
-    })
-    .map(hmsMsg => {
-      // Try to parse the message as JSON to extract user fid
-      let messageText = hmsMsg.message;
-      let messageFid = '';
-      
+  useEffect(() => {
+    if (!channel) return;
+    const handler = ({ text }: any) => {
       try {
-        const parsedMsg = JSON.parse(hmsMsg.message);
-        messageText = parsedMsg.text;
-        messageFid = parsedMsg.userFid || '';
-      } catch (e) {
-        // If parsing fails, use the message as is
-        messageText = hmsMsg.message;
-      }
-      
-      return {
-        id: `hms_${hmsMsg.id}`,
-        roomId: roomId,
-        userId: messageFid || user.fid || hmsMsg.sender || 'unknown',
-        username: hmsMsg.senderName || hmsMsg.sender || 'Unknown',
-        displayName: hmsMsg.senderName || hmsMsg.sender || 'Unknown',
-        pfp_url: '',
-        message: messageText,
-        timestamp: hmsMsg.time.toISOString(),
-        type: 'text' as const
-      };
-    });
+        const data = JSON.parse(text);
+        if (data?.type === 'CHAT' && data?.payload?.text) {
+          // Ignore our own RTM echo; we add our message locally after persistence
+          if (String(data.payload.userFid || '') === String(user?.fid || '')) return;
+          const msg: RedisChatMessage = {
+            id: `rtm_${Date.now()}_${Math.random()}`,
+            roomId,
+            userId: String(data.payload.userFid || ''),
+            username: String(data.payload.username || ''),
+            displayName: String(data.payload.displayName || data.payload.username || 'Anonymous'),
+            pfp_url: String(data.payload.pfp_url || ''),
+            message: data.payload.text,
+            timestamp: new Date(data.ts || Date.now()).toISOString()
+          } as any;
+          setLiveMessages(prev => [...prev, msg]);
+        }
+      } catch {}
+    };
+    channel.on('ChannelMessage', handler);
+    return () => {
+      try { channel.off('ChannelMessage', handler); } catch {}
+    };
+  }, [channel, roomId, user?.fid]);
 
-  const combinedMessages = [...validRedisMessages, ...validHMSMessages]
+  const combinedMessages = [...redisMessages, ...liveMessages]
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
   // Always render, but control visibility through CSS classes

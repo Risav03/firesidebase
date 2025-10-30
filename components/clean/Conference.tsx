@@ -1,25 +1,25 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import type { IAgoraRTCClient, IMicrophoneAudioTrack } from "agora-rtc-sdk-ng";
 import Footer from "./Footer";
 
 interface ConferenceProps {
   appId: string;
   channelName: string;
-  token: string;
-  uid: string;
+  token: string; // Required; must be valid for the provided username
+  uid: string;   // Username (account). No fallbacks.
   onLeave: () => void;
 }
 
 function Conference({ appId, channelName, token, uid, onLeave }: ConferenceProps) {
-  const [client, setClient] = useState<IAgoraRTCClient | null>(null);
-  const [localAudioTrack, setLocalAudioTrack] = useState<IMicrophoneAudioTrack | null>(null);
-  const [remoteUsers, setRemoteUsers] = useState<(string | number)[]>([]);
-  
+  const [client, setClient] = useState<any>(null);
+  const [localAudioTrack, setLocalAudioTrack] = useState<any>(null);
+  const [remoteUsers, setRemoteUsers] = useState<string[]>([]);
+
   // Use refs to track client and track for cleanup
-  const clientRef = useRef<IAgoraRTCClient | null>(null);
-  const trackRef = useRef<IMicrophoneAudioTrack | null>(null);
+  const clientRef = useRef<any>(null);
+  const trackRef = useRef<any>(null);
+  const joinedRef = useRef<boolean>(false);
 
   useEffect(() => {
     const initAgora = async () => {
@@ -30,12 +30,7 @@ function Conference({ appId, channelName, token, uid, onLeave }: ConferenceProps
         const agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
         
         // Join channel
-        await agoraClient.join(
-          appId, 
-          channelName, 
-          token || null, 
-          uid || undefined
-        );
+        await agoraClient.join(appId, channelName, token, uid);
         
         // Enable and get local audio track
         const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
@@ -46,55 +41,55 @@ function Conference({ appId, channelName, token, uid, onLeave }: ConferenceProps
         clientRef.current = agoraClient;
         trackRef.current = audioTrack;
         
-        console.log("Joined channel:", channelName);
+        console.log("Joined channel:", channelName, "as username:", uid);
 
         // Listen for remote users
-        agoraClient.on("user-published", async (user: any, mediaType: "audio" | "video" | "datachannel") => {
+        const handleUserPublished = async (user: any, mediaType: "audio" | "video" | "datachannel") => {
           await agoraClient.subscribe(user, mediaType);
           
           if (mediaType === "audio") {
             const remoteAudioTrack = user.audioTrack;
             remoteAudioTrack?.play();
-            console.log("Remote user published:", user.uid);
+            const remoteId = String(user.uid);
+            console.log("Remote user published:", remoteId, "type:", typeof user.uid);
             
             // Add user to the list when they publish
-            setRemoteUsers(prev => {
-              if (!prev.includes(user.uid)) {
-                return [...prev, user.uid];
-              }
-              return prev;
-            });
+            setRemoteUsers(prev => (prev.includes(remoteId) ? prev : [...prev, remoteId]));
           }
-        });
+        };
+        agoraClient.on("user-published", handleUserPublished);
 
-        agoraClient.on("user-joined", (user: any) => {
-          console.log("User joined:", user.uid);
-        });
+        const handleUserJoined = (user: any) => {
+          console.log("User joined:", String(user.uid));
+        };
+        agoraClient.on("user-joined", handleUserJoined);
 
-        agoraClient.on("user-left", (user: any) => {
-          console.log("User left:", user.uid);
-          setRemoteUsers(prev => prev.filter(u => u !== user.uid));
-        });
+        const handleUserLeft = (user: any) => {
+          const remoteId = String(user.uid);
+          console.log("User left:", remoteId);
+          setRemoteUsers(prev => prev.filter(u => u !== remoteId));
+        };
+        agoraClient.on("user-left", handleUserLeft);
 
         // Subscribe to already published users in the channel
-        agoraClient.remoteUsers.forEach((user) => {
+        agoraClient.remoteUsers.forEach((user: any) => {
           agoraClient.subscribe(user, "audio").then(() => {
             user.audioTrack?.play();
-            console.log("Subscribed to existing user:", user.uid);
-            setRemoteUsers(prev => {
-              if (!prev.includes(user.uid)) {
-                return [...prev, user.uid];
-              }
-              return prev;
-            });
+            const remoteId = String(user.uid);
+            console.log("Subscribed to existing user:", remoteId);
+            setRemoteUsers(prev => (prev.includes(remoteId) ? prev : [...prev, remoteId]));
           });
         });
+
+        // Save off for cleanup
+        clientRef.current = agoraClient;
       } catch (error) {
         console.error("Error initializing Agora:", error);
       }
     };
 
-    if (appId && channelName) {
+    if (!joinedRef.current && appId && channelName && token && uid) {
+      joinedRef.current = true;
       initAgora();
     }
 
@@ -110,6 +105,7 @@ function Conference({ appId, channelName, token, uid, onLeave }: ConferenceProps
           await clientRef.current.leave();
           clientRef.current = null;
         }
+        joinedRef.current = false;
       };
       
       cleanup();
@@ -142,21 +138,21 @@ function Conference({ appId, channelName, token, uid, onLeave }: ConferenceProps
           {totalUsers} {totalUsers === 1 ? 'person' : 'people'} in channel
         </p>
         <div className="peers-container">
-          {/* Local user */}
+          {/* Local user (username) */}
           <div className="peer-container">
             <div className="peer-video">
-              <div className="peer-avatar">You</div>
+              <div className="peer-avatar">{uid}</div>
             </div>
-            <div className="peer-name">Local User (You)</div>
+            <div className="peer-name">{uid} (You)</div>
           </div>
 
-          {/* Remote users */}
+          {/* Remote users: we display the uid exactly as provided by Agora */}
           {remoteUsers.map((userId) => (
             <div key={userId} className="peer-container">
               <div className="peer-video">
                 <div className="peer-avatar">{userId}</div>
               </div>
-              <div className="peer-name">User {userId}</div>
+              <div className="peer-name">{userId}</div>
             </div>
           ))}
         </div>

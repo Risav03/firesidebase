@@ -6,10 +6,7 @@
     "node": "^14 || ^16 || ^18 || ^20 || ^22"
   },
   "dependencies": {
-    "@100mslive/hms-noise-cancellation": "^0.0.1",
-    "@100mslive/hms-video-store": "^0.12.36",
-    "@100mslive/react-icons": "^0.10.36",
-    "@100mslive/react-sdk": "^0.10.36",
+    
     "@coinbase/onchainkit": "^0.38.19",
     "@emoji-mart/data": "^1.2.1",
     "@emoji-mart/react": "^1.1.1",
@@ -20,7 +17,7 @@
     "@rainbow-me/rainbowkit": "^2.2.8",
     "@types/ioredis": "^4.28.10",
     "agora-rtc-react": "^2.5.0",
-    "agora-rtc-sdk-ng": "^4.24.0",
+    "agora-rtm-sdk": "^2.2.2",
     "boring-avatars": "^1.5.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
