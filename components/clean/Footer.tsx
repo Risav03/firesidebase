@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { IMicrophoneAudioTrack } from "agora-rtc-sdk-ng";
+// Avoid importing Agora types here because we declare the module as any in global d.ts
 
 interface FooterProps {
   onLeave: () => void;
-  microphoneTrack: IMicrophoneAudioTrack | null;
+  microphoneTrack: any | null;
 }
 
 function Footer({ onLeave, microphoneTrack }: FooterProps) {

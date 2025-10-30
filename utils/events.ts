@@ -1,4 +1,62 @@
-import { useCustomEvent } from "@100mslive/react-sdk";
+"use client";
+
+import { useCallback, useEffect } from "react";
+import { useRtmClient } from "@/utils/providers/rtm";
+
+type RtmEnvelope<T = any> = {
+  type: string;
+  payload?: T;
+  from?: string;
+  ts?: number;
+};
+
+function useRtmEvent<T = any>(
+  eventType: string,
+  onEvent?: (payload: T) => void
+) {
+  const { channel } = useRtmClient();
+
+  const send = useCallback(
+    async (payload: T) => {
+      if (!channel) return;
+      const envelope: RtmEnvelope<T> = {
+        type: eventType,
+        payload,
+        ts: Date.now(),
+      };
+      try {
+        await channel.sendMessage({ text: JSON.stringify(envelope) });
+      } catch (e) {
+        console.error(`[RTM] Failed to send ${eventType}:`, e);
+      }
+    },
+    [channel, eventType]
+  );
+
+  useEffect(() => {
+    if (!channel || !onEvent) return;
+
+    const handler = ({ text }: any) => {
+      try {
+        const data: RtmEnvelope<T> = JSON.parse(text);
+        if (data?.type === eventType) {
+          onEvent(data.payload as T);
+        }
+      } catch {
+        // ignore non-JSON messages
+      }
+    };
+
+    channel.on("ChannelMessage", handler);
+    return () => {
+      try {
+        channel.off("ChannelMessage", handler);
+      } catch {}
+    };
+  }, [channel, eventType, onEvent]);
+
+  return { send };
+}
 
 /**
  * Custom hook for handling speaker requests
@@ -8,20 +66,9 @@ import { useCustomEvent } from "@100mslive/react-sdk";
 export const useSpeakerRequestEvent = (
   onEvent?: (msg: { peer: string }) => void
 ) => {
-  const { sendEvent } = useCustomEvent({
-    type: "SPEAKER_REQUESTED",
-    onEvent: onEvent || ((msg: { peer: string }) => {}),
-  });
-
-  /**
-   * Send a speaker request
-   * @param peerId ID of the peer requesting to be a speaker
-   */
-  const requestToSpeak = (peerId: string) => {
-    sendEvent({ peer: peerId });
-  };
-
-  return { requestToSpeak, sendEvent };
+  const { send } = useRtmEvent<{ peer: string }>("SPEAKER_REQUESTED", onEvent);
+  const requestToSpeak = (peerId: string) => send({ peer: peerId });
+  return { requestToSpeak, sendEvent: send };
 };
 
 /**
@@ -32,20 +79,9 @@ export const useSpeakerRequestEvent = (
 export const useSpeakerRejectionEvent = (
   onEvent?: (msg: { peer: string }) => void
 ) => {
-  const { sendEvent } = useCustomEvent({
-    type: "SPEAKER_REJECTED",
-    onEvent: onEvent || ((msg: { peer: string }) => {}),
-  });
-
-  /**
-   * Send a speaker rejection
-   * @param peerId ID of the peer being rejected
-   */
-  const rejectSpeakerRequest = (peerId: string) => {
-    sendEvent({ peer: peerId });
-  };
-
-  return { rejectSpeakerRequest, sendEvent };
+  const { send } = useRtmEvent<{ peer: string }>("SPEAKER_REJECTED", onEvent);
+  const rejectSpeakerRequest = (peerId: string) => send({ peer: peerId });
+  return { rejectSpeakerRequest, sendEvent: send };
 };
 
 /**
@@ -56,20 +92,9 @@ export const useSpeakerRejectionEvent = (
 export const useRoomEndedEvent = (
   onEvent?: (msg: { message: string }) => void
 ) => {
-  const { sendEvent } = useCustomEvent({
-    type: "ROOM_ENDED",
-    onEvent: onEvent || ((msg: { message: string }) => {}),
-  });
-
-  /**
-   * Send a room ended event
-   * @param message Optional message to include with the event
-   */
-  const endRoom = (message: string = "Room has been ended by the host.") => {
-    sendEvent({ message });
-  };
-
-  return { endRoom, sendEvent };
+  const { send } = useRtmEvent<{ message: string }>("ROOM_ENDED", onEvent);
+  const endRoom = (message: string = "Room has been ended by the host.") => send({ message });
+  return { endRoom, sendEvent: send };
 };
 
 /**
@@ -80,21 +105,12 @@ export const useRoomEndedEvent = (
 export const useEmojiReactionEvent = (
   onEvent?: (msg: { emoji: string; sender: string; id?: number; position?: number; fontSize?: string }) => void
 ) => {
-  const { sendEvent } = useCustomEvent({
-    type: "EMOJI_REACTION",
-    onEvent: onEvent || ((msg: { emoji: string; sender: string }) => {}),
-  });
-
-  /**
-   * Send an emoji reaction
-   * @param emoji The emoji to send
-   * @param sender The sender's identifier (usually profile URL)
-   */
-  const sendEmoji = (emoji: string, sender: string) => {
-    sendEvent({ emoji, sender });
-  };
-
-  return { sendEmoji, sendEvent };
+  const { send } = useRtmEvent<{ emoji: string; sender: string; id?: number; position?: number; fontSize?: string }>(
+    "EMOJI_REACTION",
+    onEvent
+  );
+  const sendEmoji = (emoji: string, sender: string) => send({ emoji, sender });
+  return { sendEmoji, sendEvent: send };
 };
 
 /**
@@ -105,20 +121,9 @@ export const useEmojiReactionEvent = (
 export const useNewSponsorEvent = (
   onEvent?: (msg: { sponsorName: string }) => void
 ) => {
-  const { sendEvent } = useCustomEvent({
-    type: "NEW_SPONSOR",
-    onEvent: onEvent || ((msg: { sponsorName: string }) => {}),
-  });
-
-  /**
-   * Broadcast a new sponsor event to all room participants
-   * @param sponsorName The name of the sponsor
-   */
-  const notifyNewSponsor = (sponsorName: string) => {
-    sendEvent({ sponsorName });
-  };
-
-  return { notifyNewSponsor, sendEvent };
+  const { send } = useRtmEvent<{ sponsorName: string }>("NEW_SPONSOR", onEvent);
+  const notifyNewSponsor = (sponsorName: string) => send({ sponsorName });
+  return { notifyNewSponsor, sendEvent: send };
 };
 
 /**
@@ -129,21 +134,9 @@ export const useNewSponsorEvent = (
 export const useActiveSponsor = (
   onEvent?: (msg: { sponsorshipId?: string; roomId?: string }) => void
 ) => {
-  const { sendEvent } = useCustomEvent({
-    type: "ACTIVE_SPONSOR",
-    onEvent: onEvent || (() => {}),
-  });
-
-  /**
-   * Broadcast an active sponsor event to all room participants
-   * @param sponsorshipId The ID of the sponsorship (optional)
-   * @param roomId The ID of the room (optional)
-   */
-  const activateSponsor = (sponsorshipId?: string, roomId?: string) => {
-    sendEvent({ sponsorshipId, roomId });
-  };
-
-  return { activateSponsor, sendEvent };
+  const { send } = useRtmEvent<{ sponsorshipId?: string; roomId?: string }>("ACTIVE_SPONSOR", onEvent);
+  const activateSponsor = (sponsorshipId?: string, roomId?: string) => send({ sponsorshipId, roomId });
+  return { activateSponsor, sendEvent: send };
 };
 
 /**
@@ -154,20 +147,12 @@ export const useActiveSponsor = (
 export const useSponsorStatusEvent = (
   onEvent?: (msg: { userId: string; status: string; sponsorshipId?: string }) => void
 ) => {
-  const { sendEvent } = useCustomEvent({
-    type: "SPONSOR_STATUS",
-    onEvent: onEvent || ((msg: { userId: string; status: string }) => {}),
-  });
-
-  /**
-   * Broadcast a sponsor status event to all room participants
-   * @param userId The user ID of the sponsor
-   * @param status The status of the sponsorship (e.g., "approved", "rejected", "pending")
-   * @param sponsorshipId The ID of the sponsorship (optional)
-   */
+  const { send } = useRtmEvent<{ userId: string; status: string; sponsorshipId?: string }>(
+    "SPONSOR_STATUS",
+    onEvent
+  );
   const notifySponsorStatus = (userId: string, status: string, sponsorshipId?: string) => {
-    sendEvent({ userId, status, sponsorshipId });
+    send({ userId, status, sponsorshipId });
   };
-
-  return { notifySponsorStatus, sendEvent };
+  return { notifySponsorStatus, sendEvent: send };
 };

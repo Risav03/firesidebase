@@ -119,17 +119,14 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
 
   const fetchMyUpcomingRooms = async () => {
     try{
-      var token:any ;
-                const env = process.env.NEXT_PUBLIC_ENV;
-                if (env !== "DEV" && !token) {
-                  token = ((await sdk.quickAuth.getToken()).token);
-                }
+      const env = process.env.NEXT_PUBLIC_ENV;
+      let token: string | null = null;
+      if (env !== "DEV") {
+        token = (await sdk.quickAuth.getToken()).token;
+      }
       const response = await fetchAPI(`${URL}/api/rooms/protected/upcoming`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        }
+        authToken: token || undefined,
       });
 
       console.log("Fetch my upcoming rooms response:", response);

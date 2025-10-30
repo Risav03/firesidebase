@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: false,
   swcMinify: true,
   experimental: {
     esmExternals: false,
@@ -52,7 +52,8 @@ const nextConfig = {
     return config;
   },
   // Handle dynamic imports better
-  transpilePackages: ['@coinbase/onchainkit', '@100mslive/react-sdk', 'agora-rtc-react', 'agora-rtc-sdk-ng'],
+  // Avoid transpiling Agora SDKs to prevent class initialization issues
+  transpilePackages: ['@coinbase/onchainkit'],
 }
 
 module.exports = nextConfig

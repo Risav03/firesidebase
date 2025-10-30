@@ -1,87 +1,45 @@
 'use client'
 
-import { MicOffIcon, PersonIcon } from "@100mslive/react-icons";
-import { useState, useEffect } from "react";
-import {
-  selectIsPeerAudioEnabled,
-  selectPeerAudioByID,
-  selectDominantSpeaker,
-  useHMSStore,
-  HMSPeer,
-  selectHasPeerHandRaised,
-} from "@100mslive/react-sdk";
-
 interface PeerProps {
-  peer: HMSPeer;
+  peer: { id: string; name: string; roleName?: string; isLocal?: boolean; metadata?: string; muted?: boolean; handRaised?: boolean; speaking?: boolean };
 }
 
 export default function Peer({ peer }: PeerProps) {
-  const isPeerAudioEnabled = useHMSStore(selectIsPeerAudioEnabled(peer.id));
-  const peerAudioLevel = useHMSStore(selectPeerAudioByID(peer.id));
-  const dominantSpeaker = useHMSStore(selectDominantSpeaker);
-  const isHandRaised = useHMSStore(selectHasPeerHandRaised(peer.id));
-  
-  const [showSpeakingRing, setShowSpeakingRing] = useState(false);
-  
-  // Check if this peer is currently speaking
-  const isSpeaking = isPeerAudioEnabled && peerAudioLevel > 0 && dominantSpeaker?.id === peer.id;
-  
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    
-    if (isSpeaking) {
-      setShowSpeakingRing(true);
-    } else {
-      // Add a short delay before hiding the ring (300ms)
-      timeoutId = setTimeout(() => {
-        setShowSpeakingRing(false);
-      }, 300);
-    }
-    
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [isSpeaking]);
+  const avatar = (() => {
+    try { return peer.metadata ? JSON.parse(peer.metadata).avatar : ''; } catch { return ''; }
+  })();
 
   return (
     <div className="relative flex flex-col items-center group">
       <div className="relative">
-        {/* Speaking indicator ring */}
-        {showSpeakingRing && (
-          <div className={`absolute -inset-2 rounded-full border-4 border-fireside-orange speaking-ring ${!isSpeaking ? 'fade-out' : ''}`}></div>
-        )}
-        
-        <div className={` border-2 ${peer.isLocal ? "border-fireside-orange" : "border-white"} rounded-full relative`}>
-          {/* Avatar with first letter of name */}
-          <div className={`w-16 h-16 rounded-full bg-fireside-orange flex items-center justify-center text-white text-2xl font-bold ${!isPeerAudioEnabled ? 'opacity-50' : ''}`}>
-            {peer.metadata && JSON.parse(peer.metadata).avatar ? (<div className="relative w-full h-full rounded-full overflow-hidden">
-              
-              <img src={JSON.parse(peer.metadata).avatar} alt={peer.name} className={`w-full h-full absolute z-40 rounded-full object-cover`} />
-            </div>
+        <div className={` border-2 ${peer.isLocal ? "border-fireside-orange" : "border-white"} rounded-full relative ${peer.speaking ? 'ring-4 ring-fireside-orange/70 animate-pulse' : ''}`}>
+          <div className={`w-16 h-16 rounded-full bg-fireside-orange flex items-center justify-center text-white text-2xl font-bold`}>
+            {avatar ? (
+              <div className="relative w-full h-full rounded-full overflow-hidden">
+                <img src={avatar} alt={peer.name} className={`w-full h-full absolute z-40 rounded-full object-cover`} />
+              </div>
             ) : (
-              <span>{peer.name.charAt(0).toUpperCase()}</span>
+              <span>{peer.name?.charAt(0)?.toUpperCase() || 'U'}</span>
             )}
           </div>
-          
-          {/* Mute indicator */}
-          {!isPeerAudioEnabled && peer.roleName !== "listener" && (
-            <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center border-2 border-white">
-              <MicOffIcon className="w-3 h-3 text-white" />
+          {peer.handRaised && (
+            <div className="absolute -top-1 -left-1 z-50 bg-yellow-500 text-black rounded-full p-1 shadow">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
+                <path d="M7 11V5a2 2 0 114 0v6h1V7a2 2 0 114 0v8a4 4 0 11-8 0v-4H7z" />
+              </svg>
             </div>
           )}
-          
-          {/* Hand raise indicator */}
-          {isHandRaised && (
-            <div className="absolute -top-1 -left-1 w-6 h-6 z-50 bg-fireside-orange rounded-full flex items-center justify-center border-2 border-white">
-              <span className="text-white text-xs">✋</span>
+          {peer.muted && (
+            <div className="absolute -bottom-1 -right-1 z-50 bg-red-600 text-white rounded-full p-1 shadow">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
+                <path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m-3-8V5a3 3 0 116 0v9m3.707 4.293l-12-12 1.414-1.414 12 12-1.414 1.414z" />
+              </svg>
             </div>
           )}
         </div>
       </div>
       
-      <div className={`mt-2 text-center  `}>
+      <div className={`mt-2 text-center`}>
         <p className="text-[0.8rem] font-medium text-white truncate max-w-20">
           {peer.name}
         </p>
@@ -96,11 +54,9 @@ export default function Peer({ peer }: PeerProps) {
               {peer.roleName}
             </span>
           )}
-          {/* {peer.isLocal && (
-            <span className="text-xs text-fireside-orange font-semibold">(You)</span>
-          )} */}
         </div>
       </div>
     </div>
   );
 }
+

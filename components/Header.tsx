@@ -1,13 +1,6 @@
 'use client'
 
-import { ExitIcon } from "@100mslive/react-icons";
-import {
-  selectIsConnectedToRoom,
-  selectHMSMessages,
-  useHMSActions,
-  useHMSStore,
-  selectLocalPeer,
-} from "@100mslive/react-sdk";
+import { MdLogout } from "react-icons/md";
 import { useState } from 'react';
 import RoomEndModal from './RoomEndModal';
 import { TbShare3 } from "react-icons/tb";
@@ -26,24 +19,21 @@ import { useRouter } from "next/navigation";
 import FiresideLogo from "./UI/firesideLogo";
 
 export default function Header({ onToggleChat, isChatOpen = false, roomId }: HeaderProps) {
-  const isConnected = useHMSStore(selectIsConnectedToRoom);
-  const messages = useHMSStore(selectHMSMessages);
-  const hmsActions = useHMSActions();
+  const isConnected = true;
   const router = useRouter();
-  const localPeer = useHMSStore(selectLocalPeer);
+  const localPeer: any = null;
   const [showRoomEndModal, setShowRoomEndModal] = useState(false);
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
 
   // Check if local user is host or co-host
-  const isHostOrCoHost = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
-  const isHost = localPeer?.roleName === 'host';
+  const isHostOrCoHost = false;
+  const isHost = false;
 
   const handleLeaveClick = () => {
     if (isHost) {
       setShowRoomEndModal(true);
     } else {
       // Direct leave for other roles
-      hmsActions.leave();
       router.push('/');
     }
   };
@@ -100,7 +90,7 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
                 className="px-2 py-1 rounded-lg clubhouse-button-danger flex items-center"
                 onClick={handleLeaveClick}
               >
-                <ExitIcon className="w-6 h-6" />
+                <MdLogout className="w-6 h-6" />
                 <span></span>
               </button>
             </div>
