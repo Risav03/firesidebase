@@ -28,7 +28,9 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
   const canRemovePeer = true; 
 
   // Check if local user is host or co-host
-  const isHostOrCoHost = meRole === 'host' || meRole === 'co-host';
+  const isHost = meRole === 'host';
+  const isCoHost = meRole === 'co-host';
+  const isHostOrCoHost = isHost || isCoHost;
   
   // Check if this is the local user
   const isLocalUser = (() => { try { return String(JSON.parse(peer?.metadata || '{}')?.fid || '') === String(JSON.parse(localStorage.getItem('fireside_user') || '{}')?.fid || ''); } catch { return false; } })();
@@ -85,6 +87,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
       try {
         const metadata = peer.metadata ? JSON.parse(peer.metadata) : null;
         const userFid = metadata?.fid;
+        const username = String(metadata?.username || peer?.id || '');
         
         if (userFid) {
           // Get room ID from URL or context
@@ -95,6 +98,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
           // Broadcast role change over RTM so the target client updates
           try {
             await channel?.sendMessage({ text: JSON.stringify({ type: 'ROLE_CHANGE', payload: { userFid, newRole }, ts: Date.now() }) });
+            await channel?.sendMessage({ text: JSON.stringify({ type: 'ROLE_SYNC', payload: { fid: userFid, username, role: newRole }, ts: Date.now() }) });
           } catch (e) {
             console.warn('RTM ROLE_CHANGE send failed', e);
           }
@@ -177,6 +181,8 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
     try {
       const metadata = peer.metadata ? JSON.parse(peer.metadata) : null;
       const userFid = metadata?.fid;
+      // Prevent co-host from muting host
+      if (isCoHost && isTargetPeerHost) return;
       if (userFid) {
         await channel?.sendMessage({ text: JSON.stringify({ type: 'REMOTE_MUTE', payload: { userFid }, ts: Date.now() }) });
       }
@@ -209,6 +215,9 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
 
   // Check if user has role management permissions
   const canManageRoles = isHostOrCoHost && !isCoHostTryingToAccessHost;
+  const canMakeCoHost = isHost && currentRole !== 'co-host' && !isTargetPeerHost;
+  const canMakeSpeaker = (isHostOrCoHost) && currentRole !== 'speaker' && !isTargetPeerHost;
+  const canMakeListener = (isHostOrCoHost) && currentRole !== 'listener' && !isTargetPeerHost;
 
   return (
     <>
@@ -261,7 +270,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
           {canManageRoles && (
             <div className="py-2 border-t border-gray-600">
               {/* Make Speaker */}
-              {currentRole !== 'speaker' && (
+              {canMakeSpeaker && (
               <button
                 onClick={() => handleRoleChange('speaker')}
                 disabled={isLoading}
@@ -273,7 +282,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
             )}
 
             {/* Make Co-host */}
-            {currentRole !== 'co-host' && (
+            {canMakeCoHost && (
               <button
                 onClick={() => handleRoleChange('co-host')}
                 disabled={isLoading}
@@ -297,7 +306,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
             )}
 
             {/* Make Listener */}
-            {currentRole !== 'listener' && (
+            {canMakeListener && (
               <button
                 onClick={() => handleRoleChange('listener')}
                 disabled={isLoading}
@@ -309,7 +318,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
             )}
 
             {/* Mute - only show for speakers and co-hosts who are NOT muted */}
-            {(currentRole === 'speaker' || currentRole === 'co-host') && canRemoteMute && !isMuted && (
+            {(currentRole !== 'host') && (currentRole === 'speaker' || currentRole === 'co-host' || currentRole === 'listener') && canRemoteMute && !isMuted && (
               <button
                 onClick={handleMuteToggle}
                 className="w-full px-6 py-3 text-left text-sm text-white hover:bg-gray-700 flex items-center space-x-3 transition-colors"
