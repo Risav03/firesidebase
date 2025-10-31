@@ -1,32 +1,32 @@
 'use client'
 
 import { useState, useRef } from 'react';
-import { useHMSStore, selectLocalPeer } from '@100mslive/react-sdk';
 import Peer from './Peer';
 import UserContextMenu from './UserContextMenu';
 import ViewProfileModal from './ViewProfileModal';
+import { useGlobalContext } from '@/utils/providers/globalContext';
 
 interface PeerWithContextMenuProps {
   peer: any;
+  meRole?: string;
 }
 
-export default function PeerWithContextMenu({ peer }: PeerWithContextMenuProps) {
+export default function PeerWithContextMenu({ peer, meRole }: PeerWithContextMenuProps) {
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const localPeer = useHMSStore(selectLocalPeer);
+  const { user } = useGlobalContext();
   const peerRef = useRef<HTMLDivElement>(null);
 
   // Check if local user is host or co-host
-  const isHostOrCoHost = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
-  
-  // Check if this is the local user
-  const isLocalUser = peer.id === localPeer?.id;
+  const isLocalUser = (() => {
+    try { return String(JSON.parse(peer?.metadata || '{}')?.fid || '') === String(user?.fid || ''); } catch { return false; }
+  })();
   
   // Check if target peer is a host (to prevent co-hosts from accessing host's context menu)
   const isTargetPeerHost = peer.roleName === 'host';
   
-  // Check if local user is co-host trying to access host's menu (not allowed)
-  const isCoHostTryingToAccessHost = localPeer?.roleName === 'co-host' && isTargetPeerHost;
+  // No HMS localPeer; co-host gating handled inside UserContextMenu based on role
+  const isCoHostTryingToAccessHost = false;
 
   const handlePeerClick = (event: React.MouseEvent) => {
     // Don't show menu for local user
@@ -58,6 +58,7 @@ export default function PeerWithContextMenu({ peer }: PeerWithContextMenuProps) 
       {!isLocalUser && (
         <UserContextMenu
           peer={peer}
+          meRole={meRole}
           isVisible={showContextMenu}
           onClose={handleContextMenuClose}
           onViewProfile={handleViewProfile}

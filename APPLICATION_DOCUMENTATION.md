@@ -1,4 +1,4 @@
-# Fireside 100ms - Complete Application Documentation
+# Fireside Agora - Complete Application Documentation
 
 ## Table of Contents
 1. [Overview](#overview)
@@ -15,11 +15,11 @@
 
 ## Overview
 
-**Fireside** is a Clubhouse-style social audio platform built with Next.js 14 and 100ms SDK. It enables users to create and join audio rooms for live conversations with multiple roles, real-time chat, sponsorships, and recording capabilities.
+**Fireside** is a Clubhouse-style social audio platform built with Next.js 14 and Agora RTC (audio-only) + Agora RTM. It enables users to create and join audio rooms for live conversations with multiple roles, real-time chat, sponsorships, and recording capabilities.
 
 ### Key Technologies
 - **Frontend**: Next.js 14, React 18, TypeScript
-- **Real-time Communication**: 100ms SDK (`@100mslive/react-sdk`)
+- **Real-time Communication**: Agora RTC (`agora-rtc-sdk-ng`, `agora-rtc-react`) + Agora RTM (`agora-rtm-sdk`)
 - **Authentication**: Farcaster Miniapp SDK
 - **Blockchain**: Base Network (Ethereum L2)
 - **Database**: MongoDB
@@ -43,8 +43,8 @@
 │         └──────────────────┼──────────────────┘             │
 │                            │                                │
 │                   ┌────────▼─────────┐                      │
-│                   │  100ms SDK        │                      │
-│                   │  HMSRoomProvider  │                      │
+│                   │  Agora RTC/RTM    │                      │
+│                   │  AgoraRTCProvider │                      │
 │                   └────────┬──────────┘                      │
 │                            │                                │
 │                   ┌────────▼──────────┐                      │
@@ -57,7 +57,7 @@
                              │
                              ▼
                     ┌─────────────────┐
-                    │   100ms Cloud   │
+                    │   Agora Cloud   │
                     │   Infrastructure │
                     └─────────────────┘
 ```
@@ -67,7 +67,7 @@
 ```
 Root Layout (app/layout.tsx)
 ├── Providers (utils/providers/providers.tsx)
-│   ├── HMSRoomProvider (100ms SDK)
+│   ├── AgoraRTCProvider (Agora RTC)
 │   ├── GlobalProvider (User context)
 │   ├── RainbowProvider (Wallet)
 │   └── MiniKitProvider (Farcaster)
@@ -84,7 +84,7 @@ Room/Call Page (app/call/[id]/page.tsx)
 ├── Header
 │   ├── Room info
 │   └── Toggle Chat
-├── CallClient (100ms integration)
+├── CallClient (Agora integration)
 │   ├── Conference Component
 │   ├── Footer (Audio controls)
 │   └── Role handlers
@@ -105,11 +105,10 @@ Real-time audio conversation rooms with role-based access control.
 - **Mute/Unmute Controls**: Individual and remote mute capabilities
 - **Role-based Audio**: Different roles have different audio publishing permissions
 
-**100ms Implementation**:
-- Uses `useAudioToggle` hook for mic controls
-- Leverages `selectPeers` to track all participants
-- Audio tracks managed via `HMSTrack` interface
-- Automatic audio level indicators
+**Agora Implementation**:
+- Uses `useLocalMicrophoneTrack` + `usePublish` for mic controls
+- Participant roster from backend (Redis) and RTM-driven updates
+- Audio indicators are simplified; dominant speaker optional (future)
 
 ### 2. **Real-time Chat**
 In-room text chat with message persistence.
@@ -122,14 +121,13 @@ In-room text chat with message persistence.
 - **Emoji Reactions**: Real-time emoji reaction system
 - **Message Types**: Regular messages, emoji reactions, system messages
 
-**100ms Implementation**:
-- Uses `sendBroadcastMessage()` for real-time delivery
-- Listens to `selectHMSMessages` for incoming messages
-- Broadcast messages sent as JSON with metadata
-- Messages include user FID for identification
+**Agora Implementation**:
+- Uses RTM channel messages for real-time delivery
+- Messages sent as JSON with `type: 'CHAT'` and metadata
+- Redis persistence for history on join
 
 ### 3. **Screen Sharing**
-Full desktop/browser screen sharing capabilities.
+Removed in audio-only scope.
 
 #### Features:
 - **Screen Capture**: Share entire screen or specific windows
@@ -138,11 +136,8 @@ Full desktop/browser screen sharing capabilities.
 - **Separate View**: Screen shares displayed in dedicated section
 - **Presenter Badges**: Clear indication of who is sharing
 
-**100ms Implementation**:
-- Uses `selectPeersScreenSharing` to identify sharers
-- `ScreenTile` component displays video track
-- `useVideo` hook attaches video to DOM element
-- Automatic subscription to screen tracks
+**Agora Implementation**:
+- Not applicable in audio-only migration phase
 
 ### 4. **User Roles System**
 Four-tier role hierarchy with specific permissions.
@@ -184,10 +179,9 @@ Four-tier role hierarchy with specific permissions.
 - Can raise hand
 - Cannot speak until promoted
 
-**100ms Implementation**:
-- Role management via `hmsActions.changeRoleOfPeer()`
-- Role-based permissions in `selectPermissions`
-- Custom events for role change notifications
+**Agora Implementation**:
+- Roles managed via backend + RTM `ROLE_CHANGE` messages
+- Clients enforce permissions in UI
 - Persistent role storage in backend
 
 ### 5. **Speaker Requests**
@@ -201,11 +195,9 @@ Listeners can request permission to speak.
 5. Approvals trigger role change to "speaker"
 6. Request tracking prevents duplicates
 
-**100ms Implementation**:
-- Uses custom broadcast messages for requests
-- `useSpeakerRequestEvent()` hook listens for requests
-- Request drawer shows all pending requests
-- Optimistic UI updates for instant feedback
+**Agora Implementation**:
+- RTM `SPEAKER_REQUEST` / `SPEAKER_REJECT` events via `utils/events.ts`
+- Request drawer and optimistic UI unchanged
 
 ### 6. **Live Room Management**
 
@@ -223,12 +215,10 @@ Listeners can request permission to speak.
 4. **Recording**: Session being recorded
 5. **Ended**: Automatically ends when empty (10 seconds)
 
-**100ms Implementation**:
-- Room codes fetched from backend
-- Different codes for host, speaker, listener roles
-- Auto-join uses role-appropriate code
-- Empty room detection via peer count
-- Host-triggered room ending
+**Agora Implementation**:
+- RTC/RTM tokens fetched from backend
+- Empty room detection via participant polling + RTM triggers
+- Host-triggered room ending unchanged
 
 ### 7. **Sponsorship System**
 Monetization through user-submitted advertisements.
@@ -248,12 +238,9 @@ Monetization through user-submitted advertisements.
 - **Activate/Reject**: Control when ads run
 - **Revenue Tracking**: See earnings from sponsorships
 
-**100ms Implementation**:
-- Sponsorship status via HMS broadcast messages
-- Status events trigger UI updates
-- Active sponsor displayed in room header
-- Countdown timer for sponsor duration
-- Custom toast notifications for status changes
+**Agora Implementation**:
+- Sponsorship status via RTM messages
+- UI updates/toasts unchanged
 
 ### 8. **User Profiles**
 Complete user profile system with social features.
@@ -267,11 +254,9 @@ Complete user profile system with social features.
 - **Room History**: Previous hosts/participations
 - **Follow System**: Track favorite users
 
-**100ms Implementation**:
-- User metadata passed in 100ms join payload
-- Display names shown in conference
-- Profile context menu on peers
-- User avatars on chat messages
+**Agora Implementation**:
+- User metadata carried in RTM messages; roster from backend
+- Context menu unchanged, actions send RTM commands
 
 ### 9. **Hand Raising**
 Visual feedback system for attention.
@@ -283,10 +268,8 @@ Visual feedback system for attention.
 - **Host Notifications**: Toast for hosts
 - **Auto-clear**: Dismisses when role changes
 
-**100ms Implementation**:
-- Uses `hmsActions.changeMetadata()` to set hand state
-- Listens to `selectHasPeerHandRaised` hook
-- Broadcast to all peers via HMS notifications
+**Agora Implementation**:
+- RTM `HAND_RAISE_CHANGED` broadcast; UI displays toast and badges
 
 ### 10. **Mute/Unmute System**
 Comprehensive audio control system.
@@ -305,11 +288,9 @@ Comprehensive audio control system.
 - **Visual indicators**: Mic icon shows status
 - **Permission checks**: Role-based mute privileges
 
-**100ms Implementation**:
-- Uses `toggleAudio()` from `useAVToggle` hook
-- `selectIsLocalAudioEnabled` for state tracking
-- Remote mute via `hmsActions.setRemoteMuteEnabled()`
-- Permission checks via `selectPermissions`
+**Agora Implementation**:
+- Mic publish/unpublish via `useLocalMicrophoneTrack` + `usePublish`
+- Remote mute enforced via RTM `REMOTE_MUTE` (client complies)
 
 ### 11. **Device Management**
 Audio/video device configuration.
@@ -328,7 +309,7 @@ Audio/video device configuration.
 - HMS audio processing handles echo cancellation
 
 ### 12. **Recordings**
-Session recording and playback.
+Session recording and playback. (Not part of Agora migration; handled by backend/cloud.)
 
 #### Features:
 - **Auto-record**: Record all live sessions
@@ -337,11 +318,8 @@ Session recording and playback.
 - **Search**: Find recordings by room/topic
 - **Transcript**: Speech-to-text transcripts (future)
 
-**100ms Implementation**:
-- Uses 100ms recording APIs
-- Recording started via backend trigger
-- Recorded tracks stored in cloud
-- Playback uses pre-recorded audio tracks
+**Implementation**:
+- Recording handled outside RTC stack (backend/cloud)
 
 ### 13. **Notifications**
 Real-time notification system.
@@ -354,11 +332,8 @@ Real-time notification system.
 - **Room ending**: Countdown notifications
 - **Hand raised**: Attention notifications
 
-**100ms Implementation**:
-- Uses `useHMSNotifications()` hook
-- Notification types from `HMSNotificationTypes`
-- Custom toast system with react-toastify
-- Persistent notifications until dismissed
+**Agora Implementation**:
+- RTM channel messages + toasts
 
 ### 14. **Chat Features**
 
@@ -393,11 +368,9 @@ Advanced participant control.
 - **Remove**: Kick from room
 - **Transfer Host**: Give host privileges
 
-**100ms Implementation**:
-- Uses `hmsActions.changeRoleOfPeer(peer.id, newRole)`
-- `hmsActions.removePeer(peer.id)` for removals
-- Permission checks before actions
-- Optimistic UI updates
+**Agora Implementation**:
+- Sends RTM commands `ROLE_CHANGE`, `REMOTE_MUTE`, `REMOVE_PEER`
+- Clients enforce actions; backend persists roles
 
 ---
 
@@ -501,7 +474,7 @@ const sortedPeers = currentPeers.sort((a, b) => {
 **Screen Sharing Section**
 ```typescript
 const presenters = useHMSStore(selectPeersScreenSharing);
-{presenters.map(peer => <ScreenTile peer={peer} />)}
+            {/* Screen sharing removed in audio-only scope */}
 ```
 
 **Remote User Tracking**
@@ -774,7 +747,7 @@ useEmojiReactionEvent()       // Emoji reactions
   RoomSponsor.tsx
   PeerWithContextMenu.tsx
   UserContextMenu.tsx
-  ScreenTile.tsx
+  (screen share removed)
   ... (20+ components)
 
 /utils

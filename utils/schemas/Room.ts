@@ -11,10 +11,11 @@ export interface IRoom extends Document {
   endTime: Date | null;
   ended_at?: Date; // When the room was ended by host
   status: 'upcoming' | 'ongoing' | 'ended';
-  roomId: string;
   sponsorshipEnabled: boolean;
   // baseSponsorshipPrice: number;
   topics: string[];
+  // expose string id as roomId for compatibility
+  roomId?: string;
 }
 
 const Room: Schema = new Schema({
@@ -31,12 +32,18 @@ const Room: Schema = new Schema({
     enum: ['upcoming', 'ongoing', 'ended'], 
     default: 'upcoming' 
   },
-  roomId: { type: String, required: true, unique: true },
   sponsorshipEnabled: { type: Boolean, default: false },
   // baseSponsorshipPrice: { type: Number, default: 0 }
   topics: { type: [String], required: true },
 }, {
-  timestamps: true
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+// Virtual field to expose _id as roomId for compatibility with any consumer
+Room.virtual('roomId').get(function (this: any) {
+  return String(this._id);
 });
 
 export default mongoose.models.Room || mongoose.model('Room', Room);

@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react';
-import { useHMSActions } from '@100mslive/react-sdk';
 import { useSpeakerRejectionEvent } from '@/utils/events';
 import { updateParticipantRole } from '@/utils/serverActions';
 import sdk from "@farcaster/miniapp-sdk";
@@ -44,7 +43,7 @@ export default function SpeakerRequestsDrawer({
 
   // console.log("REQUESTSSSS", requests);
 
-  const hmsActions = useHMSActions();
+  
 
   const handleApprove = async (request: SpeakerRequest) => {
     // Validate the request object
@@ -57,8 +56,17 @@ export default function SpeakerRequestsDrawer({
       // First, call the onApprove callback to update state
       onApprove(request);
 
-      // Then attempt to change the peer's role to speaker
-      await hmsActions.changeRoleOfPeer(request.peerId, 'speaker', true);
+      // Then attempt to change the peer's role to speaker via backend
+      try {
+        const env = process.env.NEXT_PUBLIC_ENV;
+        let token: string | null = null;
+        if (env !== 'DEV') {
+          token = (await sdk.quickAuth.getToken()).token;
+        }
+        await updateParticipantRole(roomId, request.peerId, 'speaker', token || undefined as any);
+      } catch (e) {
+        console.error('Backend role update failed:', e);
+      }
       
       // Try to update the role in Redis too if metadata is available
       // try {

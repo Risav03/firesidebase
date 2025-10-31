@@ -13,7 +13,6 @@ import { getEthPrice } from "@/utils/commons";
 import { ethers } from "ethers";
 import { usdcAbi } from "@/utils/contract/abis/usdcabi";
 import { RiLoader5Fill } from "react-icons/ri";
-import { useHMSActions } from "@100mslive/react-sdk";
 import { useSignTypedData } from "wagmi";
 import { splitSignature } from "ethers/lib/utils";
 import sdk from "@farcaster/miniapp-sdk";
@@ -97,7 +96,7 @@ export default function TippingModal({
   const { context, isFrameReady } = useMiniKit();
 
   const { address } = useAccount();
-  const hmsActions = useHMSActions();
+  
 
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
@@ -167,8 +166,7 @@ export default function TippingModal({
     const emoji = amount >= 100 ? "💸" : amount >= 25 ? "🎉" : "👍";
     const message = `${emoji} ${tipper} tipped ${recipients} $${amount} in ${currency}!`;
 
-    // Send to HMS for real-time broadcast
-    hmsActions.sendBroadcastMessage(message);
+    // Optional: broadcast via RTM channel if available (handled elsewhere)
 
     // Store in Redis for persistence
     try {

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react';
-import { useHMSActions, useHMSStore, selectLocalPeer } from '@100mslive/react-sdk';
 import { useRoomEndedEvent } from '@/utils/events';
 import { useRouter } from 'next/navigation';
 import { useGlobalContext } from '@/utils/providers/globalContext';
@@ -22,17 +21,15 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
   const [error, setError] = useState<string | null>(null);
   const [showEndConfirmation, setShowEndConfirmation] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
-  const hmsActions = useHMSActions();
   const router = useRouter();
   const { user } = useGlobalContext();
-  const localPeer = useHMSStore(selectLocalPeer);
 
    // Use the utility function for room ended events
    const { endRoom } = useRoomEndedEvent();
 
   // Check if local user is host or co-host
-  const isHostOrCoHost = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
-  const isHost = localPeer?.roleName === 'host';
+  const isHostOrCoHost = false;
+  const isHost = false;
 
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 

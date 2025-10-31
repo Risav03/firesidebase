@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { FaCirclePlus } from "react-icons/fa6";
 import { HiOutlineClipboardCheck } from "react-icons/hi";
-import { useHMSStore, selectLocalPeer } from "@100mslive/react-sdk";
 import SponsorDrawer from "./SponsorDrawer";
 import PendingSponsorshipsDrawer from "./PendingSponsorshipsDrawer";
 import { fetchLiveSponsorships } from "@/utils/serverActions";
@@ -29,8 +28,7 @@ export default function RoomSponsor({ roomId }: { roomId: string }) {
   const [liveSponsorships, setLiveSponsorships] = useState<LiveSponsorship[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useGlobalContext();
-  const localPeer = useHMSStore(selectLocalPeer);
-  const isHost = localPeer?.roleName === "host";
+  const isHost = false;
   
   // Track sponsorship countdown times on client
   const [countdowns, setCountdowns] = useState<Record<string, number>>({});

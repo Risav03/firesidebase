@@ -1,28 +1,21 @@
 'use client'
 
-import { HMSMessage } from "@100mslive/react-sdk";
 import { formatDistanceToNow } from "./utils/timeUtils";
 
 interface ChatMessageProps {
-  message: HMSMessage | RedisChatMessage;
+  message: RedisChatMessage;
   isOwnMessage: boolean;
 }
 
 export function ChatMessage({ message, isOwnMessage }: ChatMessageProps) {
   
-  const isRedisMessage = 'userId' in message;
+  const isRedisMessage = true;
 
   // Get sender name based on message type
   const getSenderName = () => {
     if (isRedisMessage) {
       const redisMsg = message as RedisChatMessage;
       return redisMsg.displayName || 'Anonymous';
-    } else {
-      const hmsMsg = message as HMSMessage;
-      return hmsMsg.senderName || 
-             hmsMsg.sender || 
-             (hmsMsg as any).senderUserId ||
-             'Anonymous';
     }
   };
   
@@ -32,8 +25,6 @@ export function ChatMessage({ message, isOwnMessage }: ChatMessageProps) {
   const getMessageText = () => {
     if (isRedisMessage) {
       return (message as RedisChatMessage).message;
-    } else {
-      return (message as HMSMessage).message;
     }
   };
   
@@ -41,8 +32,6 @@ export function ChatMessage({ message, isOwnMessage }: ChatMessageProps) {
   const getTimestamp = () => {
     if (isRedisMessage) {
       return new Date((message as RedisChatMessage).timestamp);
-    } else {
-      return (message as HMSMessage).time;
     }
   };
   
@@ -95,7 +84,7 @@ export function ChatMessage({ message, isOwnMessage }: ChatMessageProps) {
           </p>
           {(
             <div className={`text-xs mt-1 text-white/40 text-right`}>
-              {formatDistanceToNow(getTimestamp())}
+              {formatDistanceToNow(getTimestamp() || new Date())}
             </div>
           )}
         </div>

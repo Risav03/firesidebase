@@ -1,14 +1,16 @@
 "use client";
 
-import { HMSRoomProvider } from "@100mslive/react-sdk";
+import { RtmProvider } from './rtm';
 import { MiniKitProvider } from "@coinbase/onchainkit/minikit";
 import { base } from "wagmi/chains";
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Rainbow from "./rainbow";
 import { GlobalProvider } from "./globalContext";
 import { initViewportFix } from "../viewport";
+import { AgoraReadyProvider } from "./agoraReady";
+import { RtcClientProvider } from "./rtcCtx";
 
 interface ProvidersProps {
   children: ReactNode;
@@ -16,12 +18,17 @@ interface ProvidersProps {
 
 import ProgressBar from "@/components/UI/ProgressBar";
 
+// Removed AgoraRTCProvider usage due to initialization crashes; using plain SDK in components
+
 export default function Providers({ children }: ProvidersProps) {
   // Initialize viewport fix for mobile
   useEffect(() => {
     const cleanup = initViewportFix();
     return cleanup;
   }, []);
+
+  // Disable RTC client creation here; plain SDK is created in CallClient
+  const [rtcClient] = useState<any>(null);
 
   return (
     <>
@@ -32,7 +39,13 @@ export default function Providers({ children }: ProvidersProps) {
       >
         <GlobalProvider>
         <Rainbow>
-          <HMSRoomProvider>{children}</HMSRoomProvider>
+          <RtmProvider>
+            <AgoraReadyProvider ready={false}>
+              <RtcClientProvider client={rtcClient}>
+                {children}
+              </RtcClientProvider>
+            </AgoraReadyProvider>
+          </RtmProvider>
         </Rainbow>
         </GlobalProvider>
       </MiniKitProvider>
