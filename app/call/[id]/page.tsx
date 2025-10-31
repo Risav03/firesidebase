@@ -17,6 +17,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   return {
     title: `${data.data.room.name}`,
     description: `Hosted by ${hostName}. ${data.data.room.description}`,
+    
     other: {
       "fc:frame": JSON.stringify({
         version: "next",
