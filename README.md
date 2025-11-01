@@ -21,7 +21,7 @@ This project has been fully migrated from Vite to Next.js 14 with TypeScript and
 - ✅ Better performance and stability
 - ✅ Latest 100ms features and APIs
 - ✅ Server-side rendering capabilities
-- ✅ Proper Next.js project structure
+- ✅ Proper Next.js project structures
 
 ## Project Structure
 
