@@ -7,10 +7,9 @@ import {
   useHMSActions,
   selectLocalPeer,
 } from "@100mslive/react-sdk";
-import { useSpeakerRequestEvent, useSpeakerRejectionEvent, useNewSponsorEvent, useSponsorStatusEvent } from "@/utils/events";
+import { useSpeakerRequestEvent, useSpeakerRejectionEvent } from "@/utils/events";
 import PeerWithContextMenu from "./PeerWithContextMenu";
 import { ScreenTile } from "./ScreenTile";
-import RoomSponsor from "./RoomSponsor";
 import { useEffect, useState, useRef, useCallback } from "react";
 import sdk from "@farcaster/miniapp-sdk";
 import { useRouter } from "next/navigation";
@@ -19,10 +18,7 @@ import { useHMSNotifications, HMSNotificationTypes } from '@100mslive/react-sdk'
 import RoomEndScreen from "./RoomEndScreen";
 import { toast } from "react-toastify";
 import { fetchRoomDetails, endRoom } from "@/utils/serverActions";
-import { showSponsorshipRequestToast, showSponsorStatusToast } from "@/utils/customToasts";
 import SpeakerRequestsDrawer from "./SpeakerRequestsDrawer";
-import PendingSponsorshipsDrawer from "./PendingSponsorshipsDrawer";
-import SponsorDrawer from "./SponsorDrawer";
 // import AudioRecoveryBanner from "./AudioRecoveryBanner";
 
 
@@ -69,13 +65,11 @@ export default function Conference({ roomId }: { roomId: string }) {
   
   const [speakerRequests, setSpeakerRequests] = useState<SpeakerRequest[]>([]);
   const [showSpeakerRequestsDrawer, setShowSpeakerRequestsDrawer] = useState(false);
-  const [showPendingSponsorshipsDrawer, setShowPendingSponsorshipsDrawer] = useState(false);
-  const [showSponsorDrawer, setShowSponsorDrawer] = useState(false);
   
   const [roomEnded, setRoomEnded] = useState(false);
 
   //function to fetch room details and save name and description in a useState. Call the function in useEffect
-  const [roomDetails, setRoomDetails] = useState<{ name: string; description: string, sponsorshipEnabled: boolean } | null>(null);
+  const [roomDetails, setRoomDetails] = useState<{ name: string; description: string } | null>(null);
   
 
    const handleSpeakerRequest = (event: any) => {
@@ -189,8 +183,7 @@ useEffect(() => {
         if (response.data.success) {
           setRoomDetails({ 
             name: response.data.data.room.name, 
-            description: response.data.data.room.description,
-            sponsorshipEnabled: response.data.data.room.sponsorshipEnabled
+            description: response.data.data.room.description
           });
         }
       } catch (error) {
@@ -409,22 +402,7 @@ useEffect(() => {
     handleRejectRequest({peerId: msg.peer});
   });
 
-  // Listen for new sponsorship requests and show a toast to admins
-  useNewSponsorEvent((msg) => {
-    console.log("[HMS Event - Conference] New sponsor event received", {
-      sponsorName: msg.sponsorName,
-      localRole: localPeer?.roleName,
-      timestamp: new Date().toISOString(),
-    });
-    
-    // Only show the notification to hosts
-    if (localPeer?.roleName === 'host') {
-      showSponsorshipRequestToast(msg.sponsorName, () => {
-        toast.dismiss();
-        setShowPendingSponsorshipsDrawer(true);
-      });
-    }
-  });
+  // Sponsorship hooks removed as part of ads migration
 
   useEffect(() => {
     async function getPermission() {
@@ -439,24 +417,7 @@ useEffect(() => {
     getPermission();
   }, []);
 
-  useSponsorStatusEvent((msg) => {
-    console.log("[HMS Event - Conference] Sponsor status event received", {
-      status: msg.status,
-      userId: msg.userId,
-      userFid: user?.fid,
-      timestamp: new Date().toISOString(),
-    });
-    
-    // Check if the userId matches the current user's ID (skip if no user)
-    if (user?.fid && (Number(user.fid) === Number(msg.userId))) {
-      showSponsorStatusToast(msg.status, () => {
-        if (msg.status === "approved") {
-          setShowSponsorDrawer(true);
-        }
-        toast.dismiss();
-      });
-    }
-  });
+  // Sponsorship hooks removed as part of ads migration
 
   if(roomEnded){
     return <RoomEndScreen onComplete={() => router.push("/")} />
@@ -468,7 +429,6 @@ useEffect(() => {
     return (
       <div className="pt-20 pb-32 px-6 relative">
         {/* <AudioRecoveryBanner /> */}
-        {roomDetails?.sponsorshipEnabled && <RoomSponsor roomId={roomId} />}
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-4 mt-6 relative">
             {/* Speaker Requests Button - Only shown to hosts/co-hosts and when there are requests */}
@@ -526,21 +486,7 @@ useEffect(() => {
           roomId={roomId}
         />
 
-        {/* Pending Sponsorships Drawer - Only visible for hosts */}
-        {localPeer?.roleName === 'host' && (
-          <PendingSponsorshipsDrawer
-            isOpen={showPendingSponsorshipsDrawer}
-            onClose={() => setShowPendingSponsorshipsDrawer(false)}
-            roomId={roomId}
-          />
-        )}
-
-        {/* Sponsor Drawer */}
-        <SponsorDrawer
-          isOpen={showSponsorDrawer}
-          onClose={() => setShowSponsorDrawer(false)}
-          roomId={roomId}
-        />
+        {/* Sponsorship drawers removed */}
       </div>
     );
   }

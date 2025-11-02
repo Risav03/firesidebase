@@ -33,10 +33,42 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
   const localPeer = useHMSStore(selectLocalPeer);
   const [showRoomEndModal, setShowRoomEndModal] = useState(false);
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
+  const [isStartingAds, setIsStartingAds] = useState(false);
+  const [isStoppingAds, setIsStoppingAds] = useState(false);
 
   // Check if local user is host or co-host
   const isHostOrCoHost = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
   const isHost = localPeer?.roleName === 'host';
+
+  const handleStartAds = async () => {
+    if (!roomId) return;
+    try {
+      setIsStartingAds(true);
+      const res = await fetch(`/api/ads/controls/start/${roomId}`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to start ads');
+      toast.success('Ads session started');
+    } catch (e) {
+      console.error(e);
+      toast.error('Could not start ads');
+    } finally {
+      setIsStartingAds(false);
+    }
+  };
+
+  const handleStopAds = async () => {
+    if (!roomId) return;
+    try {
+      setIsStoppingAds(true);
+      const res = await fetch(`/api/ads/controls/stop/${roomId}`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to stop ads');
+      toast.success('Ads session stopped');
+    } catch (e) {
+      console.error(e);
+      toast.error('Could not stop ads');
+    } finally {
+      setIsStoppingAds(false);
+    }
+  };
 
   const handleLeaveClick = () => {
     if (isHost) {
@@ -85,6 +117,26 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
           </div>
           {isConnected && (
             <div className="flex items-center space-x-3">
+              {roomId && isHost && (
+                <>
+                  <button
+                    onClick={handleStartAds}
+                    disabled={isStartingAds}
+                    className="text-white px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20"
+                    title="Display Ads"
+                  >
+                    {isStartingAds ? 'Starting…' : 'Display Ads'}
+                  </button>
+                  <button
+                    onClick={handleStopAds}
+                    disabled={isStoppingAds}
+                    className="text-white px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20"
+                    title="Stop Ads"
+                  >
+                    {isStoppingAds ? 'Stopping…' : 'Stop Ads'}
+                  </button>
+                </>
+              )}
               {roomId && (
                 <button
                   onClick={() => setIsShareMenuOpen((prev) => !prev)}

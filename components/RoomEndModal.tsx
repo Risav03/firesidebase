@@ -107,7 +107,11 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
       if (!response.ok) {
         throw new Error(response.data.error || 'Failed to end room');
       }
-
+      try {
+        await fetch(`/api/ads/controls/room-ended/${roomId}`, { method: 'POST' });
+      } catch (e) {
+        console.warn('Failed to notify ads room-ended', e);
+      }
       endRoom("Room has been ended by the host.");
 
     } catch (error) {
