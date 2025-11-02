@@ -8,6 +8,7 @@ import Image from "next/image";
 import { IoMdHome } from "react-icons/io";
 import { FaPlus } from "react-icons/fa";
 import { useNavigateWithLoader } from "@/utils/useNavigateWithLoader";
+import { RiAdvertisementFill } from "react-icons/ri";
 import { BiSolidVideoRecording } from "react-icons/bi";
 
 export default function Navigation() {
@@ -21,6 +22,7 @@ export default function Navigation() {
   const isHomePage = pathname === '/';
   const isProfilePage = pathname === '/profile';
   const isRecordingsPage = pathname === '/recordings';
+  const isAdsPage = pathname === '/ads/purchase';
 
   // Since we're using inline styling, we can remove this effect
   // useEffect(() => {
@@ -53,11 +55,17 @@ export default function Navigation() {
           <div className="relative -translate-y-4">
             <div 
               ref={indicatorRef} 
-              className="absolute bottom-0 w-1/3 h-1 gradient-fire transition-transform duration-300 ease-in-out"
+              className="absolute bottom-0 w-1/4 h-1 gradient-fire transition-transform duration-300 ease-in-out"
               style={{ 
                 bottom: '-8px',
-                opacity: isHomePage || isProfilePage ? 1 : 0,
-                transform: isHomePage ? 'translateX(0%)' : isProfilePage ? 'translateX(200%)' : isRecordingsPage ? 'translateX(400%)' : 'translateX(0%)'
+                opacity: isHomePage || isRecordingsPage || isAdsPage ? 1 : 0,
+                transform: isHomePage
+                  ? 'translateX(0%)'
+                  : isRecordingsPage
+                  ? 'translateX(100%)'
+                  : isAdsPage
+                  ? 'translateX(200%)'
+                  : 'translateX(0%)'
               }}
             />
           </div>
@@ -66,7 +74,7 @@ export default function Navigation() {
             {/* Explore Button */}
             <button
               onClick={handleExploreClick}
-              className={`flex flex-col items-center w-1/3 transition-colors ${
+              className={`flex flex-col items-center w-1/4 transition-colors ${
                 isHomePage ? "text-white" : "text-gray-300 hover:text-white"
               }`}
             >
@@ -74,8 +82,30 @@ export default function Navigation() {
               <span className="text-xs">Explore</span>
             </button>
 
+            {/* Recordings Button */}
+            <button
+              onClick={() => navigate("/recordings")}
+              className={`flex flex-col items-center w-1/4 space-y-1 transition-colors ${
+                isRecordingsPage ? "text-white" : "text-gray-300 hover:text-white"
+              }`}
+            >
+              <BiSolidVideoRecording className={`w-6 h-6 text-2xl ${isRecordingsPage ? "text-orange-500" : "text-white"}`} />
+              <span className="text-xs">Recordings</span>
+            </button>
+
+            {/* Ads Purchase Button */}
+            <button
+              onClick={() => navigate("/ads/purchase")}
+              className={`flex flex-col items-center w-1/4 space-y-1 transition-colors ${
+                isAdsPage ? "text-white" : "text-gray-300 hover:text-white"
+              }`}
+            >
+              <RiAdvertisementFill className={`w-6 h-6 text-2xl ${isAdsPage ? "text-orange-500" : "text-white"}`} />
+              <span className="text-xs">Ads</span>
+            </button>
+
             {/* Create Room Button */}
-            <div className="w-1/3 flex flex-col items-center">
+            <div className="w-1/4 flex flex-col items-center">
               <button
                 onClick={handleCreateRoom}
                 className="gradient-fire text-white p-4 rounded-full font-bold transition-colors"
@@ -83,17 +113,6 @@ export default function Navigation() {
                 <FaPlus className="text-2xl" />
               </button>
             </div>
-
-            {/* Profile Button */}
-            <button
-              onClick={() => navigate("/recordings")}
-              className={`flex flex-col items-center w-1/3 space-y-1 transition-colors ${
-                isRecordingsPage ? "text-white" : "text-gray-300 hover:text-white"
-              }`}
-            >
-              <BiSolidVideoRecording className={`w-6 h-6 text-2xl ${isRecordingsPage ? "text-orange-500" : "text-white"}`} />
-              <span className="text-xs">Recordings</span>
-            </button>
           </div>
         </div>
       </nav>
