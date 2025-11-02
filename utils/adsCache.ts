@@ -21,9 +21,11 @@ const IDEMPOTENCY_TTL_MS = 5 * 60 * 1000;
 
 function pruneIdempotencyKeys() {
   const now = Date.now();
-  for (const [key, ts] of idempotencyKeys.entries()) {
-    if (now - ts > IDEMPOTENCY_TTL_MS) idempotencyKeys.delete(key);
-  }
+  idempotencyKeys.forEach((ts, key) => {
+    if (now - ts > IDEMPOTENCY_TTL_MS) {
+      idempotencyKeys.delete(key);
+    }
+  });
 }
 
 export function isDuplicateIdempotency(key?: string) {
