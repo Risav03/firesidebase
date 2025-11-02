@@ -2,6 +2,14 @@
 
 import { useState } from 'react';
 import { useGlobalContext } from '@/utils/providers/globalContext';
+import { getEthPrice } from '@/utils/commons';
+import { encodeFunctionData, numberToHex } from 'viem';
+import { erc20Abi } from '@/utils/contract/abis/erc20abi';
+import { firebaseAdsAbi } from '@/utils/contract/abis/firebaseAdsAbi';
+import { contractAdds } from '@/utils/contract/contractAdds';
+import { createBaseAccountSDK, getCryptoKeyAccount, base } from '@base-org/account';
+import { readContract } from '@wagmi/core';
+import { config } from '@/utils/providers/rainbow';
 
 export default function PurchaseAdPage() {
   const { user } = useGlobalContext();
@@ -12,6 +20,9 @@ export default function PurchaseAdPage() {
   const [price, setPrice] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  
+
+  const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
   const quotePrice = async () => {
     setLoading(true);
@@ -29,37 +40,130 @@ export default function PurchaseAdPage() {
     }
   };
 
-  const handlePayAndCreate = async () => {
+  const createOnBackend = async (txHash: string) => {
+    if (!user?.fid) return;
+    const backend = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+    const res = await fetch(`${backend}/api/ads/protected/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-user-fid': String(user.fid),
+      },
+      body: JSON.stringify({ title, imageUrl, rooms, minutes, txHash }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error || 'Failed to create ad');
+    }
+  };
+
+  const handlePayETH = async () => {
     if (!user?.fid) return;
     if (!price) await quotePrice();
-
-    // Expect a wallet flow to return txHash programmatically
-    // Integrators should implement window.firesideRequestAdPayment(amountUsd) => Promise<string>
-    const requestPayment = (window as any).firesideRequestAdPayment as undefined | ((amountUsd: number) => Promise<string>);
-    if (!requestPayment) {
-      alert('Wallet payment integration required. Please implement window.firesideRequestAdPayment(amountUsd) to return txHash.');
-      return;
-    }
-
     setCreating(true);
     try {
-      const txHash = await requestPayment(Number(price));
-      const backend = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-      const res = await fetch(`${backend}/api/ads/protected/create`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-fid': String(user.fid),
-        },
-        body: JSON.stringify({ title, imageUrl, rooms, minutes, txHash }),
+      const ethPrice = await getEthPrice();
+      const ethValueDecimal = Number(price!) / Number(ethPrice);
+      const ethValueWei = BigInt(Math.floor(ethValueDecimal * 1e18));
+
+      const provider = createBaseAccountSDK({
+        appName: 'Fireside',
+        appLogoUrl: 'https://fireside-interface.vercel.app/pfp.png',
+        appChainIds: [base.constants.CHAIN_IDS.base],
+      }).getProvider();
+
+      const cryptoAccount = await getCryptoKeyAccount();
+      const fromAddress = cryptoAccount?.account?.address;
+
+      const result: any = await provider.request({
+        method: 'wallet_sendCalls',
+        params: [{
+          version: '2.0.0',
+          from: fromAddress,
+          chainId: numberToHex(base.constants.CHAIN_IDS.base),
+          atomicRequired: true,
+          calls: [{
+            to: contractAdds.sponsor as `0x${string}`,
+            value: numberToHex(ethValueWei),
+            data: '0x',
+          }],
+        }],
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error || 'Failed to create ad');
-      }
-      alert('Ad created successfully');
+
+      const txHash: string = result?.transactionHash || result?.hash || result?.[0]?.hash;
+      if (!txHash) throw new Error('No transaction hash returned');
+      await createOnBackend(txHash);
+      alert('Ad purchased with ETH and created successfully');
     } catch (e: any) {
-      alert(e?.message || 'Payment or creation failed');
+      alert(e?.message || 'ETH payment failed');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handlePayUSDC = async () => {
+    if (!user?.fid) return;
+    if (!price) await quotePrice();
+    setCreating(true);
+    try {
+      const usdcAmount = BigInt(Math.floor(Number(price!) * 1e6));
+
+      // Read fee wallets from sponsor contract to use as recipients
+      const feeConfig: any = await readContract(config, {
+        address: contractAdds.sponsor as `0x${string}`,
+        abi: firebaseAdsAbi as any,
+        functionName: 'getFeeConfig',
+        args: [],
+      });
+      const wallet1 = feeConfig?.wallet1 as string | undefined;
+      const wallet2 = feeConfig?.wallet2 as string | undefined;
+      const recipients = [wallet1, wallet2].filter(Boolean) as `0x${string}`[];
+
+      const provider = createBaseAccountSDK({
+        appName: 'Fireside',
+        appLogoUrl: 'https://fireside-interface.vercel.app/pfp.png',
+        appChainIds: [base.constants.CHAIN_IDS.base],
+      }).getProvider();
+
+      const cryptoAccount = await getCryptoKeyAccount();
+      const fromAddress = cryptoAccount?.account?.address;
+
+      const result: any = await provider.request({
+        method: 'wallet_sendCalls',
+        params: [{
+          version: '2.0.0',
+          from: fromAddress,
+          chainId: numberToHex(base.constants.CHAIN_IDS.base),
+          atomicRequired: true,
+          calls: [
+            {
+              to: USDC_ADDRESS as `0x${string}`,
+              value: '0x0',
+              data: encodeFunctionData({
+                abi: erc20Abi,
+                functionName: 'approve',
+                args: [contractAdds.sponsor, usdcAmount],
+              }),
+            },
+            {
+              to: contractAdds.sponsor as `0x${string}`,
+              value: '0x0',
+              data: encodeFunctionData({
+                abi: firebaseAdsAbi as any,
+                functionName: 'distributeToken',
+                args: [USDC_ADDRESS, recipients, usdcAmount],
+              }),
+            },
+          ],
+        }],
+      });
+
+      const txHash: string = result?.transactionHash || result?.hash || result?.[0]?.hash;
+      if (!txHash) throw new Error('No transaction hash returned');
+      await createOnBackend(txHash);
+      alert('Ad purchased with USDC and created successfully');
+    } catch (e: any) {
+      alert(e?.message || 'USDC payment failed');
     } finally {
       setCreating(false);
     }
@@ -92,7 +196,10 @@ export default function PurchaseAdPage() {
             <button onClick={quotePrice} disabled={loading} className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded">{loading ? '...' : 'Get Quote'}</button>
             {price !== null && <span className="text-gray-300 text-sm">${price} USD</span>}
           </div>
-          <button onClick={handlePayAndCreate} disabled={creating || !title || !imageUrl} className="w-full bg-fireside-orange hover:bg-orange-600 text-white px-4 py-2 rounded">{creating ? 'Processing…' : 'Pay & Create'}</button>
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={handlePayETH} disabled={creating || !title || !imageUrl || price===null} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded">{creating ? '...' : 'Pay with ETH'}</button>
+            <button onClick={handlePayUSDC} disabled={creating || !title || !imageUrl || price===null} className="bg-fireside-orange hover:bg-orange-600 text-white px-4 py-2 rounded">{creating ? '...' : 'Pay with USDC'}</button>
+          </div>
         </div>
       </div>
     </div>
