@@ -58,112 +58,20 @@ export default function PurchaseAdPage() {
   };
 
   const handlePayETH = async () => {
-    if (!user?.fid) return;
-    if (!price) await quotePrice();
+    // Transaction flow disabled for testing
     setCreating(true);
     try {
-      const ethPrice = await getEthPrice();
-      const ethValueDecimal = Number(price!) / Number(ethPrice);
-      const ethValueWei = BigInt(Math.floor(ethValueDecimal * 1e18));
-
-      const provider = createBaseAccountSDK({
-        appName: 'Fireside',
-        appLogoUrl: 'https://fireside-interface.vercel.app/pfp.png',
-        appChainIds: [base.constants.CHAIN_IDS.base],
-      }).getProvider();
-
-      const cryptoAccount = await getCryptoKeyAccount();
-      const fromAddress = cryptoAccount?.account?.address;
-
-      const result: any = await provider.request({
-        method: 'wallet_sendCalls',
-        params: [{
-          version: '2.0.0',
-          from: fromAddress,
-          chainId: numberToHex(base.constants.CHAIN_IDS.base),
-          atomicRequired: true,
-          calls: [{
-            to: contractAdds.sponsor as `0x${string}`,
-            value: numberToHex(ethValueWei),
-            data: '0x',
-          }],
-        }],
-      });
-
-      const txHash: string = result?.transactionHash || result?.hash || result?.[0]?.hash;
-      if (!txHash) throw new Error('No transaction hash returned');
-      await createOnBackend(txHash);
-      alert('Ad purchased with ETH and created successfully');
-    } catch (e: any) {
-      alert(e?.message || 'ETH payment failed');
+      alert('ETH transaction is commented out for now to test the rest of the flow.');
     } finally {
       setCreating(false);
     }
   };
 
   const handlePayUSDC = async () => {
-    if (!user?.fid) return;
-    if (!price) await quotePrice();
+    // Transaction flow disabled for testing
     setCreating(true);
     try {
-      const usdcAmount = BigInt(Math.floor(Number(price!) * 1e6));
-
-      // Read fee wallets from sponsor contract to use as recipients
-      const feeConfig: any = await readContract(config, {
-        address: contractAdds.sponsor as `0x${string}`,
-        abi: firebaseAdsAbi as any,
-        functionName: 'getFeeConfig',
-        args: [],
-      });
-      const wallet1 = feeConfig?.wallet1 as string | undefined;
-      const wallet2 = feeConfig?.wallet2 as string | undefined;
-      const recipients = [wallet1, wallet2].filter(Boolean) as `0x${string}`[];
-
-      const provider = createBaseAccountSDK({
-        appName: 'Fireside',
-        appLogoUrl: 'https://fireside-interface.vercel.app/pfp.png',
-        appChainIds: [base.constants.CHAIN_IDS.base],
-      }).getProvider();
-
-      const cryptoAccount = await getCryptoKeyAccount();
-      const fromAddress = cryptoAccount?.account?.address;
-
-      const result: any = await provider.request({
-        method: 'wallet_sendCalls',
-        params: [{
-          version: '2.0.0',
-          from: fromAddress,
-          chainId: numberToHex(base.constants.CHAIN_IDS.base),
-          atomicRequired: true,
-          calls: [
-            {
-              to: USDC_ADDRESS as `0x${string}`,
-              value: '0x0',
-              data: encodeFunctionData({
-                abi: erc20Abi,
-                functionName: 'approve',
-                args: [contractAdds.sponsor, usdcAmount],
-              }),
-            },
-            {
-              to: contractAdds.sponsor as `0x${string}`,
-              value: '0x0',
-              data: encodeFunctionData({
-                abi: firebaseAdsAbi as any,
-                functionName: 'distributeToken',
-                args: [USDC_ADDRESS, recipients, usdcAmount],
-              }),
-            },
-          ],
-        }],
-      });
-
-      const txHash: string = result?.transactionHash || result?.hash || result?.[0]?.hash;
-      if (!txHash) throw new Error('No transaction hash returned');
-      await createOnBackend(txHash);
-      alert('Ad purchased with USDC and created successfully');
-    } catch (e: any) {
-      alert(e?.message || 'USDC payment failed');
+      alert('USDC transaction is commented out for now to test the rest of the flow.');
     } finally {
       setCreating(false);
     }
