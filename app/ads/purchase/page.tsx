@@ -58,20 +58,30 @@ export default function PurchaseAdPage() {
   };
 
   const handlePayETH = async () => {
-    // Transaction flow disabled for testing
+    // Mock transaction: assume success and create ad on backend
+    if (!price) await quotePrice();
     setCreating(true);
     try {
-      alert('ETH transaction is commented out for now to test the rest of the flow.');
+      const txHash = `mock-eth-${Date.now()}`;
+      await createOnBackend(txHash);
+      alert('Ad created (mock ETH tx).');
+    } catch (e: any) {
+      alert(e?.message || 'Failed to create ad');
     } finally {
       setCreating(false);
     }
   };
 
   const handlePayUSDC = async () => {
-    // Transaction flow disabled for testing
+    // Mock transaction: assume success and create ad on backend
+    if (!price) await quotePrice();
     setCreating(true);
     try {
-      alert('USDC transaction is commented out for now to test the rest of the flow.');
+      const txHash = `mock-usdc-${Date.now()}`;
+      await createOnBackend(txHash);
+      alert('Ad created (mock USDC tx).');
+    } catch (e: any) {
+      alert(e?.message || 'Failed to create ad');
     } finally {
       setCreating(false);
     }
@@ -105,8 +115,8 @@ export default function PurchaseAdPage() {
             {price !== null && <span className="text-gray-300 text-sm">${price} USD</span>}
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <button onClick={handlePayETH} disabled={creating || !title || !imageUrl || price===null} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded">{creating ? '...' : 'Pay with ETH'}</button>
-            <button onClick={handlePayUSDC} disabled={creating || !title || !imageUrl || price===null} className="bg-fireside-orange hover:bg-orange-600 text-white px-4 py-2 rounded">{creating ? '...' : 'Pay with USDC'}</button>
+            <button onClick={handlePayETH} disabled={creating || !title || !imageUrl} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded">{creating ? '...' : 'Pay with ETH'}</button>
+            <button onClick={handlePayUSDC} disabled={creating || !title || !imageUrl} className="bg-fireside-orange hover:bg-orange-600 text-white px-4 py-2 rounded">{creating ? '...' : 'Pay with USDC'}</button>
           </div>
         </div>
       </div>

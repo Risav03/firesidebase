@@ -18,6 +18,8 @@ type RoomCache = {
 const roomIdToState = new Map<string, RoomCache>();
 const idempotencyKeys = new Map<string, number>();
 const IDEMPOTENCY_TTL_MS = 5 * 60 * 1000;
+// Track which adIds have been shown in a given room for this process lifetime
+const roomIdToShownAdIds = new Map<string, Set<string>>();
 
 function pruneIdempotencyKeys() {
   const now = Date.now();
@@ -62,6 +64,17 @@ export function stopSession(roomId: string) {
 export function getCurrent(roomId: string): { state: RoomSessionState; current?: AdCurrent } {
   const prev = roomIdToState.get(roomId) || { state: 'stopped' as RoomSessionState };
   return prev;
+}
+
+export function markAdShown(roomId: string, adId: string) {
+  const set = roomIdToShownAdIds.get(roomId) || new Set<string>();
+  set.add(adId);
+  roomIdToShownAdIds.set(roomId, set);
+}
+
+export function hasAdBeenShown(roomId: string, adId: string): boolean {
+  const set = roomIdToShownAdIds.get(roomId);
+  return !!set && set.has(adId);
 }
 
 

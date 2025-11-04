@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdsWebhook } from '@/utils/adsWebhook';
-import { completeAd, getCurrent, isDuplicateIdempotency, setCurrentAd, setSessionRunning, stopSession } from '@/utils/adsCache';
+import { completeAd, getCurrent, isDuplicateIdempotency, setCurrentAd, setSessionRunning, stopSession, hasAdBeenShown, markAdShown } from '@/utils/adsCache';
+import { fetchAPI } from '@/utils/serverActions';
 
 export async function POST(req: NextRequest) {
   const event = req.headers.get('X-Ads-Event') || req.headers.get('x-ads-event') || '';
@@ -34,11 +35,18 @@ export async function POST(req: NextRequest) {
       }
       case 'ads.ad.started': {
         const { roomId, sessionId, reservationId, adId, title, imageUrl, durationSec, startedAt } = payload;
+        // Do not show the same ad twice in the same room (check only; we mark as shown on completed)
+        if (hasAdBeenShown(roomId, adId)) {
+          break;
+        }
         setCurrentAd(roomId, { reservationId, adId, title, imageUrl, durationSec, startedAt, sessionId });
         break;
       }
       case 'ads.ad.completed': {
-        const { roomId, reservationId } = payload;
+        const { roomId, reservationId, adId } = payload;
+        if (adId) {
+          markAdShown(roomId, adId);
+        }
         completeAd(roomId, reservationId);
         break;
       }
@@ -50,6 +58,11 @@ export async function POST(req: NextRequest) {
       case 'ads.session.idle': {
         const { roomId } = payload;
         stopSession(roomId);
+        // Best-effort: request backend to stop to avoid flickering when no inventory
+        try {
+          const backend = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+          await fetchAPI(`${backend}/api/ads/protected/rooms/${roomId}/stop`, { method: 'POST' });
+        } catch {}
         break;
       }
       default: {

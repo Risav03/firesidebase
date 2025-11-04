@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 type CurrentAd = {
   reservationId: string;
@@ -20,26 +20,60 @@ function remainingMs(current: { durationSec: number; startedAt: string }) {
 export default function AdsOverlay({ roomId }: { roomId: string }) {
   const [current, setCurrent] = useState<CurrentAd | null>(null);
   const [msLeft, setMsLeft] = useState<number>(0);
+  const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     let isMounted = true;
-    const fetchCurrent = async () => {
-      try {
-        const res = await fetch(`/api/ads/sessions/${roomId}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data && data.state === 'running' && data.current) {
-          if (!isMounted) return;
-          setCurrent(data.current);
-          setMsLeft(remainingMs(data.current));
-        } else {
-          setCurrent(null);
-          setMsLeft(0);
-        }
-      } catch {}
+    const parsePayload = (payload: any) => {
+      // Accept { state, current } or { success, data: { state, current } }
+      const body = payload?.state ? payload : payload?.data ? payload.data : payload;
+      const state = body?.state;
+      const currentAd = body?.current;
+      return { state, currentAd };
     };
-    fetchCurrent();
-    return () => { isMounted = false; };
+
+    const tick = async () => {
+      try {
+        // First try backend sessions
+        const res = await fetch(`/api/ads/sessions/${roomId}`);
+        if (res.ok) {
+          const data = await res.json();
+          const { state, currentAd } = parsePayload(data);
+          if (state === 'running' && currentAd) {
+            if (!isMounted) return;
+            setCurrent(currentAd);
+            setMsLeft(remainingMs(currentAd));
+            return;
+          }
+        }
+        // Fallback: local in-memory cache
+        const localRes = await fetch(`/api/webhooks/ads?roomId=${encodeURIComponent(roomId)}`);
+        if (localRes.ok) {
+          const localData = await localRes.json();
+          const { state, currentAd } = parsePayload(localData);
+          if (state === 'running' && currentAd) {
+            if (!isMounted) return;
+            setCurrent(currentAd);
+            setMsLeft(remainingMs(currentAd));
+            return;
+          }
+        }
+        // No current ad
+        if (!isMounted) return;
+        setCurrent(null);
+        setMsLeft(0);
+      } catch {
+        // ignore
+      }
+    };
+
+    // Start polling every 1s until we find a current ad; then the countdown effect takes over
+    tick();
+    pollTimerRef.current = setInterval(tick, 1000);
+    return () => {
+      isMounted = false;
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    };
   }, [roomId]);
 
   useEffect(() => {
