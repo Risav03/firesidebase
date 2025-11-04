@@ -518,6 +518,7 @@ export default function Footer({ roomId }: { roomId: string }) {
       console.error("Error composing cast:", e);
     }
   }
+  
 
   const emojiPickerStyles = {
     backgroundColor: "#000000",
