@@ -20,13 +20,8 @@ export default function MainHeader() {
   };
 
   return (
-    <header className=" absolute top-0 left-0 right-0 bg-black text-white py-4 w-screen flex items-center justify-center">
-      <button
-        onClick={handleCleanClick}
-        className="absolute left-4 text-xs bg-orange-500 hover:bg-orange-600 px-3 py-1 rounded transition-colors"
-      >
-        Clean
-      </button>
+    <header className=" absolute top-0 left-0 right-0 bg-fireside-dark_orange border-b border-orange-950/50 text-white py-4 w-screen flex items-center justify-center">
+      
       <FiresideLogo className="w-32" />
       <button
         onClick={handleProfileClick}

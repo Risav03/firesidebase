@@ -588,7 +588,7 @@ export default function Footer({ roomId }: { roomId: string }) {
   const isHost = localRoleName === "host" || localRoleName === "co-host";
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 h-28 bg-black">
+    <div className="fixed bottom-0 left-0 right-0 z-50 h-28 bg-fireside-dark_orange">
       <div className="max-w-4xl mx-auto px-6 py-4 flex">
         <div className="flex flex-col items-center justify-center w-[30%]">
           <MicComponent

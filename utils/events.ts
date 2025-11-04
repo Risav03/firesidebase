@@ -171,3 +171,28 @@ export const useSponsorStatusEvent = (
 
   return { notifySponsorStatus, sendEvent };
 };
+
+/**
+ * Custom hook for handling ads control events
+ * @param onEvent Callback function called when ads control event is received
+ * @returns Object containing sendEvent function to broadcast ads control notifications
+ */
+export const useAdsControlEvent = (
+  onEvent?: (msg: { action: 'start' | 'stop'; roomId: string }) => void
+) => {
+  const { sendEvent } = useCustomEvent({
+    type: "ADS_CONTROL",
+    onEvent: onEvent || ((msg: { action: 'start' | 'stop'; roomId: string }) => {}),
+  });
+
+  /**
+   * Broadcast an ads control event to all room participants
+   * @param action The action performed ('start' or 'stop')
+   * @param roomId The room ID where the action occurred
+   */
+  const notifyAdsControl = (action: 'start' | 'stop', roomId: string) => {
+    sendEvent({ action, roomId });
+  };
+
+  return { notifyAdsControl, sendEvent };
+};

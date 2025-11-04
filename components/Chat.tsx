@@ -14,6 +14,13 @@ import { toast } from "react-toastify";
 import sdk from "@farcaster/miniapp-sdk";
 import { MdClose, MdSend } from 'react-icons/md';
 import { fetchChatMessages, sendChatMessage } from "@/utils/serverActions";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerFooter,
+  DrawerTitle,
+} from "@/components/UI/drawer";
 
 interface ChatProps {
   isOpen: boolean;
@@ -35,10 +42,23 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   // Scroll to bottom function
   const scrollToBottom = useCallback((immediate = false) => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ 
-        behavior: immediate ? "auto" : "smooth",
-        block: "end"
-      });
+      const scrollContainer = messagesEndRef.current.closest('.overflow-y-auto');
+      if (scrollContainer) {
+        if (immediate) {
+          scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        } else {
+          scrollContainer.scrollTo({
+            top: scrollContainer.scrollHeight,
+            behavior: 'smooth'
+          });
+        }
+      } else {
+        // Fallback to original method
+        messagesEndRef.current.scrollIntoView({ 
+          behavior: immediate ? "auto" : "smooth",
+          block: "end"
+        });
+      }
     }
   }, []);
 
@@ -72,23 +92,28 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    scrollToBottom();
+    const timer = setTimeout(() => {
+      scrollToBottom();
+    }, 100); // Small delay to ensure DOM is updated
+    
+    return () => clearTimeout(timer);
   }, [messages, redisMessages, scrollToBottom]);
 
   // Scroll to bottom when chat drawer opens
   useEffect(() => {
     if (isOpen) {
       // Multiple attempts to ensure scroll works after drawer animation
-      setTimeout(() => scrollToBottom(true), 50);   // Immediate scroll
-      setTimeout(() => scrollToBottom(), 200);      // After drawer animation
-      setTimeout(() => scrollToBottom(), 500);      // Final fallback
+      setTimeout(() => scrollToBottom(true), 100);   // Initial scroll
+      setTimeout(() => scrollToBottom(true), 300);   // After drawer animation starts
+      setTimeout(() => scrollToBottom(), 600);       // After drawer animation completes
+      setTimeout(() => scrollToBottom(), 1000);      // Final fallback
     }
   }, [isOpen, scrollToBottom]);
 
   // Scroll to bottom when messages are loaded
   useEffect(() => {
     if (isOpen && !loading && (redisMessages.length > 0 || messages.length > 0)) {
-      setTimeout(() => scrollToBottom(), 100);
+      setTimeout(() => scrollToBottom(true), 200);
     }
   }, [isOpen, loading, redisMessages.length, messages.length, scrollToBottom]);
 
@@ -126,6 +151,8 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
     // Reset textarea height after clearing message
     setTimeout(() => {
       adjustTextareaHeight();
+      // Scroll to bottom immediately after sending
+      scrollToBottom(true);
     }, 0);
 
     try {
@@ -158,6 +185,8 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       if (response.data.success) {
         // Add the new message to our local state
         setRedisMessages(prev => [...prev, response.data.data.message]);
+        // Scroll to bottom after adding new message
+        setTimeout(() => scrollToBottom(), 100);
       } else {
         console.error('Failed to store message:', response.data.error);
         toast.error('Failed to send message. Please try again.');
@@ -258,21 +287,14 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   // const modalClass = `chat-modal ${isOpen ? 'open' : ''} ${isClosing ? 'closing' : ''}`;
 
   return (
-    <div className={`fixed inset-0 z-50 ${isOpen ? 'block' : 'hidden'}`}>
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-        onClick={setIsChatOpen}
-      />
-      
-      {/* Full-screen modal content */}
-      <div className="relative w-full h-full bg-black/95 backdrop-blur-lg text-white overflow-hidden flex flex-col">
-        {/* Chat Header */}
-        <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-lg border-b border-fireside-orange/30 px-4 py-4 flex-shrink-0">
+    <Drawer open={isOpen} onOpenChange={setIsChatOpen}>
+      <DrawerContent className="bg-black/95 backdrop-blur-lg text-white border-fireside-orange/30 flex flex-col h-auto">
+        {/* Chat Header - Fixed */}
+        <DrawerHeader className="flex-shrink-0 border-b border-fireside-orange/30 sticky top-0 bg-black/95 backdrop-blur-lg z-10">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-3 h-3 bg-fireside-orange rounded-full animate-pulse"></div>
-              <h2 className="text-xl font-semibold text-white">Room Chat</h2>
+              <DrawerTitle className="text-xl font-semibold text-white">Room Chat</DrawerTitle>
             </div>
             <button
               onClick={setIsChatOpen}
@@ -282,10 +304,10 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
               <MdClose size={24} />
             </button>
           </div>
-        </div>
+        </DrawerHeader>
 
-        {/* Chat Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-4">
+        {/* Chat Messages - Fixed Height with Scroll */}
+        <div className="overflow-y-auto px-4 py-4 min-h-0" style={{ height: '50vh', scrollBehavior: 'smooth' }}>
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-white text-sm">Loading messages...</div>
@@ -311,7 +333,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
               <p className="text-xs text-gray-400">Start the conversation!</p>
             </div>
           ) : (
-            <div className="space-y-4 max-w-2xl mx-auto">
+            <div className="space-y-4 max-w-2xl mx-auto pb-4">
               {combinedMessages.map((msg) => {
                 // Compare the message userId with the current user's fid
                 const isOwn = msg.userId === user?.fid;
@@ -324,49 +346,47 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
                   />
                 );
               })}
-              <div ref={messagesEndRef} />
+              <div ref={messagesEndRef} className="h-1" />
             </div>
           )}
         </div>
 
-        {/* Chat Input */}
-        <div className="sticky bottom-0 bg-black/90 backdrop-blur-lg border-t border-fireside-orange/30 px-4 py-4 flex-shrink-0">
-          <div className="max-w-2xl mx-auto">
-            <div className="flex items-end space-x-3">
-              <div className="flex-1">
-                <textarea
-                  ref={textareaRef}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Type a message..."
-                  className="w-full px-4 py-3 bg-white/10 text-white rounded-2xl border border-white/30 focus:border-fireside-orange focus:ring-2 focus:ring-fireside-orange focus:ring-opacity-20 outline-none resize-none min-h-[48px] text-base"
-                  maxLength={500}
-                  rows={1}
-                  style={{ 
-                    transition: 'height 0.2s ease-out',
-                    fontFamily: 'inherit',
-                    lineHeight: '1.5'
-                  }}
-                />
-              </div>
-              <button
-                onClick={handleSendMessage}
-                disabled={!message.trim()}
-                className="w-12 h-12 bg-fireside-orange text-white rounded-full flex items-center justify-center transition-all hover:bg-fireside-orange/80 disabled:bg-gray-500 disabled:opacity-50 flex-shrink-0"
-                title="Send message"
-              >
-                <MdSend size={20} />
-              </button>
+        {/* Chat Input - Fixed */}
+        <DrawerFooter className="border-fireside-orange/30 flex-shrink-0 sticky bottom-0 bg-black/95 backdrop-blur-lg">
+          <div className="flex items-end space-x-3">
+            <div className="flex-1">
+              <textarea
+                ref={textareaRef}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Type a message..."
+                className="w-full px-4 py-3 bg-white/10 text-white rounded-2xl border border-white/30 focus:border-fireside-orange focus:ring-2 focus:ring-fireside-orange focus:ring-opacity-20 outline-none resize-none min-h-[48px] text-base"
+                maxLength={500}
+                rows={1}
+                style={{ 
+                  transition: 'height 0.2s ease-out',
+                  fontFamily: 'inherit',
+                  lineHeight: '1.5'
+                }}
+              />
             </div>
-            {message.length > 400 && (
-              <div className="text-xs text-gray-400 mt-2 text-right">
-                {message.length}/500
-              </div>
-            )}
+            <button
+              onClick={handleSendMessage}
+              disabled={!message.trim()}
+              className="w-12 h-12 bg-fireside-orange text-white rounded-full flex items-center justify-center transition-all hover:bg-fireside-orange/80 disabled:bg-gray-500 disabled:opacity-50 flex-shrink-0"
+              title="Send message"
+            >
+              <MdSend size={20} />
+            </button>
           </div>
-        </div>
-      </div>
-    </div>
+          {message.length > 400 && (
+            <div className="text-xs text-gray-400 mt-2 text-right">
+              {message.length}/500
+            </div>
+          )}
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
   );
 }
