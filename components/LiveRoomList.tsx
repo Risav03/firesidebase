@@ -21,6 +21,16 @@ import {
   startRoom,
 } from "@/utils/serverActions";
 import { useNavigateWithLoader } from "@/utils/useNavigateWithLoader";
+import { MdOutlineSchedule } from "react-icons/md";
+import { GoDotFill } from "react-icons/go";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/UI/drawer";
 
 interface Room {
   _id: string;
@@ -63,6 +73,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
   const [welcomeMessage, setWelcomeMessage] = useState("");
   const { user, setUser, isUserLoading } = useGlobalContext();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'live' | 'upcoming'>('live');
   const router = useRouter();
 
   const [myUpcomingRooms, setMyUpcomingRooms] = useState<Room[]>([]);
@@ -219,10 +230,10 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
 
   // Filter only live/ongoing rooms
   const liveRooms = localRooms.filter((room) => room.status === "ongoing");
-  const upcomingRooms = localRooms.filter((room) => room.status === "upcoming");
+  const upcomingRooms = localRooms.filter((room) => room.status === "upcoming" && room.startTime > new Date().toISOString());
 
   return (
-    <div className="pt-16 min-h-screen">
+    <div className="pt-16 min-h-screen pb-20">
       <div className="max-w-4xl mx-auto p-4 sm:p-6 pb-24">
         <div className="text-left mb-8">
           <h1 className="text-2xl font-bold flex items-center gap-2 text-white">
@@ -236,9 +247,9 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
           <p className="text-white/70 text-sm">{welcomeMessage}</p>
         </div>
 
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <SearchBar className="w-full" />
-        </div>
+        </div> */}
 
         {/* Loading state - show when user is loading or rooms are loading */}
         {(isUserLoading || loading) && (
@@ -267,19 +278,101 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
         {/* Live Rooms Display */}
         {!loading && !isUserLoading && user && user?.topics?.length > 0 && (
           <div>
-            {/* My Upcoming Rooms Section */}
+            {/* Your Schedule Button */}
             {myUpcomingRooms.length > 0 && (
-              <div className="mb-8">
-                <h2 className="text-white text-xl font-bold mb-6">
-                  My Upcoming Rooms
-                </h2>
-                <div className="space-y-3">
-                  {myUpcomingRooms.map((room) => (
-                    <div
-                      key={room._id}
-                      className="gradient-emerald rounded-lg p-4  backdrop-blur-sm text-white"
-                    >
-                      <div className="flex items-center gap-2">
+              <div className="mb-6">
+                <Drawer>
+                  <DrawerTrigger asChild>
+                    
+                    <button className="bg-white/5 border border-white/20 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2">
+                      <MdOutlineSchedule className="text-lg text-white" />
+                      Your Schedule ({myUpcomingRooms.length})
+                    </button>
+                  </DrawerTrigger>
+                  <DrawerContent className="bg-black">
+                    <DrawerHeader>
+                      <DrawerTitle className="text-white text-xl font-bold">Your Scheduled Rooms</DrawerTitle>
+                    </DrawerHeader>
+                    <div className="p-4 space-y-3">
+                      {myUpcomingRooms.map((room) => (
+                        <div
+                          key={room._id}
+                          className="border border-white/20 bg-white/5 rounded-lg p-4 backdrop-blur-sm text-white"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="relative">
+                              <Image
+                                width={1080}
+                                height={1080}
+                                src={room.host.pfp_url}
+                                alt={room.host.displayName}
+                                className="w-12 h-12 rounded-full border-2 border-white"
+                              />
+                            </div>
+                            
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1 justify-between">
+                                <h3 className="text-lg text-white font-bold truncate">
+                                  {room.name}
+                                </h3>
+                                <DrawerClose asChild>
+                                  <button
+                                    onClick={() => handleGoLive(room._id)}
+                                    className="gradient-fire text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+                                  >
+                                    Start
+                                  </button>
+                                </DrawerClose>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </DrawerContent>
+                </Drawer>
+              </div>
+            )}
+
+            {/* Toggle Buttons */}
+            <div className="mb-6 flex gap-3 w-full">
+              <button
+                onClick={() => setActiveTab('live')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors w-1/2 duration-200 ${
+                  activeTab === 'live'
+                    ? 'gradient-fire text-white font-bold'
+                    : 'bg-white/5 text-white/70 hover:bg-white/20 hover:text-white'
+                }`}
+              ><GoDotFill className="inline mb-1 mr-1 animate-pulse" />
+                Live
+              </button>
+              <button
+                onClick={() => setActiveTab('upcoming')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors w-1/2 duration-200 ${
+                  activeTab === 'upcoming'
+                    ? 'gradient-fire text-white font-bold'
+                    : 'bg-white/5 text-white/70 hover:bg-white/20 hover:text-white'
+                }`}
+              ><MdOutlineSchedule className="inline mb-1 mr-1" />
+                Upcoming 
+              </button>
+            </div>
+
+            {/* Live Conversations Tab */}
+            {activeTab === 'live' && (
+              <div>
+                {liveRooms.length > 0 ? (
+                  <div className="space-y-3">
+                    {liveRooms.map((room) => (
+                      <div
+                        onClick={() => router.push(`/call/${room._id}`)}
+                        key={room._id}
+                        className={`flex items-center gap-3 w-full p-4 font-bold cursor-pointer hover:opacity-80 transition-opacity ${
+                          room.sponsorshipEnabled
+                            ? "gradient-red"
+                            : "border border-orange-500 rounded-lg p-4 bg-white/5 backdrop-blur-sm flex items-center justify-between cursor-pointer hover:bg-orange-900/20 transition-colors"
+                        } rounded-lg text-white`}
+                      >
                         <div className="relative">
                           <Image
                             src={`${process.env.NEXT_PUBLIC_URL}/waves.gif`}
@@ -296,154 +389,96 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                             className="w-12 h-12 rounded-full border-2 border-white"
                           />
                         </div>
-                        
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1 justify-between">
+                          <div className="flex items-center justify-between">
                             <h3 className="text-lg text-white font-bold truncate">
-                              {room.name}
+                              {room.name.slice(0, 30)}
+                              {room.name.length > 30 ? "..." : ""}
                             </h3>
-                            <button
-                              onClick={() => handleGoLive(room._id)}
-                              className="gradient-fire text-white px-4 py-2 rounded-lg font-semibold transition-colors"
-                            >
-                              Go Live
-                            </button>
+                            <span className="text-white flex gap-1 items-center justify-center ml-2">
+                              {room.strength || 0} <FaHeadphones />
+                            </span>
                           </div>
-                          
+                          <p className="text-white/80 text-sm truncate">
+                            {room.description.slice(0, 60)}
+                            {room.description.length > 60 ? "..." : ""}
+                          </p>
+                          <p className="text-white/70 text-xs">
+                            Host: {room.host.displayName || room.host.username}
+                          </p>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-white text-xl font-bold">
-                Live Conversations
-              </h2>
-              {/* <button
-                onClick={refreshRooms}
-                className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold transition-colors"
-              >
-                <IoIosRefresh className="text-lg" />
-                Refresh
-              </button> */}
-            </div>
-
-            {liveRooms.length > 0 ? (
-              <div className="space-y-3">
-                {liveRooms.map((room) => (
-                  <div
-                    onClick={() => router.push(`/call/${room._id}`)}
-                    key={room._id}
-                    className={`flex items-center gap-3 w-full p-4 font-bold cursor-pointer hover:opacity-80 transition-opacity ${
-                      room.sponsorshipEnabled
-                        ? "gradient-red"
-                        : "border border-orange-500 rounded-lg p-4 bg-white/5 backdrop-blur-sm flex items-center justify-between cursor-pointer hover:bg-orange-900/20 transition-colors"
-                    } rounded-lg text-white`}
-                  >
-                    <div className="relative">
-                      <Image
-                        src={`${process.env.NEXT_PUBLIC_URL}/waves.gif`}
-                        width={1920}
-                        height={1080}
-                        alt="Fireside Logo"
-                        className="w-12 h-12 rounded-full absolute left-0 top-0 p-1 brightness-0 invert grayscale opacity-70"
-                      />
-                      <Image
-                        width={1080}
-                        height={1080}
-                        src={room.host.pfp_url}
-                        alt={room.host.displayName}
-                        className="w-12 h-12 rounded-full border-2 border-white"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg text-white font-bold truncate">
-                          {room.name.slice(0, 30)}
-                          {room.name.length > 30 ? "..." : ""}
-                        </h3>
-                        <span className="text-white flex gap-1 items-center justify-center ml-2">
-                          {room.strength || 0} <FaHeadphones />
-                        </span>
-                      </div>
-                      <p className="text-white/80 text-sm truncate">
-                        {room.description.slice(0, 60)}
-                        {room.description.length > 60 ? "..." : ""}
-                      </p>
-                      <p className="text-white/70 text-xs">
-                        Host: {room.host.displayName || room.host.username}
-                      </p>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-left ">
-                <p className="text-white/70 mb-4">
-                  No live conversations right now
-                </p>
-                <button
-                  className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-md font-semibold"
-                  onClick={() => setShowCreateModal(true)}
-                >
-                  Create a Room
-                </button>
+                ) : (
+                  <div className="text-left">
+                    <p className="text-white/70 mb-4">
+                      No live conversations right now
+                    </p>
+                    <button
+                      className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-md font-semibold"
+                      onClick={() => setShowCreateModal(true)}
+                    >
+                      Create a Room
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Upcoming Rooms Section */}
-            {upcomingRooms.length > 0 && (
-              <div className="mt-8">
-                <h2 className="text-white text-xl font-bold mb-6">
-                  Upcoming Conversations
-                </h2>
-                <div className="space-y-3 relative">
-                  {upcomingRooms.map((room) => (
-                    <div
-                      onClick={() => navigate(`/room/${room._id}`)}
-                      key={room._id}
-                      className={`flex items-center gap-3 w-full p-4 font-bold cursor-pointer hover:opacity-80 transition-opacity gradient-yellow rounded-lg text-white`}
-                    >
-                      <div className="relative">
-                        <Image
-                          src={`${process.env.NEXT_PUBLIC_URL}/waves.gif`}
-                          width={1920}
-                          height={1080}
-                          alt="Fireside Logo"
-                          className="w-12 h-12 rounded-full absolute left-0 top-0 p-1 brightness-0 invert grayscale opacity-70"
-                        />
-                        <Image
-                          width={1080}
-                          height={1080}
-                          src={room.host.pfp_url}
-                          alt={room.host.displayName}
-                          className="w-12 h-12 rounded-full border-2 border-white opacity-70"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-lg text-white font-bold truncate">
-                            {room.name.slice(0, 30)}
-                            {room.name.length > 30 ? "..." : ""}
-                          </h3>
-                        </div>
-
-                        <p className="text-white/70 text-xs">
-                          Host: {room.host.displayName || room.host.username}
-                        </p>
-                        <div className="absolute bottom-2 right-2 bg-black/10 rounded-full px-2 pb-1">
-                          <Countdown
-                            targetTime={room.startTime}
-                            className="text-yellow-200 text-xs"
+            {/* Upcoming Conversations Tab */}
+            {activeTab === 'upcoming' && (
+              <div>
+                {upcomingRooms.length > 0 ? (
+                  <div className="space-y-3 relative">
+                    {upcomingRooms.map((room) => (
+                      <div
+                        onClick={() => navigate(`/room/${room._id}`)}
+                        key={room._id}
+                        className={`flex items-center gap-3 w-full p-4 font-bold cursor-pointer hover:opacity-80 transition-opacity gradient-yellow rounded-lg text-white`}
+                      >
+                        <div className="relative">
+                          <Image
+                            width={1080}
+                            height={1080}
+                            src={room.host.pfp_url}
+                            alt={room.host.displayName}
+                            className="w-12 h-12 rounded-full border-2 border-white"
                           />
                         </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-lg text-white font-bold truncate">
+                              {room.name.slice(0, 30)}
+                              {room.name.length > 30 ? "..." : ""}
+                            </h3>
+                          </div>
+                          <p className="text-white/70 text-xs">
+                            Host: {room.host.displayName || room.host.username}
+                          </p>
+                          <div className="absolute bottom-2 right-2 bg-black/10 rounded-full px-2 pb-1">
+                            <Countdown
+                              targetTime={room.startTime}
+                              className="text-yellow-200 text-xs"
+                            />
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-left">
+                    <p className="text-white/70 mb-4">
+                      No upcoming conversations scheduled
+                    </p>
+                    <button
+                      className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-md font-semibold"
+                      onClick={() => setShowCreateModal(true)}
+                    >
+                      Create a Room
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

@@ -6,9 +6,15 @@ import { useGlobalContext } from '@/utils/providers/globalContext';
 import { toast } from 'react-toastify';
 import { topics } from '@/utils/constants';
 import sdk from "@farcaster/miniapp-sdk";
-import Modal from '@/components/UI/Modal';
 import { MdClose } from 'react-icons/md';
 import { createRoom } from '@/utils/serverActions';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerFooter,
+  DrawerTitle,
+} from "@/components/UI/drawer";
 
 interface CreateRoomModalProps {
   isOpen: boolean;
@@ -172,19 +178,12 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
   };
 
   return (
-    <div className={`fixed inset-0 z-50 ${isOpen ? 'block' : 'hidden'}`}>
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      
-      {/* Full-screen modal content */}
-      <div className="relative w-full h-full bg-black/95 backdrop-blur-lg text-white overflow-y-auto overflow-x-hidden pb-20">
-        {/* Header with close button */}
-        <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-lg border-b border-orange-500/30 px-4 py-4">
+    <Drawer open={isOpen} onOpenChange={onClose}>
+      <DrawerContent className="bg-black/95 backdrop-blur-lg text-white border-orange-500/30 flex flex-col max-h-[95vh]">
+        {/* Header - Fixed */}
+        <DrawerHeader className="flex-shrink-0 border-b border-orange-500/30 sticky top-0 bg-black/95 backdrop-blur-lg z-10">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold text-white">Create New Room</h2>
+            <DrawerTitle className="text-2xl font-semibold text-white">Create New Room</DrawerTitle>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-white transition-colors p-2"
@@ -193,12 +192,12 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
               <MdClose size={24} />
             </button>
           </div>
-        </div>
+        </DrawerHeader>
         
-        {/* Form content */}
-        <div className="flex-1 flex flex-col px-4 py-6 w-full overflow-x-hidden">
-          <form onSubmit={createRoomHandler} className="flex-1 flex flex-col space-y-6 max-w-lg mx-auto w-full">
-            <div className="flex-1 space-y-6">
+        {/* Form content - Scrollable */}
+        <div className="flex-1 overflow-y-auto px-4 py-6 min-h-0">
+          <form onSubmit={createRoomHandler} className="flex flex-col space-y-6 max-w-lg mx-auto w-full">
+            <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Room Name*
@@ -300,27 +299,30 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                 </div>
               </div>
             </div>
-            
-            {/* Form buttons */}
-            <div className="flex space-x-3 pt-6 border-t border-orange-500/20">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 bg-white/10 hover:bg-white/20 text-white font-medium py-3 px-4 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 gradient-fire disabled:bg-gray-600 text-white font-medium py-3 px-4 rounded-lg transition-colors"
-              >
-                {loading ? 'Creating...' : 'Create Room'}
-              </button>
-            </div>
           </form>
         </div>
-      </div>
-    </div>
+        
+        {/* Form buttons - Fixed */}
+        <DrawerFooter className="border-orange-500/20 flex-shrink-0 sticky bottom-0 bg-black/95 backdrop-blur-lg">
+          <div className="flex space-x-3 max-w-lg mx-auto w-full">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 bg-white/10 hover:bg-white/20 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              onClick={createRoomHandler}
+              className="flex-1 gradient-fire disabled:bg-gray-600 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+            >
+              {loading ? 'Creating...' : 'Create Room'}
+            </button>
+          </div>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
   );
 }

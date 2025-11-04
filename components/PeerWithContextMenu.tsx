@@ -65,11 +65,11 @@ export default function PeerWithContextMenu({ peer }: PeerWithContextMenuProps) 
         />
       )}
 
-      <ViewProfileModal
+      {/* <ViewProfileModal
         peer={peer}
         isVisible={showProfileModal}
         onClose={handleProfileModalClose}
-      />
+      /> */}
     </div>
 
   );

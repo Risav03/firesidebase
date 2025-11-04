@@ -427,7 +427,7 @@ useEffect(() => {
     const canManageSpeakers = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
     
     return (
-      <div className="pt-20 pb-32 px-6 relative">
+      <div className="pt-12 pb-32 px-4 relative">
         {/* <AudioRecoveryBanner /> */}
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-4 mt-6 relative">
@@ -445,12 +445,15 @@ useEffect(() => {
                 </button>
               </div>
             )}
-            <h2 className="text-3xl font-bold text-white mb-2">
-              {roomDetails?.name || ""}
-            </h2>
-            <p className="text-gray-400">
-              {roomDetails?.description || ""}
-            </p>
+            <div className="bg-fireside-orange/5 border border-fireside-orange/10 rounded-lg p-2 text-left">
+<h2 className="text-xl font-bold gradient-fire-text">
+                {roomDetails?.name || ""}
+              </h2>
+              <p className="text-gray-400 text-sm">
+                {roomDetails?.description || ""}
+              </p>
+            </div>
+            
             
           </div>
   

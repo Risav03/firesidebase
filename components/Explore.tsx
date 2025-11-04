@@ -191,9 +191,9 @@ export default function Explore({ rooms }: ExploreProps) {
           <p className="text-white/70 text-sm">{welcomeMessage}</p>
         </div>
 
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <SearchBar className="w-full" />
-        </div>
+        </div> */}
 
         {/* Loading state - placeholder skeletons for categories and rooms */}
         {isUserLoading && (

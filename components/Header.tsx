@@ -8,13 +8,14 @@ import {
   useHMSStore,
   selectLocalPeer,
 } from "@100mslive/react-sdk";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import RoomEndModal from './RoomEndModal';
 import { TbShare3 } from "react-icons/tb";
 import { MdCopyAll, MdOutlineIosShare } from "react-icons/md";
 import { FaXTwitter } from "react-icons/fa6";
 import { sdk } from "@farcaster/miniapp-sdk";
 import { toast } from "react-toastify";
+import { useAdsControlEvent } from '../utils/events';
 
 interface HeaderProps {
   onToggleChat?: () => void;
@@ -33,42 +34,71 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
   const localPeer = useHMSStore(selectLocalPeer);
   const [showRoomEndModal, setShowRoomEndModal] = useState(false);
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
-  const [isStartingAds, setIsStartingAds] = useState(false);
-  const [isStoppingAds, setIsStoppingAds] = useState(false);
+  const [isTogglingAds, setIsTogglingAds] = useState(false);
+  const [adsRunning, setAdsRunning] = useState<boolean>(false);
+
+  // Ads control event hook
+  const { notifyAdsControl } = useAdsControlEvent();
 
   // Check if local user is host or co-host
   const isHostOrCoHost = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
   const isHost = localPeer?.roleName === 'host';
 
-  const handleStartAds = async () => {
-    if (!roomId) return;
-    try {
-      setIsStartingAds(true);
-      const res = await fetch(`/api/ads/controls/start/${roomId}`, { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to start ads');
-      toast.success('Ads session started');
-    } catch (e) {
-      console.error(e);
-      toast.error('Could not start ads');
-    } finally {
-      setIsStartingAds(false);
-    }
-  };
+  // const refreshAdsState = async () => {
+  //   if (!roomId) return;
+  //   try {
+  //     const res = await fetch(`/api/ads/sessions/${roomId}`);
+  //     if (!res.ok) return;
+  //     const data = await res.json();
+  //     const state = data?.state || data?.data?.state;
+  //     setAdsRunning(state === 'running');
+  //   } catch {}
+  // };
 
-  const handleStopAds = async () => {
-    if (!roomId) return;
-    try {
-      setIsStoppingAds(true);
-      const res = await fetch(`/api/ads/controls/stop/${roomId}`, { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to stop ads');
-      toast.success('Ads session stopped');
-    } catch (e) {
-      console.error(e);
-      toast.error('Could not stop ads');
-    } finally {
-      setIsStoppingAds(false);
-    }
-  };
+  // Initialize state
+  // useEffect(() => {
+  //   refreshAdsState();
+  // }, [roomId]);
+
+  // Poll for session state to keep the button label consistent
+  // useEffect(() => {
+  //   if (!roomId) return;
+  //   const id = setInterval(refreshAdsState, 2000);
+  //   return () => clearInterval(id);
+  // }, [roomId]);
+
+  // const handleToggleAds = async () => {
+  //   if (!roomId) return;
+  //   try {
+  //     setIsTogglingAds(true);
+  //     if (!adsRunning) {
+  //       // Start ads and assume running; rely on webhooks to stop if idle/no-inventory
+  //       const res = await fetch(`/api/ads/controls/start/${roomId}`, { method: 'POST' });
+  //       if (!res.ok) throw new Error('Failed to start ads');
+  //       setAdsRunning(true);
+  //       toast.success('Ads session started');
+  //       // Notify all peers about ads start
+  //       notifyAdsControl('start', roomId);
+  //       // Re-check shortly to revert the label if backend immediately idles/stops
+  //       setTimeout(() => {
+  //         refreshAdsState();
+  //       }, 1500);
+  //     } else {
+  //       // Stop ads
+  //       const res = await fetch(`/api/ads/controls/stop/${roomId}`, { method: 'POST' });
+  //       if (!res.ok) throw new Error('Failed to stop ads');
+  //       setAdsRunning(false);
+  //       toast.success('Ads session stopped');
+  //       // Notify all peers about ads stop
+  //       notifyAdsControl('stop', roomId);
+  //     }
+  //   } catch (e) {
+  //     console.error(e);
+  //     toast.error('Could not toggle ads');
+  //   } finally {
+  //     setIsTogglingAds(false);
+  //   }
+  // };
 
   const handleLeaveClick = () => {
     if (isHost) {
@@ -110,33 +140,23 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 bg-black px-6 h-16 my-auto border-b border-white/20">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-fireside-dark_orange px-6 h-16 my-auto">
         <div className="max-w-7xl h-full mx-auto flex items-center justify-between">
           <div className="flex items-start justify-start space-x-4">
             <FiresideLogo className="w-32 justify-start"/>
           </div>
           {isConnected && (
             <div className="flex items-center space-x-3">
-              {roomId && isHost && (
-                <>
-                  <button
-                    onClick={handleStartAds}
-                    disabled={isStartingAds}
-                    className="text-white px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20"
-                    title="Display Ads"
-                  >
-                    {isStartingAds ? 'Starting…' : 'Display Ads'}
-                  </button>
-                  <button
-                    onClick={handleStopAds}
-                    disabled={isStoppingAds}
-                    className="text-white px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20"
-                    title="Stop Ads"
-                  >
-                    {isStoppingAds ? 'Stopping…' : 'Stop Ads'}
-                  </button>
-                </>
-              )}
+              {/* {roomId && isHost && (
+                <button
+                  onClick={handleToggleAds}
+                  disabled={isTogglingAds}
+                  className="text-white px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20"
+                  title={adsRunning ? 'Stop Ads' : 'Display Ads'}
+                >
+                  {isTogglingAds ? (adsRunning ? 'Stopping…' : 'Starting…') : (adsRunning ? 'Stop Ads' : 'Display Ads')}
+                </button>
+              )} */}
               {roomId && (
                 <button
                   onClick={() => setIsShareMenuOpen((prev) => !prev)}

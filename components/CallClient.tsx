@@ -323,7 +323,7 @@ export default function CallClient({ roomId }: CallClientProps) {
     <div className="min-h-screen">
       <RoleChangeHandler />
       <Header roomId={roomId} />
-      <AdsOverlay roomId={roomId} />
+      {/* <AdsOverlay roomId={roomId} /> */}
       <Conference roomId={roomId} />
       <Footer roomId={roomId} />
     </div>
