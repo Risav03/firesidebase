@@ -240,7 +240,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
           </div>
 
           {/* View Profile Option */}
-          <div className="py-2">
+          {/* <div className="py-2">
             <button
               onClick={() => {
                 onViewProfile?.();
@@ -251,7 +251,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
               <span className="w-5 h-5">👤</span>
               <span className="font-medium">View Profile</span>
             </button>
-          </div>
+          </div> */}
 
           {/* Role Management Options - Only show if user can manage roles */}
           {canManageRoles && (
