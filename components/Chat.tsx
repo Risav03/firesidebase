@@ -360,7 +360,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                onPointerDown={(e) => e.stopPropagation()}
+                name="Chat input"
                 placeholder="Type a message..."
                 className="w-full px-4 py-3 bg-white/10 text-white rounded-2xl border border-white/30 focus:border-fireside-orange focus:ring-2 focus:ring-fireside-orange focus:ring-opacity-20 outline-none resize-none min-h-[48px] text-base"
                 maxLength={500}

@@ -508,7 +508,7 @@ export default function TippingModal({
         className="bg-black/95 backdrop-blur-lg text-white border-fireside-orange/30 max-h-[95vh] flex flex-col"
       >
         
-        <DrawerHeader className="flex-shrink-0 border-b border-fireside-orange/30 sticky top-0 bg-black/95 backdrop-blur-lg z-10">
+        <DrawerHeader className="flex-shrink-0 border-b border-orange-500/30 sticky top-0 bg-black/95 backdrop-blur-lg z-10">
           <div className="flex items-center justify-between">
             <DrawerTitle className="text-2xl font-bold text-white">
               Send a Tip
@@ -668,8 +668,8 @@ export default function TippingModal({
                 </label>
 
                 <input
-                  onPointerDown={(e) => e.stopPropagation()}
                   type="number"
+                  name="amount"
                   placeholder="Custom amount"
                   value={customTip}
                   onChange={(e) => {
