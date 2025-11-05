@@ -30,6 +30,8 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
   const [isUserLoading, setIsUserLoading] = useState<boolean>(true);
   const [isPopupOpen, setIsPopupOpen] = useState<boolean>(false);
   
+  // Ref to ensure sign-in only runs once across component re-renders
+  const hasRunRef = React.useRef(false);
 
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
@@ -48,6 +50,13 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
 
   const handleSignIn = useCallback(async (): Promise<void> => {
     console.log("handleSignIn called", new Date().toISOString());
+    
+    // Add an additional guard to prevent multiple concurrent executions
+    if (hasRunRef.current) {
+      console.log("handleSignIn already executed, skipping");
+      return;
+    }
+    
     try {
       const env = process.env.NEXT_PUBLIC_ENV;
       var token:any ;
@@ -80,25 +89,37 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       console.error("Sign in error:", error);
       setIsUserLoading(false);
     }
-  }, [getNonce]);
-
-  const hasRunRef = React.useRef(false);
+  }, []); // Remove getNonce dependency to prevent recreation
 
   useEffect(() => {
+    let isMounted = true; // Track if component is still mounted
+    
     (async () => {
-      if (hasRunRef.current) return;
+      // Double check the ref to prevent any race conditions
+      if (hasRunRef.current || !isMounted) return;
       hasRunRef.current = true;
+      
+      console.log("GlobalProvider effect running - initializing sign in");
+      
       // const sessionUser = sessionStorage.getItem("user");
       // if (!sessionUser) {
       //   await handleSignIn();
       // } else {
       //   setUser(JSON.parse(sessionUser));
       // }
-      await handleSignIn();
-      if (process.env.NEXT_PUBLIC_ENV !== "DEV") {
-        sdk.actions.ready();
+      
+      if (isMounted) {
+        await handleSignIn();
+        if (process.env.NEXT_PUBLIC_ENV !== "DEV") {
+          sdk.actions.ready();
+        }
       }
     })();
+    
+    // Cleanup function to prevent execution if component unmounts
+    return () => {
+      isMounted = false;
+    };
     // We're using hasRunRef to ensure this only runs once
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

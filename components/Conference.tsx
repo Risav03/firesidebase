@@ -404,18 +404,8 @@ useEffect(() => {
 
   // Sponsorship hooks removed as part of ads migration
 
-  useEffect(() => {
-    async function getPermission() {
-      try {
-        await sdk.actions.requestCameraAndMicrophoneAccess();
-        // You can now use camera and microphone in your mini app
-      } catch (error) {
-        // Handle the denial gracefully
-      }
-    }
-
-    getPermission();
-  }, []);
+  // Note: Microphone permissions are now handled in CallClient.tsx during initial room join
+  // to prevent repeated permission prompts when Conference component re-renders
 
   // Sponsorship hooks removed as part of ads migration
 
