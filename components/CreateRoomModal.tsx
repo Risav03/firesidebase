@@ -303,7 +303,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         </div>
         
         {/* Form buttons - Fixed */}
-        <DrawerFooter className="border-orange-500/20 flex-shrink-0 sticky bottom-0 bg-black/95 backdrop-blur-lg">
+        <DrawerFooter className="border-orange-500/20 flex-shrink-0 bottom-0 bg-black/95 backdrop-blur-lg">
           <div className="flex space-x-3 max-w-lg mx-auto w-full">
             <button
               type="button"

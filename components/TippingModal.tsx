@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useGlobalContext } from "@/utils/providers/globalContext";
 import { FaEthereum } from "react-icons/fa";
 import { BiSolidDollarCircle } from "react-icons/bi";
+import { MdClose } from 'react-icons/md';
 import { config } from "@/utils/providers/rainbow";
 import { readContract, writeContract } from "@wagmi/core";
 import { firebaseTipsAbi } from "@/utils/contract/abis/firebaseTipsAbi";
@@ -25,6 +26,7 @@ import {
   Drawer,
   DrawerContent,
   DrawerHeader,
+  DrawerFooter,
   DrawerTitle,
 } from "@/components/UI/drawer";
 import {
@@ -425,8 +427,8 @@ export default function TippingModal({
         );
       } else {
         const provider = createBaseAccountSDK({
-          appName: "Bill test app",
-          appLogoUrl: "https://farcaster-miniapp-chi.vercel.app/pfp.jpg",
+          appName: "Fireside 100ms",
+          appLogoUrl: "https://firesidebase.vercel.app/pfp.jpg",
           appChainIds: [base.constants.CHAIN_IDS.base],
         }).getProvider();
 
@@ -501,15 +503,24 @@ export default function TippingModal({
   };
 
   return (
-    <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()} dismissible>
+    <Drawer open={isOpen} onOpenChange={onClose}>
       <DrawerContent 
-        className="bg-black/50 backdrop-blur-2xl text-white border-t border-fireside-orange/30 max-h-[85vh] flex flex-col"
+        className="bg-black/95 backdrop-blur-lg text-white border-fireside-orange/30 max-h-[95vh] flex flex-col"
       >
         
-        <DrawerHeader className="flex-shrink-0">
-          <DrawerTitle className="text-2xl font-bold text-white">
-            Send a Tip
-          </DrawerTitle>
+        <DrawerHeader className="flex-shrink-0 border-b border-fireside-orange/30 sticky top-0 bg-black/95 backdrop-blur-lg z-10">
+          <div className="flex items-center justify-between">
+            <DrawerTitle className="text-2xl font-bold text-white">
+              Send a Tip
+            </DrawerTitle>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-white transition-colors p-2"
+              aria-label="Close"
+            >
+              <MdClose size={24} />
+            </button>
+          </div>
         </DrawerHeader>
 
         {false ? (
@@ -671,7 +682,7 @@ export default function TippingModal({
             </div>
 
             {/* Action Buttons - Fixed at bottom */}
-            <div className="px-4 pb-6 border-t border-gray-700/50 pt-4 bg-black/50 flex-shrink-0">
+            <DrawerFooter className="border-fireside-orange/30 flex-shrink-0 bottom-0 bg-black/95 backdrop-blur-lg">
               <div className="flex gap-3">
                 <button
                   onClick={() => handleETHTip()}
@@ -706,7 +717,7 @@ export default function TippingModal({
                   </span>
                 </button>
               </div>
-            </div>
+            </DrawerFooter>
           </>
         )}
       </DrawerContent>
