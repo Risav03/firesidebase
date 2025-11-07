@@ -125,7 +125,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
       // Convert local datetime to proper Date object for backend
       const roomData = {
         ...formData,
-        startTime: convertLocalDateTimeToUTC(formData.startTime).toISOString(), // Send as ISO string to backend
+        startTime: new Date().toISOString(), // Send as ISO string to backend
         host: user?.fid || '',
         topics: selectedTags,
         sponsorshipEnabled
@@ -235,7 +235,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                 />
               </div>
               
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Start Time* (Your Local Time)
                 </label>
@@ -253,7 +253,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                 <p className="text-xs text-gray-400 mt-1">
                   Time zone: {Intl.DateTimeFormat().resolvedOptions().timeZone}
                 </p>
-              </div>
+              </div> */}
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -304,23 +304,16 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         
         {/* Form buttons - Fixed */}
         <DrawerFooter className="border-orange-500/20 flex-shrink-0 bottom-0 bg-black/95 backdrop-blur-lg">
-          <div className="flex space-x-3 max-w-lg mx-auto w-full">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-white/10 hover:bg-white/20 text-white font-medium py-3 px-4 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
+          
             <button
               type="submit"
               disabled={loading}
               onClick={createRoomHandler}
               className="flex-1 gradient-fire disabled:bg-gray-600 text-white font-medium py-3 px-4 rounded-lg transition-colors"
             >
-              {loading ? 'Creating...' : 'Create Room'}
+              {loading ? 'Igniting...' : 'Fire up!'}
             </button>
-          </div>
+
         </DrawerFooter>
       </DrawerContent>
     </Drawer>
