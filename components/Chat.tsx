@@ -290,7 +290,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
     <Drawer open={isOpen} onOpenChange={setIsChatOpen}>
       <DrawerContent className="bg-black/95 backdrop-blur-lg text-white border-fireside-orange/30 flex flex-col max-h-[95vh]">
         {/* Chat Header - Fixed */}
-        <DrawerHeader className="flex-shrink-0 border-b border-fireside-orange/30 sticky top-0 bg-black/95 backdrop-blur-lg z-10">
+        <DrawerHeader className="flex-shrink-0 border-b border-fireside-orange/30 bg-black/95 backdrop-blur-lg z-10">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-3 h-3 bg-fireside-orange rounded-full animate-pulse"></div>
@@ -352,7 +352,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         </div>
 
         {/* Chat Input - Fixed */}
-        <DrawerFooter className="border-fireside-orange/30 flex-shrink-0 sticky bottom-0 bg-black/95 backdrop-blur-lg">
+        <DrawerFooter className="border-fireside-orange/30 flex-shrink-0 bg-black/95 backdrop-blur-lg pb-safe">
           <div className="flex items-end space-x-3">
             <div className="flex-1">
               <textarea
