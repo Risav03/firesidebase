@@ -288,7 +288,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
   return (
     <Drawer open={isOpen} onOpenChange={setIsChatOpen}>
-      <DrawerContent className="bg-black/95 backdrop-blur-lg text-white border-fireside-orange/30 flex flex-col h-[95vh] max-h-[95vh]">
+      <DrawerContent className="bg-black/95 backdrop-blur-lg text-white border-fireside-orange/30 flex flex-col max-h-[95vh]">
         {/* Chat Header - Fixed */}
         <DrawerHeader className="flex-shrink-0 border-b border-fireside-orange/30 sticky top-0 bg-black/95 backdrop-blur-lg z-10">
           <div className="flex items-center justify-between">

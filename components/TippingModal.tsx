@@ -505,7 +505,7 @@ export default function TippingModal({
   return (
     <Drawer open={isOpen} onOpenChange={onClose}>
       <DrawerContent 
-        className="bg-black/95 backdrop-blur-lg text-white border-fireside-orange/30 h-[95vh] max-h-[95vh] flex flex-col"
+        className="bg-black/95 backdrop-blur-lg text-white border-fireside-orange/30 max-h-[95vh] flex flex-col"
       >
         
         <DrawerHeader className="flex-shrink-0 border-b border-orange-500/30 sticky top-0 bg-black/95 backdrop-blur-lg z-10">
