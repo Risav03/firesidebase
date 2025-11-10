@@ -288,7 +288,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
   return (
     <Drawer open={isOpen} onOpenChange={setIsChatOpen}>
-      <DrawerContent className="bg-black/95 backdrop-blur-lg text-white border-fireside-orange/30 flex flex-col max-h-[95vh]">
+      <DrawerContent className="bg-black/95 backdrop-blur-lg text-white border-fireside-orange/30 flex flex-col h-[95vh] max-h-[95vh]">
         {/* Chat Header - Fixed */}
         <DrawerHeader className="flex-shrink-0 border-b border-fireside-orange/30 sticky top-0 bg-black/95 backdrop-blur-lg z-10">
           <div className="flex items-center justify-between">
@@ -307,7 +307,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         </DrawerHeader>
 
         {/* Chat Messages - Fixed Height with Scroll */}
-        <div className="overflow-y-auto px-4 py-4 min-h-0" style={{ height: '50vh', scrollBehavior: 'smooth' }}>
+        <div className="overflow-y-auto px-4 py-4 flex-1 min-h-0" style={{ scrollBehavior: 'smooth' }}>
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-white text-sm">Loading messages...</div>
