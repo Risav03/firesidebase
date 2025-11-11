@@ -157,6 +157,11 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         const roomStartTime = convertLocalDateTimeToUTC(formData.startTime);
         const now = new Date();
         
+        console.log('Debug - formData.startTime:', formData.startTime);
+        console.log('Debug - roomStartTime:', roomStartTime);
+        console.log('Debug - now:', now);
+        console.log('Debug - comparison (now >= roomStartTime):', now >= roomStartTime);
+        
         if (now >= roomStartTime) {
           navigate('/call/' + response.data.data._id);
         }
@@ -386,10 +391,76 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
           <DrawerFooter className="border-t border-orange-500/20">
             <Button
               variant="default"
-              onClick={() => {
-                setFormData({ ...formData, startTime: tempDateTime });
+              onClick={async () => {
+                // Update formData and close modal
+                const updatedFormData = { ...formData, startTime: tempDateTime };
+                setFormData(updatedFormData);
                 setDatePickerOpen(false);
-                createRoomHandler(new Event('submit') as any);
+                
+                // Wait a bit for state to update, then create room with the updated time
+                setTimeout(async () => {
+                  // Validate the scheduled time
+                  const selectedTime = convertLocalDateTimeToUTC(tempDateTime);
+                  const now = new Date();
+                  
+                  if (selectedTime < now) {
+                    toast.error('Start time cannot be in the past', {
+                      autoClose: 3000,
+                      toastId: `time-error-${Date.now()}`
+                    });
+                    return;
+                  }
+                  
+                  // Create the room with the scheduled time
+                  setLoading(true);
+                  try {
+                    const loadingToastId = toast.loading('Scheduling room...');
+                    const env = process.env.NEXT_PUBLIC_ENV;
+
+                    let token: any = null;
+                    if (env !== "DEV") {
+                      token = (await sdk.quickAuth.getToken()).token;
+                    }
+
+                    const roomData = {
+                      name: updatedFormData.name,
+                      description: updatedFormData.description,
+                      startTime: selectedTime.toISOString(),
+                      host: user?.fid || '',
+                      topics: selectedTags,
+                      sponsorshipEnabled
+                    };
+
+                    const response = await createRoom(roomData, token);
+                    
+                    if (response.data.success) {
+                      toast.dismiss(loadingToastId);
+                      toast.success('Room scheduled successfully!', {
+                        autoClose: 4000,
+                        toastId: `room-scheduled-${Date.now()}`
+                      });
+                      setFormData({ name: '', description: '', startTime: getCurrentLocalDateTime() });
+                      setSelectedTags([]);
+                      setSponsorshipEnabled(false);
+                      onClose();
+                      window?.location.reload();
+                    } else {
+                      toast.dismiss(loadingToastId);
+                      toast.error('Error scheduling room: ' + response.data.error, {
+                        autoClose: 4000,
+                        toastId: `room-error-${Date.now()}`
+                      });
+                    }
+                  } catch (error) {
+                    console.error('Error scheduling room:', error);
+                    toast.error('Error scheduling room. Please try again.', {
+                      autoClose: 4000,
+                      toastId: `room-error-catch-${Date.now()}`
+                    });
+                  } finally {
+                    setLoading(false);
+                  }
+                }, 100);
               }}
               className="w-full"
             >
