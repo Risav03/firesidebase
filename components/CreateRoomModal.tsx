@@ -154,7 +154,10 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         // Redirect to the room page
 
         //if current time is greater than or equal to start time, navigate (room should be starting now or already started)
-        if (new Date() >= new Date(formData.startTime)) {
+        const roomStartTime = convertLocalDateTimeToUTC(formData.startTime);
+        const now = new Date();
+        
+        if (now >= roomStartTime) {
           navigate('/call/' + response.data.data._id);
         }
         else {
