@@ -9,6 +9,10 @@ import Countdown from "@/components/Countdown";
 import sdk from "@farcaster/miniapp-sdk";
 import Image from "next/image";
 import Header from "@/components/Header";
+import { TbShare3 } from "react-icons/tb";
+import { MdCopyAll, MdOutlineIosShare } from "react-icons/md";
+import { IoMdArrowBack } from "react-icons/io";
+import { IoNotifications, IoNotificationsOutline } from "react-icons/io5";
 
 interface Room {
   _id: string;
@@ -35,6 +39,7 @@ export default function UpcomingRoomPage() {
   const [loading, setLoading] = useState(true);
   const [settingReminder, setSettingReminder] = useState(false);
   const [hasReminder, setHasReminder] = useState(false);
+  const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
 
   const roomId = params.roomid as string;
 
@@ -105,6 +110,27 @@ export default function UpcomingRoomPage() {
 
   const joinRoom = () => {
     router.push(`/call/${roomId}`);
+  };
+
+  async function composeCast() {
+    try {
+      await sdk.actions.composeCast({
+        text: `I've just sparked up a Fireside! Come join the conversation https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/room/${roomId}`,
+        embeds: [`https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/room/${roomId}`],
+      });
+    } catch (e) {
+      console.error("Error composing cast:", e);
+    }
+  }
+
+  const handleCopyURL = () => {
+    const roomURL = `https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/room/${roomId}`;
+    navigator.clipboard.writeText(roomURL).then(() => {
+      toast.success("Room URL copied to clipboard!");
+    }).catch((error) => {
+      console.error("Failed to copy URL:", error);
+      toast.error("Failed to copy URL to clipboard");
+    });
   };
 
   if (loading) {
@@ -211,26 +237,37 @@ export default function UpcomingRoomPage() {
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-4 justify-center">
+          <div className="relative flex gap-4 justify-center">
+            <button
+              onClick={() => router.push("/")}
+              className="bg-white/20 hover:bg-white/30 text-white px-4 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center"
+              title="Back"
+            >
+              <IoMdArrowBack className="w-5 h-5" />
+            </button>
+            
             {isUpcoming && (
               <button
                 onClick={handleSetReminder}
                 disabled={settingReminder || hasReminder || isUserLoading}
-                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
+                className={`px-4 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center ${
                   hasReminder
                     ? "bg-green-600 text-white cursor-not-allowed"
                     : settingReminder
                     ? "opacity-50 cursor-not-allowed"
                     : "gradient-fire text-white hover:bg-gray-100"
                 }`}
+                title={settingReminder ? "Setting Reminder..." : hasReminder ? "Reminder Set" : "Set Reminder"}
               >
-                {settingReminder
-                  ? "Setting Reminder..."
-                  : hasReminder
-                  ? "Reminder Set ✓"
-                  : "Set Reminder"}
+                {hasReminder ? (
+                  <IoNotifications className="w-5 h-5" />
+                ) : (
+                  <IoNotificationsOutline className="w-5 h-5" />
+                )}
               </button>
             )}
+            
+            
             
             {isLive && (
               <button
@@ -240,16 +277,36 @@ export default function UpcomingRoomPage() {
                 Join Room
               </button>
             )}
-            
+      
+          </div>
+          <div className="bg-white/10 rounded-lg p-2 text-white flex flex-col items-center justify-center mt-4">
+          <h2 className="text-white text-lg font-semibold">Share</h2>
+            <div onClick={(e) => e.stopPropagation()} className="transform my-2 text-white flex items-center justify-center gap-2">
             <button
-              onClick={() => router.push("/")}
-              className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+              onClick={() => {
+                setIsShareMenuOpen(false);
+                composeCast();
+              }}
+              className="w-1/2 px-4 py-2 text-left bg-white/10 hover:bg-gray-700 flex items-center space-x-2 rounded-lg"
             >
-              Back
+              <MdOutlineIosShare className="w-5 h-5" />
+              <span>Cast</span>
             </button>
+            <button
+              onClick={() => {
+                setIsShareMenuOpen(false);
+                handleCopyURL();
+              }}
+              className="w-1/2 px-4 py-2 text-left bg-white/10 hover:bg-gray-700 flex items-center space-x-2 rounded-lg"
+            >
+              <MdCopyAll className="w-5 h-5" />
+              <span>Copy</span>
+            </button>
+          </div>
           </div>
         </div>
       </div>
+
     </div>
   );
 }
