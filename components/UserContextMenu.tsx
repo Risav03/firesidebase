@@ -196,6 +196,24 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
     }
   };
 
+  const handleViewProfile = async () => {
+    try {
+      const metadata = peer.metadata ? JSON.parse(peer.metadata) : null;
+      const userFid = metadata?.fid;
+      
+      if (userFid) {
+        await sdk.actions.viewProfile({ 
+          fid: parseInt(userFid)
+        });
+        onClose();
+      } else {
+        console.error('User FID not found in peer metadata');
+      }
+    } catch (error) {
+      console.error('Error viewing profile:', error);
+    }
+  };
+
   if (!isVisible || isLocalUser) {
     return null;
   }
@@ -240,18 +258,15 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
           </div>
 
           {/* View Profile Option */}
-          {/* <div className="py-2">
+          <div className="py-2">
             <button
-              onClick={() => {
-                onViewProfile?.();
-                onClose();
-              }}
+              onClick={handleViewProfile}
               className="w-full px-6 py-3 text-left text-sm text-white hover:bg-gray-700 flex items-center space-x-3 transition-colors"
             >
               <span className="w-5 h-5">👤</span>
               <span className="font-medium">View Profile</span>
             </button>
-          </div> */}
+          </div>
 
           {/* Role Management Options - Only show if user can manage roles */}
           {canManageRoles && (

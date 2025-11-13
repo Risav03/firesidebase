@@ -15,6 +15,9 @@ import {
   DrawerFooter,
   DrawerTitle,
 } from "@/components/UI/drawer";
+import Button from './UI/Button';
+import { RiCalendarScheduleLine } from "react-icons/ri";
+
 
 interface CreateRoomModalProps {
   isOpen: boolean;
@@ -46,6 +49,8 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
   const [sponsorshipEnabled, setSponsorshipEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState('');
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [tempDateTime, setTempDateTime] = useState('');
   const navigate = useNavigateWithLoader();
   const { user } = useGlobalContext();
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
@@ -149,8 +154,23 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         // Redirect to the room page
 
         //if current time is greater than or equal to start time, navigate (room should be starting now or already started)
-        if (new Date() >= new Date(formData.startTime)) {
+        const roomStartTime = convertLocalDateTimeToUTC(formData.startTime);
+        const now = new Date();
+        
+        console.log('Debug - formData.startTime:', formData.startTime);
+        console.log('Debug - roomStartTime:', roomStartTime);
+        console.log('Debug - now:', now);
+        console.log('Debug - comparison (now >= roomStartTime):', now >= roomStartTime);
+        
+        if (now >= roomStartTime) {
           navigate('/call/' + response.data.data._id);
+        }
+        else {
+          toast.success('Room scheduled successfully !', {
+            autoClose: 4000,
+            toastId: `room-scheduled-${Date.now()}`
+          });
+          window?.location.reload();
         }
       } else {
         // Dismiss the specific loading toast and show error
@@ -235,7 +255,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                 />
               </div>
               
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Start Time* (Your Local Time)
                 </label>
@@ -253,7 +273,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                 <p className="text-xs text-gray-400 mt-1">
                   Time zone: {Intl.DateTimeFormat().resolvedOptions().timeZone}
                 </p>
-              </div>
+              </div> */}
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -304,25 +324,151 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         
         {/* Form buttons - Fixed */}
         <DrawerFooter className="border-orange-500/20 flex-shrink-0 bottom-0 bg-black/95 backdrop-blur-lg">
-          <div className="flex space-x-3 max-w-lg mx-auto w-full">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-white/10 hover:bg-white/20 text-white font-medium py-3 px-4 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button
+          <div className='w-full flex gap-2 justify-between'>
+            <Button
+              variant="default"
               type="submit"
               disabled={loading}
               onClick={createRoomHandler}
-              className="flex-1 gradient-fire disabled:bg-gray-600 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+              className=" gradient-fire disabled:bg-gray-600 w-full rounded-full text-white font-medium py-3 px-4 transition-colors"
             >
-              {loading ? 'Creating...' : 'Create Room'}
-            </button>
+              {loading ? 'Igniting...' : 'Fire up!'}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                // Set to 1 hour from now by default
+                const oneHourLater = new Date();
+                oneHourLater.setHours(oneHourLater.getHours() + 1);
+                const offset = oneHourLater.getTimezoneOffset() * 60000;
+                const localISOTime = new Date(oneHourLater.getTime() - offset).toISOString().slice(0, 16);
+                setTempDateTime(localISOTime);
+                setDatePickerOpen(true);
+              }}
+              className="rounded-full text-gray-300 font-medium flex items-center justify-center hover:text-white transition-colors"
+            >
+              <RiCalendarScheduleLine className="inline mx-auto" size={20} />
+            </Button>
           </div>
         </DrawerFooter>
       </DrawerContent>
+
+      {/* Date Picker Modal */}
+      <Drawer open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+        <DrawerContent className="bg-black/95 backdrop-blur-lg text-white border-orange-500/30">
+          <DrawerHeader className="border-b border-orange-500/30">
+            <div className="flex items-center justify-between">
+              <DrawerTitle className="text-2xl font-semibold text-white">Schedule Room</DrawerTitle>
+              <button
+                onClick={() => setDatePickerOpen(false)}
+                className="text-gray-400 hover:text-white transition-colors p-2"
+                aria-label="Close"
+              >
+                <MdClose size={24} />
+              </button>
+            </div>
+          </DrawerHeader>
+          
+          <div className="px-4 py-6">
+            <div className="max-w-lg mx-auto">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Start Time (Your Local Time)
+              </label>
+              <div className="w-full overflow-hidden">
+                <input
+                  type="datetime-local"
+                  value={tempDateTime}
+                  onChange={(e) => setTempDateTime(e.target.value)}
+                  className="w-full min-w-0 px-3 py-3 bg-white/10 border border-orange-500/30 rounded-lg text-white focus:outline-none focus:border-orange-500 transition-colors [color-scheme:dark] text-base box-border"
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Time zone: {Intl.DateTimeFormat().resolvedOptions().timeZone}
+              </p>
+            </div>
+          </div>
+          
+          <DrawerFooter className="border-t border-orange-500/20">
+            <Button
+              variant="default"
+              onClick={async () => {
+                // Update formData and close modal
+                const updatedFormData = { ...formData, startTime: tempDateTime };
+                setFormData(updatedFormData);
+                setDatePickerOpen(false);
+                
+                // Wait a bit for state to update, then create room with the updated time
+                setTimeout(async () => {
+                  // Validate the scheduled time
+                  const selectedTime = convertLocalDateTimeToUTC(tempDateTime);
+                  const now = new Date();
+                  
+                  if (selectedTime < now) {
+                    toast.error('Start time cannot be in the past', {
+                      autoClose: 3000,
+                      toastId: `time-error-${Date.now()}`
+                    });
+                    return;
+                  }
+                  
+                  // Create the room with the scheduled time
+                  setLoading(true);
+                  try {
+                    const loadingToastId = toast.loading('Scheduling room...');
+                    const env = process.env.NEXT_PUBLIC_ENV;
+
+                    let token: any = null;
+                    if (env !== "DEV") {
+                      token = (await sdk.quickAuth.getToken()).token;
+                    }
+
+                    const roomData = {
+                      name: updatedFormData.name,
+                      description: updatedFormData.description,
+                      startTime: selectedTime.toISOString(),
+                      host: user?.fid || '',
+                      topics: selectedTags,
+                      sponsorshipEnabled
+                    };
+
+                    const response = await createRoom(roomData, token);
+                    
+                    if (response.data.success) {
+                      toast.dismiss(loadingToastId);
+                      toast.success('Room scheduled successfully!', {
+                        autoClose: 4000,
+                        toastId: `room-scheduled-${Date.now()}`
+                      });
+                      setFormData({ name: '', description: '', startTime: getCurrentLocalDateTime() });
+                      setSelectedTags([]);
+                      setSponsorshipEnabled(false);
+                      onClose();
+                      window?.location.reload();
+                    } else {
+                      toast.dismiss(loadingToastId);
+                      toast.error('Error scheduling room: ' + response.data.error, {
+                        autoClose: 4000,
+                        toastId: `room-error-${Date.now()}`
+                      });
+                    }
+                  } catch (error) {
+                    console.error('Error scheduling room:', error);
+                    toast.error('Error scheduling room. Please try again.', {
+                      autoClose: 4000,
+                      toastId: `room-error-catch-${Date.now()}`
+                    });
+                  } finally {
+                    setLoading(false);
+                  }
+                }, 100);
+              }}
+              className="w-full"
+            >
+              Confirm
+            </Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
     </Drawer>
   );
 }
