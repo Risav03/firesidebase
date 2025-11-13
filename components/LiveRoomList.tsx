@@ -430,12 +430,12 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
             {activeTab === 'upcoming' && (
               <div>
                 {upcomingRooms.length > 0 ? (
-                  <div className="space-y-3 relative">
+                  <div className="space-y-3">
                     {upcomingRooms.map((room) => (
                       <div
                         onClick={() => navigate(`/room/${room._id}`)}
                         key={room._id}
-                        className={`flex items-center gap-3 w-full p-4 font-bold cursor-pointer hover:opacity-80 transition-opacity gradient-yellow rounded-lg text-white`}
+                        className={`relative flex items-center gap-3 w-full p-4 font-bold cursor-pointer hover:opacity-80 transition-opacity gradient-yellow rounded-lg text-white`}
                       >
                         <div className="relative">
                           <Image
@@ -456,12 +456,12 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                           <p className="text-white/70 text-xs">
                             Host: {room.host.displayName || room.host.username}
                           </p>
-                          <div className="absolute bottom-2 right-2 bg-black/10 rounded-full px-2 pb-1">
-                            <Countdown
-                              targetTime={room.startTime}
-                              className="text-yellow-200 text-xs"
-                            />
-                          </div>
+                        </div>
+                        <div className="absolute bottom-2 right-2 bg-black/10 rounded-full px-2 pb-1">
+                          <Countdown
+                            targetTime={room.startTime}
+                            className="text-yellow-200 text-xs"
+                          />
                         </div>
                       </div>
                     ))}
