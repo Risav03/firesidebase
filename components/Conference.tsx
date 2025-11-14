@@ -226,32 +226,10 @@ useEffect(() => {
     }
   }, [roomId, user, localPeer, isEndingRoom, hmsActions, router]);
 
-  // Fix for iOS WebKit one-way audio: re-set volume after state changes
-  // Per 100ms docs: iOS doesn't support per-element volume, use setVolume(0|100, trackId)
-  // useEffect(() => {
-  //   const fixWebkitAudio = async () => {
-  //     if (!hmsActions || allPeers.length === 0) return;
-  //     
-  //     // Get all remote peers with audio tracks
-  //     const remotePeers = allPeers.filter(p => !p.isLocal && p.audioTrack);
-  //     
-  //     // Re-set volume to fix WebKit one-way audio bugs
-  //     // According to 100ms docs: setVolume(0, trackId) mutes, setVolume(100, trackId) unmutes
-  //     for (const peer of remotePeers) {
-  //       try {
-  //         // Set to 100 (unmute) to kick the audio track and fix WebKit routing issues
-  //         await hmsActions.setVolume(100, peer.audioTrack!);
-  //       } catch (error) {
-  //         // Silently fail - track may have been removed
-  //         console.debug(`[Conference] Could not set volume for peer ${peer.id}:`, error);
-  //       }
-  //     }
-  //   };
-
-  //   // Delay to avoid spamming on every peer update
-  //   const timeout = setTimeout(fixWebkitAudio, 1000);
-  //   return () => clearTimeout(timeout);
-  // }, [allPeers.length, hmsActions]);
+  // REMOVED: Problematic iOS WebKit audio fix that manipulated remote peer volumes
+  // This was causing the bug where random participants would be muted when others toggled audio
+  // The setVolume() API should only be used for actual volume control, not muting/unmuting
+  // Local audio should be controlled with setLocalAudioEnabled() only
 
   useEffect(() => {
     // Update local peers when 100ms peers change
