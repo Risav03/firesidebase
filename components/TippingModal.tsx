@@ -530,7 +530,7 @@ export default function TippingModal({
         ) : (
           <>
             {/* Main Content Area */}
-            <div className="px-4 flex-1 overflow-y-auto min-h-0">
+            <div className="px-4 flex-1 overflow-y-auto min-h-0 mt-4">
               {/* User Selection */}
               <div className="mb-6">
                 <label className="block text-lg font-bold text-orange-400 mb-3">
@@ -698,7 +698,7 @@ export default function TippingModal({
             </div>
 
             {/* Action Buttons - Fixed at bottom */}
-            <DrawerFooter className="border-fireside-orange/30 flex-shrink-0 bg-black/95 backdrop-blur-lg pb-safe">
+            <DrawerFooter className="border-fireside-orange/30 flex-shrink-0 bg-black/95 backdrop-blur-lg pb-safe fixed bottom-0 w-full">
               <div className="flex gap-3">
                 <button
                   onClick={() => handleETHTip()}
