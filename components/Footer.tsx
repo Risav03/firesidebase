@@ -184,15 +184,17 @@ const MicComponent: React.FC<MicComponentProps> = ({
                     await hmsActions?.lowerLocalPeerHand?.();
                   }
                   
-                  // Safely toggle audio with error handling
-                  if (toggleAudio) {
-                    toggleAudio();
-                    
-                    // Log after toggle to capture any state changes
-                    setTimeout(() => {
-                      console.log('[AUDIO DEBUG] After toggle - check console for peer updates');
-                    }, 500);
-                  }
+                  // Use 100ms recommended approach: get current state and set opposite
+                  // This ensures we're only controlling LOCAL audio, not remote peers
+                  const currentAudioState = isLocalAudioEnabled;
+                  await hmsActions.setLocalAudioEnabled(!currentAudioState);
+                  
+                  console.log('[AUDIO DEBUG] Local audio toggled', {
+                    previousState: currentAudioState,
+                    newState: !currentAudioState,
+                    peerId: localPeer?.id,
+                    timestamp: new Date().toISOString(),
+                  });
                 } catch (error) {
                   console.error("[HMS Action] Error toggling audio:", error);
                   // Attempt to recover by re-initializing audio state

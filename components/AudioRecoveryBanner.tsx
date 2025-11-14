@@ -1,13 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useHMSActions, useHMSStore, selectPeers } from "@100mslive/react-sdk";
 import { toast } from "react-toastify";
 
 export default function AudioRecoveryBanner() {
   const [showBanner, setShowBanner] = useState(false);
-  const hmsActions = useHMSActions();
-  const peers = useHMSStore(selectPeers);
 
   useEffect(() => {
     // Check for autoplay issues on iOS Safari
@@ -44,17 +41,9 @@ export default function AudioRecoveryBanner() {
         await audioContext.resume();
       }
 
-      // Force HMS to refresh audio output using setVolume
-      // Per 100ms docs: setVolume(0, trackId) mutes, setVolume(100, trackId) unmutes on iOS
-      try {
-        const remotePeersWithAudio = peers.filter(p => !p.isLocal && p.audioTrack);
-        for (const peer of remotePeersWithAudio) {
-          // Re-set to 100 to kick audio tracks and fix iOS routing
-          await hmsActions.setVolume(100, peer.audioTrack!);
-        }
-      } catch (error) {
-        console.debug('[AudioRecoveryBanner] Could not refresh audio tracks:', error);
-      }
+      // REMOVED: The problematic setVolume calls that were manipulating remote peer audio tracks
+      // This was causing random participants to be muted when others toggled their audio
+      // Only the user should control their own audio via setLocalAudioEnabled()
 
       setShowBanner(false);
       toast.success('Audio resumed');
