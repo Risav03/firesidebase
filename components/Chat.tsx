@@ -135,8 +135,10 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       
       const drawerElement = document.querySelector('[data-drawer-content]') as HTMLElement;
       if (drawerElement) {
-        drawerElement.style.height = '90vh';
-        drawerElement.style.maxHeight = '90vh';
+        drawerElement.style.height = '';
+        drawerElement.style.maxHeight = '';
+        drawerElement.style.position = '';
+        drawerElement.style.bottom = '';
       }
     }
   }, [isOpen, viewportHandler]);
@@ -314,7 +316,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
     <Drawer open={isOpen} onOpenChange={setIsChatOpen}>
       <DrawerContent 
         data-drawer-content
-        className="bg-black/95 backdrop-blur-lg text-white border-orange-500/30 flex flex-col h-[90vh] max-h-[90vh]"
+        className="bg-black/95 backdrop-blur-lg text-white border-orange-500/30 flex flex-col max-h-[90vh]"
       >
         {/* Chat Header - Fixed */}
         <DrawerHeader className="flex-shrink-0 border-b border-fireside-orange/30 bg-black/95 backdrop-blur-lg z-10">
@@ -334,7 +336,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         </DrawerHeader>
 
         {/* Chat Messages - Fixed Height with Scroll */}
-        <div className="flex-1 overflow-y-auto px-4 py-6 min-h-0" style={{ maxHeight: 'calc(100% - 140px)' }}>
+        <div className="flex-1 overflow-y-auto px-4 py-6 min-h-0">
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-white text-sm">Loading messages...</div>
@@ -379,7 +381,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         </div>
 
         {/* Chat Input - Fixed */}
-        <DrawerFooter className="absolute bottom-0 left-0 right-0 border-t border-fireside-orange/30 bg-black/95 backdrop-blur-lg pb-safe">
+        <DrawerFooter className="border-fireside-orange/30 bg-black/95 backdrop-blur-lg flex-shrink-0 pb-safe">
           <div className="flex items-end space-x-3">
             <div className="flex-1">
               <textarea
@@ -398,12 +400,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
                   lineHeight: '1.5'
                 }}
                 onFocus={() => {
-                  // Ensure textarea is visible when keyboard appears
-                  const textarea = textareaRef.current;
-                  if (textarea) {
-                    textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  }
-                  
+                  // Prevent drawer from being pushed out of view on mobile keyboards
                   if (window.visualViewport) {
                     const viewport = window.visualViewport;
                     const initialViewportHeight = viewport.height;
@@ -415,18 +412,11 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
                       if (keyboardHeight > 0) {
                         // Keyboard is open - adjust the drawer to stay in view
                         const drawerElement = document.querySelector('[data-drawer-content]') as HTMLElement;
-                        const footerElement = document.querySelector('.absolute.bottom-0') as HTMLElement;
-                        
                         if (drawerElement) {
                           drawerElement.style.height = `${currentHeight}px`;
                           drawerElement.style.maxHeight = `${currentHeight}px`;
-                        }
-                        
-                        // Ensure footer stays visible
-                        if (footerElement && textarea) {
-                          setTimeout(() => {
-                            textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                          }, 100);
+                          drawerElement.style.position = 'fixed';
+                          drawerElement.style.bottom = '0';
                         }
                       }
                     };
@@ -438,9 +428,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
                     
                     viewport.addEventListener('resize', handleViewportChange);
                     setViewportHandler(() => handleViewportChange);
-                    
-                    // Initial call to handle immediate keyboard appearance
-                    setTimeout(() => handleViewportChange(), 100);
+                    handleViewportChange();
                   }
                 }}
                 onBlur={() => {
@@ -452,10 +440,12 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
                     setTimeout(() => {
                       const drawerElement = document.querySelector('[data-drawer-content]') as HTMLElement;
                       if (drawerElement) {
-                        drawerElement.style.height = '90vh';
-                        drawerElement.style.maxHeight = '90vh';
+                        drawerElement.style.height = '';
+                        drawerElement.style.maxHeight = '';
+                        drawerElement.style.position = '';
+                        drawerElement.style.bottom = '';
                       }
-                    }, 300); // Delay to ensure keyboard is fully dismissed
+                    }, 150); // Small delay to ensure keyboard is fully dismissed
                   }
                 }}
               />
