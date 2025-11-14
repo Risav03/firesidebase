@@ -32,7 +32,6 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   const [message, setMessage] = useState("");
   const [redisMessages, setRedisMessages] = useState<RedisChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
-  const [viewportHandler, setViewportHandler] = useState<(() => void) | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -41,25 +40,12 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   const { user } = useGlobalContext();
 
   // Scroll to bottom function
-  const scrollToBottom = useCallback((immediate = false) => {
+  const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
-      const scrollContainer = messagesEndRef.current.closest('.overflow-y-auto');
-      if (scrollContainer) {
-        if (immediate) {
-          scrollContainer.scrollTop = scrollContainer.scrollHeight;
-        } else {
-          scrollContainer.scrollTo({
-            top: scrollContainer.scrollHeight,
-            behavior: 'smooth'
-          });
-        }
-      } else {
-        // Fallback to original method
-        messagesEndRef.current.scrollIntoView({ 
-          behavior: immediate ? "auto" : "smooth",
-          block: "end"
-        });
-      }
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: "smooth",
+        block: "end"
+      });
     }
   }, []);
 
@@ -91,57 +77,15 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
     loadMessages();
   }, [roomId]);
 
-  // Auto-scroll to bottom when new messages arrive
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      scrollToBottom();
-    }, 100); // Small delay to ensure DOM is updated
-    
-    return () => clearTimeout(timer);
-  }, [messages, redisMessages, scrollToBottom]);
-
-  // Scroll to bottom when chat drawer opens
+  // Auto-scroll to bottom when new messages arrive or chat opens
   useEffect(() => {
     if (isOpen) {
-      // Multiple attempts to ensure scroll works after drawer animation
-      setTimeout(() => scrollToBottom(true), 100);   // Initial scroll
-      setTimeout(() => scrollToBottom(true), 300);   // After drawer animation starts
-      setTimeout(() => scrollToBottom(), 600);       // After drawer animation completes
-      setTimeout(() => scrollToBottom(), 1000);      // Final fallback
+      const timer = setTimeout(scrollToBottom, 300);
+      return () => clearTimeout(timer);
     }
-  }, [isOpen, scrollToBottom]);
+  }, [isOpen, messages, redisMessages, scrollToBottom]);
 
-  // Scroll to bottom when messages are loaded
-  useEffect(() => {
-    if (isOpen && !loading && (redisMessages.length > 0 || messages.length > 0)) {
-      setTimeout(() => scrollToBottom(true), 200);
-    }
-  }, [isOpen, loading, redisMessages.length, messages.length, scrollToBottom]);
 
-  // Cleanup viewport handler when component unmounts or chat closes
-  useEffect(() => {
-    return () => {
-      if (window.visualViewport && viewportHandler) {
-        window.visualViewport.removeEventListener('resize', viewportHandler);
-      }
-    };
-  }, [viewportHandler]);
-
-  // Reset drawer styles when chat closes
-  useEffect(() => {
-    if (!isOpen && window.visualViewport && viewportHandler) {
-      window.visualViewport.removeEventListener('resize', viewportHandler);
-      setViewportHandler(null);
-      
-      const drawerElement = document.querySelector('[data-drawer-content]') as HTMLElement;
-      if (drawerElement) {
-        drawerElement.style.height = '';
-        drawerElement.style.maxHeight = '';
-        drawerElement.style.position = '';
-        drawerElement.style.bottom = '';
-      }
-    }
-  }, [isOpen, viewportHandler]);
 
   // Auto-resize textarea based on content
   const adjustTextareaHeight = () => {
@@ -177,8 +121,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
     // Reset textarea height after clearing message
     setTimeout(() => {
       adjustTextareaHeight();
-      // Scroll to bottom immediately after sending
-      scrollToBottom(true);
+      scrollToBottom();
     }, 0);
 
     try {
@@ -211,8 +154,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       if (response.data.success) {
         // Add the new message to our local state
         setRedisMessages(prev => [...prev, response.data.data.message]);
-        // Scroll to bottom after adding new message
-        setTimeout(() => scrollToBottom(), 100);
+        setTimeout(scrollToBottom, 100);
       } else {
         console.error('Failed to store message:', response.data.error);
         toast.error('Failed to send message. Please try again.');
@@ -231,10 +173,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
     }
   };
 
-  // Calculate dynamic height
-  const getMessagesHeight = () => {
-    return '55vh';
-  };
+
 
   // Helper function to validate message structure
   const isValidMessageStructure = (msg: any): boolean => {
@@ -314,10 +253,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
   return (
     <Drawer open={isOpen} onOpenChange={setIsChatOpen}>
-      <DrawerContent 
-        data-drawer-content
-        className="bg-black/95 backdrop-blur-lg text-white border-orange-500/30 flex flex-col max-h-[90vh]"
-      >
+      <DrawerContent className="bg-black/95 backdrop-blur-lg text-white border-orange-500/30 flex flex-col max-h-[90vh]">
         {/* Chat Header - Fixed */}
         <DrawerHeader className="flex-shrink-0 border-b border-fireside-orange/30 bg-black/95 backdrop-blur-lg z-10">
           <div className="flex items-center justify-between">
@@ -381,7 +317,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         </div>
 
         {/* Chat Input - Fixed */}
-        <DrawerFooter className="border-fireside-orange/30 bg-black/95 backdrop-blur-lg flex-shrink-0 pb-safe">
+        <DrawerFooter className="border-fireside-orange/30 bg-black/95 backdrop-blur-lg flex-shrink-0">
           <div className="flex items-end space-x-3">
             <div className="flex-1">
               <textarea
@@ -399,55 +335,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
                   fontFamily: 'inherit',
                   lineHeight: '1.5'
                 }}
-                onFocus={() => {
-                  // Prevent drawer from being pushed out of view on mobile keyboards
-                  if (window.visualViewport) {
-                    const viewport = window.visualViewport;
-                    const initialViewportHeight = viewport.height;
-                    
-                    const handleViewportChange = () => {
-                      const currentHeight = viewport.height;
-                      const keyboardHeight = initialViewportHeight - currentHeight;
-                      
-                      if (keyboardHeight > 0) {
-                        // Keyboard is open - adjust the drawer to stay in view
-                        const drawerElement = document.querySelector('[data-drawer-content]') as HTMLElement;
-                        if (drawerElement) {
-                          drawerElement.style.height = `${currentHeight}px`;
-                          drawerElement.style.maxHeight = `${currentHeight}px`;
-                          drawerElement.style.position = 'fixed';
-                          drawerElement.style.bottom = '0';
-                        }
-                      }
-                    };
-                    
-                    // Remove previous handler if exists
-                    if (viewportHandler) {
-                      viewport.removeEventListener('resize', viewportHandler);
-                    }
-                    
-                    viewport.addEventListener('resize', handleViewportChange);
-                    setViewportHandler(() => handleViewportChange);
-                    handleViewportChange();
-                  }
-                }}
-                onBlur={() => {
-                  // Clean up event listener and reset styles when keyboard dismisses
-                  if (window.visualViewport && viewportHandler) {
-                    window.visualViewport.removeEventListener('resize', viewportHandler);
-                    setViewportHandler(null);
-                    
-                    setTimeout(() => {
-                      const drawerElement = document.querySelector('[data-drawer-content]') as HTMLElement;
-                      if (drawerElement) {
-                        drawerElement.style.height = '';
-                        drawerElement.style.maxHeight = '';
-                        drawerElement.style.position = '';
-                        drawerElement.style.bottom = '';
-                      }
-                    }, 150); // Small delay to ensure keyboard is fully dismissed
-                  }
-                }}
+
               />
             </div>
             <button

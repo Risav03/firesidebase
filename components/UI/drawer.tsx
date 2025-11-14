@@ -51,10 +51,6 @@ const DrawerContent = React.forwardRef<
           "min-h-0", // Prevent content from expanding beyond container
           className
         )}
-        style={{ 
-          bottom: 0, // Force bottom positioning
-          transform: 'none', // Override any transforms that might shift position
-        }}
         {...props}
       >
         <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-fireside-orange/50 flex-shrink-0" />
@@ -84,9 +80,7 @@ const DrawerFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div 
     className={cn(
-      "flex flex-col gap-2 p-4 flex-shrink-0 bg-background border-t border-white/10", 
-      // Remove sticky positioning that can cause issues with keyboard
-      "mt-auto",
+      "flex flex-col gap-2 p-4 flex-shrink-0 bg-background border-t border-white/10 mt-auto", 
       className
     )} 
     {...props} 
