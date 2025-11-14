@@ -505,7 +505,7 @@ export default function TippingModal({
   return (
     <Drawer open={isOpen} onOpenChange={onClose}>
       <DrawerContent 
-        className="bg-black/95 backdrop-blur-lg text-white border-fireside-orange/30 max-h-[95vh] flex flex-col"
+        className="bg-black/95 backdrop-blur-lg text-white border-fireside-orange/30 flex flex-col max-h-[95vh] h-[95vh]"
       >
         
         <DrawerHeader className="flex-shrink-0 border-b border-orange-500/30 bg-black/95 backdrop-blur-lg z-10">
@@ -575,6 +575,14 @@ export default function TippingModal({
                           <div className="p-3">
                             <input
                               onPointerDown={(e) => e.stopPropagation()}
+                              onFocus={(e) => {
+                                // On mobile, scroll the input into view when focused
+                                if (window.innerWidth <= 768) {
+                                  setTimeout(() => {
+                                    e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                  }, 100);
+                                }
+                              }}
                               type="text"
                               placeholder="Search users..."
                               className="w-full bg-white/10 text-white p-2 rounded-lg border border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors"
@@ -675,6 +683,14 @@ export default function TippingModal({
                   onChange={(e) => {
                     setCustomTip(e.target.value);
                     setSelectedTip(null);
+                  }}
+                  onFocus={(e) => {
+                    // On mobile, scroll the input into view when focused
+                    if (window.innerWidth <= 768) {
+                      setTimeout(() => {
+                        e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }, 100);
+                    }
                   }}
                   className="px-4 py-2 rounded-lg text-white bg-white/10 border w-full border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors"
                 />
