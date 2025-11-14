@@ -352,7 +352,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         </div>
 
         {/* Chat Input - Fixed */}
-        <DrawerFooter className="border-fireside-orange/30 flex-shrink-0 bg-black/95 backdrop-blur-lg pb-safe">
+        <DrawerFooter className="border-fireside-orange/30 flex-shrink-0 bg-black/95 backdrop-blur-lg pb-safe fixed bottom-0 w-full">
           <div className="flex items-end space-x-3">
             <div className="flex-1">
               <textarea
