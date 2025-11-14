@@ -505,7 +505,7 @@ export default function TippingModal({
   return (
     <Drawer open={isOpen} onOpenChange={onClose}>
       <DrawerContent 
-        className="bg-black/95 backdrop-blur-lg text-white border-fireside-orange/30 flex flex-col max-h-[95vh] h-[95vh]"
+        className="bg-black/95 backdrop-blur-lg text-white border-fireside-orange/30 flex flex-col max-h-[95vh]"
       >
         
         <DrawerHeader className="flex-shrink-0 border-b border-orange-500/30 bg-black/95 backdrop-blur-lg z-10">
@@ -698,7 +698,7 @@ export default function TippingModal({
             </div>
 
             {/* Action Buttons - Fixed at bottom */}
-            <DrawerFooter className="border-fireside-orange/30 flex-shrink-0 bg-black/95 backdrop-blur-lg pb-safe fixed bottom-0 w-full">
+            <DrawerFooter className="border-fireside-orange/30 flex-shrink-0 bg-black/95 backdrop-blur-lg pb-safe">
               <div className="flex gap-3">
                 <button
                   onClick={() => handleETHTip()}
