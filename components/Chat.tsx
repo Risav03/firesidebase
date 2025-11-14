@@ -32,6 +32,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   const [message, setMessage] = useState("");
   const [redisMessages, setRedisMessages] = useState<RedisChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -84,6 +85,31 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       return () => clearTimeout(timer);
     }
   }, [isOpen, messages, redisMessages, scrollToBottom]);
+
+  // Handle mobile keyboard visibility
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleViewportChange = () => {
+      if (window.visualViewport) {
+        const viewport = window.visualViewport;
+        const keyboardHeight = window.innerHeight - viewport.height;
+        setKeyboardHeight(keyboardHeight);
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportChange);
+      handleViewportChange(); // Initial call
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleViewportChange);
+      }
+      setKeyboardHeight(0);
+    };
+  }, [isOpen]);
 
 
 
@@ -253,7 +279,13 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
   return (
     <Drawer open={isOpen} onOpenChange={setIsChatOpen}>
-      <DrawerContent className="bg-black/95 backdrop-blur-lg text-white border-orange-500/30 flex flex-col max-h-[90vh]">
+      <DrawerContent 
+        className="bg-black/95 backdrop-blur-lg text-white border-orange-500/30 flex flex-col"
+        style={{
+          maxHeight: keyboardHeight > 0 ? `${window.innerHeight - keyboardHeight}px` : '90vh',
+          height: keyboardHeight > 0 ? `${window.innerHeight - keyboardHeight}px` : 'auto'
+        }}
+      >
         {/* Chat Header - Fixed */}
         <DrawerHeader className="flex-shrink-0 border-b border-fireside-orange/30 bg-black/95 backdrop-blur-lg z-10">
           <div className="flex items-center justify-between">
@@ -335,7 +367,12 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
                   fontFamily: 'inherit',
                   lineHeight: '1.5'
                 }}
-
+                onFocus={() => {
+                  // Ensure we scroll to bottom when keyboard opens
+                  setTimeout(() => {
+                    scrollToBottom();
+                  }, 300);
+                }}
               />
             </div>
             <button
