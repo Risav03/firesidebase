@@ -288,7 +288,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
   return (
     <Drawer open={isOpen} onOpenChange={setIsChatOpen}>
-      <DrawerContent className="bg-black/95 backdrop-blur-lg text-white border-fireside-orange/30 flex flex-col h-[100dvh] max-h-[100dvh]" style={{ height: '100dvh' }}>
+      <DrawerContent className="bg-black/95 backdrop-blur-lg text-white border-fireside-orange/30 flex flex-col h-[100dvh]">
         {/* Chat Header - Fixed */}
         <DrawerHeader className="flex-shrink-0 border-b border-fireside-orange/30 bg-black/95 backdrop-blur-lg z-10">
           <div className="flex items-center justify-between">
@@ -352,7 +352,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         </div>
 
         {/* Chat Input - Fixed */}
-        <DrawerFooter className="border-fireside-orange/30 bg-black/95 backdrop-blur-lg sticky bottom-0 z-20" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}>
+        <DrawerFooter className="border-fireside-orange/30 bg-black/95 backdrop-blur-lg flex-shrink-0 pb-safe">
           <div className="flex items-end space-x-3">
             <div className="flex-1">
               <textarea
@@ -369,6 +369,25 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
                   transition: 'height 0.2s ease-out',
                   fontFamily: 'inherit',
                   lineHeight: '1.5'
+                }}
+                onFocus={() => {
+                  // Prevent drawer from being pushed out of view
+                  if (window.visualViewport) {
+                    const handleResize = () => {
+                      const viewport = window.visualViewport;
+                      if (viewport) {
+                        document.documentElement.style.height = `${viewport.height}px`;
+                      }
+                    };
+                    window.visualViewport.addEventListener('resize', handleResize);
+                    handleResize();
+                  }
+                }}
+                onBlur={() => {
+                  // Reset height when keyboard dismisses
+                  if (window.visualViewport) {
+                    document.documentElement.style.height = '';
+                  }
                 }}
               />
             </div>
