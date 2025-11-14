@@ -505,7 +505,8 @@ export default function TippingModal({
   return (
     <Drawer open={isOpen} onOpenChange={onClose}>
       <DrawerContent 
-        className="bg-black/95 backdrop-blur-lg text-white border-fireside-orange/30 flex flex-col max-h-[95vh]"
+        className="bg-black/95 backdrop-blur-lg text-white border-fireside-orange/30 flex flex-col h-[100dvh] max-h-[100dvh]"
+        style={{ height: '100dvh' }}
       >
         
         <DrawerHeader className="flex-shrink-0 border-b border-orange-500/30 bg-black/95 backdrop-blur-lg z-10">
@@ -575,14 +576,6 @@ export default function TippingModal({
                           <div className="p-3">
                             <input
                               onPointerDown={(e) => e.stopPropagation()}
-                              onFocus={(e) => {
-                                // On mobile, scroll the input into view when focused
-                                if (window.innerWidth <= 768) {
-                                  setTimeout(() => {
-                                    e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                  }, 100);
-                                }
-                              }}
                               type="text"
                               placeholder="Search users..."
                               className="w-full bg-white/10 text-white p-2 rounded-lg border border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors"
@@ -684,21 +677,13 @@ export default function TippingModal({
                     setCustomTip(e.target.value);
                     setSelectedTip(null);
                   }}
-                  onFocus={(e) => {
-                    // On mobile, scroll the input into view when focused
-                    if (window.innerWidth <= 768) {
-                      setTimeout(() => {
-                        e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      }, 100);
-                    }
-                  }}
                   className="px-4 py-2 rounded-lg text-white bg-white/10 border w-full border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors"
                 />
               </div>
             </div>
 
             {/* Action Buttons - Fixed at bottom */}
-            <DrawerFooter className="border-fireside-orange/30 flex-shrink-0 bg-black/95 backdrop-blur-lg pb-safe">
+            <DrawerFooter className="border-fireside-orange/30 bg-black/95 backdrop-blur-lg sticky bottom-0 z-20" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}>
               <div className="flex gap-3">
                 <button
                   onClick={() => handleETHTip()}

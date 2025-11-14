@@ -288,7 +288,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
   return (
     <Drawer open={isOpen} onOpenChange={setIsChatOpen}>
-      <DrawerContent className="bg-black/95 backdrop-blur-lg text-white border-fireside-orange/30 flex flex-col max-h-[95vh]">
+      <DrawerContent className="bg-black/95 backdrop-blur-lg text-white border-fireside-orange/30 flex flex-col h-[100dvh] max-h-[100dvh]" style={{ height: '100dvh' }}>
         {/* Chat Header - Fixed */}
         <DrawerHeader className="flex-shrink-0 border-b border-fireside-orange/30 bg-black/95 backdrop-blur-lg z-10">
           <div className="flex items-center justify-between">
@@ -352,7 +352,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         </div>
 
         {/* Chat Input - Fixed */}
-        <DrawerFooter className="border-fireside-orange/30 flex-shrink-0 bg-black/95 backdrop-blur-lg pb-safe">
+        <DrawerFooter className="border-fireside-orange/30 bg-black/95 backdrop-blur-lg sticky bottom-0 z-20" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}>
           <div className="flex items-end space-x-3">
             <div className="flex-1">
               <textarea
@@ -360,14 +360,6 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                onFocus={(e) => {
-                  // On mobile, scroll the input into view when focused
-                  if (window.innerWidth <= 768) {
-                    setTimeout(() => {
-                      e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }, 100);
-                  }
-                }}
                 name="Chat input"
                 placeholder="Type a message..."
                 className="w-full px-4 py-3 bg-white/10 text-white rounded-2xl border border-white/30 focus:border-fireside-orange focus:ring-2 focus:ring-fireside-orange focus:ring-opacity-20 outline-none resize-none min-h-[48px] text-base"
