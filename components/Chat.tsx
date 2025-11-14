@@ -32,6 +32,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   const [message, setMessage] = useState("");
   const [redisMessages, setRedisMessages] = useState<RedisChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
+  const [viewportHandler, setViewportHandler] = useState<(() => void) | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -116,6 +117,31 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       setTimeout(() => scrollToBottom(true), 200);
     }
   }, [isOpen, loading, redisMessages.length, messages.length, scrollToBottom]);
+
+  // Cleanup viewport handler when component unmounts or chat closes
+  useEffect(() => {
+    return () => {
+      if (window.visualViewport && viewportHandler) {
+        window.visualViewport.removeEventListener('resize', viewportHandler);
+      }
+    };
+  }, [viewportHandler]);
+
+  // Reset drawer styles when chat closes
+  useEffect(() => {
+    if (!isOpen && window.visualViewport && viewportHandler) {
+      window.visualViewport.removeEventListener('resize', viewportHandler);
+      setViewportHandler(null);
+      
+      const drawerElement = document.querySelector('[data-drawer-content]') as HTMLElement;
+      if (drawerElement) {
+        drawerElement.style.height = '';
+        drawerElement.style.maxHeight = '';
+        drawerElement.style.position = '';
+        drawerElement.style.bottom = '';
+      }
+    }
+  }, [isOpen, viewportHandler]);
 
   // Auto-resize textarea based on content
   const adjustTextareaHeight = () => {
@@ -288,7 +314,10 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
   return (
     <Drawer open={isOpen} onOpenChange={setIsChatOpen}>
-      <DrawerContent className="bg-black/95 backdrop-blur-lg text-white border-orange-500/30 flex flex-col max-h-screen">
+      <DrawerContent 
+        data-drawer-content
+        className="bg-black/95 backdrop-blur-lg text-white border-orange-500/30 flex flex-col max-h-screen"
+      >
         {/* Chat Header - Fixed */}
         <DrawerHeader className="flex-shrink-0 border-b border-fireside-orange/30 bg-black/95 backdrop-blur-lg z-10">
           <div className="flex items-center justify-between">
@@ -371,22 +400,52 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
                   lineHeight: '1.5'
                 }}
                 onFocus={() => {
-                  // Prevent drawer from being pushed out of view
+                  // Prevent drawer from being pushed out of view on mobile keyboards
                   if (window.visualViewport) {
-                    const handleResize = () => {
-                      const viewport = window.visualViewport;
-                      if (viewport) {
-                        document.documentElement.style.height = `${viewport.height}px`;
+                    const viewport = window.visualViewport;
+                    const initialViewportHeight = viewport.height;
+                    
+                    const handleViewportChange = () => {
+                      const currentHeight = viewport.height;
+                      const keyboardHeight = initialViewportHeight - currentHeight;
+                      
+                      if (keyboardHeight > 0) {
+                        // Keyboard is open - adjust the drawer to stay in view
+                        const drawerElement = document.querySelector('[data-drawer-content]') as HTMLElement;
+                        if (drawerElement) {
+                          drawerElement.style.height = `${currentHeight}px`;
+                          drawerElement.style.maxHeight = `${currentHeight}px`;
+                          drawerElement.style.position = 'fixed';
+                          drawerElement.style.bottom = '0';
+                        }
                       }
                     };
-                    window.visualViewport.addEventListener('resize', handleResize);
-                    handleResize();
+                    
+                    // Remove previous handler if exists
+                    if (viewportHandler) {
+                      viewport.removeEventListener('resize', viewportHandler);
+                    }
+                    
+                    viewport.addEventListener('resize', handleViewportChange);
+                    setViewportHandler(() => handleViewportChange);
+                    handleViewportChange();
                   }
                 }}
                 onBlur={() => {
-                  // Reset height when keyboard dismisses
-                  if (window.visualViewport) {
-                    document.documentElement.style.height = '';
+                  // Clean up event listener and reset styles when keyboard dismisses
+                  if (window.visualViewport && viewportHandler) {
+                    window.visualViewport.removeEventListener('resize', viewportHandler);
+                    setViewportHandler(null);
+                    
+                    setTimeout(() => {
+                      const drawerElement = document.querySelector('[data-drawer-content]') as HTMLElement;
+                      if (drawerElement) {
+                        drawerElement.style.height = '';
+                        drawerElement.style.maxHeight = '';
+                        drawerElement.style.position = '';
+                        drawerElement.style.bottom = '';
+                      }
+                    }, 150); // Small delay to ensure keyboard is fully dismissed
                   }
                 }}
               />
