@@ -25,43 +25,34 @@ const DrawerClose = DrawerPrimitive.Close
 const DrawerOverlay = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay>
->(({ className, ...props }, ref) => {
-  return (
-    <DrawerPrimitive.Overlay
-      ref={ref}
-      className={cn("fixed inset-0 z-50 bg-black/80", className)}
-      {...props}
-    />
-  )
-})
+>(({ className, ...props }, ref) => (
+  <DrawerPrimitive.Overlay
+    ref={ref}
+    className={cn("fixed inset-0 z-50 bg-black/80", className)}
+    {...props}
+  />
+))
 DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName
 
 const DrawerContent = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
->(({ className, children, style, ...props }, ref) => {
-  return (
-    <DrawerPortal>
-      <DrawerOverlay />
-      <DrawerPrimitive.Content
-        ref={ref}
-        className={cn(
-          "fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-[10px] bg-background border-t-2 border-fireside-orange",
-          "max-w-[800px] mx-auto",
-          "min-h-0", // Prevent content from expanding beyond container
-          className
-        )}
-        style={style}
-        {...props}
-      >
-        <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-fireside-orange/50 flex-shrink-0" />
-        <div className="flex-1 overflow-y-auto overflow-x-hidden px-1 min-h-0">
-          {children}
-        </div>
-      </DrawerPrimitive.Content>
-    </DrawerPortal>
-  )
-})
+>(({ className, children, ...props }, ref) => (
+  <DrawerPortal>
+    <DrawerOverlay />
+    <DrawerPrimitive.Content
+      ref={ref}
+      className={cn(
+        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background",
+        className
+      )}
+      {...props}
+    >
+      <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
+      {children}
+    </DrawerPrimitive.Content>
+  </DrawerPortal>
+))
 DrawerContent.displayName = "DrawerContent"
 
 const DrawerHeader = ({
@@ -79,13 +70,7 @@ const DrawerFooter = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div 
-    className={cn(
-      "flex flex-col gap-2 p-4 flex-shrink-0 bg-background border-t border-white/10 mt-auto", 
-      className
-    )} 
-    {...props} 
-  />
+  <div className={cn("mt-auto flex flex-col gap-2 p-4", className)} {...props} />
 )
 DrawerFooter.displayName = "DrawerFooter"
 
