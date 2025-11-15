@@ -32,7 +32,6 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   const [message, setMessage] = useState("");
   const [redisMessages, setRedisMessages] = useState<RedisChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -81,35 +80,9 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   // Auto-scroll to bottom when new messages arrive or chat opens
   useEffect(() => {
     if (isOpen) {
-      const timer = setTimeout(scrollToBottom, 300);
-      return () => clearTimeout(timer);
+      setTimeout(scrollToBottom, 300);
     }
   }, [isOpen, messages, redisMessages, scrollToBottom]);
-
-  // Handle mobile keyboard visibility
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleViewportChange = () => {
-      if (window.visualViewport) {
-        const viewport = window.visualViewport;
-        const keyboardHeight = window.innerHeight - viewport.height;
-        setKeyboardHeight(keyboardHeight);
-      }
-    };
-
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleViewportChange);
-      handleViewportChange(); // Initial call
-    }
-
-    return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleViewportChange);
-      }
-      setKeyboardHeight(0);
-    };
-  }, [isOpen]);
 
 
 
@@ -279,15 +252,8 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
   return (
     <Drawer open={isOpen} onOpenChange={setIsChatOpen}>
-      <DrawerContent 
-        className="bg-black/95 backdrop-blur-lg text-white border-orange-500/30 flex flex-col"
-        style={{
-          maxHeight: keyboardHeight > 0 ? `${window.innerHeight - keyboardHeight}px` : '90vh',
-          height: keyboardHeight > 0 ? `${window.innerHeight - keyboardHeight}px` : 'auto'
-        }}
-      >
-        {/* Chat Header - Fixed */}
-        <DrawerHeader className="flex-shrink-0 border-b border-fireside-orange/30 bg-black/95 backdrop-blur-lg z-10">
+      <DrawerContent className="bg-black/95 backdrop-blur-lg text-white border-orange-500/30">
+        <DrawerHeader className="border-b border-fireside-orange/30">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-3 h-3 bg-fireside-orange rounded-full animate-pulse"></div>
@@ -303,8 +269,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
           </div>
         </DrawerHeader>
 
-        {/* Chat Messages - Fixed Height with Scroll */}
-        <div className="flex-1 overflow-y-auto px-4 py-6 min-h-0">
+        <div className="flex-1 overflow-y-auto px-4 py-6">
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-white text-sm">Loading messages...</div>
@@ -330,11 +295,9 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
               <p className="text-xs text-gray-400">Start the conversation!</p>
             </div>
           ) : (
-            <div className="space-y-4 max-w-2xl mx-auto pb-4">
+            <div className="space-y-4 pb-4">
               {combinedMessages.map((msg) => {
-                // Compare the message userId with the current user's fid
                 const isOwn = msg.userId === user?.fid;
-                
                 return (
                   <ChatMessage
                     key={msg.id}
@@ -348,8 +311,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
           )}
         </div>
 
-        {/* Chat Input - Fixed */}
-        <DrawerFooter className="border-fireside-orange/30 bg-black/95 backdrop-blur-lg flex-shrink-0">
+        <DrawerFooter className="border-t border-fireside-orange/30">
           <div className="flex items-end space-x-3">
             <div className="flex-1">
               <textarea
@@ -357,28 +319,17 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                name="Chat input"
                 placeholder="Type a message..."
                 className="w-full px-4 py-3 bg-white/10 text-white rounded-2xl border border-white/30 focus:border-fireside-orange focus:ring-2 focus:ring-fireside-orange focus:ring-opacity-20 outline-none resize-none min-h-[48px] text-base"
                 maxLength={500}
                 rows={1}
-                style={{ 
-                  transition: 'height 0.2s ease-out',
-                  fontFamily: 'inherit',
-                  lineHeight: '1.5'
-                }}
-                onFocus={() => {
-                  // Ensure we scroll to bottom when keyboard opens
-                  setTimeout(() => {
-                    scrollToBottom();
-                  }, 300);
-                }}
+                onFocus={() => setTimeout(scrollToBottom, 300)}
               />
             </div>
             <button
               onClick={handleSendMessage}
               disabled={!message.trim()}
-              className="w-12 h-12 bg-fireside-orange text-white rounded-full flex items-center justify-center transition-all hover:bg-fireside-orange/80 disabled:bg-gray-500 disabled:opacity-50 flex-shrink-0"
+              className="w-12 h-12 bg-fireside-orange text-white rounded-full flex items-center justify-center transition-all hover:bg-fireside-orange/80 disabled:bg-gray-500 disabled:opacity-50"
               title="Send message"
             >
               <MdSend size={20} />
