@@ -140,7 +140,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
 
   return (
     <Drawer open={isOpen} onOpenChange={onClose} disablePreventScroll>
-      <DrawerContent className="bg-black/95 backdrop-blur-lg text-white border-orange-500/30">
+      <DrawerContent className="bg-black/95 backdrop-blur-lg text-white border-orange-500/30 ">
         <DrawerHeader className="border-b border-orange-500/30">
           <div className="flex items-center justify-between">
             <DrawerTitle className="text-2xl font-semibold text-white">Create New Room</DrawerTitle>
@@ -154,7 +154,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
           </div>
         </DrawerHeader>
         
-        <div className="px-4 py-6">
+        <div className="px-4 py-6 max-h-[90vh] overflow-y-auto">
           <div className="max-w-lg mx-auto space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">

@@ -339,7 +339,7 @@ export default function TippingModal({
           </div>
         </DrawerHeader>
 
-        <div className="px-4 py-6">
+        <div className="px-4 py-6 max-h-[90vh] overflow-y-auto">
           <div className="space-y-6">
             {/* User Selection */}
             <div>
