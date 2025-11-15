@@ -139,7 +139,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
   };
 
   return (
-    <Drawer open={isOpen} onOpenChange={onClose}>
+    <Drawer open={isOpen} onOpenChange={onClose} disablePreventScroll>
       <DrawerContent className="bg-black/95 backdrop-blur-lg text-white border-orange-500/30">
         <DrawerHeader className="border-b border-orange-500/30">
           <div className="flex items-center justify-between">
