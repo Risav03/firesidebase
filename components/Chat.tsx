@@ -269,7 +269,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
           </div>
         </DrawerHeader>
 
-        <div className="flex-1 overflow-y-auto px-4 py-6">
+        <div className="flex-1 overflow-y-auto px-4 py-6 max-h-[90vh] ">
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-white text-sm">Loading messages...</div>
