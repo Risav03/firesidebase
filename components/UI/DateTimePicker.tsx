@@ -213,8 +213,8 @@ export default function DateTimePicker({
           disabled={isDisabled}
           className={twMerge(
             'p-2 text-sm rounded-lg transition-all text-white hover:bg-gray-800',
-            isSelected && 'bg-primary text-black hover:bg-primary/90',
-            isToday && !isSelected && 'bg-white/10 text-primary font-semibold',
+            isSelected && 'bg-fireside-orange text-white hover:bg-fireside-orange/90',
+            isToday && !isSelected && 'bg-white/10 text-fireside-orange font-semibold',
             isDisabled && 'text-gray-600 cursor-not-allowed hover:bg-transparent',
             !isSelected && !isToday && !isDisabled && 'hover:bg-gray-800'
           )}
@@ -228,15 +228,15 @@ export default function DateTimePicker({
   }
 
   return (
-    <div className={twMerge('relative', className)}>
+    <div className={twMerge('w-full', className)}>
       {/* Label */}
       <label
         htmlFor={inputId}
         className={twMerge(
-          'block text-sm font-medium mb-2 mt-4',
+          'block text-sm font-medium mb-2',
           disabled && 'text-disabled',
           showError && 'text-red-500',
-          !showError && 'text-gray-500'
+          !showError && 'text-gray-300'
         )}
       >
         {label}
@@ -244,7 +244,7 @@ export default function DateTimePicker({
       </label>
 
       {/* Input Field */}
-      <div className="relative text-white">
+      <div className="relative w-full text-white">
         <input
           ref={inputRef}
           id={inputId}
@@ -264,7 +264,7 @@ export default function DateTimePicker({
             'w-full px-4 py-3 pr-12 rounded-lg border-[1px] bg-transparent transition-all duration-200 cursor-pointer text-foreground',
             disabled && 'border-disabled cursor-not-allowed opacity-60',
             !disabled && (isFocused || hasValue) && showError && 'border-red-500 outline-red-500',
-            !disabled && (isFocused || hasValue) && !showError && 'border-primary outline-primary',
+            !disabled && (isFocused || hasValue) && !showError && 'border-fireside-orange outline-fireside-orange',
             !disabled && !(isFocused || hasValue) && 'border-gray-300 hover:border-gray-400',
             isFocused && 'outline-1 outline-offset-1'
           )}
@@ -294,9 +294,10 @@ export default function DateTimePicker({
       </div>
       
       {/* Date Picker Dropdown */}
+      {isDatePickerOpen && (
         <div
           ref={datePickerRef}
-          className={`fixed top-0 left-0 w-full h-screen bg-black/70 bg-opacity-50 flex items-center justify-center z-50 p-2 transition-all duration-200 ${isDatePickerOpen ? "" : "opacity-0 pointer-events-none"} `}
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999] p-4"
           onClick={(e) => {
             if (e.target === datePickerRef.current) {
               setIsDatePickerOpen(false);
@@ -304,7 +305,7 @@ export default function DateTimePicker({
           }}
         >
           <div
-            className="bg-black border-[1px] border-primary/30 rounded-lg shadow-lg p-4 min-w-[300px]"
+            className="bg-black border-[1px] border-fireside-orange/30 rounded-lg shadow-2xl p-4 min-w-[320px] max-w-md w-full"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Calendar Header */}
@@ -356,7 +357,7 @@ export default function DateTimePicker({
                     <select
                       value={selectedDate ? (selectedDate.getHours() === 0 ? 12 : selectedDate.getHours() > 12 ? selectedDate.getHours() - 12 : selectedDate.getHours()) : 12}
                       onChange={(e) => handleTimeSelect('hour', parseInt(e.target.value))}
-                      className="px-3 py-2 border border-caption rounded-lg hover:border-primary transition-colors text-sm w-[60px] bg-white/10 text-white"
+                      className="px-3 py-2 border border-caption rounded-lg hover:border-fireside-orange transition-colors text-sm w-[60px] bg-white/10 text-white"
                     >
                       {hourOptions.map(hour => (
                         <option key={hour} value={hour} className="bg-black w-1/2 text-white">
@@ -373,7 +374,7 @@ export default function DateTimePicker({
                     <select
                       value={selectedDate ? selectedDate.getMinutes() : 0}
                       onChange={(e) => handleTimeSelect('minute', parseInt(e.target.value))}
-                      className="px-3 py-2 border border-caption rounded-lg hover:border-primary transition-colors text-sm min-w-[60px] bg-white/10 text-white"
+                      className="px-3 py-2 border border-caption rounded-lg hover:border-fireside-orange transition-colors text-sm min-w-[60px] bg-white/10 text-white"
                     >
                       {minuteOptions.map(minute => (
                         <option key={minute} value={minute} className="bg-black text-white">
@@ -388,7 +389,7 @@ export default function DateTimePicker({
                     <select
                       value={selectedDate ? (selectedDate.getHours() >= 12 ? 'PM' : 'AM') : 'AM'}
                       onChange={(e) => handleTimeSelect('period', e.target.value)}
-                      className="px-3 py-2 border border-caption rounded-lg hover:border-primary transition-colors text-sm min-w-[60px] bg-white/10 text-white"
+                      className="px-3 py-2 border border-caption rounded-lg hover:border-fireside-orange transition-colors text-sm min-w-[60px] bg-white/10 text-white"
                     >
                       {periodOptions.map(period => (
                         <option key={period} value={period} className="bg-black text-white">
@@ -402,7 +403,7 @@ export default function DateTimePicker({
             </div>
           </div>
         </div>
-
+      )}
 
       {/* Error Message */}
       {showError && (
