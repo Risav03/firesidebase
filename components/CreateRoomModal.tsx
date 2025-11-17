@@ -39,7 +39,8 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
     name: '',
     description: ''
   });
-  const [startTime, setStartTime] = useState<Date | null>(new Date());
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [showSchedule, setShowSchedule] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [sponsorshipEnabled, setSponsorshipEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -53,7 +54,8 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         name: '',
         description: ''
       });
-      setStartTime(new Date());
+      setStartTime(null);
+      setShowSchedule(false);
       setSelectedTags([]);
       setSponsorshipEnabled(false);
       setNameError('');
@@ -74,7 +76,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
       return;
     }
 
-    if (!startTime) {
+    if (showSchedule && !startTime) {
       toast.error('Please select a start time.');
       return;
     }
@@ -91,7 +93,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
 
       const roomData = {
         ...formData,
-        startTime: startTime.toISOString(),
+        startTime: startTime ? startTime.toISOString() : new Date().toISOString(),
         host: user?.fid || '',
         topics: selectedTags,
         sponsorshipEnabled
@@ -102,14 +104,15 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
       if (response.data.success) {
         toast.success('Room created successfully!');
         setFormData({ name: '', description: '' });
-        setStartTime(new Date());
+        setStartTime(null);
+        setShowSchedule(false);
         setSelectedTags([]);
         setSponsorshipEnabled(false);
         onClose();
 
         const now = new Date();
         
-        if (now >= startTime) {
+        if (!startTime || now >= startTime) {
           navigate('/call/' + response.data.data._id);
         } else {
           window?.location.reload();
@@ -126,9 +129,14 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
   };
 
   const scheduleRoom = () => {
-    const oneHourLater = new Date();
-    oneHourLater.setHours(oneHourLater.getHours() + 1);
-    setStartTime(oneHourLater);
+    if (!showSchedule) {
+      setShowSchedule(true);
+      const oneHourLater = new Date();
+      oneHourLater.setHours(oneHourLater.getHours() + 1);
+      setStartTime(oneHourLater);
+    } else {
+      createRoomHandler();
+    }
   };
 
   return (
@@ -208,15 +216,6 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
               {selectedTags.length === 0 && <p className="text-red-500 text-sm mt-1">Please select at least one topic.</p>}
               {selectedTags.length > 3 && <p className="text-red-500 text-sm mt-1">You can select up to 3 topics only.</p>}
             </div>
-
-            <DateTimePicker
-              label="Start Time"
-              value={startTime}
-              onChange={setStartTime}
-              placeholder="Select start time"
-              required
-              minDate={new Date()}
-            />
             
             <div className="flex items-center justify-between">
               <label className="block text-sm font-medium text-gray-300">
@@ -231,25 +230,60 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                 />
               </div>
             </div>
+            {showSchedule && (
+              <DateTimePicker
+                label="Start Time"
+                value={startTime}
+                onChange={setStartTime}
+                placeholder="Select start time"
+                required
+                minDate={new Date()}
+              />
+            )}
+             
           </div>
         </div>
         
         <DrawerFooter className="border-t border-orange-500/20">
-          <div className="flex gap-2">
-            <Button
-              disabled={loading}
-              onClick={createRoomHandler}
-              className="gradient-fire flex-1 text-white font-medium"
-            >
-              {loading ? 'Igniting...' : 'Fire up!'}
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={scheduleRoom}
-              className="text-gray-300 hover:text-white"
-            >
-              📅
-            </Button>
+          <div className="flex justify-between w-full">
+            {!showSchedule ? (
+              <>
+                <Button
+                  disabled={loading}
+                  onClick={createRoomHandler}
+                  className="gradient-fire w-[70%] text-white font-medium"
+                >
+                  {loading ? 'Igniting...' : 'Fire up!'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={scheduleRoom}
+                  className="text-gray-300 w-[30%] ml-3 hover:text-white"
+                >
+                  📅
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setShowSchedule(false);
+                    setStartTime(null);
+                  }}
+                  className="text-gray-300  w-[30%] hover:text-white"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  disabled={loading}
+                  onClick={scheduleRoom}
+                  className="gradient-fire  w-[70%] ml-3 text-white font-medium"
+                >
+                  {loading ? 'Scheduling...' : 'Schedule Room'}
+                </Button>
+              </>
+            )}
           </div>
         </DrawerFooter>
       </DrawerContent>
