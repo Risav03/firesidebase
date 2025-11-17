@@ -16,6 +16,7 @@ import {
   DrawerTitle,
 } from "@/components/UI/drawer";
 import Button from './UI/Button';
+import DateTimePicker from './UI/DateTimePicker';
 
 interface CreateRoomModalProps {
   isOpen: boolean;
@@ -36,9 +37,9 @@ const convertLocalDateTimeToUTC = (localDateTime: string) => {
 export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProps) {
   const [formData, setFormData] = useState({
     name: '',
-    description: '',
-    startTime: getCurrentLocalDateTime()
+    description: ''
   });
+  const [startTime, setStartTime] = useState<Date | null>(new Date());
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [sponsorshipEnabled, setSponsorshipEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -50,9 +51,9 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
     if (isOpen) {
       setFormData({
         name: '',
-        description: '',
-        startTime: getCurrentLocalDateTime()
+        description: ''
       });
+      setStartTime(new Date());
       setSelectedTags([]);
       setSponsorshipEnabled(false);
       setNameError('');
@@ -72,6 +73,11 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
       toast.error('Please select at least one topic tag.');
       return;
     }
+
+    if (!startTime) {
+      toast.error('Please select a start time.');
+      return;
+    }
     
     setNameError('');
     setLoading(true);
@@ -85,7 +91,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
 
       const roomData = {
         ...formData,
-        startTime: convertLocalDateTimeToUTC(formData.startTime).toISOString(),
+        startTime: startTime.toISOString(),
         host: user?.fid || '',
         topics: selectedTags,
         sponsorshipEnabled
@@ -95,15 +101,15 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
       
       if (response.data.success) {
         toast.success('Room created successfully!');
-        setFormData({ name: '', description: '', startTime: getCurrentLocalDateTime() });
+        setFormData({ name: '', description: '' });
+        setStartTime(new Date());
         setSelectedTags([]);
         setSponsorshipEnabled(false);
         onClose();
 
-        const roomStartTime = convertLocalDateTimeToUTC(formData.startTime);
         const now = new Date();
         
-        if (now >= roomStartTime) {
+        if (now >= startTime) {
           navigate('/call/' + response.data.data._id);
         } else {
           window?.location.reload();
@@ -122,20 +128,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
   const scheduleRoom = () => {
     const oneHourLater = new Date();
     oneHourLater.setHours(oneHourLater.getHours() + 1);
-    const offset = oneHourLater.getTimezoneOffset() * 60000;
-    const localISOTime = new Date(oneHourLater.getTime() - offset).toISOString().slice(0, 16);
-    
-    const scheduledTime = prompt(`Schedule room for when? (Format: ${localISOTime})`, localISOTime);
-    if (!scheduledTime) return;
-
-    const selectedTime = convertLocalDateTimeToUTC(scheduledTime);
-    if (selectedTime < new Date()) {
-      toast.error('Start time cannot be in the past');
-      return;
-    }
-
-    setFormData({ ...formData, startTime: scheduledTime });
-    createRoomHandler();
+    setStartTime(oneHourLater);
   };
 
   return (
@@ -215,6 +208,15 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
               {selectedTags.length === 0 && <p className="text-red-500 text-sm mt-1">Please select at least one topic.</p>}
               {selectedTags.length > 3 && <p className="text-red-500 text-sm mt-1">You can select up to 3 topics only.</p>}
             </div>
+
+            <DateTimePicker
+              label="Start Time"
+              value={startTime}
+              onChange={setStartTime}
+              placeholder="Select start time"
+              required
+              minDate={new Date()}
+            />
             
             <div className="flex items-center justify-between">
               <label className="block text-sm font-medium text-gray-300">
