@@ -16,7 +16,12 @@ import { Loader } from "@/components/Loader";
 import { toast } from "react-toastify";
 import sdk from "@farcaster/miniapp-sdk";
 import { useNavigateWithLoader } from "@/utils/useNavigateWithLoader";
-import { fetchAPI, fetchRoomCodes, addParticipantToRoom, removeParticipantFromRoom } from "@/utils/serverActions";
+import {
+  fetchAPI,
+  fetchRoomCodes,
+  addParticipantToRoom,
+  removeParticipantFromRoom,
+} from "@/utils/serverActions";
 
 interface RoomCode {
   id: string;
@@ -45,6 +50,29 @@ export default function CallClient({ roomId }: CallClientProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Request wake lock to keep screen active
+    let wakeLock: any = null;
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await (navigator as any).wakeLock.request('screen');
+          console.log('[Wake Lock] Screen wake lock acquired');
+        }
+      } catch (err) {
+        console.warn('[Wake Lock] Failed to acquire wake lock:', err);
+      }
+    };
+    requestWakeLock();
+
+    return () => {
+      if (wakeLock) {
+        wakeLock.release();
+        console.log('[Wake Lock] Screen wake lock released');
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     const joinRoom = async () => {
       try {
         const env = process.env.NEXT_PUBLIC_ENV;
@@ -56,14 +84,23 @@ export default function CallClient({ roomId }: CallClientProps) {
 
         // Request microphone and camera permissions once at room join
         try {
-          await sdk.actions.requestCameraAndMicrophoneAccess();
-          console.log("[HMS Action - CallClient] Microphone and camera permissions granted");
+          const context = await sdk.context;
+
+          if (context.features?.cameraAndMicrophoneAccess) {
+            await sdk.actions.requestCameraAndMicrophoneAccess();
+            console.log(
+              "[HMS Action - CallClient] Microphone and camera permissions granted"
+            );
+          }
         } catch (permissionError) {
-          console.warn("[HMS Action - CallClient] Microphone/camera permission denied:", permissionError);
+          console.warn(
+            "[HMS Action - CallClient] Microphone/camera permission denied:",
+            permissionError
+          );
           // Continue with room join even if permissions are denied
           // User can grant permissions later when they try to unmute
         }
-        
+
         var token: any = "";
         if (env !== "DEV") {
           token = (await sdk.quickAuth.getToken()).token;
@@ -83,7 +120,7 @@ export default function CallClient({ roomId }: CallClientProps) {
           success: response.ok,
           timestamp: new Date().toISOString(),
         });
-        
+
         if (!response.ok) {
           throw new Error(response.data.error || "Failed to fetch room codes");
         }
@@ -93,9 +130,14 @@ export default function CallClient({ roomId }: CallClientProps) {
         let roomCode = "";
         let role = "listener";
 
-        const roomResponse = await fetchAPI(`${URL}/api/rooms/public/${roomId}`);
+        const roomResponse = await fetchAPI(
+          `${URL}/api/rooms/public/${roomId}`
+        );
 
-        if (roomResponse.ok && roomResponse.data.data.room.host._id === user._id) {
+        if (
+          roomResponse.ok &&
+          roomResponse.data.data.room.host._id === user._id
+        ) {
           const hostCode = roomCodes.find((code) => code.role === "host");
           if (hostCode) {
             roomCode = hostCode.code;
@@ -108,7 +150,7 @@ export default function CallClient({ roomId }: CallClientProps) {
             const response = await fetchAPI(
               `${URL}/api/rooms/protected/${roomId}/my-code`,
               {
-                authToken: token
+                authToken: token,
               }
             );
 
@@ -177,7 +219,6 @@ export default function CallClient({ roomId }: CallClientProps) {
       }
     };
     if (user && roomId) {
-      
       joinRoom();
     }
   }, [roomId, user, hmsActions]);
@@ -187,29 +228,31 @@ export default function CallClient({ roomId }: CallClientProps) {
   useEffect(() => {
     if (isConnected && localPeer && user && !hasJoinedRoom) {
       const role = localPeer.roleName;
-      
+
       console.log("[HMS Action - CallClient] Connected to room", {
         role,
         peerId: localPeer.id,
         peerName: localPeer.name,
         timestamp: new Date().toISOString(),
       });
-      
-      
+
       // Only auto-mute on initial join, not on subsequent peer updates
       if (role === "host" || role === "co-host" || role === "speaker") {
-        console.log("[HMS Action - CallClient] Auto-muting on join for role:", role);
+        console.log(
+          "[HMS Action - CallClient] Auto-muting on join for role:",
+          role
+        );
         hmsActions.setLocalAudioEnabled(false);
       }
 
       // Add user as participant in Redis when they successfully join
       const addParticipantToRedis = async () => {
         const env = process.env.NEXT_PUBLIC_ENV;
-        
+
         var token: any = "";
         if (env !== "DEV") {
           token = (await sdk.quickAuth.getToken()).token;
-        };
+        }
 
         try {
           const response = await addParticipantToRoom(
@@ -243,11 +286,11 @@ export default function CallClient({ roomId }: CallClientProps) {
   useEffect(() => {
     const removeParticipantFromRedis = async () => {
       const env = process.env.NEXT_PUBLIC_ENV;
-        
-        var token: any = "";
-        if (env !== "DEV") {
-          token = (await sdk.quickAuth.getToken()).token;
-        };
+
+      var token: any = "";
+      if (env !== "DEV") {
+        token = (await sdk.quickAuth.getToken()).token;
+      }
 
       if (user?.fid) {
         try {
@@ -279,8 +322,7 @@ export default function CallClient({ roomId }: CallClientProps) {
     };
   }, [user, roomId]);
 
-  const navigate = useNavigateWithLoader()
-
+  const navigate = useNavigateWithLoader();
 
   if (error && error !== "Failed to fetch room codes") {
     return (
@@ -301,8 +343,8 @@ export default function CallClient({ roomId }: CallClientProps) {
     );
   }
 
-  if(error === "Failed to fetch room codes") {
-     return (
+  if (error === "Failed to fetch room codes") {
+    return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-white mb-4">
