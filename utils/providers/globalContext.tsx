@@ -29,9 +29,8 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [isUserLoading, setIsUserLoading] = useState<boolean>(true);
   const [isPopupOpen, setIsPopupOpen] = useState<boolean>(false);
-  
 
-  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
   // useEffect for sign-in moved to a single place with hasRunRef check below
 
@@ -50,29 +49,33 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
     console.log("handleSignIn called", new Date().toISOString());
     try {
       const env = process.env.NEXT_PUBLIC_ENV;
-      var token:any ;
+      var token: any;
       if (env !== "DEV" && !token) {
         const nonce = await getNonce();
 
         await sdk.actions.signIn({ nonce });
 
-        token = ((await sdk.quickAuth.getToken()).token);
+        token = (await sdk.quickAuth.getToken()).token;
       }
 
-      const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-      const createUserRes = await fetchAPI(`${URL}/api/users/protected/handle`, {
-        method: 'POST',
-        authToken: token
-      });
+      const URL =
+        process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+      const createUserRes = await fetchAPI(
+        `${URL}/api/users/protected/handle`,
+        {
+          method: "POST",
+          authToken: token,
+        }
+      );
 
       if (!createUserRes.ok) {
         console.error("Failed to create user:", createUserRes.data);
       }
-      
+
       const localUser = createUserRes.data.data.user;
       setUser(localUser);
 
-      if(!localUser?.token || localUser?.token === ""){
+      if (!localUser?.token || localUser?.token === "") {
         setIsPopupOpen(true);
       }
       setIsUserLoading(false);
@@ -97,6 +100,20 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       await handleSignIn();
       if (process.env.NEXT_PUBLIC_ENV !== "DEV") {
         sdk.actions.ready();
+
+        try {
+          await sdk.actions.requestCameraAndMicrophoneAccess();
+          console.log(
+            "[HMS Action - CallClient] Microphone and camera permissions granted"
+          );
+        } catch (permissionError) {
+          console.warn(
+            "[HMS Action - CallClient] Microphone/camera permission denied:",
+            permissionError
+          );
+          // Continue with room join even if permissions are denied
+          // User can grant permissions later when they try to unmute
+        }
       }
     })();
     // We're using hasRunRef to ensure this only runs once
@@ -104,7 +121,16 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <GlobalContext.Provider value={{ user, setUser, isUserLoading, setIsUserLoading, isPopupOpen, setIsPopupOpen }}>
+    <GlobalContext.Provider
+      value={{
+        user,
+        setUser,
+        isUserLoading,
+        setIsUserLoading,
+        isPopupOpen,
+        setIsPopupOpen,
+      }}
+    >
       {children}
     </GlobalContext.Provider>
   );
