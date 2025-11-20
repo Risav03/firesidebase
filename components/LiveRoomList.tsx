@@ -82,6 +82,8 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
 
+
+
   // Handle topic selection and PATCH request
   const handleTopicSubmit = async (selectedTopics: string[]) => {
     try {
@@ -205,6 +207,33 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
       setLoading(false);
     }
   };
+
+  // Request camera and microphone permissions early
+  useEffect(() => {
+    const requestPermissions = async () => {
+      try {
+        const context = await sdk.context;
+
+        if (context.features?.cameraAndMicrophoneAccess) {
+          await sdk.actions.requestCameraAndMicrophoneAccess();
+          console.log(
+            "[HMS Action - LiveRoomList] Microphone and camera permissions granted"
+          );
+        }
+      } catch (permissionError) {
+        console.warn(
+          "[HMS Action - LiveRoomList] Microphone/camera permission denied:",
+          permissionError
+        );
+        // Continue even if permissions are denied
+        // User can grant permissions later when they try to unmute
+      }
+    };
+
+    if (!isUserLoading && user) {
+      requestPermissions();
+    }
+  }, [user, isUserLoading]);
 
   // Fetch rooms when user is loaded
   useEffect(() => {
