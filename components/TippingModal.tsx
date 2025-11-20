@@ -238,9 +238,12 @@ export default function TippingModal({
       } else {
         for (const role of selectedRoles) {
           const response = await fetchRoomParticipantsByRole(roomId, role);
+
+          console.log("Fetched participants for role", role, response);
+
           if (response.data.success) {
             usersToSend.push(
-              ...response.data.participants.map((user: Participant) => user.wallet)
+              ...response.data.data.participants.map((user: Participant) => user.wallet)
             );
           }
         }
@@ -250,6 +253,8 @@ export default function TippingModal({
         toast.error("No users found for tipping");
         return;
       }
+
+      console.log("Users to send USDC tip to:", usersToSend);
 
       const tipAmount = selectedTip ? selectedTip : parseFloat(customTip);
       const usdcAmount = BigInt(Math.floor(tipAmount * 1e6)); // USDC has 6 decimals
@@ -380,12 +385,19 @@ export default function TippingModal({
                   className="w-full bg-white/10 text-white p-3 rounded-lg border border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors"
                 />
                 
-                {searchQuery && (
-                  <div className="mt-2 max-h-40 overflow-y-auto space-y-1">
-                    {participants
+                <div className="mt-2 max-h-60 overflow-y-auto space-y-1 bg-white/5 rounded-lg p-2">
+                  {isLoadingUsers ? (
+                    <div className="flex items-center justify-center py-4">
+                      <RiLoader5Fill className="animate-spin text-orange-500" size={24} />
+                    </div>
+                  ) : (
+                    participants
                       .filter(p => 
-                        p.username.toLowerCase().includes(searchQuery.toLowerCase())
+                        searchQuery 
+                          ? p.username.toLowerCase().includes(searchQuery.toLowerCase())
+                          : true
                       )
+                      .slice(0, 20)
                       .map((participant) => (
                         <button
                           key={participant.userId}
@@ -404,9 +416,20 @@ export default function TippingModal({
                           <span className="text-left flex-1">{participant.username}</span>
                         </button>
                       ))
-                    }
-                  </div>
-                )}
+                  )}
+                  {!isLoadingUsers && participants.length === 0 && (
+                    <div className="text-center text-gray-400 py-4">
+                      No participants found
+                    </div>
+                  )}
+                  {!isLoadingUsers && searchQuery && participants.filter(p => 
+                    p.username.toLowerCase().includes(searchQuery.toLowerCase())
+                  ).length > 20 && (
+                    <div className="text-center text-gray-400 text-sm py-2">
+                      Showing first 20 results
+                    </div>
+                  )}
+                </div>
               </div>
               
               {/* Selected Recipients Display */}
