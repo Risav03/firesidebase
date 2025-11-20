@@ -165,7 +165,7 @@ export default function TippingModal({
           const response = await fetchRoomParticipantsByRole(roomId, role);
           if (response.data.success) {
             usersToSend.push(
-              ...response.data.participants.map((user: Participant) => user.wallet)
+              ...response.data.data.participants.map((user: Participant) => user.wallet)
             );
           }
         }

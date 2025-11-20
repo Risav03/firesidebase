@@ -217,7 +217,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
               {selectedTags.length > 3 && <p className="text-red-500 text-sm mt-1">You can select up to 3 topics only.</p>}
             </div>
             
-            <div className="flex items-center justify-between">
+            {/* <div className="flex items-center justify-between">
               <label className="block text-sm font-medium text-gray-300">
                 Enable Sponsorship
               </label>
@@ -229,7 +229,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                   className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${sponsorshipEnabled ? 'translate-x-6' : 'translate-x-0'}`} 
                 />
               </div>
-            </div>
+            </div> */}
             {showSchedule && (
               <DateTimePicker
                 label="Start Time"
