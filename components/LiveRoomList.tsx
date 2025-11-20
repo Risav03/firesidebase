@@ -208,33 +208,6 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
     }
   };
 
-  // Request camera and microphone permissions early
-  useEffect(() => {
-    const requestPermissions = async () => {
-      try {
-        const context = await sdk.context;
-
-        if (context.features?.cameraAndMicrophoneAccess) {
-          await sdk.actions.requestCameraAndMicrophoneAccess();
-          console.log(
-            "[HMS Action - LiveRoomList] Microphone and camera permissions granted"
-          );
-        }
-      } catch (permissionError) {
-        console.warn(
-          "[HMS Action - LiveRoomList] Microphone/camera permission denied:",
-          permissionError
-        );
-        // Continue even if permissions are denied
-        // User can grant permissions later when they try to unmute
-      }
-    };
-
-    if (!isUserLoading && user) {
-      requestPermissions();
-    }
-  }, [user, isUserLoading]);
-
   // Fetch rooms when user is loaded
   useEffect(() => {
     if (!isUserLoading && user) {
