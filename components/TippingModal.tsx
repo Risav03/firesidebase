@@ -56,6 +56,7 @@ export default function TippingModal({
   const [selectedTip, setSelectedTip] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [availableRoles, setAvailableRoles] = useState<Record<string, boolean>>({
     host: false,
     "co-host": false,
@@ -374,62 +375,73 @@ export default function TippingModal({
                 </div>
               </div>
               
-              {/* User Search */}
+              {/* User Selection Button */}
               <div className="mt-4">
-                <div className="text-sm text-gray-300 mb-2">Or search users:</div>
-                <input
-                  type="text"
-                  placeholder="Search participants..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-white/10 text-white p-3 rounded-lg border border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors"
-                />
+                <button
+                  onClick={() => setShowUserDropdown(!showUserDropdown)}
+                  className="w-full bg-white/10 text-white p-3 rounded-lg border border-orange-500/30 hover:bg-white/20 transition-colors text-left flex items-center justify-between"
+                >
+                  <span className="text-sm text-gray-300">Or select individual users</span>
+                  <span className="text-orange-400">{showUserDropdown ? '▲' : '▼'}</span>
+                </button>
                 
-                <div className="mt-2 max-h-60 overflow-y-auto space-y-1 bg-white/5 rounded-lg p-2">
-                  {isLoadingUsers ? (
-                    <div className="flex items-center justify-center py-4">
-                      <RiLoader5Fill className="animate-spin text-orange-500" size={24} />
+                {showUserDropdown && (
+                  <div className="mt-2">
+                    <input
+                      type="text"
+                      placeholder="Search participants..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full bg-white/10 text-white p-3 rounded-lg border border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors mb-2"
+                    />
+                    
+                    <div className="max-h-32 overflow-y-auto space-y-1 bg-white/5 rounded-lg p-2">
+                      {isLoadingUsers ? (
+                        <div className="flex items-center justify-center py-4">
+                          <RiLoader5Fill className="animate-spin text-orange-500" size={24} />
+                        </div>
+                      ) : (
+                        participants
+                          .filter(p => 
+                            searchQuery 
+                              ? p.username.toLowerCase().includes(searchQuery.toLowerCase())
+                              : true
+                          )
+                          .slice(0, 20)
+                          .map((participant) => (
+                            <button
+                              key={participant.userId}
+                              onClick={() => handleUserSelection(participant)}
+                              className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors ${
+                                selectedUsers.some(u => u.userId === participant.userId)
+                                  ? 'bg-orange-500/20 text-orange-300'
+                                  : 'hover:bg-white/10'
+                              }`}
+                            >
+                              <img
+                                src={participant.pfp_url}
+                                alt={participant.username}
+                                className="w-8 h-8 rounded-full"
+                              />
+                              <span className="text-left flex-1">{participant.username}</span>
+                            </button>
+                          ))
+                      )}
+                      {!isLoadingUsers && participants.length === 0 && (
+                        <div className="text-center text-gray-400 py-4">
+                          No participants found
+                        </div>
+                      )}
+                      {!isLoadingUsers && searchQuery && participants.filter(p => 
+                        p.username.toLowerCase().includes(searchQuery.toLowerCase())
+                      ).length > 20 && (
+                        <div className="text-center text-gray-400 text-sm py-2">
+                          Showing first 20 results
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    participants
-                      .filter(p => 
-                        searchQuery 
-                          ? p.username.toLowerCase().includes(searchQuery.toLowerCase())
-                          : true
-                      )
-                      .slice(0, 20)
-                      .map((participant) => (
-                        <button
-                          key={participant.userId}
-                          onClick={() => handleUserSelection(participant)}
-                          className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors ${
-                            selectedUsers.some(u => u.userId === participant.userId)
-                              ? 'bg-orange-500/20 text-orange-300'
-                              : 'hover:bg-white/10'
-                          }`}
-                        >
-                          <img
-                            src={participant.pfp_url}
-                            alt={participant.username}
-                            className="w-8 h-8 rounded-full"
-                          />
-                          <span className="text-left flex-1">{participant.username}</span>
-                        </button>
-                      ))
-                  )}
-                  {!isLoadingUsers && participants.length === 0 && (
-                    <div className="text-center text-gray-400 py-4">
-                      No participants found
-                    </div>
-                  )}
-                  {!isLoadingUsers && searchQuery && participants.filter(p => 
-                    p.username.toLowerCase().includes(searchQuery.toLowerCase())
-                  ).length > 20 && (
-                    <div className="text-center text-gray-400 text-sm py-2">
-                      Showing first 20 results
-                    </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
               
               {/* Selected Recipients Display */}
