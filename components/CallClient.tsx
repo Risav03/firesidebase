@@ -83,23 +83,6 @@ export default function CallClient({ roomId }: CallClientProps) {
         });
 
         // Request microphone and camera permissions once at room join
-        try {
-          const context = await sdk.context;
-
-          
-            await sdk.actions.requestCameraAndMicrophoneAccess();
-            console.log(
-              "[HMS Action - CallClient] Microphone and camera permissions granted"
-            );
-          
-        } catch (permissionError) {
-          console.warn(
-            "[HMS Action - CallClient] Microphone/camera permission denied:",
-            permissionError
-          );
-          // Continue with room join even if permissions are denied
-          // User can grant permissions later when they try to unmute
-        }
 
         var token: any = "";
         if (env !== "DEV") {
