@@ -196,6 +196,12 @@ export default function CallClient({ roomId }: CallClientProps) {
         await hmsActions.join({
           userName: user.displayName || "Wanderer",
           authToken,
+          settings: {
+            isAudioMuted: true,
+            isVideoMuted: true,
+          },
+          
+          rememberDeviceSelection: true,
           metaData: JSON.stringify({
             avatar: user.pfp_url,
             role: role,
