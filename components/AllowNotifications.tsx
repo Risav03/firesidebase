@@ -1,6 +1,6 @@
 "use client";
 import { useGlobalContext } from "@/utils/providers/globalContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Drawer,
   DrawerContent,
@@ -8,10 +8,14 @@ import {
   DrawerTitle,
   DrawerDescription,
   DrawerFooter,
+  DrawerClose,
 } from "./UI/drawer";
 import { useAddFrame, useNotification } from "@coinbase/onchainkit/minikit";
 import sdk from "@farcaster/miniapp-sdk";
-import { fetchAPI } from "@/utils/serverActions";
+import { updateUserNotificationToken } from "@/utils/serverActions";
+import { IoMdNotifications } from "react-icons/io";
+import { FaBell } from "react-icons/fa";
+import { toast } from "react-toastify";
 
 export default function AllowNotifications() {
   const { user } = useGlobalContext();
@@ -23,6 +27,7 @@ export default function AllowNotifications() {
   const shouldShowDrawer = user && (!user.token || user.token === "");
   console.log("Should show drawer:", shouldShowDrawer);
   const [open, setOpen] = useState(false);
+  const [isAddingMiniApp, setIsAddingMiniApp] = useState(false);
 
   // Update open state when shouldShowDrawer changes
   useEffect(() => {
@@ -31,89 +36,106 @@ export default function AllowNotifications() {
     }
   }, [shouldShowDrawer]);
 
-  const handleAddFrame = async () => {
+  const handleAddMiniApp = useCallback(async () => {
+    setIsAddingMiniApp(true);
     try {
       var token: any;
       var result: any;
       const env = process.env.NEXT_PUBLIC_ENV;
       if (env !== "DEV" && !token) {
         token = (await sdk.quickAuth.getToken()).token;
-        result = await addFrame();
+        result = await sdk.actions.addMiniApp();
       }
 
-      const URL =
-        process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+      // Save notification token to user
+      const res = await updateUserNotificationToken(
+        result?.token || Date.now().toString(),
+        token
+      );
 
-      const res = await fetchAPI(`${URL}/api/users/protected/update`, {
-        method: "PATCH",
-        body: {
-          token: result?.token || Date.now(),
-        },
-        authToken: token,
-      });
+      if (!res.ok) {
+        throw new Error(res.data.error || "Failed to save notification details");
+      }
 
+      // Register with Farcaster notifications
       try {
+        const sendingTokens = [result?.token];
         await fetch("https://api.farcaster.xyz/v1/frame-notifications", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-
           body: JSON.stringify({
             notificationId: crypto.randomUUID(),
             title: `Notification Enabled`,
             body: `Stay tuned for updates on your favorite speakers!`,
             targetUrl: `https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/`,
-            tokens: result?.tokens || [],
+            tokens: sendingTokens,
           }),
         });
       } catch (err) {
         console.error("Error registering for Farcaster notifications:", err);
       }
 
-      await sendNotification({
-        title: "Notification Enabled",
-        body: "Stay tuned for updates on your favorite speakers!",
-      });
-
-      window.location.reload();
-    } catch (error) {
-      console.error("Error saving notification details:", error);
-    } finally {
+      // Send test notification
+      toast.success("Notifications enabled and miniapp added successfully.");
+      
       setOpen(false);
+
+    } catch (error: any) {
+      console.error("Error adding MiniApp:", error);
+      toast.error(error?.message || "Failed to enable notifications. Please try again.");
+    } finally {
+      setIsAddingMiniApp(false);
     }
-  };
+  }, [addFrame, sendNotification]);
 
   if (shouldShowDrawer)
     return (
       <Drawer open={open} onOpenChange={setOpen}>
         <DrawerContent className="bg-black">
-          <DrawerHeader className="text-center">
-            <DrawerTitle className="text-xl font-bold text-white mb-3">
+          <DrawerHeader>
+            <DrawerTitle className="text-center gradient-text text-2xl">
               Enable Notifications
             </DrawerTitle>
-            <DrawerDescription className="text-white/70">
-              Stay updated with room reminders and important updates from your
-              conversations.
+            <DrawerDescription className="text-center text-white/70">
+              Stay updated on your conversations
             </DrawerDescription>
           </DrawerHeader>
-
-          <DrawerFooter>
-            <div className="flex gap-3">
-              <button
-                onClick={handleAddFrame}
-                className="flex-1 gradient-fire text-white py-3 px-6 rounded-lg font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
-              >
-                Allow
-              </button>
-
-              <button
-                onClick={() => setOpen(false)}
-                className="flex-1 bg-white/10 text-white py-3 px-6 rounded-lg font-semibold transition-all duration-200 hover:bg-white/20 active:scale-95"
-              >
-                Cancel
-              </button>
+          <div className="p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <IoMdNotifications className="text-blue-500 text-2xl flex-shrink-0 mt-1" />
+              <div>
+                <h3 className="font-semibold text-white mb-1">Get Real-time Updates</h3>
+                <p className="text-sm text-white/70">
+                  Receive instant notifications about room reminders, when speakers join your favorite conversations, or when important events happen in your rooms.
+                </p>
+              </div>
             </div>
+            <div className="flex items-start gap-3">
+              <FaBell className="text-green-500 text-xl flex-shrink-0 mt-1" />
+              <div>
+                <h3 className="font-semibold text-white mb-1">Never Miss Out</h3>
+                <p className="text-sm text-white/70">
+                  Be the first to know about scheduled rooms going live and join conversations with your favorite speakers.
+                </p>
+              </div>
+            </div>
+          </div>
+          <DrawerFooter>
+            <button 
+              onClick={handleAddMiniApp}
+              disabled={isAddingMiniApp}
+              className="w-full px-6 py-3 gradient-fire flex gap-2 items-center justify-center text-white rounded-md transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <IoMdNotifications className="text-xl"/> 
+              {isAddingMiniApp ? "Enabling..." : "Enable Notifications"}
+            </button>
+            <DrawerClose asChild>
+              <button className="w-full px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-md transition">
+                Maybe Later
+              </button>
+            </DrawerClose>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>

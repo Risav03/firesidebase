@@ -190,24 +190,6 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
   };
 
 
-  // Refresh rooms client-side
-  const refreshRooms = async () => {
-    try {
-      setLoading(true);
-      const response = await fetchAllRooms();
-
-      if (response.data.success) {
-        setLocalRooms(response.data.data.rooms);
-        toast.success("Rooms refreshed!");
-      }
-    } catch (error) {
-      console.error("Error refreshing rooms:", error);
-      toast.error("Error refreshing rooms. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Fetch rooms when user is loaded
   useEffect(() => {
     if (!isUserLoading && user) {
