@@ -49,16 +49,10 @@ export function useEmojiReactionLogic({ user }: EmojiReactionLogicProps) {
   const handleEmojiSelect = (emoji: { emoji: string }) => {
     if (emojiTimeout) return;
 
-    console.log("[HMS Action] Sending emoji reaction", {
-      emoji: emoji.emoji,
-      sender: user?.pfp_url,
-      timestamp: new Date().toISOString(),
-    });
-
     emojiTimeout = setTimeout(() => {
       sendEmoji(emoji.emoji, user?.pfp_url);
       emojiTimeout = null;
-    }, 700);
+    }, 2000);
   };
 
   return {
