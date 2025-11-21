@@ -9,7 +9,8 @@ import { IoMdHome } from "react-icons/io";
 import { FaPlus } from "react-icons/fa";
 import { useNavigateWithLoader } from "@/utils/useNavigateWithLoader";
 import { RiAdvertisementFill } from "react-icons/ri";
-import { BiSolidVideoRecording } from "react-icons/bi";
+import { FaRecordVinyl } from "react-icons/fa";
+
 
 export default function Navigation() {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -99,7 +100,7 @@ export default function Navigation() {
                 isRecordingsPage ? "text-white" : "text-gray-300 hover:text-white"
               }`}
             >
-              <BiSolidVideoRecording className={`w-6 h-6 text-2xl ${isRecordingsPage ? "text-orange-500" : "text-white"}`} />
+              <FaRecordVinyl className={`w-6 h-6 text-2xl ${isRecordingsPage ? "text-orange-500" : "text-white"}`} />
               <span className="text-xs">Recordings</span>
             </button>
 
