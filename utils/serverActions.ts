@@ -101,6 +101,18 @@ export async function refreshUserProfile(token: string) {
 }
 
 /**
+ * Update user notification token
+ */
+export async function updateUserNotificationToken(notificationToken: string, token: string | null = null) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/users/protected/update`, {
+    method: 'PATCH',
+    body: { token: notificationToken },
+    authToken: token
+  });
+}
+
+/**
  * Fetch room recordings (for recordings page)
  */
 export async function fetchRoomRecordings(roomId: string) {

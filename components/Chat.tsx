@@ -252,7 +252,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
   return (
     <Drawer open={isOpen} onOpenChange={setIsChatOpen}>
-      <DrawerContent className="bg-black/95 backdrop-blur-lg text-white border-orange-500/30">
+      <DrawerContent className="bg-black/95 backdrop-blur-lg text-white ">
         <DrawerHeader className="border-b border-fireside-orange/30">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
