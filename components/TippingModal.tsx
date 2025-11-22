@@ -26,6 +26,7 @@ import { erc20Abi } from "@/utils/contract/abis/erc20abi";
 
 import { base, createBaseAccountSDK, getCryptoKeyAccount } from "@base-org/account";
 import sdk from '@farcaster/miniapp-sdk';
+import { checkStatus } from "@/utils/checkStatus";
 
 interface TippingModalProps {
   isOpen: boolean;
@@ -71,7 +72,7 @@ export default function TippingModal({
   const { context } = useMiniKit();
   const { address } = useAccount();
   const hmsActions = useHMSActions();
-  const { sendCalls } = useSendCalls();
+  const { sendCalls, isSuccess, status  } = useSendCalls();
 
   const splitIntoBatches = (array: any[]) => {
     const batches = [];
@@ -80,6 +81,24 @@ export default function TippingModal({
     }
     return batches;
   };
+
+  useEffect(() => {
+    // When transaction succeeds
+    if (isSuccess) {
+      
+        toast.success("Transaction successful!", );
+      
+      processSuccess();
+    }
+    // When transaction fails (status === 'error')
+    else if (status === "error") {
+      
+        toast.error("Transaction failed. Please try again.");
+      
+      setIsLoading(false);
+      console.error("Transaction failed");
+    }
+  }, [isSuccess, status]);
 
   useEffect(() => {
     if (isOpen) {
@@ -136,6 +155,23 @@ export default function TippingModal({
     }
   };
 
+  const processSuccess = async (currency: string = "ETH") => {
+    const tipAmount = selectedTip ? selectedTip : parseFloat(customTip);
+    const tipper = user?.username || "Someone";
+    const recipients = selectedUsers.length
+      ? selectedUsers.map((user) => user.username).join(", ")
+      : selectedRoles.map((role) => (role === "host" ? role : `${role}s`)).join(", ");
+    
+    await sendTipMessage(tipper, recipients, tipAmount, currency, user?.fid || "unknown");
+
+    onClose();
+    setSelectedUsers([]);
+    setSelectedRoles([]);
+    setSelectedTip(null);
+    setCustomTip("");
+    setIsLoading(false);
+  };
+
   const handleETHTip = async () => {
     const env = process.env.NEXT_PUBLIC_ENV;
     var token: any = "";
@@ -184,7 +220,7 @@ export default function TippingModal({
       
       const sendingCalls = splitArr.map((batch) => ({
         to: contractAdds.tipping as `0x${string}`,
-        value: ethValueInWei,
+        value: context?.client.clientFid !== 309857 ? ethValueInWei : numberToHex(ethValueInWei),
         data: encodeFunctionData({
           abi: firebaseTipsAbi,
           functionName: "distributeETH",
@@ -192,23 +228,50 @@ export default function TippingModal({
         }),
       }));
 
-      sendCalls({ calls: sendingCalls });
+      if (context?.client.clientFid === 309857) {
+        toast.loading("Connecting to Base SDK...");
+        
+        const provider = createBaseAccountSDK({
+          appName: "Fireside",
+          appLogoUrl: "https://firesidebase.vercel.app/app-icon2.png",
+          appChainIds: [base.constants.CHAIN_IDS.base],
+        }).getProvider();
+
+        const cryptoAccount = await getCryptoKeyAccount();
+        const fromAddress = cryptoAccount?.account?.address;
+
+        toast.loading("Submitting transaction...");
+
+        const callsId:any = await provider.request({
+          method: "wallet_sendCalls",
+          params: [
+            {
+              version: "1.0",
+              chainId: numberToHex(base.constants.CHAIN_IDS.base),
+              from: fromAddress,
+              calls: sendingCalls
+            },
+          ],
+        });
+
+        toast.loading("Transaction submitted, checking status...");
+
+        const result = await checkStatus(callsId);
+
+        if (result == true) {
+          toast.loading("Transaction confirmed!");
+          await processSuccess("ETH");
+        } else {
+          toast.error("Transaction failed or timed out");
+          setIsLoading(false);
+        }
+
+      } else {
+        // @ts-ignore
+        sendCalls({ calls: sendingCalls });
+      }
 
       toast.dismiss(loadingToast);
-      toast.success(`Successfully tipped $${selectedTip || customTip} to ${usersToSend.length} user(s)!`);
-
-      const tipper = user?.username || "Someone";
-      const recipients = selectedUsers.length
-        ? selectedUsers.map((user) => user.username).join(", ")
-        : selectedRoles.map((role) => (role === "host" ? role : `${role}s`)).join(", ");
-      
-      await sendTipMessage(tipper, recipients, selectedTip || parseFloat(customTip), "ETH", user?.fid || "unknown");
-
-      onClose();
-      setSelectedUsers([]);
-      setSelectedRoles([]);
-      setSelectedTip(null);
-      setCustomTip("");
     } catch (error) {
       console.error("Error tipping users:", error);
       toast.dismiss();
@@ -263,7 +326,7 @@ export default function TippingModal({
 
       const approveCall = {
         to: USDC_ADDRESS as `0x${string}`,
-        value: BigInt(0),
+        value: context?.client.clientFid !== 309857 ? BigInt(0) : "0x0",
         data: encodeFunctionData({
           abi: erc20Abi,
           functionName: "approve",
@@ -273,7 +336,7 @@ export default function TippingModal({
 
       const distributeCalls = splitArr.map((batch) => ({
         to: contractAdds.tipping as `0x${string}`,
-        value: BigInt(0),
+        value: context?.client.clientFid !== 309857 ? BigInt(0) : "0x0",
         data: encodeFunctionData({
           abi: firebaseTipsAbi,
           functionName: "distributeToken",
@@ -282,23 +345,53 @@ export default function TippingModal({
       }));
 
       const sendingCalls = [approveCall, ...distributeCalls];
-      sendCalls({ calls: sendingCalls });
+
+      if (context?.client.clientFid === 309857) {
+          toast.loading("Connecting to Base SDK...");
+          
+          const provider = createBaseAccountSDK({
+            appName: "Fireside",
+            appLogoUrl: "https://firesidebase.vercel.app/app-icon2.png",
+            appChainIds: [base.constants.CHAIN_IDS.base],
+          }).getProvider();
+
+          const cryptoAccount = await getCryptoKeyAccount();
+          const fromAddress = cryptoAccount?.account?.address;
+
+          toast.loading("Submitting transaction...");
+
+          const callsId:any = await provider.request({
+            method: "wallet_sendCalls",
+            params: [
+              {
+                version: "1.0",
+                chainId: numberToHex(base.constants.CHAIN_IDS.base),
+                from: fromAddress,
+                calls: sendingCalls
+              },
+            ],
+          });
+
+          toast.loading("Transaction submitted, checking status...");
+
+          const result = await checkStatus(callsId);
+
+          if (result == true) {
+            toast.loading("Transaction confirmed!");
+            await processSuccess("USDC");
+          } else {
+            toast.error("Transaction failed or timed out");
+            setIsLoading(false);
+          }
+
+        }
+        else{
+          // @ts-ignore
+          sendCalls({ calls: sendingCalls });
+
+        }
 
       toast.dismiss(loadingToast);
-      toast.success(`Successfully tipped $${selectedTip || customTip} to ${usersToSend.length} user(s)!`);
-
-      const tipper = user?.username || "Someone";
-      const recipients = selectedUsers.length
-        ? selectedUsers.map((user) => user.username).join(", ")
-        : selectedRoles.map((role) => (role === "host" ? role : `${role}s`)).join(", ");
-      
-      await sendTipMessage(tipper, recipients, selectedTip || parseFloat(customTip), "USDC", user?.fid || "unknown");
-
-      onClose();
-      setSelectedUsers([]);
-      setSelectedRoles([]);
-      setSelectedTip(null);
-      setCustomTip("");
     } catch (error) {
       console.error("Error tipping users:", error);
       toast.dismiss();
