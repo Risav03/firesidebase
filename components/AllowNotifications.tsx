@@ -51,7 +51,7 @@ export default function AllowNotifications() {
 
       if(!result.notificationDetails){
         toast.error("Notification permission failed.");
-        throw new Error("Notification permission denied. Please allow notifications to enable this feature.");
+        throw new Error("Notification permission failed.");
       }
 
       if (result.notificationDetails) {
