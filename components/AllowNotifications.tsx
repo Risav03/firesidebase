@@ -56,6 +56,7 @@ export default function AllowNotifications() {
           );
 
       if (!res.ok) {
+        toast.error(res.data.error || "Failed to save notification details");
         throw new Error(res.data.error || "Failed to save notification details");
       }
       }
