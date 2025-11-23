@@ -16,6 +16,7 @@ import { updateUserNotificationToken } from "@/utils/serverActions";
 import { IoMdNotifications } from "react-icons/io";
 import { FaBell } from "react-icons/fa";
 import { toast } from "react-toastify";
+import { AddMiniApp } from "@farcaster/miniapp-node";
 
 export default function AllowNotifications() {
   const { user } = useGlobalContext();
@@ -40,41 +41,23 @@ export default function AllowNotifications() {
     setIsAddingMiniApp(true);
     try {
       var token: any;
-      var result: any;
+
       const env = process.env.NEXT_PUBLIC_ENV;
       if (env !== "DEV" && !token) {
         token = (await sdk.quickAuth.getToken()).token;
-        result = await sdk.actions.addMiniApp();
       }
 
-      // Save notification token to user
-      const res = await updateUserNotificationToken(
-        result?.token || Date.now().toString(),
-        token
-      );
+      const result = await sdk.actions.addMiniApp();
+
+      if (result.notificationDetails) {
+        const res = await updateUserNotificationToken(
+            result?.notificationDetails.token || Date.now().toString(),
+            token
+          );
 
       if (!res.ok) {
         throw new Error(res.data.error || "Failed to save notification details");
       }
-
-      // Register with Farcaster notifications
-      try {
-        const sendingTokens = [result?.token];
-        await fetch("https://api.farcaster.xyz/v1/frame-notifications", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            notificationId: crypto.randomUUID(),
-            title: `Notification Enabled`,
-            body: `Stay tuned for updates on your favorite speakers!`,
-            targetUrl: `https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/`,
-            tokens: sendingTokens,
-          }),
-        });
-      } catch (err) {
-        console.error("Error registering for Farcaster notifications:", err);
       }
 
       // Send test notification
