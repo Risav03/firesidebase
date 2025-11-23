@@ -49,6 +49,11 @@ export default function AllowNotifications() {
 
       const result = await sdk.actions.addMiniApp();
 
+      if(!result.notificationDetails){
+        toast.error("Notification permission failed.");
+        throw new Error("Notification permission denied. Please allow notifications to enable this feature.");
+      }
+
       if (result.notificationDetails) {
         const res = await updateUserNotificationToken(
             result?.notificationDetails.token || Date.now().toString(),
@@ -59,10 +64,11 @@ export default function AllowNotifications() {
         toast.error(res.data.error || "Failed to save notification details");
         throw new Error(res.data.error || "Failed to save notification details");
       }
+      toast.success("Notifications enabled and miniapp added successfully.");
       }
 
       // Send test notification
-      toast.success("Notifications enabled and miniapp added successfully.");
+      
       
       setOpen(false);
 
