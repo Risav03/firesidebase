@@ -10,12 +10,20 @@ import { FaXTwitter } from 'react-icons/fa6';
 import { toast } from 'react-toastify';
 import sdk from '@farcaster/miniapp-sdk';
 import { fetchUserRooms, refreshUserProfile } from '@/utils/serverActions';
+import { Card } from '@/components/UI/Card';
+import Navigation from '@/components/Navigation';
+import MainHeader from '@/components/UI/MainHeader';
+import { useNavigateWithLoader } from '@/utils/useNavigateWithLoader';
 
 export default function ProfilePage() {
   const { user, setUser } = useGlobalContext();
   const router = useRouter();
+  const navigate = useNavigateWithLoader();
   const [hostedRooms, setHostedRooms] = useState<any[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const [totalAudience, setTotalAudience] = useState<number>(0);
+  const [maxAudience, setMaxAudience] = useState<any>(null);
 
   // Platform icons mapping
   const platformIcons: { [key: string]: React.ReactNode } = {
@@ -44,39 +52,20 @@ export default function ProfilePage() {
       fetchUserRooms(user.username)
         .then(response => {
           if (response.ok) {
+            console.log('Fetched hosted rooms:', response.data.data);
             setHostedRooms(response.data.data.rooms || []);
+            setTotalAudience(response.data.data.totalAudienceEngaged || 0);
+            setMaxAudience(response.data.data.maxAudienceEngaged || 0);
           }
         });
+
+      
+        
     } else {
       setHostedRooms([]);
     }
   }, [user, router]);
 
-  const handleRefreshProfile = async () => {
-    if (!user || isRefreshing) return;
-    
-    setIsRefreshing(true);
-    try {
-      var token:any ;
-      const env = process.env.NEXT_PUBLIC_ENV;
-      if (env !== "DEV" && !token) {
-        token = ((await sdk.quickAuth.getToken()).token);
-      }
-      
-      const response = await refreshUserProfile(token);
-      
-      if (response.ok) {
-        toast.success('Profile refreshed successfully!');
-        window.location.reload();
-      } else {
-        console.error('Failed to refresh profile');
-      }
-    } catch (error) {
-      console.error('Error refreshing profile:', error);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
 
   if (!user) {
     return (
@@ -91,22 +80,19 @@ export default function ProfilePage() {
 
   return (
     <>
+      <MainHeader/>
       <div className="min-h-screen">
         <div className="max-w-2xl mx-auto px-4 pt-6 pb-24">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">Profile</h1>
-            <p className="text-gray-300 text-lg">Your account information</p>
-          </div>
           
-          <div className="bg-white/10 border border-white/80 rounded-lg px-4 py-8">
+          <Card className="bg-transparent pt-16 border-0">
             {/* Profile Picture and Refresh Button */}
-            <div className="text-center mb-6 relative">
-              <div className="w-24 h-24 mx-auto mb-4">
+            <Card className="text-center p-4 relative flex items-center gap-4 justify-start">
+              <div className="flex items-center justify-center">
                 {user.pfp_url ? (
                   <img 
                     src={user.pfp_url} 
                     alt="Profile" 
-                    className="w-24 h-24 rounded-full object-cover border-4 border-white"
+                    className="w-24 h-24 rounded-full object-cover border-2 border-fireside-orange"
                   />
                 ) : (
                   <div className="w-24 h-24 rounded-full bg-gray-600 flex items-center justify-center">
@@ -116,41 +102,17 @@ export default function ProfilePage() {
                   </div>
                 )}
               </div>
-              
-              {/* Refresh button */}
-              <button 
-                onClick={handleRefreshProfile}
-                disabled={isRefreshing}
-                className="absolute top-0 right-0 flex items-center justify-center px-3 py-1 text-sm bg-orange-500 hover:bg-orange-600 text-white p-2 rounded-full transition-colors"
-                title="Refresh profile data"
-              >
-                <IoRefreshOutline className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />Refetch
-              </button>
-            </div>
-
-            {/* Profile Information */}
-            <div className="space-y-4">
-              <div className="border-b border-gray-600 pb-4">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Username
-                </label>
-                <p className="text-white text-lg font-medium">
-                  {user.username || 'Not set'}
+              <div className='flex flex-col gap-2 items-start'>
+                <p className="fire text-lg font-bold gradient-fire-text">
+                  {user.username.slice(0,20) || 'Not set'}
                 </p>
-              </div>
-
-              {/* Socials Section */}
-              {user.socials && Object.keys(user.socials).length > 0 && (
-                <div className="border-b border-gray-600 pb-4">
-                  <label className="block text-sm font-medium text-gray-300 mb-3">
-                    Social Media
-                  </label>
+                {user.socials && Object.keys(user.socials).length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {Object.entries(user.socials).map(([platform, username]) => (
                       <button
                         key={platform}
                         onClick={() => handleSocialClick(platform, String(username))}
-                        className="flex items-center space-x-2 px-3 py-2 bg-gray-700/50 hover:bg-gray-600/50 border border-gray-600 hover:border-gray-500 rounded-lg transition-all duration-200 group cursor-pointer"
+                        className="flex items-center space-x-2 px-3 py-2 bg-white text-fireside-orange rounded-lg transition-all duration-200 group cursor-pointer"
                       >
                         <div className="flex items-center justify-center">
                           {platformIcons[platform.toLowerCase()] || (
@@ -159,79 +121,105 @@ export default function ProfilePage() {
                             </span>
                           )}
                         </div>
-                        <span className="text-sm text-white font-medium group-hover:text-orange-300 transition-colors">
+                        <span className="text-sm font-medium group-hover:text-orange-300 transition-colors">
                           @{String(username)}
                         </span>
                       </button>
                     ))}
                   </div>
-                </div>
               )}
-            </div>
-
-            {/* Previous Spaces Section */}
-            {/* <div className="mt-8">
-              <h2 className="text-xl font-bold text-white mb-4">Previous Spaces</h2>
-              <div className="flex space-x-4 overflow-x-auto">
-                {hostedRooms.length === 0 ? (
-                  <div className="w-full h-32 px-10 text-nowrap bg-white/10 rounded-lg flex items-center justify-center text-gray-400">
-                    No hosted spaces yet.
-                  </div>
-                ) : (
-                  hostedRooms.map((room, idx) => (
-                    <div
-                      key={room._id || idx}
-                      className="w-60 h-32 px-4 py-2 bg-gray-700 rounded-lg flex flex-col justify-center text-white"
-                    >
-                      <div className="font-bold text-lg truncate mb-1">{room.name}</div>
-                      <div className="text-xs text-gray-300 mb-1 truncate">{room.description}</div>
-                      <div className="text-xs text-pink-400 mb-1">Tags: {room.topics?.join(', ')}</div>
-                      <div className="text-xs text-orange-400">Status: {room.status}</div>
-                    </div>
-                  ))
-                )}
               </div>
-            </div> */}
+              
+              
+              
+            </Card>
 
             {/* Statistics Section */}
             <div className="mt-8">
               <h2 className="text-xl font-bold text-white mb-4">Statistics</h2>
-              <div className="space-y-4">
-                <div className="border-b border-gray-600 pb-4">
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Total Hosted Rooms
-                  </label>
-                  <p className="text-white text-lg font-medium">{user?.hostedRooms?.length || 0} </p>
-                </div>
+              <div className="grid grid-cols-2 gap-3">
+                {/* Total Hosted Rooms Card */}
+                <Card className="bg-white rounded-xl p-4 shadow-md border-fireside-orange/50 hover:shadow-xl transition-shadow">
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <p className="text-fireside-orange/80 text-xs font-medium mb-1 text-center">
+                      Hosted Rooms
+                    </p>
+                    <p className="gradient-fire-text text-3xl font-bold">{hostedRooms?.length || 0}</p>
+                  </div>
+                </Card>
 
-                <div className="border-b border-gray-600 pb-4">
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Total Audience Engaged
-                  </label>
-                  <p className="text-white text-lg font-medium">0</p>
-                </div>
+                {/* Total Audience Engaged Card */}
+                <Card className="bg-fireside-orange rounded-xl border-white/50 p-4 shadow-lg hover:shadow-xl transition-shadow">
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <p className="text-white/80 text-xs font-medium mb-1 text-center">
+                      Audience Engaged
+                    </p>
+                    <p className="text-white text-3xl font-bold">{totalAudience}</p>
+                  </div>
+                </Card>
 
-                <div className="border-b border-gray-600 pb-4">
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Max Audience Engaged
-                  </label>
-                  <p className="text-white text-lg font-medium">0</p>
-                </div>
+                {/* Max Audience Engaged Card - Full Width */}
+                <Card className="col-span-2 rounded-xl p-4 shadow-lg hover:shadow-xl transition-shadow">
+                  <div className="flex flex-col">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-white/80 text-sm font-medium">
+                        Max Audience Engaged
+                      </p>
+                      <p className="text-white text-2xl font-bold">{maxAudience?.participantCount || 0}</p>
+                    </div>
+                    {maxAudience && (
+                      <Card className='bg-fireside-orange border-white/50 backdrop-blur-sm rounded-lg p-2'>
+                        <h2 className='gradient-fire-text text-lg font-bold mb-1 text-white'>{maxAudience?.name}</h2>
+                        <p className='text-xs text-white/70 font-semibold'>Hosted on {new Date(maxAudience?.startTime).toDateString()}</p>
+                      </Card>
+                    )}
+                  </div>
+                </Card>
 
-                <div className="border-b border-gray-600 pb-4">
-                  <label className="block text-sm font-medium text-gray-300 mb-0">
-                    Total Earnings
-                  </label>
-                  <label className="block text-xs font-medium text-gray-500 mb-2">
-                    Earnings from tips + ads
-                  </label>
-                  <p className="text-white text-lg font-medium">$0</p>
-                </div>
+                {/* <div className="col-span-2 bg-fireside-orange rounded-xl p-5 shadow-lg hover:shadow-xl transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-white/80 text-sm font-medium mb-0">
+                        Total Earnings
+                      </p>
+                      <p className="text-white/60 text-xs mb-2">
+                        Earnings from tips + ads
+                      </p>
+                    </div>
+                    <p className="text-white text-2xl font-bold">$0</p>
+                  </div>
+                </div> */}
+              </div>
+            </div>
+
+            {/* Previous Spaces Section */}
+            <div className="mt-8">
+              <h2 className="text-xl font-bold text-white mb-4">Hosted Firesides</h2>
+              <div className="flex space-x-2 overflow-x-auto ">
+                {hostedRooms.length === 0 ? (
+                  <Card className="w-full h-32 px-10 text-nowrap flex items-center justify-center text-gray-400">
+                    No hosted firesides yet.
+                  </Card>
+                ) : (
+                  hostedRooms.map((room, idx) => (
+                    <Card
+                      key={room._id || idx}
+                      onClick={() => navigate(`/recordings/${room._id}`)}
+                      className="w-[250px] relative flex-shrink-0 p-2 h-32 bg-fireside-orange/10 border-fireside-orange/20 flex flex-col justify-start text-white rounded-lg cursor-pointer hover:bg-fireside-orange/20 transition-colors"
+                    >
+                      <div className="font-bold text-lg mb-1">{room.name}</div>
+                      <div className="text-xs text-gray-300 mb-1 truncate">{room.description.slice(0, 150)}</div>
+                      <div className="text-xs text-fireside-orange mb-1">Tags: {room.topics?.join(', ')}</div>
+                      <div className="absolute bottom-2 left-2 text-[0.6rem] text-fireside-orange px-2 py-1 font-bold rounded-full bg-white text mb-1">{room.participantCount} attended</div>
+                      <div className="absolute bottom-2 right-2 text-[0.6rem] bg-fireside-orange px-2 py-1 font-bold rounded-full text-white mb-1">{new Date(room.startTime).toDateString()}</div>
+                    </Card>
+                  ))
+                )}
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="mt-8 pt-6 ">
+            <div className="pt-6 ">
               <div className="w-full">
                 {/* <button
                   onClick={() => router.push('/')}
@@ -252,7 +240,7 @@ export default function ProfilePage() {
                 </button>
               </div>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
       <NavigationWrapper />

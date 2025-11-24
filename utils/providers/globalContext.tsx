@@ -11,7 +11,7 @@ import React, {
   useCallback,
 } from "react";
 import { generateNonce } from "@farcaster/auth-client";
-import { useAddFrame, useNotification } from "@coinbase/onchainkit/minikit";
+import { useAddFrame, useMiniKit, useNotification } from "@coinbase/onchainkit/minikit";
 import { fetchAPI } from "@/utils/serverActions";
 
 interface GlobalContextProps {
@@ -29,6 +29,8 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [isUserLoading, setIsUserLoading] = useState<boolean>(true);
   const [isPopupOpen, setIsPopupOpen] = useState<boolean>(false);
+
+  const {context} = useMiniKit()
 
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
@@ -72,7 +74,12 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
         console.error("Failed to create user:", createUserRes.data);
       }
 
-      const localUser = createUserRes.data.data.user;
+      var localUser = createUserRes.data.data.user;
+      if(context){
+localUser.pfp_url = context?.user.pfpUrl;
+      localUser.username = context?.user.username;
+      }
+      
       setUser(localUser);
 
       if (!localUser?.token || localUser?.token === "") {
