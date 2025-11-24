@@ -52,7 +52,7 @@ export default function ProfilePage() {
       fetchUserRooms(user.username)
         .then(response => {
           if (response.ok) {
-            console.log('Fetched hosted rooms:', response.data.data);
+            // console.log('Fetched hosted rooms:', response.data.data);
             setHostedRooms(response.data.data.rooms || []);
             setTotalAudience(response.data.data.totalAudienceEngaged || 0);
             setMaxAudience(response.data.data.maxAudienceEngaged || 0);
@@ -168,7 +168,7 @@ export default function ProfilePage() {
                       <p className="text-white text-2xl font-bold">{maxAudience?.participantCount || 0}</p>
                     </div>
                     {maxAudience && (
-                      <Card className='bg-fireside-orange border-white/50 backdrop-blur-sm rounded-lg p-2'>
+                      <Card onClick={()=>{navigate(`/recordings/${maxAudience.roomId}`)}} className='bg-fireside-orange border-white/50 backdrop-blur-sm rounded-lg p-2'>
                         <h2 className='gradient-fire-text text-lg font-bold mb-1 text-white'>{maxAudience?.name}</h2>
                         <p className='text-xs text-white/70 font-semibold'>Hosted on {new Date(maxAudience?.startTime).toDateString()}</p>
                       </Card>
@@ -204,7 +204,7 @@ export default function ProfilePage() {
                   hostedRooms.map((room, idx) => (
                     <Card
                       key={room._id || idx}
-                      onClick={() => navigate(`/recordings/${room._id}`)}
+                      onClick={() => navigate(`/recordings/${room.roomId}`)}
                       className="w-[250px] relative flex-shrink-0 p-2 h-32 bg-fireside-orange/10 border-fireside-orange/20 flex flex-col justify-start text-white rounded-lg cursor-pointer hover:bg-fireside-orange/20 transition-colors"
                     >
                       <div className="font-bold text-lg mb-1">{room.name}</div>
