@@ -52,7 +52,7 @@ export function useEmojiReactionLogic({ user }: EmojiReactionLogicProps) {
     emojiTimeout = setTimeout(() => {
       sendEmoji(emoji.emoji, user?.pfp_url);
       emojiTimeout = null;
-    }, 2000);
+    }, 5000);
   };
 
   return {
