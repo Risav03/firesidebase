@@ -66,7 +66,7 @@ export default function AdsOverlay({ roomId }: { roomId: string }) {
   };
 
   // Handle ads control events
-  const { notifyAdsControl } = useAdsControlEvent((msg) => {
+  useAdsControlEvent((msg) => {
     if (msg.roomId === roomId && adsEnabled) {
       tick(); // Trigger tick when ads control event is received
     }

@@ -22,6 +22,7 @@ import {
   addParticipantToRoom,
   removeParticipantFromRoom,
 } from "@/utils/serverActions";
+import { isAdsTester } from "@/utils/constants";
 
 interface RoomCode {
   id: string;
@@ -48,6 +49,7 @@ export default function CallClient({ roomId }: CallClientProps) {
 
   const [isJoining, setIsJoining] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const showAdsFeature = isAdsTester(user?.fid);
 
   useEffect(() => {
     // Request wake lock to keep screen active
@@ -364,7 +366,7 @@ export default function CallClient({ roomId }: CallClientProps) {
     <div className="min-h-screen">
       <RoleChangeHandler />
       <Header roomId={roomId} />
-      {/* <AdsOverlay roomId={roomId} /> */}
+      {showAdsFeature && <AdsOverlay roomId={roomId} />}
       <Conference roomId={roomId} />
       <Footer roomId={roomId} />
     </div>
