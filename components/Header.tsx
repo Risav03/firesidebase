@@ -75,13 +75,25 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
     return () => clearInterval(id);
   }, [canControlAds, refreshAdsState]);
 
+  const buildAuthHeaders = async () => {
+    const env = process.env.NEXT_PUBLIC_ENV;
+    if (env === 'DEV') {
+      return { Authorization: 'Bearer dev' } as HeadersInit;
+    }
+    const tokenResponse = await sdk.quickAuth.getToken();
+    if (!tokenResponse?.token) {
+      throw new Error('Missing auth token');
+    }
+    return {
+      Authorization: `Bearer ${tokenResponse.token}`,
+    } as HeadersInit;
+  };
+
   const handleToggleAds = async () => {
-    if (!roomId || !user?.fid) return;
+    if (!roomId || !user) return;
     try {
       setIsTogglingAds(true);
-      const headers = {
-        'x-user-fid': String(user.fid),
-      };
+      const headers = await buildAuthHeaders();
       if (!adsRunning) {
         const res = await fetch(`/api/ads/controls/start/${roomId}`, {
           method: 'POST',

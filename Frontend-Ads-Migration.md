@@ -13,7 +13,7 @@ This document explains how to remove legacy sponsorship UX and integrate the new
 2) Wallet payment
 - Process payment in the wallet; obtain `txHash` from success.
 3) Create advertisement
-- POST `/api/ads/protected/create` with `{ title, imageUrl, rooms, minutes, txHash }` and header `x-user-fid`.
+- POST `/api/ads/protected/create` with `{ title, imageUrl, rooms, minutes, txHash }` and auth header `Authorization: Bearer <quick-auth token>`.
 - On success, show confirmation.
 
 ## Host flow (single press)

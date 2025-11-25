@@ -8,9 +8,9 @@ export async function POST(req: NextRequest, { params }: { params: { roomId: str
     return NextResponse.json({ error: 'NEXT_PUBLIC_URL not set' }, { status: 500 });
   }
 
-  const fid = req.headers.get('x-user-fid');
-  if (!fid) {
-    return NextResponse.json({ error: 'Missing x-user-fid header' }, { status: 401 });
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader) {
+    return NextResponse.json({ error: 'Missing Authorization header' }, { status: 401 });
   }
 
   const webhookUrl = `${baseUrl}/api/webhooks/ads`;
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest, { params }: { params: { roomId: str
       method: 'POST',
       body: { webhookUrl },
       headers: {
-        'x-user-fid': fid,
+        Authorization: authHeader,
       },
     });
     return NextResponse.json(res.data, { status: res.status });

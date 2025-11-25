@@ -14,6 +14,7 @@ import Background from '@/components/UI/Background';
 import NavigationWrapper from '@/components/NavigationWrapper';
 import AdsPurchaseForm from '@/components/AdsPurchaseForm';
 import { isAdsTester } from '@/utils/constants';
+import sdk from "@farcaster/miniapp-sdk";
 
 export default function PurchaseAdPage() {
   const { user } = useGlobalContext();
@@ -41,10 +42,17 @@ export default function PurchaseAdPage() {
     console.log('User FID:', user.fid);
     
     try {
+      const env = process.env.NEXT_PUBLIC_ENV;
+      let authHeader = 'Bearer dev';
+      if (env !== 'DEV') {
+        const tokenResponse = await sdk.quickAuth.getToken();
+        authHeader = `Bearer ${tokenResponse.token}`;
+      }
+
       const res = await fetch(`${backend}/api/ads/protected/create`, {
         method: 'POST',
         headers: {
-          'x-user-fid': String(user.fid),
+          Authorization: authHeader,
         },
         body: formData,
       });

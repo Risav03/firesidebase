@@ -3,16 +3,16 @@ import { fetchAPI } from '@/utils/serverActions';
 
 export async function POST(req: NextRequest, { params }: { params: { roomId: string } }) {
   const backend = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-  const fid = req.headers.get('x-user-fid');
-  if (!fid) {
-    return NextResponse.json({ error: 'Missing x-user-fid header' }, { status: 401 });
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader) {
+    return NextResponse.json({ error: 'Missing Authorization header' }, { status: 401 });
   }
 
   try {
     const res = await fetchAPI(`${backend}/api/ads/protected/rooms/${params.roomId}/stop`, {
       method: 'POST',
       headers: {
-        'x-user-fid': fid,
+        Authorization: authHeader,
       },
     });
     return NextResponse.json(res.data, { status: res.status });

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useGlobalContext } from '@/utils/providers/globalContext';
+import sdk from "@farcaster/miniapp-sdk";
 
 export default function AdsPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { user } = useGlobalContext();
@@ -36,11 +37,17 @@ export default function AdsPurchaseModal({ isOpen, onClose }: { isOpen: boolean;
     setLoading(true);
     try {
       const backend = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      const env = process.env.NEXT_PUBLIC_ENV;
+      let authHeader = 'Bearer dev';
+      if (env !== 'DEV') {
+        const tokenResponse = await sdk.quickAuth.getToken();
+        authHeader = `Bearer ${tokenResponse.token}`;
+      }
       const res = await fetch(`${backend}/api/ads/protected/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-fid': String(user.fid),
+          'Authorization': authHeader,
         },
         body: JSON.stringify({
           title,

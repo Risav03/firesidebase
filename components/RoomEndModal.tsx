@@ -92,8 +92,11 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
     const env = process.env.NEXT_PUBLIC_ENV;
         
     var token: any = "";
+    let authHeader = 'Bearer dev';
     if (env !== "DEV") {
-      token = (await sdk.quickAuth.getToken()).token;
+      const tokenResponse = await sdk.quickAuth.getToken();
+      token = tokenResponse.token;
+      authHeader = `Bearer ${tokenResponse.token}`;
     };
     
     try {
@@ -108,14 +111,12 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
         throw new Error(response.data.error || 'Failed to end room');
       }
       try {
-        if (user?.fid) {
-          await fetch(`/api/ads/controls/room-ended/${roomId}`, {
-            method: 'POST',
-            headers: {
-              'x-user-fid': String(user.fid),
-            },
-          });
-        }
+        await fetch(`/api/ads/controls/room-ended/${roomId}`, {
+          method: 'POST',
+          headers: {
+            Authorization: authHeader,
+          },
+        });
       } catch (e) {
         console.warn('Failed to notify ads room-ended', e);
       }
