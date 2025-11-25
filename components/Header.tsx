@@ -8,7 +8,7 @@ import {
   useHMSStore,
   selectLocalPeer,
 } from "@100mslive/react-sdk";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import RoomEndModal from './RoomEndModal';
 import { TbShare3 } from "react-icons/tb";
 import { MdCopyAll, MdOutlineIosShare } from "react-icons/md";
@@ -16,6 +16,8 @@ import { FaXTwitter } from "react-icons/fa6";
 import { sdk } from "@farcaster/miniapp-sdk";
 import { toast } from "react-toastify";
 import { useAdsControlEvent } from '../utils/events';
+import { useGlobalContext } from '@/utils/providers/globalContext';
+import { isAdsTester } from '@/utils/constants';
 
 interface HeaderProps {
   onToggleChat?: () => void;
@@ -36,6 +38,7 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
   const [isTogglingAds, setIsTogglingAds] = useState(false);
   const [adsRunning, setAdsRunning] = useState<boolean>(false);
+  const { user } = useGlobalContext();
 
   // Ads control event hook
   const { notifyAdsControl } = useAdsControlEvent();
@@ -44,61 +47,70 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
   const isHostOrCoHost = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
   const isHost = localPeer?.roleName === 'host';
 
-  // const refreshAdsState = async () => {
-  //   if (!roomId) return;
-  //   try {
-  //     const res = await fetch(`/api/ads/sessions/${roomId}`);
-  //     if (!res.ok) return;
-  //     const data = await res.json();
-  //     const state = data?.state || data?.data?.state;
-  //     setAdsRunning(state === 'running');
-  //   } catch {}
-  // };
+  const canControlAds = Boolean(roomId && isHost && user?.fid && isAdsTester(user?.fid));
 
-  // Initialize state
-  // useEffect(() => {
-  //   refreshAdsState();
-  // }, [roomId]);
+  const refreshAdsState = useCallback(async () => {
+    if (!roomId || !canControlAds) return;
+    try {
+      const res = await fetch(`/api/ads/sessions/${roomId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const state = data?.state || data?.data?.state;
+      setAdsRunning(state === 'running');
+    } catch (error) {
+      console.error('Failed to refresh ads state', error);
+    }
+  }, [roomId, canControlAds]);
 
-  // Poll for session state to keep the button label consistent
-  // useEffect(() => {
-  //   if (!roomId) return;
-  //   const id = setInterval(refreshAdsState, 2000);
-  //   return () => clearInterval(id);
-  // }, [roomId]);
+  useEffect(() => {
+    if (!canControlAds) return;
+    refreshAdsState();
+  }, [canControlAds, refreshAdsState]);
 
-  // const handleToggleAds = async () => {
-  //   if (!roomId) return;
-  //   try {
-  //     setIsTogglingAds(true);
-  //     if (!adsRunning) {
-  //       // Start ads and assume running; rely on webhooks to stop if idle/no-inventory
-  //       const res = await fetch(`/api/ads/controls/start/${roomId}`, { method: 'POST' });
-  //       if (!res.ok) throw new Error('Failed to start ads');
-  //       setAdsRunning(true);
-  //       toast.success('Ads session started');
-  //       // Notify all peers about ads start
-  //       notifyAdsControl('start', roomId);
-  //       // Re-check shortly to revert the label if backend immediately idles/stops
-  //       setTimeout(() => {
-  //         refreshAdsState();
-  //       }, 1500);
-  //     } else {
-  //       // Stop ads
-  //       const res = await fetch(`/api/ads/controls/stop/${roomId}`, { method: 'POST' });
-  //       if (!res.ok) throw new Error('Failed to stop ads');
-  //       setAdsRunning(false);
-  //       toast.success('Ads session stopped');
-  //       // Notify all peers about ads stop
-  //       notifyAdsControl('stop', roomId);
-  //     }
-  //   } catch (e) {
-  //     console.error(e);
-  //     toast.error('Could not toggle ads');
-  //   } finally {
-  //     setIsTogglingAds(false);
-  //   }
-  // };
+  useEffect(() => {
+    if (!canControlAds) return;
+    const id = setInterval(() => {
+      refreshAdsState();
+    }, 2000);
+    return () => clearInterval(id);
+  }, [canControlAds, refreshAdsState]);
+
+  const handleToggleAds = async () => {
+    if (!roomId || !user?.fid) return;
+    try {
+      setIsTogglingAds(true);
+      const headers = {
+        'x-user-fid': String(user.fid),
+      };
+      if (!adsRunning) {
+        const res = await fetch(`/api/ads/controls/start/${roomId}`, {
+          method: 'POST',
+          headers,
+        });
+        if (!res.ok) throw new Error('Failed to start ads');
+        setAdsRunning(true);
+        toast.success('Ads session started');
+        notifyAdsControl('start', roomId);
+        setTimeout(() => {
+          refreshAdsState();
+        }, 1500);
+      } else {
+        const res = await fetch(`/api/ads/controls/stop/${roomId}`, {
+          method: 'POST',
+          headers,
+        });
+        if (!res.ok) throw new Error('Failed to stop ads');
+        setAdsRunning(false);
+        toast.success('Ads session stopped');
+        notifyAdsControl('stop', roomId);
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error('Could not toggle ads');
+    } finally {
+      setIsTogglingAds(false);
+    }
+  };
 
   const handleLeaveClick = () => {
     if (isHost) {
@@ -147,7 +159,7 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
           </div>
           {isConnected && (
             <div className="flex items-center space-x-3">
-              {/* {roomId && isHost && (
+              {canControlAds && (
                 <button
                   onClick={handleToggleAds}
                   disabled={isTogglingAds}
@@ -156,7 +168,7 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
                 >
                   {isTogglingAds ? (adsRunning ? 'Stopping…' : 'Starting…') : (adsRunning ? 'Stop Ads' : 'Display Ads')}
                 </button>
-              )} */}
+              )}
               {roomId && (
                 <button
                   onClick={() => setIsShareMenuOpen((prev) => !prev)}

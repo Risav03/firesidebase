@@ -38,9 +38,8 @@ export function isDuplicateIdempotency(key?: string) {
   return false;
 }
 
-export function setSessionRunning(roomId: string, sessionId: string, startedAt: string) {
-  const prev = roomIdToState.get(roomId) || { state: 'stopped' as RoomSessionState };
-  roomIdToState.set(roomId, { ...prev, state: 'running' });
+export function setSessionRunning(roomId: string, _sessionId: string, _startedAt: string) {
+  roomIdToState.set(roomId, { state: 'running' });
 }
 
 export function setCurrentAd(roomId: string, current: AdCurrent) {
