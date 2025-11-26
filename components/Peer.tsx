@@ -48,16 +48,16 @@ export default function Peer({ peer }: PeerProps) {
 
   return (
     <Card className={`relative flex flex-col items-center group p-2 ${
-              peer.roleName === 'host' ? 'bg-fireside-red/10 border-fireside-red/50 text-white' :
-              peer.roleName === 'co-host' ? 'bg-fireside-orange/10 ring-fireside-orange/50 text-white' :
-              peer.roleName === 'speaker' ? 'bg-fireside-blue/10 ring-fireside-blue/50 text-white' :
-              'bg-gray-500/10 ring-gray-500/50 text-white'
-            } ${showSpeakingRing ? 'border-2' : 'border-0'} `}>
+              peer.roleName === 'host' ? 'bg-fireside-red/10 ring-fireside-red text-white' :
+              peer.roleName === 'co-host' ? 'bg-fireside-orange/10 ring-fireside-orange text-white' :
+              peer.roleName === 'speaker' ? 'bg-fireside-blue/10 ring-fireside-blue text-white' :
+              'bg-gray-500/10 ring-gray-500 text-white'
+            } ${showSpeakingRing ? 'ring-[1px]' : 'ring-0'} `}>
       <div className="relative">
         {/* Speaking indicator ring */}
-        {showSpeakingRing && (
+        {/* {showSpeakingRing && (
           <div className={`absolute -inset-2 rounded-full border-4 border-fireside-orange speaking-ring ${!isSpeaking ? 'fade-out' : ''}`}></div>
-        )}
+        )} */}
         
         <div className={` border-2 ${peer.isLocal ? "border-fireside-orange" : "border-white"} shadow-lg shadow-black/50 rounded-full relative`}>
           {/* Avatar with first letter of name */}
