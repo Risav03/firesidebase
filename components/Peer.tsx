@@ -48,7 +48,7 @@ export default function Peer({ peer }: PeerProps) {
 
   return (
     <Card
-      className={`relative w-[4.5rem] h-[5.5rem] flex flex-col transition-all duration-200 ease-in-out items-center justify-center group object-contain overflow-hidden ${
+      className={`relative w-full aspect-[3/3.5] flex flex-col transition-all duration-200 ease-in-out items-center justify-center group object-contain overflow-hidden ${
         peer.roleName === "host"
           ? "bg-fireside-red/10 ring-fireside-red shadow-fireside-red/30 text-white"
           : peer.roleName === "co-host"
@@ -85,7 +85,7 @@ export default function Peer({ peer }: PeerProps) {
         </div>
       </div> */}
 
-      {!isPeerAudioEnabled && peer.roleName !== "listener" && (<div className="absolute z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-gray-400/50 rounded-full flex items-center justify-center ">
+      {!isPeerAudioEnabled && peer.roleName !== "listener" && (<div className="absolute z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-gray-300/30 rounded-full flex items-center justify-center ">
         <MicOffIcon className="w-6 h-6 text-white" />
       </div>)}
 
@@ -98,7 +98,7 @@ export default function Peer({ peer }: PeerProps) {
       <div
         className={`mt-1 text-center absolute pb-3 bottom-0 bg-gradient-to-b from-transparent via-black/50 to-black/90 z-50 w-full `}
       >
-        <p className="text-[0.8rem] font-medium text-white truncate max-w-20 translate-y-2">
+        <p className="text-[0.8rem] font-bold text-white truncate max-w-full translate-y-2 text-center px-1 ">
           {peer.name}
         </p>
       </div>

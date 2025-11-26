@@ -19,6 +19,7 @@ interface EmojiReactionLogicProps {
 export function useEmojiReactionLogic({ user }: EmojiReactionLogicProps) {
   const hmsActions = useHMSActions();
   const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
+  const [isDisabled, setIsDisabled] = useState(false);
   
   const { sendEmoji } = useEmojiReactionEvent((msg: { emoji: string; sender: string }) => {
     console.log("[HMS Event] Emoji reaction received", {
@@ -44,19 +45,20 @@ export function useEmojiReactionLogic({ user }: EmojiReactionLogicProps) {
     hmsActions.ignoreMessageTypes(['EMOJI_REACTION']);
   }, [hmsActions]);
 
-  let emojiTimeout: NodeJS.Timeout | null = null;
-
   const handleEmojiSelect = (emoji: { emoji: string }) => {
-    if (emojiTimeout) return;
+    if (isDisabled) return;
 
-    emojiTimeout = setTimeout(() => {
-      sendEmoji(emoji.emoji, user?.pfp_url);
-      emojiTimeout = null;
-    }, 5000);
+    sendEmoji(emoji.emoji, user?.pfp_url);
+    setIsDisabled(true);
+    
+    setTimeout(() => {
+      setIsDisabled(false);
+    }, 1500);
   };
 
   return {
     floatingEmojis,
-    handleEmojiSelect
+    handleEmojiSelect,
+    isDisabled
   };
 }

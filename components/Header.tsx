@@ -210,16 +210,16 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
       </header>
 
       {/* Share Menu Overlay */}
-      <div onClick={() => setIsShareMenuOpen(false)} className={`fixed top-0 left-0 h-screen w-screen bg-black/30 duration-200 z-50 ${isShareMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
+      <div onClick={() => setIsShareMenuOpen(false)} className={`fixed top-0 left-0 h-screen w-screen bg-black/30 duration-200 z-[1000] ${isShareMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
         {isShareMenuOpen && (
-          <div className="absolute right-4 top-16 border border-white/10 mb-2 w-40 bg-gray-800 text-white rounded-lg shadow-lg">
+          <div className="absolute right-4 top-16 border border-white/10 mb-2 w-40 bg-gray-800 text-white rounded-lg ">
             <Button
               variant="ghost"
               onClick={() => {
                 setIsShareMenuOpen(false);
                 composeCast();
               }}
-              className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center space-x-2 rounded-none rounded-t-lg"
+              className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center space-x-2 rounded-none rounded-t-lg shadow-none"
             >
               <MdOutlineIosShare className="w-5 h-5" />
               <span>Share on App</span>
@@ -230,7 +230,7 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
                 setIsShareMenuOpen(false);
                 handleShareOnTwitter();
               }}
-              className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center space-x-2 rounded-none"
+              className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center space-x-2 rounded-none shadow-none"
             >
               <FaXTwitter className="w-5 h-5" />
               <span>Share on X</span>
@@ -241,7 +241,7 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
                 setIsShareMenuOpen(false);
                 handleCopyURL();
               }}
-              className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center space-x-2 rounded-none rounded-b-lg"
+              className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center space-x-2 rounded-none rounded-b-lg shadow-none"
             >
               <MdCopyAll className="w-5 h-5" />
               <span>Copy URL</span>

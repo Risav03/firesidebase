@@ -58,7 +58,7 @@ export default function Footer({ roomId }: { roomId: string }) {
     localPeerId
   });
 
-  const { floatingEmojis, handleEmojiSelect } = useEmojiReactionLogic({ user });
+  const { floatingEmojis, handleEmojiSelect, isDisabled: isEmojiDisabled } = useEmojiReactionLogic({ user });
 
   useHMSNotificationLogger(localPeer, isLocalAudioEnabled);
 
@@ -110,6 +110,8 @@ export default function Footer({ roomId }: { roomId: string }) {
         <EmojiPickerDrawer 
           isOpen={isEmojiPickerOpen}
           onEmojiSelect={handleEmojiSelect}
+          onClose={() => setIsEmojiPickerOpen(false)}
+          isDisabled={isEmojiDisabled}
         />
 
         <FloatingEmojis emojis={floatingEmojis} />
