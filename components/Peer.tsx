@@ -48,14 +48,14 @@ export default function Peer({ peer }: PeerProps) {
 
   return (
     <Card
-      className={`relative w-full aspect-[3/3.5] flex flex-col transition-all duration-200 ease-in-out items-center justify-center group object-contain overflow-hidden ${
+      className={`relative w-full aspect-[3/3.5] flex flex-col transition-all border-t-0 border-l-0 border-b-[5px] duration-200 ease-in-out items-center justify-center group object-contain overflow-hidden ${
         peer.roleName === "host"
-          ? "bg-fireside-red/10 ring-fireside-red shadow-fireside-red/30 text-white"
+          ? "bg-fireside-red/10 ring-fireside-red border-fireside-red shadow-fireside-red/30 text-white"
           : peer.roleName === "co-host"
-          ? "bg-fireside-orange/10 ring-fireside-orange shadow-fireside-orange/30 text-white"
+          ? "bg-fireside-orange/10 ring-fireside-orange border-fireside-orange shadow-fireside-orange/30 text-white"
           : peer.roleName === "speaker"
-          ? "bg-fireside-blue/10 ring-fireside-blue shadow-fireside-blue/30 text-white"
-          : "bg-gray-500/10 ring-gray-500 shadow-gray-500/30 text-white"
+          ? "bg-fireside-blue/10 ring-fireside-blue border-fireside-blue shadow-fireside-blue/30 text-white"
+          : "bg-gray-500/10 ring-gray-500 border-gray-500 shadow-gray-500/30 text-white"
       } ${showSpeakingRing ? "ring-2 shadow-lg" : "ring-0 shadow-none"} `}
     >
       {peer.metadata && (
@@ -65,32 +65,14 @@ export default function Peer({ peer }: PeerProps) {
           className={`w-full h-full object-cover transition-all duration-300 ease-in-out ${!isPeerAudioEnabled && peer.roleName !== "listener" ? "opacity-30" : ""}`}
         />
       )}
-      {/* <div className="relative">
-        
-        <div className={` shadow-lg shadow-black/50 rounded-full relative`}>
-          
-          
-          {!isPeerAudioEnabled && peer.roleName !== "listener" && (
-            <div className="absolute -top-1 -right-1 w-6 h-6 bg-fireside-red rounded-full flex items-center justify-center border-2 border-white">
-              <MicOffIcon className="w-3 h-3 text-white" />
-            </div>
-          )}
-          
-  
-          {isHandRaised && (
-            <div className="absolute -top-1 -left-1 w-6 h-6 z-50 bg-fireside-orange rounded-full flex items-center justify-center border-2 border-white">
-              <span className="text-white text-xs">✋</span>
-            </div>
-          )}
-        </div>
-      </div> */}
+      
 
       {!isPeerAudioEnabled && peer.roleName !== "listener" && (<div className="absolute z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-gray-300/30 rounded-full flex items-center justify-center ">
         <MicOffIcon className="w-6 h-6 text-white" />
       </div>)}
 
       {isHandRaised && (
-            <div className="absolute z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11  rounded-full flex items-center justify-center bg-fireside-orange border-2 border-white">
+            <div className="absolute z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11  rounded-full flex items-center justify-center bg-fireside-orange border-[1px] border-white">
               <span className="text-white text-sm">✋</span>
             </div>
           )}
