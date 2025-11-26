@@ -235,12 +235,12 @@ export default function DateTimePicker({
         className={twMerge(
           'block text-sm font-medium mb-2',
           disabled && 'text-disabled',
-          showError && 'text-red-500',
+          showError && 'text-fireside-red',
           !showError && 'text-gray-300'
         )}
       >
         {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
+        {required && <span className="text-fireside-red ml-1">*</span>}
       </label>
 
       {/* Input Field */}
@@ -263,7 +263,7 @@ export default function DateTimePicker({
           className={twMerge(
             'w-full px-4 py-3 pr-12 rounded-lg border-[1px] bg-transparent transition-all duration-200 cursor-pointer text-foreground',
             disabled && 'border-disabled cursor-not-allowed opacity-60',
-            !disabled && (isFocused || hasValue) && showError && 'border-red-500 outline-red-500',
+            !disabled && (isFocused || hasValue) && showError && 'border-fireside-red outline-fireside-red',
             !disabled && (isFocused || hasValue) && !showError && 'border-fireside-orange outline-fireside-orange',
             !disabled && !(isFocused || hasValue) && 'border-gray-300 hover:border-gray-400',
             isFocused && 'outline-1 outline-offset-1'
@@ -407,7 +407,7 @@ export default function DateTimePicker({
 
       {/* Error Message */}
       {showError && (
-        <p className="text-red-500 text-sm mt-1 ml-1">
+        <p className="text-fireside-red text-sm mt-1 ml-1">
           {label} is required
         </p>
       )}

@@ -10,6 +10,8 @@ import UserDisplay from "./UserDisplay";
 import SearchBar from "./UI/SearchBar";
 import TopicSelector from "./TopicSelector";
 import CreateRoomModal from "./CreateRoomModal";
+import { Card } from "@/components/UI/Card";
+import Button from "@/components/UI/Button";
 import sdk from "@farcaster/miniapp-sdk";
 import { useRouter } from "next/navigation";
 import { 
@@ -263,7 +265,7 @@ export default function Explore({ rooms }: ExploreProps) {
                           ))}
                         </div>
                       </div>
-                      <div className="w-[15%] aspect-square rounded bg-gradient-to-br from-orange-500/50 to-red-500/50 animate-pulse"></div>
+                      <div className="w-[15%] aspect-square rounded bg-gradient-to-br from-orange-500/50 to-fireside-red/50 animate-pulse"></div>
                     </div>
                   ))}
                 </div>
@@ -285,16 +287,15 @@ export default function Explore({ rooms }: ExploreProps) {
             {/* Tabs for topics */}
             <div className="flex gap-2 mb-6 overflow-x-scroll hide-scrollbar">
               {user.topics.map((topic: string, idx: number) => (
-                <button
+                <Button
                   key={topic}
-                  className={`px-4 leading-none text-nowrap py-2 rounded-lg font-semibold transition-colors text-white ${selectedTab === idx
-                    ? "gradient-fire font-bold border-white border-2"
-                    : "bg-white/10 border-transparent"
-                    }`}
+                  variant="action"
+                  active={selectedTab === idx}
                   onClick={() => setSelectedTab(idx)}
+                  className="text-nowrap"
                 >
                   {topic}
-                </button>
+                </Button>
               ))}
             </div>
             {/* Tab content for selected topic */}
@@ -319,9 +320,10 @@ export default function Explore({ rooms }: ExploreProps) {
                       </h4>
                       <div className="space-y-4">
                         {ongoingRooms.map((room) => (
-                          <div
+                          <Card
                             key={room._id}
-                            className="border border-orange-500 rounded-lg p-4 bg-white/5 backdrop-blur-sm flex items-center justify-between cursor-pointer hover:bg-orange-900/20 transition-colors"
+                            variant="orange"
+                            className="p-4 flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
                             onClick={() =>
                               (window.location.href = `/call/${room._id}`)
                             }
@@ -351,7 +353,7 @@ export default function Explore({ rooms }: ExploreProps) {
                             <span className="bg-orange-600 text-white px-4 py-2 rounded font-bold">
                               Live
                             </span>
-                          </div>
+                          </Card>
                         ))}
                       </div>
                     </div>
@@ -364,9 +366,10 @@ export default function Explore({ rooms }: ExploreProps) {
                       </h4>
                       <div className="space-y-4">
                         {endedRooms.map((room) => (
-                          <div
+                          <Card
                             key={room._id}
-                            className="border border-white/20 rounded-lg p-4 bg-white/5 backdrop-blur-sm flex items-center justify-between"
+                            variant="ghost"
+                            className="p-4 flex items-center justify-between"
                           >
                             <div className="w-[85%]">
                               <h4 className="text-lg font-bold text-white">
@@ -390,10 +393,14 @@ export default function Explore({ rooms }: ExploreProps) {
                                 ))}
                               </div>
                             </div>
-                            <button onClick={() => { handlePlayRecording(room.roomId) }} className=" text-white w-[15%] aspect-square gradient-fire rounded flex items-center justify-center font-bold">
+                            <Button 
+                              variant="default"
+                              onClick={() => { handlePlayRecording(room.roomId) }} 
+                              className="w-[15%] aspect-square rounded flex items-center justify-center p-0"
+                            >
                               <FaPlay className="" />
-                            </button>
-                          </div>
+                            </Button>
+                          </Card>
                         ))}
                       </div>
                     </div>
@@ -407,12 +414,12 @@ export default function Explore({ rooms }: ExploreProps) {
                   )}
                   {/* Button to create room for this topic if no rooms exist */}
                   {ongoingRooms.length === 0 && endedRooms.length === 0 && (
-                    <button
-                      className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-md font-semibold"
+                    <Button
+                      variant="default"
                       onClick={() => setShowCreateModal(true)}
                     >
                       Create Room
-                    </button>
+                    </Button>
                   )}
                 </div>
               );

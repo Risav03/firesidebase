@@ -6,6 +6,8 @@ import { FaArrowLeft, FaPlay, FaPause, FaVolumeUp, FaVolumeMute } from 'react-ic
 import { toast } from 'react-toastify';
 import Image from 'next/image';
 import { fetchRoomRecordings } from '@/utils/serverActions';
+import { Card } from '@/components/UI/Card';
+import Button from '@/components/UI/Button';
 
 interface RecordingResponse {
   success: boolean;
@@ -164,13 +166,14 @@ export default function RecordingsPage() {
             <div className="text-6xl mb-4">📹</div>
             <h1 className="text-2xl font-bold mb-2 text-white">No Recordings Found</h1>
             <p className="text-white/60 mb-6">{error}</p>
-            <button
+            <Button
+              variant="default"
               onClick={handleBack}
-              className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 mx-auto"
+              className="flex items-center gap-2 mx-auto"
             >
               <FaArrowLeft />
               Go Back
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -182,18 +185,19 @@ export default function RecordingsPage() {
       <div className="max-w-4xl mx-auto p-4 sm:p-6 pb-24">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
-          <button
+          <Button
+            variant="ghost"
             onClick={handleBack}
-            className="text-white hover:text-orange-400 transition-colors"
+            className="p-2 hover:text-orange-400"
           >
             <FaArrowLeft className="text-xl" />
-          </button>
+          </Button>
           <h1 className="text-2xl font-bold text-white">Room Recordings</h1>
         </div>
 
         {/* Custom Audio Player */}
         {selectedRecording && (
-          <div className="bg-white/5 backdrop-blur-sm border border-white/20 rounded-lg p-6 mb-8">
+          <Card variant="ghost" className="p-6 mb-8">
             {/* Fireside Logo - Larger thumbnail size */}
             {/* <div className="flex justify-center mb-6">
               <div className="w-32 h-32 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center p-4">
@@ -210,12 +214,13 @@ export default function RecordingsPage() {
             <div className="space-y-4">
               {/* Play/Pause Button */}
               <div className="flex justify-center">
-                <button
+                <Button
+                  variant="default"
                   onClick={togglePlayPause}
-                  className="w-16 h-16 bg-orange-600 hover:bg-orange-700 rounded-full flex items-center justify-center text-white transition-colors"
+                  className="w-16 h-16 rounded-full flex items-center justify-center p-0"
                 >
                   {isPlaying ? <FaPause className="text-xl" /> : <FaPlay className="text-xl" />}
-                </button>
+                </Button>
               </div>
 
               {/* Progress Bar with Mute Button */}
@@ -237,16 +242,17 @@ export default function RecordingsPage() {
                     }}
                   />
                   {/* Mute Button positioned on the right side */}
-                  <button
+                  <Button
+                    variant="ghost"
                     onClick={toggleMute}
-                    className="text-white/70 hover:text-white transition-colors p-2 flex-shrink-0"
+                    className="p-2 flex-shrink-0"
                   >
                     {isMuted ? <FaVolumeMute className="text-lg" /> : <FaVolumeUp className="text-lg" />}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Recordings List */}
@@ -258,13 +264,10 @@ export default function RecordingsPage() {
             
             <div className="space-y-3">
               {recordings.map((recording, index) => (
-                <div
+                <Card
                   key={index}
-                  className={`border rounded-lg p-4 backdrop-blur-sm flex items-center justify-between cursor-pointer transition-colors ${
-                    selectedRecording === recording
-                      ? 'border-orange-500 bg-orange-500/20'
-                      : 'border-white/20 bg-white/5 hover:bg-white/10'
-                  }`}
+                  variant={selectedRecording === recording ? "orange" : "ghost"}
+                  className="p-4 flex items-center justify-between cursor-pointer hover:opacity-90 transition-opacity"
                   onClick={() => {
                     setSelectedRecording(recording);
                     setIsPlaying(false);
@@ -293,7 +296,7 @@ export default function RecordingsPage() {
                       <span className="text-orange-500 text-sm font-medium">Playing</span>
                     </div>
                   )}
-                </div>
+                </Card>
               ))}
             </div>
           </div>

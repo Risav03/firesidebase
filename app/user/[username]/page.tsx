@@ -12,7 +12,7 @@ export default async function UserProfilePage({ params }: Props) {
 	// Fetch user and rooms via API
 	const response = await fetchAPI(`${URL}/api/users/public/username/${username}`);
 	if (!response.ok) {
-		return <div className="text-center py-10 text-red-500">User not found</div>;
+		return <div className="text-center py-10 text-fireside-red">User not found</div>;
 	}
 	const { user, rooms } = response.data;
 

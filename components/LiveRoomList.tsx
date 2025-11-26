@@ -31,6 +31,8 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/UI/drawer";
+import { Card } from "@/components/UI/Card";
+import Button from "@/components/UI/Button";
 
 interface Room {
   _id: string;
@@ -239,9 +241,10 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
         {(isUserLoading || loading) && (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <div
+              <Card
                 key={i}
-                className="flex items-center gap-2 w-full p-4 bg-white/5 rounded-lg animate-pulse"
+                variant="ghost"
+                className="flex items-center gap-2 w-full p-4 animate-pulse"
               >
                 <div className="w-12 h-12 bg-white/20 rounded-full"></div>
                 <div className="flex-1">
@@ -249,7 +252,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                   <div className="h-3 bg-white/10 rounded w-2/3"></div>
                 </div>
                 <div className="h-6 w-16 bg-white/20 rounded"></div>
-              </div>
+              </Card>
             ))}
           </div>
         )}
@@ -267,11 +270,13 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
               <div className="mb-6">
                 <Drawer>
                   <DrawerTrigger asChild>
-                    
-                    <button className="bg-white/5 border border-white/20 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2">
+                    <Button 
+                      variant="ghost" 
+                      className="flex items-center gap-2"
+                    >
                       <MdOutlineSchedule className="text-lg text-white" />
                       Your Schedule ({myUpcomingRooms.length})
-                    </button>
+                    </Button>
                   </DrawerTrigger>
                   <DrawerContent className="bg-black">
                     <DrawerHeader>
@@ -279,9 +284,10 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                     </DrawerHeader>
                     <div className="p-4 space-y-3">
                       {myUpcomingRooms.map((room) => (
-                        <div
+                        <Card
                           key={room._id}
-                          className="border border-white/20 bg-white/5 rounded-lg p-4 backdrop-blur-sm text-white"
+                          variant="ghost"
+                          className="p-4 backdrop-blur-sm text-white"
                         >
                           <div className="flex items-center gap-2">
                             <div className="relative">
@@ -300,17 +306,17 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                                   {room.name}
                                 </h3>
                                 <DrawerClose asChild>
-                                  <button
+                                  <Button
+                                    variant="default"
                                     onClick={() => handleGoLive(room._id)}
-                                    className="gradient-fire text-white px-4 py-2 rounded-lg font-semibold transition-colors"
                                   >
                                     Start
-                                  </button>
+                                  </Button>
                                 </DrawerClose>
                               </div>
                             </div>
                           </div>
-                        </div>
+                        </Card>
                       ))}
                     </div>
                   </DrawerContent>
@@ -320,26 +326,24 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
 
             {/* Toggle Buttons */}
             <div className="mb-6 flex gap-3 w-full">
-              <button
+              <Button
+                variant="action"
+                active={activeTab === 'live'}
                 onClick={() => setActiveTab('live')}
-                className={`px-4 py-2 rounded-lg font-semibold transition-colors w-1/2 duration-200 ${
-                  activeTab === 'live'
-                    ? 'gradient-fire text-white font-bold'
-                    : 'bg-white/5 text-white/70 hover:bg-white/20 hover:text-white'
-                }`}
-              ><GoDotFill className="inline mb-1 mr-1 animate-pulse" />
+                className="w-1/2"
+              >
+                <GoDotFill className="inline mb-1 mr-1 animate-pulse" />
                 Live
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="action"
+                active={activeTab === 'upcoming'}
                 onClick={() => setActiveTab('upcoming')}
-                className={`px-4 py-2 rounded-lg font-semibold transition-colors w-1/2 duration-200 ${
-                  activeTab === 'upcoming'
-                    ? 'gradient-fire text-white font-bold'
-                    : 'bg-white/5 text-white/70 hover:bg-white/20 hover:text-white'
-                }`}
-              ><MdOutlineSchedule className="inline mb-1 mr-1" />
-                Upcoming 
-              </button>
+                className="w-1/2"
+              >
+                <MdOutlineSchedule className="inline mb-1 mr-1" />
+                Upcoming
+              </Button>
             </div>
 
             {/* Live Conversations Tab */}
@@ -348,14 +352,11 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                 {liveRooms.length > 0 ? (
                   <div className="space-y-3">
                     {liveRooms.map((room) => (
-                      <div
+                      <Card
                         onClick={() => router.push(`/call/${room._id}`)}
                         key={room._id}
-                        className={`flex items-center gap-3 w-full p-4 font-bold cursor-pointer hover:opacity-80 transition-opacity ${
-                          room.sponsorshipEnabled
-                            ? "gradient-red"
-                            : "border border-orange-500 rounded-lg p-4 bg-white/5 backdrop-blur-sm flex items-center justify-between cursor-pointer hover:bg-orange-900/20 transition-colors"
-                        } rounded-lg text-white`}
+                        variant={room.sponsorshipEnabled ? undefined : "ghost"}
+                        className={`flex items-center gap-3 w-full p-4 font-bold cursor-pointer hover:opacity-80 transition-opacity bg-fireside-orange/10 border-fireside-orange/30 text-white`}
                       >
                         <div className="relative">
                           <Image
@@ -391,20 +392,22 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                             Host: {room.host.displayName || room.host.username}
                           </p>
                         </div>
-                      </div>
+                      </Card>
                     ))}
                   </div>
                 ) : (
                   <div className="text-left">
-                    <p className="text-white/70 mb-4">
+                    <p className="text-white/70 mb-4 text-lg">
                       No live conversations right now
                     </p>
-                    <button
-                      className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-md font-semibold"
+                    <Button
+                      variant="action"
+                      active={true}
+                      className=" text-white px-6 py-2 rounded-md font-semibold"
                       onClick={() => setShowCreateModal(true)}
                     >
                       Create a Room
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
@@ -416,10 +419,11 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                 {upcomingRooms.length > 0 ? (
                   <div className="space-y-3">
                     {upcomingRooms.map((room) => (
-                      <div
+                      <Card
+                      variant="ghost"
                         onClick={() => navigate(`/room/${room._id}`)}
                         key={room._id}
-                        className={`relative flex items-center gap-3 w-full p-4 font-bold cursor-pointer hover:opacity-80 transition-opacity gradient-yellow rounded-lg text-white`}
+                        className="relative flex items-center gap-3 w-full p-4 font-bold cursor-pointer hover:opacity-80 transition-opacity text-white"
                       >
                         <div className="relative">
                           <Image
@@ -447,7 +451,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                             className="text-yellow-200 text-xs"
                           />
                         </div>
-                      </div>
+                      </Card>
                     ))}
                   </div>
                 ) : (
@@ -455,12 +459,12 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                     <p className="text-white/70 mb-4">
                       No upcoming conversations scheduled
                     </p>
-                    <button
-                      className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-md font-semibold"
+                    <Button
+                      variant="default"
                       onClick={() => setShowCreateModal(true)}
                     >
                       Create a Room
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>

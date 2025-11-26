@@ -18,6 +18,7 @@ import { toast } from "react-toastify";
 import { useAdsControlEvent } from '../utils/events';
 import { useGlobalContext } from '@/utils/providers/globalContext';
 import { isAdsTester } from '@/utils/constants';
+import Button from '@/components/UI/Button';
 
 interface HeaderProps {
   onToggleChat?: () => void;
@@ -172,33 +173,37 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
           {isConnected && (
             <div className="flex items-center space-x-3">
               {canControlAds && (
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={handleToggleAds}
                   disabled={isTogglingAds}
-                  className="text-white px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20"
                   title={adsRunning ? 'Stop Ads' : 'Display Ads'}
                 >
                   {isTogglingAds ? (adsRunning ? 'Stopping…' : 'Starting…') : (adsRunning ? 'Stop Ads' : 'Display Ads')}
-                </button>
+                </Button>
               )}
               {roomId && (
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setIsShareMenuOpen((prev) => !prev)}
-                  className="text-white relative z-50 px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 flex items-center space-x-2"
+                  className="relative z-50 flex items-center space-x-2"
                   title="Share"
                 >
                   <TbShare3 className="w-5 h-5" />
                   <span className="text-sm">Share</span>
-                </button>
+                </Button>
               )}
-              <button
+              <Button
                 id="leave-btn"
-                className="px-2 py-1 rounded-lg clubhouse-button-danger flex items-center"
+                variant="ghost"
+                size="sm"
+                className="bg-fireside-red px-2 py-1 flex items-center"
                 onClick={handleLeaveClick}
               >
                 <ExitIcon className="w-6 h-6" />
-                <span></span>
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -208,36 +213,39 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
       <div onClick={() => setIsShareMenuOpen(false)} className={`fixed top-0 left-0 h-screen w-screen bg-black/30 duration-200 z-50 ${isShareMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
         {isShareMenuOpen && (
           <div className="absolute right-4 top-16 border border-white/10 mb-2 w-40 bg-gray-800 text-white rounded-lg shadow-lg">
-            <button
+            <Button
+              variant="ghost"
               onClick={() => {
                 setIsShareMenuOpen(false);
                 composeCast();
               }}
-              className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center space-x-2"
+              className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center space-x-2 rounded-none rounded-t-lg"
             >
               <MdOutlineIosShare className="w-5 h-5" />
               <span>Share on App</span>
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
               onClick={() => {
                 setIsShareMenuOpen(false);
                 handleShareOnTwitter();
               }}
-              className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center space-x-2"
+              className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center space-x-2 rounded-none"
             >
               <FaXTwitter className="w-5 h-5" />
               <span>Share on X</span>
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
               onClick={() => {
                 setIsShareMenuOpen(false);
                 handleCopyURL();
               }}
-              className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center space-x-2"
+              className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center space-x-2 rounded-none rounded-b-lg"
             >
               <MdCopyAll className="w-5 h-5" />
               <span>Copy URL</span>
-            </button>
+            </Button>
           </div>
         )}
       </div>

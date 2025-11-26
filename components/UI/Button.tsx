@@ -2,20 +2,28 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'default' | 'ghost' | 'outline';
+  variant?: 'default' | 'ghost' | 'outline' | 'action';
   size?: 'sm' | 'md' | 'lg';
   children: React.ReactNode;
   className?: string;
+  active?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ variant = 'default', size = 'md', className, children, disabled, ...props }, ref) => {
-    const baseStyles = 'rounded-full font-semibold transition-all duration-200 transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none';
+  ({ variant = 'default', size = 'md', className, children, disabled, active = false, ...props }, ref) => {
+    const baseStyles = 'rounded-lg font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-black/50 ';
     
     const variants = {
-      default: 'gradient-fire text-white shadow-lg hover:shadow-xl hover:scale-105',
-      ghost: 'bg-white/10 text-gray-700 hover:bg-gray-100/50 hover:text-fireside-orange',
-      outline: 'bg-transparent border-2 border-fireside-orange text-fireside-orange hover:bg-fireside-orange/10 hover:shadow-md',
+      default: active
+        ? 'gradient-fire text-white shadow-lg hover:shadow-xl hover:scale-105 rounded-full font-bold'
+        : 'gradient-fire text-white shadow-lg hover:shadow-xl hover:scale-105 rounded-full',
+      ghost: active 
+        ? 'bg-white/20 border-t-[1px] border-l-[1px] border-white/20 text-white font-bold'
+        : 'bg-white/5 border-t-[1px] border-l-[1px] border-white/20 text-white/70 hover:bg-white/20 hover:text-white',
+      outline: 'bg-transparent border-2 border-fireside-orange text-fireside-orange hover:bg-fireside-orange/10 hover:shadow-md rounded-full',
+      action: active
+        ? 'gradient-fire border-t-[1px] border-l-[1px] border-white/50 text-white font-bold'
+        : 'bg-white/10 border-t-[1px] border-l-[1px] border-white/20 text-white',
     };
 
     const sizes = {

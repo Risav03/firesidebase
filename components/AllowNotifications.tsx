@@ -94,7 +94,7 @@ export default function AllowNotifications() {
           </DrawerHeader>
           <div className="p-6 space-y-4">
             <div className="flex items-start gap-3">
-              <IoMdNotifications className="text-blue-500 text-2xl flex-shrink-0 mt-1" />
+              <IoMdNotifications className="text-fireside-blue text-2xl flex-shrink-0 mt-1" />
               <div>
                 <h3 className="font-semibold text-white mb-1">Get Real-time Updates</h3>
                 <p className="text-sm text-white/70">

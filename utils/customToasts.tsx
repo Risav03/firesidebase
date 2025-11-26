@@ -63,7 +63,7 @@ const SponsorStatusToast: React.FC<SponsorStatusToastProps> = ({ status, onActio
             </div>
           </div>
           <div className="ml-3 flex-1">
-            <p className={`text-sm font-medium ${status === "approved" ? "text-green-500" : "text-red-500"}`}>
+            <p className={`text-sm font-medium ${status === "approved" ? "text-green-500" : "text-fireside-red"}`}>
               Sponsorship {status}
             </p>
             <p className="mt-1 text-sm text-gray-300">
@@ -72,7 +72,7 @@ const SponsorStatusToast: React.FC<SponsorStatusToastProps> = ({ status, onActio
           </div>
         </div>
       </div>
-      <div className={`flex border-l ${status === "approved" ? "border-green-500/30" : "border-red-500/30"}`}>
+      <div className={`flex border-l ${status === "approved" ? "border-green-500/30" : "border-fireside-red/30"}`}>
         <button
           onClick={onAction}
           className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-green-500 hover:text-green-400 focus:outline-none"

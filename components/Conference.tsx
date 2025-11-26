@@ -19,6 +19,8 @@ import RoomEndScreen from "./RoomEndScreen";
 import { toast } from "react-toastify";
 import { fetchRoomDetails, endRoom } from "@/utils/serverActions";
 import SpeakerRequestsDrawer from "./SpeakerRequestsDrawer";
+import { Card } from "@/components/UI/Card";
+import Button from "@/components/UI/Button";
 // import AudioRecoveryBanner from "./AudioRecoveryBanner";
 
 
@@ -395,38 +397,39 @@ useEffect(() => {
     const canManageSpeakers = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
     
     return (
-      <div className="pt-12 pb-32 px-4 relative">
+      <div className="pt-12 pb-32 px-3 relative">
         {/* <AudioRecoveryBanner /> */}
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-4 mt-6 relative">
             {/* Speaker Requests Button - Only shown to hosts/co-hosts and when there are requests */}
             {canManageSpeakers && speakerRequests.length > 0 && (
               <div className="flex w-full justify-end mb-4">
-                <button
+                <Button
+                  variant="default"
                   onClick={() => setShowSpeakerRequestsDrawer(true)}
-                  className="bg-fireside-orange hover:bg-orange-600 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                  className="flex items-center gap-2"
                 >
                   <span>Speaker Requests</span>
                   <span className="bg-white text-fireside-orange rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
                     {speakerRequests.length}
                   </span>
-                </button>
+                </Button>
               </div>
             )}
-            <div className="bg-fireside-orange/5 border border-fireside-orange/10 rounded-lg p-2 text-left">
-<h2 className="text-xl font-bold gradient-fire-text">
+            <Card variant="ghost" className="p-2 text-left border-fireside-orange/10">
+              <h2 className="text-xl font-bold gradient-fire-text">
                 {roomDetails?.name || ""}
               </h2>
               <p className="text-gray-400 text-sm">
                 {roomDetails?.description || ""}
               </p>
-            </div>
+            </Card>
             
             
           </div>
   
           <div className="">
-            <div className="grid grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 justify-items-center">
+            <div className="grid grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 justify-items-center px-1">
               {peers.map((peer) => (
                 <PeerWithContextMenu key={peer.id} peer={peer} />
               ))}

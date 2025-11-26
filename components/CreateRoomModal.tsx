@@ -168,10 +168,10 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                   setFormData({ ...formData, name: e.target.value });
                   setNameError(e.target.value.trim() === '' ? 'Room name cannot be empty.' : '');
                 }}
-                className={`w-full bg-white/10 text-white p-3 rounded-lg border ${nameError ? 'border-red-500' : 'border-orange-500/30'} focus:outline-none focus:border-orange-500 transition-colors text-base`}
+                className={`w-full bg-white/10 text-white p-3 rounded-lg border ${nameError ? 'border-fireside-red' : 'border-orange-500/30'} focus:outline-none focus:border-orange-500 transition-colors text-base`}
                 placeholder="Enter room name"
               />
-              {nameError && <p className="text-red-500 text-sm mt-1">{nameError}</p>}
+              {nameError && <p className="text-fireside-red text-sm mt-1">{nameError}</p>}
             </div>
             
             <div>
@@ -213,8 +213,8 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                   </button>
                 ))}
               </div>
-              {selectedTags.length === 0 && <p className="text-red-500 text-sm mt-1">Please select at least one topic.</p>}
-              {selectedTags.length > 3 && <p className="text-red-500 text-sm mt-1">You can select up to 3 topics only.</p>}
+              {selectedTags.length === 0 && <p className="text-fireside-red text-sm mt-1">Please select at least one topic.</p>}
+              {selectedTags.length > 3 && <p className="text-fireside-red text-sm mt-1">You can select up to 3 topics only.</p>}
             </div>
             
             {/* <div className="flex items-center justify-between">

@@ -64,7 +64,7 @@
   }
   
   .clubhouse-button-danger {
-    @apply bg-red-500 text-white hover:bg-red-600;
+    @apply bg-fireside-red text-white hover:bg-red-600;
   }
   
   .clubhouse-input {

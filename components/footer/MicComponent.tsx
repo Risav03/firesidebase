@@ -110,7 +110,7 @@ export default function MicComponent({
         } ${
           isLocalAudioEnabled
             ? "bg-fireside-orange text-white shadow-lg"
-            : "bg-red-500 text-white shadow-lg"
+            : "bg-fireside-red text-white shadow-lg"
         }`}
         onClick={
           canUnmute && !isRejoining

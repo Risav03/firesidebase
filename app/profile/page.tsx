@@ -14,6 +14,7 @@ import { Card } from '@/components/UI/Card';
 import Navigation from '@/components/Navigation';
 import MainHeader from '@/components/UI/MainHeader';
 import { useNavigateWithLoader } from '@/utils/useNavigateWithLoader';
+import Button from '@/components/UI/Button';
 
 export default function ProfilePage() {
   const { user, setUser } = useGlobalContext();
@@ -84,9 +85,9 @@ export default function ProfilePage() {
       <div className="min-h-screen">
         <div className="max-w-2xl mx-auto px-4 pt-6 pb-24">
           
-          <Card className="bg-transparent pt-16 border-0">
+          <Card variant="ghost" className="bg-transparent pt-16 border-0">
             {/* Profile Picture and Refresh Button */}
-            <Card className="text-center p-4 relative flex items-center gap-4 justify-start">
+            <Card variant="ghost" className="text-center p-4 relative flex items-center gap-4 justify-start">
               <div className="flex items-center justify-center">
                 {user.pfp_url ? (
                   <img 
@@ -109,10 +110,12 @@ export default function ProfilePage() {
                 {user.socials && Object.keys(user.socials).length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {Object.entries(user.socials).map(([platform, username]) => (
-                      <button
+                      <Button
                         key={platform}
+                        variant="outline"
+                        size="sm"
                         onClick={() => handleSocialClick(platform, String(username))}
-                        className="flex items-center space-x-2 px-3 py-2 bg-white text-fireside-orange rounded-lg transition-all duration-200 group cursor-pointer"
+                        className="flex items-center space-x-2 bg-white text-fireside-orange"
                       >
                         <div className="flex items-center justify-center">
                           {platformIcons[platform.toLowerCase()] || (
@@ -121,10 +124,10 @@ export default function ProfilePage() {
                             </span>
                           )}
                         </div>
-                        <span className="text-sm font-medium group-hover:text-orange-300 transition-colors">
+                        <span className="text-sm font-medium">
                           @{String(username)}
                         </span>
-                      </button>
+                      </Button>
                     ))}
                   </div>
               )}
@@ -139,7 +142,7 @@ export default function ProfilePage() {
               <h2 className="text-xl font-bold text-white mb-4">Statistics</h2>
               <div className="grid grid-cols-2 gap-3">
                 {/* Total Hosted Rooms Card */}
-                <Card className="bg-white rounded-xl p-4 shadow-md border-fireside-orange/50 hover:shadow-xl transition-shadow">
+                <Card variant="white" className="rounded-xl p-4 shadow-md hover:shadow-xl transition-shadow">
                   <div className="flex flex-col items-center justify-center h-full">
                     <p className="text-fireside-orange/80 text-xs font-medium mb-1 text-center">
                       Hosted Rooms
@@ -149,7 +152,7 @@ export default function ProfilePage() {
                 </Card>
 
                 {/* Total Audience Engaged Card */}
-                <Card className="bg-fireside-orange rounded-xl border-white/50 p-4 shadow-lg hover:shadow-xl transition-shadow">
+                <Card variant="orange" className="rounded-xl p-4 shadow-lg hover:shadow-xl transition-shadow">
                   <div className="flex flex-col items-center justify-center h-full">
                     <p className="text-white/80 text-xs font-medium mb-1 text-center">
                       Audience Engaged
@@ -159,7 +162,7 @@ export default function ProfilePage() {
                 </Card>
 
                 {/* Max Audience Engaged Card - Full Width */}
-                <Card className="col-span-2 rounded-xl p-4 shadow-lg hover:shadow-xl transition-shadow">
+                <Card variant="ghost" className="col-span-2 rounded-xl p-4 shadow-lg hover:shadow-xl transition-shadow">
                   <div className="flex flex-col">
                     <div className="flex items-center justify-between mb-3">
                       <p className="text-white/80 text-sm font-medium">
@@ -168,7 +171,7 @@ export default function ProfilePage() {
                       <p className="text-white text-2xl font-bold">{maxAudience?.participantCount || 0}</p>
                     </div>
                     {maxAudience && (
-                      <Card onClick={()=>{navigate(`/recordings/${maxAudience.roomId}`)}} className='bg-fireside-orange border-white/50 backdrop-blur-sm rounded-lg p-2'>
+                      <Card variant="orange" onClick={()=>{navigate(`/recordings/${maxAudience.roomId}`)}} className='backdrop-blur-sm rounded-lg p-2'>
                         <h2 className='gradient-fire-text text-lg font-bold mb-1 text-white'>{maxAudience?.name}</h2>
                         <p className='text-xs text-white/70 font-semibold'>Hosted on {new Date(maxAudience?.startTime).toDateString()}</p>
                       </Card>
@@ -197,12 +200,13 @@ export default function ProfilePage() {
               <h2 className="text-xl font-bold text-white mb-4">Hosted Firesides</h2>
               <div className="flex space-x-2 overflow-x-auto ">
                 {hostedRooms.length === 0 ? (
-                  <Card className="w-full h-32 px-10 text-nowrap flex items-center justify-center text-gray-400">
+                  <Card variant="ghost" className="w-full h-32 px-10 text-nowrap flex items-center justify-center text-gray-400">
                     No hosted firesides yet.
                   </Card>
                 ) : (
                   hostedRooms.map((room, idx) => (
                     <Card
+                      variant="ghost"
                       key={room._id || idx}
                       onClick={() => navigate(`/recordings/${room.roomId}`)}
                       className="w-[250px] relative flex-shrink-0 p-2 h-32 bg-fireside-orange/10 border-fireside-orange/20 flex flex-col justify-start text-white rounded-lg cursor-pointer hover:bg-fireside-orange/20 transition-colors"
@@ -231,13 +235,14 @@ export default function ProfilePage() {
                   Explore Rooms
                 </button> */}
                 
-                <button
+                <Button
+                  variant="default"
                   onClick={() => window.history.back()}
-                  className="gradient-fire text-white w-full font-medium py-3 px-4 rounded-md transition-colors"
+                  className="w-full"
                 >
                   <IoIosArrowBack className="inline mr-2" />
                   Go Back
-                </button>
+                </Button>
               </div>
             </div>
           </Card>

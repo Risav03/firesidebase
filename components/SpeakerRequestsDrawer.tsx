@@ -5,6 +5,8 @@ import { useHMSActions } from '@100mslive/react-sdk';
 import { useSpeakerRejectionEvent } from '@/utils/events';
 import { updateParticipantRole } from '@/utils/serverActions';
 import sdk from "@farcaster/miniapp-sdk";
+import { Card } from "@/components/UI/Card";
+import Button from "@/components/UI/Button";
 import { 
   Drawer,
   DrawerClose,
@@ -122,7 +124,7 @@ export default function SpeakerRequestsDrawer({
 
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DrawerContent className="bg-black border-t border-fireside-orange border-t-4">
+      <DrawerContent className="bg-black border-t-4 border-fireside-orange">
         <DrawerHeader className="border-b border-gray-800">
           <DrawerTitle className="text-white text-center">
             Speaker Requests {safeRequests.length > 0 && `(${safeRequests.length})`}
@@ -145,7 +147,7 @@ export default function SpeakerRequestsDrawer({
           ) : (
             <ul className="space-y-3">
               {safeRequests.map((request) => (
-                <li key={request.peerId} className="bg-white/10 rounded-lg p-4 flex items-center">
+                <Card key={request.peerId} variant="ghost" className="p-4 flex items-center">
                   <div className="mr-3">
                     {request && request.peerAvatar ? (
                       <img 
@@ -166,20 +168,22 @@ export default function SpeakerRequestsDrawer({
                     <p className="text-xs text-gray-400">{request.timestamp ? formatTime(request.timestamp) : 'Unknown time'}</p>
                   </div>
                   <div className="flex space-x-2">
-                    <button
+                    <Button
+                      variant="default"
                       onClick={() => request && handleApprove(request)}
-                      className="bg-green-600 hover:bg-green-700 text-white w-8 aspect-square rounded text-sm transition-colors"
+                      className="bg-green-600 hover:bg-green-700 w-8 aspect-square rounded p-0"
                     >
                       <FaCheck className='mx-auto' />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="default"
                       onClick={() => request && handleReject(request)}
-                      className="bg-red-600 hover:bg-red-700 text-white w-8 aspect-square rounded text-sm transition-colors"
+                      className="bg-red-600 hover:bg-red-700 w-8 aspect-square rounded p-0"
                     >
                       <MdClose className='mx-auto text-xl' />
-                    </button>
+                    </Button>
                   </div>
-                </li>
+                </Card>
               ))}
             </ul>
           )}

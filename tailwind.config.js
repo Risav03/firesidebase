@@ -42,7 +42,11 @@ module.exports = {
           blue: '#5B9BD5',
           purple: '#8B5A96',
           brown: '#8B4513',
-        }
+          red: '#ef4444',
+          'fireside-blue': '#3b82f6',
+        },
+        'fireside-red': '#ef4444',
+        'fireside-blue': '#3b82f6',
       },
       fontFamily: {
         sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Open Sans', 'Helvetica Neue', 'sans-serif'],

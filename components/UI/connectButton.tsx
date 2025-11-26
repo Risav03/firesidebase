@@ -38,7 +38,7 @@ export const CustomConnect = () => {
                   <button
                     onClick={openConnectModal}
                     type="button"
-                    className="bg-blue-500 text-center px-4 py-2 rounded text-lg font-bold text-white hover:bg-blue-600"
+                    className="bg-fireside-blue text-center px-4 py-2 rounded text-lg font-bold text-white hover:bg-blue-600"
                   >
                     CONNECT WALLET
                   </button>
@@ -60,7 +60,7 @@ export const CustomConnect = () => {
                   <button
                     onClick={openAccountModal}
                     type="button"
-                    className="bg-blue-500 flex items-center gap-2 text-center px-4 py-2 mx-auto rounded text-md font-bold text-white hover:bg-blue-600"
+                    className="bg-fireside-blue flex items-center gap-2 text-center px-4 py-2 mx-auto rounded text-md font-bold text-white hover:bg-blue-600"
                   >
                     <MdWallet/>
                     {account.displayName.toUpperCase()}

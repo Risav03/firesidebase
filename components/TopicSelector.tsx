@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { topics as allTopics } from "@/utils/constants";
+import Button from "@/components/UI/Button";
 
 interface TopicSelectorProps {
   onSubmit: (selectedTopics: string[]) => void;
@@ -34,25 +35,28 @@ export default function TopicSelector({ onSubmit, maxTopics = 5 }: TopicSelector
           const isSelected = selected.includes(topic);
           const disableOption = selected.length >= maxTopics && !isSelected;
           return (
-            <button
+            <Button
               type="button"
               key={topic}
-              className={`px-1 py-2 w-[31%] rounded-full border transition-colors text-white ${isSelected ? 'gradient-fire border-white border-2 font-bold' : 'bg-white/10 border-white/20 '} ${disableOption ? 'opacity-50 cursor-not-allowed' : ''}`}
+              variant="action"
+              active={isSelected}
+              className={`w-[31%] rounded-full ${disableOption ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={() => !disableOption && handleToggle(topic)}
               disabled={submitting || disableOption}
             >
               {topic}
-            </button>
+            </Button>
           );
         })}
       </div>
-      <button
+      <Button
         type="submit"
-        className="w-full gradient-fire  text-white px-6 py-2 rounded-md font-semibold"
+        variant="default"
+        className="w-full"
         disabled={selected.length === 0 || submitting}
       >
         {submitting ? "Setting up" : "Confirm"}
-      </button>
+      </Button>
     </form>
   );
 }
