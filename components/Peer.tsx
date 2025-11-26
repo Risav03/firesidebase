@@ -98,7 +98,7 @@ export default function Peer({ peer }: PeerProps) {
       <div
         className={`mt-1 text-center absolute pb-3 bottom-0 bg-gradient-to-b from-transparent via-black/50 to-black/90 z-50 w-full `}
       >
-        <p className="text-[0.8rem] font-bold text-white truncate max-w-full translate-y-2 text-center px-1 ">
+        <p className="text-[0.75rem] font-medium text-white truncate max-w-full translate-y-2 text-center px-1 ">
           {peer.name}
         </p>
       </div>
