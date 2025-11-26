@@ -82,13 +82,15 @@ export default function TippingModal({
     return batches;
   };
 
+  const lastCurrencyRef = useRef<"ETH" | "USDC">("ETH");
+
   useEffect(() => {
     // When transaction succeeds
     if (isSuccess) {
       
         toast.success("Transaction successful!", );
       
-      processSuccess();
+      processSuccess(lastCurrencyRef.current);
     }
     // When transaction fails (status === 'error')
     else if (status === "error") {
@@ -212,6 +214,8 @@ export default function TippingModal({
         return;
       }
 
+      lastCurrencyRef.current = "ETH";
+      
       const tipAmount = selectedTip ? selectedTip : parseFloat(customTip);
       const splitArr = splitIntoBatches(usersToSend);
       
@@ -320,6 +324,8 @@ export default function TippingModal({
 
       console.log("Users to send USDC tip to:", usersToSend);
 
+      lastCurrencyRef.current = "USDC";
+      
       const tipAmount = selectedTip ? selectedTip : parseFloat(customTip);
       const usdcAmount = BigInt(Math.floor(tipAmount * 1e6)); // USDC has 6 decimals
       const splitArr = splitIntoBatches(usersToSend);
