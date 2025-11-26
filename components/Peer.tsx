@@ -47,11 +47,11 @@ export default function Peer({ peer }: PeerProps) {
   }, [isSpeaking]);
 
   return (
-    <Card className={`relative flex flex-col items-center group p-2 ${
-              peer.roleName === 'host' ? 'bg-fireside-red/10 ring-fireside-red text-white' :
-              peer.roleName === 'co-host' ? 'bg-fireside-orange/10 ring-fireside-orange text-white' :
-              peer.roleName === 'speaker' ? 'bg-fireside-blue/10 ring-fireside-blue text-white' :
-              'bg-gray-500/10 ring-gray-500 text-white'
+    <Card className={`relative flex flex-col items-center group p-2 shadow-lg ${
+              peer.roleName === 'host' ? 'bg-fireside-red/10 ring-fireside-red shadow-fireside-red/30 text-white' :
+              peer.roleName === 'co-host' ? 'bg-fireside-orange/10 ring-fireside-orange shadow-fireside-orange/30 text-white' :
+              peer.roleName === 'speaker' ? 'bg-fireside-blue/10 ring-fireside-blue shadow-fireside-blue/30 text-white' :
+              'bg-gray-500/10 ring-gray-500 shadow-gray-500/30 text-white'
             } ${showSpeakingRing ? 'ring-[1px]' : 'ring-0'} `}>
       <div className="relative">
         {/* Speaking indicator ring */}
