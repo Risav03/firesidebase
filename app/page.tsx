@@ -53,7 +53,7 @@ export default async function Home() {
       <MainHeader/>
       <LiveRoomList />
       <AllowNotifications />
-      <HighTrafficDrawer />
+      {/* <HighTrafficDrawer /> */}
       <NavigationWrapper />
     </>
   );
