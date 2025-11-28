@@ -416,7 +416,7 @@ export default function TippingModal({
         }
         // Convert USD to FIRE tokens
         const tipAmountFIRE = tipAmountUSD / firePrice;
-        tokenAmount = BigInt(Math.floor(tipAmountFIRE * 1e6)); // FIRE has 6 decimals
+        tokenAmount = BigInt(Math.floor(tipAmountFIRE * 1e18)); // FIRE has 18 decimals
       } else {
         tokenAmount = BigInt(Math.floor(tipAmountUSD * 1e6));
       }
