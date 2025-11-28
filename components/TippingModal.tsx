@@ -68,6 +68,7 @@ export default function TippingModal({
   const batchSize = parseInt(process.env.NEXT_PUBLIC_BATCH_SIZE || "20");
   const { user } = useGlobalContext();
   const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+  const FIRE_ADDRESS = "0x9e68E029cBDe7513620Fcb537A44abff88a56186";
   const { writeContractAsync } = useWriteContract();
   const { context } = useMiniKit();
   const { address } = useAccount();
@@ -82,7 +83,7 @@ export default function TippingModal({
     return batches;
   };
 
-  const lastCurrencyRef = useRef<"ETH" | "USDC">("ETH");
+  const lastCurrencyRef = useRef<string>("ETH");
 
   useEffect(() => {
     // When transaction succeeds
@@ -285,7 +286,7 @@ export default function TippingModal({
     }
   };
 
-  const handleUSDCTip = async () => {
+  const handleUSDCTip = async (tokenAddress: string, tokenSymbol: string) => {
     try {
       setIsLoading(true);
       if (!selectedUsers.length && !selectedRoles.length) {
@@ -322,21 +323,21 @@ export default function TippingModal({
         return;
       }
 
-      console.log("Users to send USDC tip to:", usersToSend);
+      console.log(`Users to send ${tokenSymbol} tip to:`, usersToSend);
 
-      lastCurrencyRef.current = "USDC";
+      lastCurrencyRef.current = tokenSymbol;
       
       const tipAmount = selectedTip ? selectedTip : parseFloat(customTip);
-      const usdcAmount = BigInt(Math.floor(tipAmount * 1e6)); // USDC has 6 decimals
+      const tokenAmount = BigInt(Math.floor(tipAmount * 1e6)); // USDC and FIRE have 6 decimals
       const splitArr = splitIntoBatches(usersToSend);
 
       const approveCall = {
-        to: USDC_ADDRESS as `0x${string}`,
+        to: tokenAddress as `0x${string}`,
         value: context?.client.clientFid !== 309857 ? BigInt(0) : "0x0",
         data: encodeFunctionData({
           abi: erc20Abi,
           functionName: "approve",
-          args: [contractAdds.tipping, usdcAmount],
+          args: [contractAdds.tipping, tokenAmount],
         }),
       };
 
@@ -346,7 +347,7 @@ export default function TippingModal({
         data: encodeFunctionData({
           abi: firebaseTipsAbi,
           functionName: "distributeToken",
-          args: [USDC_ADDRESS, batch, BigInt(Math.floor(Number(usdcAmount) / batch.length))],
+          args: [tokenAddress, batch, BigInt(Math.floor(Number(tokenAmount) / batch.length))],
         }),
       }));
 
@@ -384,7 +385,7 @@ export default function TippingModal({
 
           if (result == true) {
             toast.loading("Transaction confirmed!");
-            await processSuccess("USDC");
+            await processSuccess(tokenSymbol);
           } else {
             toast.error("Transaction failed or timed out");
             setIsLoading(false);
@@ -609,18 +610,31 @@ export default function TippingModal({
         <DrawerFooter className="border-t border-fireside-orange/30">
           <div className="flex gap-3">
             <Button
+              variant="action"
               onClick={handleETHTip}
               disabled={isLoading || (!selectedUsers.length && !selectedRoles.length) || (!selectedTip && !customTip)}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+              className=" bg-indigo-500 flex-1 flex items-center justify-center gap-1 text-lg font-bold"
             >
-              {isLoading ? 'Processing...' : 'Tip ETH'}
+              <img src="/ethereum.svg" alt="ETH" className="w-6 h-6" />
+              {isLoading ? 'Processing...' : 'ETH'}
             </Button>
             <Button
-              onClick={handleUSDCTip}
+            variant="action"
+              onClick={() => handleUSDCTip(USDC_ADDRESS, "USDC")}
               disabled={isLoading || (!selectedUsers.length && !selectedRoles.length) || (!selectedTip && !customTip)}
-              className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+              className=" flex-1 bg-blue-500 flex items-center justify-center text-lg gap-1 font-bold"
             >
-              {isLoading ? 'Processing...' : 'Tip USDC'}
+              <img src="/usdc.svg" alt="USDC" className="w-6 h-6" />
+              {isLoading ? 'Processing...' : 'USDC'}
+            </Button>
+            <Button
+            variant="action"
+              onClick={() => handleUSDCTip(FIRE_ADDRESS, "FIRE")}
+              disabled={isLoading || (!selectedUsers.length && !selectedRoles.length) || (!selectedTip && !customTip)}
+              className="flex-1 bg-red-700 text-white flex items-center justify-center text-lg font-bold"
+            >
+              <img src="/fireside-logo.svg" alt="FIRE" className="w-6 h-6" />
+              {isLoading ? 'Processing...' : '$FIRE'}
             </Button>
           </div>
         </DrawerFooter>

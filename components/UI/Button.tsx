@@ -15,8 +15,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     
     const variants = {
       default: active
-        ? 'gradient-fire text-white shadow-lg hover:shadow-xl hover:scale-105 rounded-full font-bold'
-        : 'gradient-fire text-white shadow-lg hover:shadow-xl hover:scale-105 rounded-full',
+        ? 'gradient-fire text-white shadow-lg hover:shadow-xl hover:scale-[1.02] duration-200 rounded-full font-bold'
+        : 'gradient-fire text-white shadow-lg hover:shadow-xl hover:scale-[1.02] duration-200 rounded-full',
       ghost: active 
         ? 'bg-white/20 border-t-[1px] border-l-[1px] border-white/20 text-white font-bold'
         : 'bg-white/5 border-t-[1px] border-l-[1px] border-white/20 text-white/70 hover:bg-white/20 hover:text-white',
