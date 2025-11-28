@@ -21,6 +21,7 @@ import {
   fetchRoomCodes,
   addParticipantToRoom,
   removeParticipantFromRoom,
+  fetchHMSActivePeers,
 } from "@/utils/serverActions";
 import { isAdsTester } from "@/utils/constants";
 
@@ -51,6 +52,55 @@ export default function CallClient({ roomId }: CallClientProps) {
   const [error, setError] = useState<string | null>(null);
   const showAdsFeature = isAdsTester(user?.fid);
 
+  // Function to handle role limit reached error
+  const handleRoleLimitError = async (hmsRoomId: string, userFid: number) => {
+    try {
+      console.log('[Role Limit] Checking for duplicate peer with fid:', userFid);
+      
+      // Fetch active peers from HMS room
+      const peersResponse = await fetchHMSActivePeers(hmsRoomId);
+      
+      if (!peersResponse.ok || !peersResponse.data?.peers) {
+        console.error('[Role Limit] Failed to fetch active peers');
+        return false;
+      }
+
+      // Find peer with matching fid in metadata
+      const peers = Object.values(peersResponse.data.peers) as any[];
+      const duplicatePeer = peers.find((peer) => {
+        try {
+          if (peer.metadata) {
+            const metadata = JSON.parse(peer.metadata);
+            return metadata.fid === userFid;
+          }
+        } catch (e) {
+          console.error('[Role Limit] Error parsing peer metadata:', e);
+        }
+        return false;
+      });
+
+      if (duplicatePeer) {
+        console.log('[Role Limit] Found duplicate peer:', duplicatePeer.id, 'Removing...');
+        
+        // Remove the duplicate peer using HMS SDK
+        await hmsActions.removePeer(duplicatePeer.id, 'Removing duplicate session');
+        
+        console.log('[Role Limit] Successfully removed duplicate peer');
+        
+        // Wait a bit for the removal to process
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        return true;
+      } else {
+        console.log('[Role Limit] No duplicate peer found with matching fid');
+        return false;
+      }
+    } catch (error) {
+      console.error('[Role Limit] Error handling role limit:', error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     // Request wake lock to keep screen active
     let wakeLock: any = null;
@@ -75,86 +125,76 @@ export default function CallClient({ roomId }: CallClientProps) {
   }, []);
 
   useEffect(() => {
-    const joinRoom = async () => {
-      try {
-        const env = process.env.NEXT_PUBLIC_ENV;
+    const attemptJoin = async (retryCount = 0): Promise<void> => {
+      const env = process.env.NEXT_PUBLIC_ENV;
 
-        console.log("[HMS Action - CallClient] Starting join process", {
-          roomId,
-          timestamp: new Date().toISOString(),
-        });
+      console.log("[HMS Action - CallClient] Starting join process", {
+        roomId,
+        retryCount,
+        timestamp: new Date().toISOString(),
+      });
 
-        // Request microphone and camera permissions once at room join
+      var token: any = "";
+      if (env !== "DEV") {
+        token = (await sdk.quickAuth.getToken()).token;
+      }
 
-        var token: any = "";
-        if (env !== "DEV") {
-          token = (await sdk.quickAuth.getToken()).token;
-        }
+      if (!user) {
+        setError("User not authenticated");
+        setIsJoining(false);
+        return;
+      }
 
-        if (!user) {
-          setError("User not authenticated");
-          setIsJoining(false);
-          return;
-        }
+      console.log("[HMS Action - CallClient] Joining room with ID:", roomId);
 
-        console.log("[HMS Action - CallClient] Joining room with ID:", roomId);
+      const response = await fetchRoomCodes(roomId);
 
-        const response = await fetchRoomCodes(roomId);
+      console.log("[HMS Action - CallClient] Room codes response:", {
+        success: response.ok,
+        timestamp: new Date().toISOString(),
+      });
 
-        console.log("[HMS Action - CallClient] Room codes response:", {
-          success: response.ok,
-          timestamp: new Date().toISOString(),
-        });
+      if (!response.ok) {
+        throw new Error(response.data.error || "Failed to fetch room codes");
+      }
 
-        if (!response.ok) {
-          throw new Error(response.data.error || "Failed to fetch room codes");
-        }
+      const roomCodes: RoomCode[] = response.data.data.roomCodes;
 
-        const roomCodes: RoomCode[] = response.data.data.roomCodes;
+      let roomCode = "";
+      let role = "listener";
+      let hmsRoomId = "";
 
-        let roomCode = "";
-        let role = "listener";
+      const roomResponse = await fetchAPI(
+        `${URL}/api/rooms/public/${roomId}`
+      );
 
-        const roomResponse = await fetchAPI(
-          `${URL}/api/rooms/public/${roomId}`
-        );
-
-        if (
-          roomResponse.ok &&
-          roomResponse.data.data.room.host._id === user._id
-        ) {
+      if (roomResponse.ok) {
+        // Extract HMS room ID from room data
+        hmsRoomId = roomResponse.data.data.room.hms_room_id || "";
+        
+        if (roomResponse.data.data.room.host._id === user._id) {
           const hostCode = roomCodes.find((code) => code.role === "host");
           if (hostCode) {
             roomCode = hostCode.code;
             role = "host";
           }
         }
+      }
 
-        if (!roomCode) {
-          try {
-            const response = await fetchAPI(
-              `${URL}/api/rooms/protected/${roomId}/my-code`,
-              {
-                authToken: token,
-              }
-            );
-
-            if (response.ok && response.data.success) {
-              roomCode = response.data.data.code;
-              role = response.data.data.role;
-            } else {
-              console.error("Failed to get user role:", response.data.error);
-              // Fallback to listener role
-              const listenerCode = roomCodes.find(
-                (code) => code.role === "listener"
-              );
-              if (listenerCode) {
-                roomCode = listenerCode.code;
-                role = "listener";
-              }
+      if (!roomCode) {
+        try {
+          const response = await fetchAPI(
+            `${URL}/api/rooms/protected/${roomId}/my-code`,
+            {
+              authToken: token,
             }
-          } catch (error) {
-            console.error("Error fetching user role:", error);
+          );
+
+          if (response.ok && response.data.success) {
+            roomCode = response.data.data.code;
+            role = response.data.data.role;
+          } else {
+            console.error("Failed to get user role:", response.data.error);
             // Fallback to listener role
             const listenerCode = roomCodes.find(
               (code) => code.role === "listener"
@@ -164,51 +204,97 @@ export default function CallClient({ roomId }: CallClientProps) {
               role = "listener";
             }
           }
+        } catch (error) {
+          console.error("Error fetching user role:", error);
+          // Fallback to listener role
+          const listenerCode = roomCodes.find(
+            (code) => code.role === "listener"
+          );
+          if (listenerCode) {
+            roomCode = listenerCode.code;
+            role = "listener";
+          }
         }
+      }
 
-        if (!roomCode) {
-          throw new Error("No valid room code found");
-        }
+      if (!roomCode) {
+        throw new Error("No valid room code found");
+      }
 
-        const authToken = await hmsActions.getAuthTokenByRoomCode({
-          roomCode: roomCode,
-        });
+      const authToken = await hmsActions.getAuthTokenByRoomCode({
+        roomCode: roomCode,
+      });
 
-        console.log("[HMS Action - CallClient] Joining room with role:", {
-          role,
-          userName: user.displayName || "Wanderer",
-          timestamp: new Date().toISOString(),
-        });
+      console.log("[HMS Action - CallClient] Joining room with role:", {
+        role,
+        userName: user.displayName || "Wanderer",
+        timestamp: new Date().toISOString(),
+      });
 
-        await hmsActions.join({
-          userName: user.displayName || "Wanderer",
-          authToken,
-          settings: {
-            isAudioMuted: true,
-            isVideoMuted: true,
-          },
-          
-          rememberDeviceSelection: true,
-          metaData: JSON.stringify({
-            avatar: user.pfp_url,
-            role: role,
-            fid: user.fid,
-            wallet: user.wallet || "",
-          }),
-        });
+      await hmsActions.join({
+        userName: user.displayName || "Wanderer",
+        authToken,
+        settings: {
+          isAudioMuted: true,
+          isVideoMuted: true,
+        },
+        
+        rememberDeviceSelection: true,
+        metaData: JSON.stringify({
+          avatar: user.pfp_url,
+          role: role,
+          fid: user.fid,
+          wallet: user.wallet || "",
+        }),
+      });
 
-        console.log("[HMS Action - CallClient] Successfully joined room");
-        setIsJoining(false);
-      } catch (err) {
+      console.log("[HMS Action - CallClient] Successfully joined room");
+      setIsJoining(false);
+    };
+
+    const joinRoom = async () => {
+      try {
+        await attemptJoin();
+      } catch (err: any) {
         console.error("[HMS Action - CallClient] Error joining room:", {
           error: err,
+          message: err?.message,
           timestamp: new Date().toISOString(),
         });
+
+        // Check if error is "role limit reached"
+        const errorMessage = err?.message?.toLowerCase() || "";
+        if (errorMessage.includes("role limit reached")) {
+          console.log("[HMS Action - CallClient] Role limit reached, attempting to remove duplicate peer");
+          
+          try {
+            // Get HMS room ID from the room data
+            const roomResponse = await fetchAPI(
+              `${URL}/api/rooms/public/${roomId}`
+            );
+            
+            if (roomResponse.ok && roomResponse.data.data.room.hms_room_id && user?.fid) {
+              const hmsRoomId = roomResponse.data.data.room.hms_room_id;
+              const removed = await handleRoleLimitError(hmsRoomId, user.fid);
+              
+              if (removed) {
+                console.log("[HMS Action - CallClient] Retrying join after removing duplicate peer");
+                // Retry joining
+                await attemptJoin(1);
+                return;
+              }
+            }
+          } catch (retryErr) {
+            console.error("[HMS Action - CallClient] Error during retry:", retryErr);
+          }
+        }
+
         setError(err instanceof Error ? err.message : "Failed to join room");
         setIsJoining(false);
         toast.error("Failed to join room. Please try again.");
       }
     };
+    
     if (user && roomId) {
       joinRoom();
     }
