@@ -36,7 +36,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
 
   // useEffect for sign-in moved to a single place with hasRunRef check below
 
-  const getNonce = useCallback(async (): Promise<string> => {
+  const getNonce = async (): Promise<string> => {
     try {
       const nonce = await generateNonce();
       if (!nonce) throw new Error("Unable to generate nonce");
@@ -45,9 +45,9 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       console.error("Error in getNonce:", error);
       throw error;
     }
-  }, []);
+  };
 
-  const handleSignIn = useCallback(async (): Promise<void> => {
+  const handleSignIn = async (): Promise<void> => {
     console.log("handleSignIn called", new Date().toISOString());
     try {
       const env = process.env.NEXT_PUBLIC_ENV;
@@ -90,20 +90,12 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       console.error("Sign in error:", error);
       setIsUserLoading(false);
     }
-  }, [getNonce, context]);
-
-  const hasRunRef = React.useRef(false);
+  };
 
   useEffect(() => {
+    if (!context && process.env.NEXT_PUBLIC_ENV !== "DEV") return;
+    
     (async () => {
-      if (hasRunRef.current) return;
-      hasRunRef.current = true;
-      // const sessionUser = sessionStorage.getItem("user");
-      // if (!sessionUser) {
-      //   await handleSignIn();
-      // } else {
-      //   setUser(JSON.parse(sessionUser));
-      // }
       await handleSignIn();
       if (process.env.NEXT_PUBLIC_ENV !== "DEV") {
         sdk.actions.ready();
@@ -123,9 +115,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
         }
       }
     })();
-    // We're using hasRunRef to ensure this only runs once
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [context]);
 
   return (
     <GlobalContext.Provider
