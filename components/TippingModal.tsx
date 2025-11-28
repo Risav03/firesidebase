@@ -64,6 +64,9 @@ export default function TippingModal({
     speaker: false,
     listener: false,
   });
+  const [ethPrice, setEthPrice] = useState<number | null>(null);
+  const [firePrice, setFirePrice] = useState<number | null>(null);
+  const [isFetchingPrices, setIsFetchingPrices] = useState(false);
 
   const batchSize = parseInt(process.env.NEXT_PUBLIC_BATCH_SIZE || "20");
   const { user } = useGlobalContext();
@@ -81,6 +84,64 @@ export default function TippingModal({
       batches.push(array.slice(i, i + batchSize));
     }
     return batches;
+  };
+
+  const fetchTokenPrices = async () => {
+    try {
+      setIsFetchingPrices(true);
+      
+      // Try fetching from CoinGecko Pro API (free tier)
+      try {
+        const response = await fetch(
+          'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd',
+          {
+            headers: {
+              'Accept': 'application/json',
+            }
+          }
+        );
+        
+        if (response.ok) {
+          const ethData = await response.json();
+          const ethPriceUsd = ethData?.ethereum?.usd;
+          
+          if (ethPriceUsd) {
+            setEthPrice(ethPriceUsd);
+            console.log('ETH Price fetched:', ethPriceUsd);
+          }
+        } else {
+          console.error('CoinGecko API error:', response.status, await response.text());
+        }
+      } catch (ethError) {
+        console.error('Error fetching ETH price from CoinGecko:', ethError);
+      }
+
+      // Try fetching FIRE price from DexScreener (more reliable for smaller tokens)
+      try {
+        const fireResponse = await fetch(
+          `https://api.dexscreener.com/latest/dex/tokens/${FIRE_ADDRESS}`
+        );
+        
+        if (fireResponse.ok) {
+          const fireData = await fireResponse.json();
+          // Get the first pair's price (usually the most liquid)
+          const firePriceUsd = fireData?.pairs?.[0]?.priceUsd;
+          
+          if (firePriceUsd) {
+            setFirePrice(parseFloat(firePriceUsd));
+            console.log('FIRE Price fetched:', firePriceUsd);
+          }
+        } else {
+          console.error('DexScreener API error:', fireResponse.status);
+        }
+      } catch (fireError) {
+        console.error('Error fetching FIRE price from DexScreener:', fireError);
+      }
+    } catch (error) {
+      console.error('Error fetching token prices:', error);
+    } finally {
+      setIsFetchingPrices(false);
+    }
   };
 
   const lastCurrencyRef = useRef<string>("ETH");
@@ -132,6 +193,9 @@ export default function TippingModal({
         })
         .catch((error) => console.error("Error fetching participants:", error))
         .finally(() => setIsLoadingUsers(false));
+      
+      // Fetch token prices when modal opens
+      fetchTokenPrices();
     }
   }, [isOpen, roomId]);
 
@@ -159,13 +223,13 @@ export default function TippingModal({
   };
 
   const processSuccess = async (currency: string = "ETH") => {
-    const tipAmount = selectedTip ? selectedTip : parseFloat(customTip);
+    const tipAmountUSD = selectedTip ? selectedTip : parseFloat(customTip);
     const tipper = user?.username || "Someone";
     const recipients = selectedUsers.length
       ? selectedUsers.map((user) => user.username).join(", ")
       : selectedRoles.map((role) => (role === "host" ? role : `${role}s`)).join(", ");
     
-    await sendTipMessage(tipper, recipients, tipAmount, currency, user?.fid || "unknown");
+    await sendTipMessage(tipper, recipients, tipAmountUSD, currency, user?.fid || "unknown");
 
     onClose();
     setSelectedUsers([]);
@@ -217,11 +281,21 @@ export default function TippingModal({
 
       lastCurrencyRef.current = "ETH";
       
-      const tipAmount = selectedTip ? selectedTip : parseFloat(customTip);
+      const tipAmountUSD = selectedTip ? selectedTip : parseFloat(customTip);
+      
+      // Check if ETH price is available
+      if (!ethPrice) {
+        toast.error('ETH price not available. Please try again.');
+        setIsLoading(false);
+        return;
+      }
+      
+      // Convert USD to ETH
+      const tipAmountETH = tipAmountUSD / ethPrice;
       const splitArr = splitIntoBatches(usersToSend);
       
-      // Simplified ETH tip implementation
-      const ethValueInWei = BigInt(Math.floor(tipAmount * 1e18));
+      // Convert ETH to Wei
+      const ethValueInWei = BigInt(Math.floor(tipAmountETH * 1e18));
       
       const sendingCalls = splitArr.map((batch) => ({
         to: contractAdds.tipping as `0x${string}`,
@@ -327,8 +401,26 @@ export default function TippingModal({
 
       lastCurrencyRef.current = tokenSymbol;
       
-      const tipAmount = selectedTip ? selectedTip : parseFloat(customTip);
-      const tokenAmount = BigInt(Math.floor(tipAmount * 1e6)); // USDC and FIRE have 6 decimals
+      const tipAmountUSD = selectedTip ? selectedTip : parseFloat(customTip);
+      let tokenAmount: bigint;
+      
+      if (tokenSymbol === "USDC") {
+        // USDC is 1:1 with USD
+        tokenAmount = BigInt(Math.floor(tipAmountUSD * 1e6));
+      } else if (tokenSymbol === "FIRE") {
+        // Check if FIRE price is available
+        if (!firePrice) {
+          toast.error('FIRE price not available. Please try again.');
+          setIsLoading(false);
+          return;
+        }
+        // Convert USD to FIRE tokens
+        const tipAmountFIRE = tipAmountUSD / firePrice;
+        tokenAmount = BigInt(Math.floor(tipAmountFIRE * 1e6)); // FIRE has 6 decimals
+      } else {
+        tokenAmount = BigInt(Math.floor(tipAmountUSD * 1e6));
+      }
+      
       const splitArr = splitIntoBatches(usersToSend);
 
       const approveCall = {
