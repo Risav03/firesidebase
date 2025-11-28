@@ -1,5 +1,6 @@
 'use server'
 import AllowNotifications from '@/components/AllowNotifications';
+import HighTrafficDrawer from '@/components/HighTrafficDrawer';
 import LiveRoomList from '@/components/LiveRoomList';
 import NavigationWrapper from '@/components/NavigationWrapper';
 import MainHeader from '@/components/UI/MainHeader';
@@ -52,6 +53,7 @@ export default async function Home() {
       <MainHeader/>
       <LiveRoomList />
       <AllowNotifications />
+      <HighTrafficDrawer />
       <NavigationWrapper />
     </>
   );
