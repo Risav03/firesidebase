@@ -456,11 +456,13 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                   </div>
                 ) : (
                   <div className="text-left">
-                    <p className="text-white/70 mb-4">
+                    <p className="text-white/70 mb-4 text-lg">
                       No upcoming conversations scheduled
                     </p>
                     <Button
-                      variant="default"
+                    className=" text-white px-6 py-2 rounded-md font-semibold"
+                      variant="action"
+                      active={true}
                       onClick={() => setShowCreateModal(true)}
                     >
                       Create a Room

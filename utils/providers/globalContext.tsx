@@ -76,8 +76,8 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
 
       var localUser = createUserRes.data.data.user;
       if(context){
-localUser.pfp_url = context?.user.pfpUrl;
-      localUser.username = context?.user.username;
+        localUser.pfp_url = context.user.pfpUrl;
+        localUser.username = context?.user.username;
       }
       
       setUser(localUser);
@@ -90,7 +90,7 @@ localUser.pfp_url = context?.user.pfpUrl;
       console.error("Sign in error:", error);
       setIsUserLoading(false);
     }
-  }, [getNonce]);
+  }, [getNonce, context]);
 
   const hasRunRef = React.useRef(false);
 
