@@ -23,7 +23,7 @@ export default function HighTrafficDrawer() {
             Temporarily Down for Maintenance
           </DrawerTitle>
           <DrawerDescription className="text-center text-white/70">
-            We're working to improve your experience
+            We&apos;re working to improve your experience
           </DrawerDescription>
         </DrawerHeader>
         <div className="p-6 space-y-4">
@@ -32,7 +32,7 @@ export default function HighTrafficDrawer() {
             <div>
               <h3 className="font-semibold text-white mb-1">High Traffic Detected</h3>
               <p className="text-sm text-white/70">
-                We're experiencing higher than usual traffic and are temporarily down to strengthen our infrastructure.
+                We&apos;re experiencing higher than usual traffic and are temporarily down to strengthen our infrastructure.
               </p>
             </div>
           </div>
@@ -41,7 +41,7 @@ export default function HighTrafficDrawer() {
             <div>
               <h3 className="font-semibold text-white mb-1">Improving Our Services</h3>
               <p className="text-sm text-white/70">
-                Our team is working hard to enhance our systems to provide you with the best possible experience. We'll be back shortly!
+                Our team is working hard to enhance our systems to provide you with the best possible experience. We&apos;ll be back shortly!
               </p>
             </div>
           </div>
