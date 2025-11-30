@@ -22,7 +22,7 @@ export default function FloatingEmojis({ emojis }: FloatingEmojisProps) {
       transform: translateY(-15vh);
     }
     100% {
-      transform: translateY(-40vh);
+      transform: translateY(-60vh);
     }
   }
 
@@ -58,10 +58,10 @@ export default function FloatingEmojis({ emojis }: FloatingEmojisProps) {
           style={{
             right: `${floatingEmoji.position}%`,
             transform: "translateX(-50%)",
-            animation: "float 4s ease-out forwards",
+            animation: "float 7s ease-out forwards",
           }}
         >
-          <div style={{animation: "fade 2s ease-out forwards"}} className="flex flex-col pointer-events-none items-center relative justify-center rounded-full p-[0.1rem] aspect-square bg-black/50 border-2 border-black/50">
+          <div style={{animation: "fade 4s ease-out forwards"}} className="flex flex-col pointer-events-none items-center relative justify-center rounded-full p-[0.1rem] aspect-square bg-black/50 border-2 border-black/50">
             <span
               style={{
                 fontSize: `${floatingEmoji.fontSize}rem`,
