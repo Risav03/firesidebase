@@ -9,13 +9,29 @@ import {
 } from '@/utils/adsCache';
 import { verifyAdsWebhook } from '@/utils/adsWebhook';
 
+const shouldLog = process.env.NODE_ENV !== 'production';
+const logAdsWebhook = (message: string, meta?: Record<string, unknown>) => {
+  if (!shouldLog) return;
+  if (meta) {
+    console.log(`[AdsWebhook] ${message}`, meta);
+  } else {
+    console.log(`[AdsWebhook] ${message}`);
+  }
+};
+
 export async function GET(req: NextRequest) {
   const roomId = req.nextUrl.searchParams.get('roomId');
   if (!roomId) {
     return NextResponse.json({ error: 'roomId is required' }, { status: 400 });
   }
 
-  return NextResponse.json(getCurrent(roomId));
+  const cached = getCurrent(roomId);
+  logAdsWebhook('Cache requested', {
+    roomId,
+    state: cached.state,
+    hasCurrent: Boolean(cached.current),
+  });
+  return NextResponse.json(cached);
 }
 
 export async function POST(req: NextRequest) {
@@ -32,10 +48,12 @@ export async function POST(req: NextRequest) {
 
   const isValid = verifyAdsWebhook(signature, timestamp, body, secret);
   if (!isValid) {
+    logAdsWebhook('Invalid webhook signature', { eventType, timestamp });
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
   }
 
   if (isDuplicateIdempotency(idempotencyKey)) {
+    logAdsWebhook('Duplicate webhook skipped', { eventType, idempotencyKey });
     return NextResponse.json({ ok: true, deduped: true });
   }
 
@@ -52,9 +70,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing roomId in payload' }, { status: 400 });
   }
 
+  logAdsWebhook('Event received', {
+    eventType,
+    roomId,
+    reservationId: payload?.reservationId,
+    sessionId: payload?.sessionId,
+  });
+
   switch (eventType) {
     case 'ads.session.started':
       setSessionRunning(roomId, payload.sessionId, payload.startedAt);
+      logAdsWebhook('Session marked running', {
+        roomId,
+        sessionId: payload.sessionId,
+      });
       break;
     case 'ads.ad.started':
       if (payload.reservationId) {
@@ -67,19 +96,35 @@ export async function POST(req: NextRequest) {
           startedAt: payload.startedAt,
           sessionId: payload.sessionId,
         });
+        logAdsWebhook('Ad cached', {
+          roomId,
+          reservationId: payload.reservationId,
+          adId: payload.adId,
+          durationSec: payload.durationSec,
+        });
       }
       break;
     case 'ads.ad.completed':
       if (payload.reservationId) {
         completeAd(roomId, payload.reservationId);
+        logAdsWebhook('Ad completion processed', {
+          roomId,
+          reservationId: payload.reservationId,
+        });
       }
       break;
     case 'ads.session.stopped':
     case 'ads.session.idle':
       stopSession(roomId);
+      logAdsWebhook('Session stopped', {
+        roomId,
+        sessionId: payload.sessionId,
+        reason: eventType === 'ads.session.idle' ? payload?.reason || 'idle' : 'stopped',
+      });
       break;
     default:
       console.warn('Unhandled ads webhook event', eventType);
+      logAdsWebhook('Unhandled event', { eventType, roomId });
       break;
   }
 
