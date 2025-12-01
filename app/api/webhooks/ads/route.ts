@@ -1,23 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  completeAd,
-  getCurrent,
-  isDuplicateIdempotency,
-  setCurrentAd,
-  setSessionRunning,
-  stopSession,
-} from '@/utils/adsCache';
-import { verifyAdsWebhook } from '@/utils/adsWebhook';
-
-const shouldLog = process.env.NODE_ENV !== 'production';
-const logAdsWebhook = (message: string, meta?: Record<string, unknown>) => {
-  if (!shouldLog) return;
-  if (meta) {
-    console.log(`[AdsWebhook] ${message}`, meta);
-  } else {
-    console.log(`[AdsWebhook] ${message}`);
-  }
-};
+import { getCachedAdsState, processAdsWebhookEvent } from '@/utils/serverActions';
 
 export async function GET(req: NextRequest) {
   const roomId = req.nextUrl.searchParams.get('roomId');
@@ -25,109 +7,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'roomId is required' }, { status: 400 });
   }
 
-  const cached = getCurrent(roomId);
-  logAdsWebhook('Cache requested', {
-    roomId,
-    state: cached.state,
-    hasCurrent: Boolean(cached.current),
-  });
+  const cached = await getCachedAdsState(roomId);
   return NextResponse.json(cached);
 }
 
 export async function POST(req: NextRequest) {
-  const secret = process.env.ADS_WEBHOOK_SECRET;
-  if (!secret) {
-    return NextResponse.json({ error: 'ADS_WEBHOOK_SECRET is not configured' }, { status: 500 });
-  }
-
   const body = await req.text();
-  const signature = req.headers.get('x-ads-signature') || undefined;
-  const timestamp = req.headers.get('x-ads-timestamp') || undefined;
-  const eventType = req.headers.get('x-ads-event') || undefined;
-  const idempotencyKey = req.headers.get('idempotency-key') || undefined;
-
-  const isValid = verifyAdsWebhook(signature, timestamp, body, secret);
-  if (!isValid) {
-    logAdsWebhook('Invalid webhook signature', { eventType, timestamp });
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
-  }
-
-  if (isDuplicateIdempotency(idempotencyKey)) {
-    logAdsWebhook('Duplicate webhook skipped', { eventType, idempotencyKey });
-    return NextResponse.json({ ok: true, deduped: true });
-  }
-
-  let payload: any;
-  try {
-    payload = JSON.parse(body);
-  } catch (error) {
-    console.error('Failed to parse ads webhook payload', error);
-    return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
-  }
-
-  const roomId = payload?.roomId;
-  if (!roomId) {
-    return NextResponse.json({ error: 'Missing roomId in payload' }, { status: 400 });
-  }
-
-  logAdsWebhook('Event received', {
-    eventType,
-    roomId,
-    reservationId: payload?.reservationId,
-    sessionId: payload?.sessionId,
+  const result = await processAdsWebhookEvent(body, {
+    signature: req.headers.get('x-ads-signature') || undefined,
+    timestamp: req.headers.get('x-ads-timestamp') || undefined,
+    eventType: req.headers.get('x-ads-event') || undefined,
+    idempotencyKey: req.headers.get('idempotency-key') || undefined,
   });
 
-  switch (eventType) {
-    case 'ads.session.started':
-      setSessionRunning(roomId, payload.sessionId, payload.startedAt);
-      logAdsWebhook('Session marked running', {
-        roomId,
-        sessionId: payload.sessionId,
-      });
-      break;
-    case 'ads.ad.started':
-      if (payload.reservationId) {
-        setCurrentAd(roomId, {
-          reservationId: payload.reservationId,
-          adId: payload.adId,
-          title: payload.title,
-          imageUrl: payload.imageUrl,
-          durationSec: payload.durationSec,
-          startedAt: payload.startedAt,
-          sessionId: payload.sessionId,
-        });
-        logAdsWebhook('Ad cached', {
-          roomId,
-          reservationId: payload.reservationId,
-          adId: payload.adId,
-          durationSec: payload.durationSec,
-        });
-      }
-      break;
-    case 'ads.ad.completed':
-      if (payload.reservationId) {
-        completeAd(roomId, payload.reservationId);
-        logAdsWebhook('Ad completion processed', {
-          roomId,
-          reservationId: payload.reservationId,
-        });
-      }
-      break;
-    case 'ads.session.stopped':
-    case 'ads.session.idle':
-      stopSession(roomId);
-      logAdsWebhook('Session stopped', {
-        roomId,
-        sessionId: payload.sessionId,
-        reason: eventType === 'ads.session.idle' ? payload?.reason || 'idle' : 'stopped',
-      });
-      break;
-    default:
-      console.warn('Unhandled ads webhook event', eventType);
-      logAdsWebhook('Unhandled event', { eventType, roomId });
-      break;
-  }
-
-  return NextResponse.json({ ok: true });
+  return NextResponse.json(result.body, { status: result.status });
 }
 

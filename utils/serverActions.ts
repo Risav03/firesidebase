@@ -1,5 +1,17 @@
 'use server'
 
+import sdk from "@farcaster/miniapp-sdk";
+import { parseWebhookEvent, verifyAppKeyWithNeynar } from "@farcaster/miniapp-node";
+import {
+  completeAd,
+  getCurrent,
+  isDuplicateIdempotency,
+  setCurrentAd,
+  setSessionRunning,
+  stopSession,
+} from "@/utils/adsCache";
+import { verifyAdsWebhook } from "@/utils/adsWebhook";
+
 type FetchOptions = {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   body?: any;
@@ -420,5 +432,223 @@ export async function fetchHMSActivePeers(hmsRoomId: string) {
   } catch (error) {
     console.error('Error fetching HMS active peers:', error);
     throw error;
+  }
+}
+
+/**
+ * Ads controls helpers
+ */
+function ensureRoomId(roomId: string) {
+  if (!roomId) {
+    throw new Error('roomId is required');
+  }
+}
+
+function ensureAuthHeader(authHeader: string | null | undefined) {
+  if (!authHeader) {
+    throw new Error('Missing Authorization header');
+  }
+  return authHeader;
+}
+
+async function postAdsControl(
+  roomId: string,
+  pathSuffix: string,
+  authHeader: string,
+  body?: Record<string, unknown>
+) {
+  ensureRoomId(roomId);
+  const backend = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${backend}/api/ads/protected/rooms/${roomId}/${pathSuffix}`, {
+    method: 'POST',
+    headers: {
+      Authorization: authHeader,
+    },
+    body,
+  });
+}
+
+export async function startAdsSession(roomId: string, authHeader: string, options?: { webhookUrl?: string }) {
+  const header = ensureAuthHeader(authHeader);
+  ensureRoomId(roomId);
+  let webhookUrl = options?.webhookUrl;
+  if (!webhookUrl) {
+    const baseUrl = process.env.NEXT_PUBLIC_URL;
+    if (!baseUrl) {
+      throw new Error('NEXT_PUBLIC_URL is not set');
+    }
+    webhookUrl = `${baseUrl.replace(/\/$/, '')}/api/webhooks/ads`;
+  }
+
+  const res = await postAdsControl(roomId, 'start', header, { webhookUrl });
+  if (!res.ok) {
+    throw new Error(res?.data?.error || 'Failed to start ads session');
+  }
+  return res;
+}
+
+export async function stopAdsSession(roomId: string, authHeader: string) {
+  const header = ensureAuthHeader(authHeader);
+  const res = await postAdsControl(roomId, 'stop', header);
+  if (!res.ok) {
+    throw new Error(res?.data?.error || 'Failed to stop ads session');
+  }
+  return res;
+}
+
+export async function notifyAdsRoomEnded(roomId: string, authHeader: string) {
+  const header = ensureAuthHeader(authHeader);
+  const res = await postAdsControl(roomId, 'room-ended', header);
+  if (!res.ok) {
+    throw new Error(res?.data?.error || 'Failed to notify room ended');
+  }
+  return res;
+}
+
+export async function getAdsSessionState(roomId: string) {
+  ensureRoomId(roomId);
+  const backend = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  const env = process.env.NEXT_PUBLIC_ENV;
+  let authHeader = 'Bearer dev';
+  if (env !== 'DEV') {
+    const tokenResponse = await sdk.quickAuth.getToken();
+    authHeader = `Bearer ${tokenResponse.token}`;
+  }
+
+  return fetchAPI(`${backend}/api/ads/protected/sessions/${roomId}`, {
+    cache: 'no-store',
+    headers: {
+      Authorization: authHeader,
+    },
+  });
+}
+
+export async function getCachedAdsState(roomId: string) {
+  ensureRoomId(roomId);
+  return getCurrent(roomId);
+}
+
+const shouldLogAdsWebhook = process.env.NODE_ENV !== 'production';
+
+function logAdsWebhook(message: string, meta?: Record<string, unknown>) {
+  if (!shouldLogAdsWebhook) return;
+  if (meta) {
+    console.log(`[AdsWebhook] ${message}`, meta);
+  } else {
+    console.log(`[AdsWebhook] ${message}`);
+  }
+}
+
+type AdsWebhookHeaders = {
+  signature?: string;
+  timestamp?: string;
+  eventType?: string;
+  idempotencyKey?: string;
+};
+
+export async function processAdsWebhookEvent(
+  rawBody: string,
+  headers: AdsWebhookHeaders
+): Promise<{ status: number; body: Record<string, unknown> }> {
+  const secret = process.env.ADS_WEBHOOK_SECRET;
+  if (!secret) {
+    return { status: 500, body: { error: 'ADS_WEBHOOK_SECRET is not configured' } };
+  }
+
+  const isValid = verifyAdsWebhook(headers.signature, headers.timestamp, rawBody, secret);
+  if (!isValid) {
+    logAdsWebhook('Invalid webhook signature', { eventType: headers.eventType, timestamp: headers.timestamp });
+    return { status: 401, body: { error: 'Invalid signature' } };
+  }
+
+  if (isDuplicateIdempotency(headers.idempotencyKey)) {
+    logAdsWebhook('Duplicate webhook skipped', { eventType: headers.eventType, idempotencyKey: headers.idempotencyKey });
+    return { status: 200, body: { ok: true, deduped: true } };
+  }
+
+  let payload: any;
+  try {
+    payload = JSON.parse(rawBody);
+  } catch (error) {
+    console.error('Failed to parse ads webhook payload', error);
+    return { status: 400, body: { error: 'Invalid JSON payload' } };
+  }
+
+  const roomId = payload?.roomId;
+  if (!roomId) {
+    return { status: 400, body: { error: 'Missing roomId in payload' } };
+  }
+
+  logAdsWebhook('Event received', {
+    eventType: headers.eventType,
+    roomId,
+    reservationId: payload?.reservationId,
+    sessionId: payload?.sessionId,
+  });
+
+  switch (headers.eventType) {
+    case 'ads.session.started':
+      setSessionRunning(roomId, payload.sessionId, payload.startedAt);
+      logAdsWebhook('Session marked running', { roomId, sessionId: payload.sessionId });
+      break;
+    case 'ads.ad.started':
+      if (payload.reservationId) {
+        setCurrentAd(roomId, {
+          reservationId: payload.reservationId,
+          adId: payload.adId,
+          title: payload.title,
+          imageUrl: payload.imageUrl,
+          durationSec: payload.durationSec,
+          startedAt: payload.startedAt,
+          sessionId: payload.sessionId,
+        });
+        logAdsWebhook('Ad cached', {
+          roomId,
+          reservationId: payload.reservationId,
+          adId: payload.adId,
+          durationSec: payload.durationSec,
+        });
+      }
+      break;
+    case 'ads.ad.completed':
+      if (payload.reservationId) {
+        completeAd(roomId, payload.reservationId);
+        logAdsWebhook('Ad completion processed', { roomId, reservationId: payload.reservationId });
+      }
+      break;
+    case 'ads.session.stopped':
+    case 'ads.session.idle':
+      stopSession(roomId);
+      logAdsWebhook('Session stopped', {
+        roomId,
+        sessionId: payload.sessionId,
+        reason: headers.eventType === 'ads.session.idle' ? payload?.reason || 'idle' : 'stopped',
+      });
+      break;
+    default:
+      console.warn('Unhandled ads webhook event', headers.eventType);
+      logAdsWebhook('Unhandled event', { eventType: headers.eventType, roomId });
+      break;
+  }
+
+  return { status: 200, body: { ok: true } };
+}
+
+export async function handleFarcasterWebhookEvent(requestJson: unknown) {
+  try {
+    const data = await parseWebhookEvent(requestJson, verifyAppKeyWithNeynar);
+    if (!data) {
+      return { status: 400, body: { message: 'Invalid webhook data' } };
+    }
+
+    const { fid, appFid, event } = data as { fid: number; appFid: number; event: Record<string, unknown> };
+    console.log('Received webhook event:', event);
+    console.log('For user FID:', fid);
+    console.log('In app FID:', appFid);
+
+    return { status: 200, body: { message: 'Webhook received successfully' } };
+  } catch (error) {
+    console.error('Failed to verify Farcaster webhook', error);
+    return { status: 400, body: { message: 'Invalid webhook data' } };
   }
 }

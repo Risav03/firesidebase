@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAdsControlEvent } from '../utils/events';
 import { Card } from './UI/Card';
+import { getAdsSessionState, getCachedAdsState } from '@/utils/serverActions';
 
 type CurrentAd = {
   reservationId: string;
@@ -42,10 +43,9 @@ export default function AdsOverlay({ roomId }: { roomId: string }) {
     isFetchingRef.current = true;
     try {
       // First try backend sessions
-      const res = await fetch(`/api/ads/sessions/${roomId}`);
-      if (res.ok) {
-        const data = await res.json();
-        const { state, currentAd } = parsePayload(data);
+      const res = await getAdsSessionState(roomId);
+      if (res?.ok) {
+        const { state, currentAd } = parsePayload(res.data);
         if (state === 'running' && currentAd) {
           setCurrent(currentAd);
           setMsLeft(remainingMs(currentAd));
@@ -53,15 +53,12 @@ export default function AdsOverlay({ roomId }: { roomId: string }) {
         }
       }
       // Fallback: local in-memory cache
-      const localRes = await fetch(`/api/webhooks/ads?roomId=${encodeURIComponent(roomId)}`);
-      if (localRes.ok) {
-        const localData = await localRes.json();
-        const { state, currentAd } = parsePayload(localData);
-        if (state === 'running' && currentAd) {
-          setCurrent(currentAd);
-          setMsLeft(remainingMs(currentAd));
-          return;
-        }
+      const localData = await getCachedAdsState(roomId);
+      const { state: fallbackState, currentAd: fallbackCurrent } = parsePayload(localData);
+      if (fallbackState === 'running' && fallbackCurrent) {
+        setCurrent(fallbackCurrent);
+        setMsLeft(remainingMs(fallbackCurrent));
+        return;
       }
       // No current ad
       setCurrent(null);
@@ -122,7 +119,7 @@ export default function AdsOverlay({ roomId }: { roomId: string }) {
       }
     }, 250);
     return () => clearInterval(id);
-  }, [current, adsEnabled]);
+  }, [current, adsEnabled, tick]);
 
   const secondsLeft = useMemo(() => Math.max(0, Math.ceil(msLeft / 1000)), [msLeft]);
   const progress = useMemo(() => {
