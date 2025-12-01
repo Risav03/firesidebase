@@ -8,6 +8,7 @@ import { useGlobalContext } from '@/utils/providers/globalContext';
 import sdk from "@farcaster/miniapp-sdk";
 import Modal from '@/components/UI/Modal';
 import { endProtectedRoom } from '@/utils/serverActions';
+import { notifyAdsRoomEnded } from '@/app/actions/ads';
 
 interface RoomEndModalProps {
   isVisible: boolean;
@@ -111,12 +112,7 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
         throw new Error(response.data.error || 'Failed to end room');
       }
       try {
-        await fetch(`/api/ads/controls/room-ended/${roomId}`, {
-          method: 'POST',
-          headers: {
-            Authorization: authHeader,
-          },
-        });
+        await notifyAdsRoomEnded(roomId, authHeader);
       } catch (e) {
         console.warn('Failed to notify ads room-ended', e);
       }

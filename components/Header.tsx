@@ -19,6 +19,7 @@ import { useAdsControlEvent } from '../utils/events';
 import { useGlobalContext } from '@/utils/providers/globalContext';
 import { isAdsTester } from '@/utils/constants';
 import Button from '@/components/UI/Button';
+import { fetchAdsSession, startAdsSession, stopAdsSession } from '@/app/actions/ads';
 
 interface HeaderProps {
   onToggleChat?: () => void;
@@ -53,9 +54,7 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
   const refreshAdsState = useCallback(async () => {
     if (!roomId || !canControlAds) return;
     try {
-      const res = await fetch(`/api/ads/sessions/${roomId}`);
-      if (!res.ok) return;
-      const data = await res.json();
+      const data = await fetchAdsSession(roomId);
       const state = data?.state || data?.data?.state;
       setAdsRunning(state === 'running');
     } catch (error) {
@@ -76,31 +75,25 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
     return () => clearInterval(id);
   }, [canControlAds, refreshAdsState]);
 
-  const buildAuthHeaders = async () => {
+  const buildAuthHeader = async () => {
     const env = process.env.NEXT_PUBLIC_ENV;
     if (env === 'DEV') {
-      return { Authorization: 'Bearer dev' } as HeadersInit;
+      return 'Bearer dev';
     }
     const tokenResponse = await sdk.quickAuth.getToken();
     if (!tokenResponse?.token) {
       throw new Error('Missing auth token');
     }
-    return {
-      Authorization: `Bearer ${tokenResponse.token}`,
-    } as HeadersInit;
+    return `Bearer ${tokenResponse.token}`;
   };
 
   const handleToggleAds = async () => {
     if (!roomId || !user) return;
     try {
       setIsTogglingAds(true);
-      const headers = await buildAuthHeaders();
+      const authHeader = await buildAuthHeader();
       if (!adsRunning) {
-        const res = await fetch(`/api/ads/controls/start/${roomId}`, {
-          method: 'POST',
-          headers,
-        });
-        if (!res.ok) throw new Error('Failed to start ads');
+        await startAdsSession(roomId, authHeader);
         setAdsRunning(true);
         toast.success('Ads session started');
         notifyAdsControl('start', roomId);
@@ -108,11 +101,7 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
           refreshAdsState();
         }, 1500);
       } else {
-        const res = await fetch(`/api/ads/controls/stop/${roomId}`, {
-          method: 'POST',
-          headers,
-        });
-        if (!res.ok) throw new Error('Failed to stop ads');
+        await stopAdsSession(roomId, authHeader);
         setAdsRunning(false);
         toast.success('Ads session stopped');
         notifyAdsControl('stop', roomId);

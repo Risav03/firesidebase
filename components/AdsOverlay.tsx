@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAdsControlEvent } from '../utils/events';
+import { fetchAdsSession, getCachedAd } from '@/app/actions/ads';
 import { Card } from './UI/Card';
 
 type CurrentAd = {
@@ -27,7 +28,7 @@ export default function AdsOverlay({ roomId }: { roomId: string }) {
   const [msLeft, setMsLeft] = useState<number>(0);
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isFetchingRef = useRef(false);
-  const [adsEnabled, setAdsEnabled] = useState<boolean>(true); // User preference for ads
+  const [adsEnabled] = useState<boolean>(true); // User preference for ads
 
   const parsePayload = (payload: any) => {
     // Accept { state, current } or { success, data: { state, current } }
@@ -41,33 +42,35 @@ export default function AdsOverlay({ roomId }: { roomId: string }) {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
     try {
-      // First try backend sessions
-      const res = await fetch(`/api/ads/sessions/${roomId}`);
-      if (res.ok) {
-        const data = await res.json();
+      try {
+        // First try backend sessions
+        const data = await fetchAdsSession(roomId);
         const { state, currentAd } = parsePayload(data);
         if (state === 'running' && currentAd) {
           setCurrent(currentAd);
           setMsLeft(remainingMs(currentAd));
           return;
         }
+      } catch {
+        // ignore request errors and fall back
       }
-      // Fallback: local in-memory cache
-      const localRes = await fetch(`/api/webhooks/ads?roomId=${encodeURIComponent(roomId)}`);
-      if (localRes.ok) {
-        const localData = await localRes.json();
-        const { state, currentAd } = parsePayload(localData);
-        if (state === 'running' && currentAd) {
-          setCurrent(currentAd);
-          setMsLeft(remainingMs(currentAd));
+
+      try {
+        // Fallback: local in-memory cache
+        const localData = await getCachedAd(roomId);
+        const { state: localState, currentAd: localCurrent } = parsePayload(localData);
+        if (localState === 'running' && localCurrent) {
+          setCurrent(localCurrent);
+          setMsLeft(remainingMs(localCurrent));
           return;
         }
+      } catch {
+        // ignore cache errors
       }
+
       // No current ad
       setCurrent(null);
       setMsLeft(0);
-    } catch {
-      // ignore
     } finally {
       isFetchingRef.current = false;
     }
