@@ -46,9 +46,7 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
-    if (!user) {
-      router.push('/');
-    } else if (user.hostedRooms && user?.hostedRooms?.length > 0) {
+    if (user) {
       // Fetch hosted rooms details from API
       fetchUserRooms(user.username)
         .then(response => {
