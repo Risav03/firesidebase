@@ -9,6 +9,7 @@ interface CustomToastProps {
 interface SponsorshipToastProps extends CustomToastProps {
   sponsorName: string;
   onView: () => void;
+  
 }
 
 interface SponsorStatusToastProps extends CustomToastProps {
