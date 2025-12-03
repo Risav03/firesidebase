@@ -27,36 +27,53 @@ import { useSendCalls } from "wagmi";
 export default function PurchaseAdPage() {
   const { user } = useGlobalContext();
   const [creating, setCreating] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const isTester = isAdsTester(user?.fid);
 
   const { context } = useMiniKit();
-  const { sendCalls, isSuccess, status } = useSendCalls();
+  const { sendCallsAsync, isSuccess, status } = useSendCalls();
 
   const [formData, setFormData] = useState<FormData | null>(null);
 
   const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
   useEffect(() => {
-    // When transaction succeeds
-    if (isSuccess) {
-      toast.success("Transaction successful!");
-      createOnBackend();
-    }
-    // When transaction fails (status === 'error')
-    else if (status === "error") {
-      toast.error("Transaction failed. Please try again.");
+    const handleStatusChange = async () => {
+      if (isSuccess) {
+        toast.success("Transaction successful!");
+        await createOnBackend();
+      } else if (status === "error") {
+        toast.error("Transaction failed. Please try again.");
+        setProcessing(false);
+        setCreating(false);
+        console.error("Transaction failed");
+      }
+    };
 
-      console.error("Transaction failed");
+    if (isSuccess || status === "error") {
+      handleStatusChange().catch((err) => {
+        console.error("Status handling failed", err);
+        toast.error("Something went wrong while processing the transaction status.");
+        setProcessing(false);
+        setCreating(false);
+      });
     }
   }, [isSuccess, status]);
 
   const handleERC20Payment = async (price: number, formData: FormData) => {
     try {
+      setProcessing(true);
+      setCreating(true);
+      
       if(!formData) {
         toast.error("Form data is not set");
+        setProcessing(false);
+        setCreating(false);
         return;
       }
       setFormData(formData);
+      
+      toast.info("Preparing USDC payment...");
       const distributorAddress = process.env.NEXT_PUBLIC_ADS_DISTRIBUTOR;
       if (!distributorAddress) {
         toast.error("Distributor address not set");
@@ -72,7 +89,7 @@ export default function PurchaseAdPage() {
       const usdcAmountToSend = BigInt(Math.floor((price / 2) * 1e6)); // USDC has 6 decimals
 
       const viewers_call = {
-        to: USDC_ADDRESS,
+        to: USDC_ADDRESS as `0x${string}`,
         value: context?.client.clientFid !== 309857 ? BigInt(0) : "0x0",
         data: encodeFunctionData({
           abi: erc20Abi,
@@ -82,7 +99,7 @@ export default function PurchaseAdPage() {
       };
 
       const revenue_call = {
-        to: USDC_ADDRESS,
+        to: USDC_ADDRESS as `0x${string}`,
         value: context?.client.clientFid !== 309857 ? BigInt(0) : "0x0",
         data: encodeFunctionData({
           abi: erc20Abi,
@@ -132,61 +149,80 @@ export default function PurchaseAdPage() {
 
         return result;
       } else {
+        toast.info("Please confirm the transaction in your wallet");
         // @ts-ignore
-        sendCalls({ calls: sendingCalls });
+        await sendCallsAsync({ calls: sendingCalls });
       }
     } catch (err) {
       console.error("ERC20 Payment Error:", err);
       toast.error("Failed to process ERC20 payment.");
+      setProcessing(false);
+      setCreating(false);
     }
   };
 
   const handleEthPayment = async (price:number, formData: FormData) => {
     try {
+      setProcessing(true);
+      setCreating(true);
+      
       if(!formData) {
         toast.error("Form data is not set");
+        setProcessing(false);
+        setCreating(false);
         return;
       }
       setFormData(formData);
+      
+      toast.info("Preparing ETH payment...");
 
       const distributorAddress = process.env.NEXT_PUBLIC_ADS_DISTRIBUTOR;
       if (!distributorAddress) {
         toast.error("Distributor address not set");
+        setProcessing(false);
+        setCreating(false);
         return;
       }
 
       const revenueAddress = process.env.NEXT_PUBLIC_ADS_REVENUE;
       if (!revenueAddress) {
         toast.error("Revenue address not set");
+        setProcessing(false);
+        setCreating(false);
         return;
       }
 
+      toast.info("Fetching current ETH price...");
       const ethPriceUsd = await getEthPrice();
       if (!ethPriceUsd) {
         toast.error("Failed to fetch ETH price");
+        setProcessing(false);
+        setCreating(false);
         return;
       }
-
+      toast.success(`ETH Price: $${ethPriceUsd.toFixed(2)}`);
+      
       // Convert USD to ETH
       const tipAmountETH = price / (2*ethPriceUsd);
-      
+      toast.info(`Payment amount: ${tipAmountETH.toFixed(6)} ETH ($${price.toFixed(2)})`);
+
       // Convert ETH to Wei
       const ethValueInWei = BigInt(Math.floor(tipAmountETH * 1e18));
 
       const viewers_call = {
-        to: distributorAddress,
+        to: distributorAddress as `0x${string}`,
         value: context?.client.clientFid !== 309857 ? ethValueInWei : numberToHex(ethValueInWei),
       };
 
       const revenue_call = {
-        to: revenueAddress,
+        to: revenueAddress as `0x${string}`,
         value: context?.client.clientFid !== 309857 ? ethValueInWei : numberToHex(ethValueInWei),
       };
 
       const sendingCalls = [viewers_call, revenue_call];
 
       if (context?.client.clientFid === 309857) {
-        toast.loading("Connecting to Base SDK...");
+        const connectToast = toast.loading("Connecting to Base SDK...");
 
         const provider = createBaseAccountSDK({
           appName: "Fireside",
@@ -197,7 +233,7 @@ export default function PurchaseAdPage() {
         const cryptoAccount = await getCryptoKeyAccount();
         const fromAddress = cryptoAccount?.account?.address;
 
-        toast.loading("Submitting transaction...");
+        toast.update(connectToast, { render: "Submitting transaction...", isLoading: true });
 
         const callsId: any = await provider.request({
           method: "wallet_sendCalls",
@@ -211,35 +247,49 @@ export default function PurchaseAdPage() {
           ],
         });
 
-        toast.loading("Transaction submitted, checking status...");
+        toast.update(connectToast, { render: "Transaction submitted, checking status...", isLoading: true });
 
         const result = await checkStatus(callsId);
 
         if (result == true) {
-          toast.loading("Transaction confirmed!");
+          toast.update(connectToast, { render: "Transaction confirmed!", type: "success", isLoading: false, autoClose: 3000 });
           await createOnBackend();
         } else {
-          toast.error("Transaction failed or timed out");
+          toast.update(connectToast, { render: "Transaction failed or timed out", type: "error", isLoading: false, autoClose: 5000 });
+          setProcessing(false);
+          setCreating(false);
         }
 
         return result;
       } else {
-        // @ts-ignore
-        sendCalls({ calls: sendingCalls });
+        toast.info("Please confirm the transaction in your wallet");
+        //@ts-ignore
+        await sendCallsAsync({ calls: sendingCalls });
       }
 
     } catch (err) {
       console.error("ETH Payment Error:", err);
       toast.error("Failed to process ETH payment.");
+      setProcessing(false);
+      setCreating(false);
     }
   };
 
   const createOnBackend = async () => {
     if(!formData) {
       toast.error("Form data is not set");
+      setProcessing(false);
+      setCreating(false);
       return;
     };
-    if (!user?.fid) return;
+    if (!user?.fid) {
+      toast.error("User not authenticated");
+      setProcessing(false);
+      setCreating(false);
+      return;
+    }
+    
+    toast.info("Creating advertisement on server...");
 
     // Debug: Log FormData contents
     console.log("FormData contents:");
@@ -293,12 +343,20 @@ export default function PurchaseAdPage() {
           console.error("Failed to parse error response:", parseError);
           errorMessage = `HTTP ${res.status}: ${responseText}`;
         }
+        toast.error(errorMessage);
         throw new Error(errorMessage);
       }
 
-      return JSON.parse(responseText);
+      const result = JSON.parse(responseText);
+      toast.success("Advertisement created successfully!");
+      setProcessing(false);
+      setCreating(false);
+      return result;
     } catch (fetchError) {
       console.error("Fetch error:", fetchError);
+      toast.error("Failed to create advertisement. Please try again.");
+      setProcessing(false);
+      setCreating(false);
       throw fetchError;
     }
   };
@@ -324,7 +382,7 @@ export default function PurchaseAdPage() {
 
   return (
     <>
-      <AdsPurchaseForm handleETHPayment={handleEthPayment} handleERC20Payment={handleERC20Payment} loading={creating} />
+      <AdsPurchaseForm handleETHPayment={handleEthPayment} handleERC20Payment={handleERC20Payment} loading={processing} />
       <NavigationWrapper />
     </>
   );
