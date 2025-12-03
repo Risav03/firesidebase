@@ -4,11 +4,13 @@ import { useState } from 'react';
 import { useGlobalContext } from '@/utils/providers/globalContext';
 
 interface AdsPurchaseFormProps {
-  onSubmit: (data: FormData) => void;
+  handleETHPayment: (price:number) => void;
+  handleERC20Payment: (price:number) => void;
   loading?: boolean;
+  setFormData: (data: FormData) => void;
 }
 
-export default function AdsPurchaseForm({ onSubmit, loading = false }: AdsPurchaseFormProps) {
+export default function AdsPurchaseForm({ handleERC20Payment, handleETHPayment, loading = false, setFormData, }: AdsPurchaseFormProps) {
   const { user } = useGlobalContext();
   const [title, setTitle] = useState('');
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -18,20 +20,13 @@ export default function AdsPurchaseForm({ onSubmit, loading = false }: AdsPurcha
   const [price, setPrice] = useState<number | null>(null);
   const [quoting, setQuoting] = useState(false);
 
-  const quotePrice = async () => {
-    setQuoting(true);
-    try {
-      const backend = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-      const res = await fetch(`${backend}/api/ads/public/quote`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rooms, minutes, minParticipants }),
-      });
-      const data = await res.json();
-      setPrice(data?.priceUsd ?? data?.data?.priceUsd ?? null);
-    } finally {
-      setQuoting(false);
-    }
+  const BASE_PRICE = 0.01; // Base price per room per minute per 10 participants in ETH
+
+  const quotePrice = () => {
+    
+      const priceCalc = rooms * minutes * Math.round(minParticipants / 10) * BASE_PRICE;
+      return priceCalc
+    
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,10 +46,17 @@ export default function AdsPurchaseForm({ onSubmit, loading = false }: AdsPurcha
     if (selectedImage) {
       formData.append('image', selectedImage);
     }
-    if (price) {
-      formData.append('price', price.toString());
+
+    setFormData(formData);
+
+    const price = quotePrice();
+    
+    if(paymentMethod === 'USDC') {
+      handleERC20Payment(price);
     }
-    onSubmit(formData);
+    else if (paymentMethod === 'ETH') {
+      handleETHPayment(price);
+    }
   };
 
   const isFormValid = title && selectedImage && rooms > 0 && minutes > 0 && minParticipants > 0;
