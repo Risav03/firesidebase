@@ -143,7 +143,7 @@ export default function PurchaseAdPage() {
         const result = await checkStatus(callsId);
 
         if (result.success == true) {
-          toast.loading("Transaction confirmed!" + JSON.stringify(result.receipts));
+          toast.loading("Transaction confirmed!" + result.receipts);
           await createOnBackend();
         } else {
           toast.error("Transaction failed or timed out");
@@ -223,7 +223,7 @@ export default function PurchaseAdPage() {
 
       const sendingCalls = [viewers_call, revenue_call];
 
-      // if (context?.client.clientFid === 309857) {
+      if (context?.client.clientFid === 309857) {
         const connectToast = toast.loading("Connecting to Base SDK...");
 
         const provider = createBaseAccountSDK({
@@ -254,7 +254,7 @@ export default function PurchaseAdPage() {
         const result = await checkStatus(callsId);
 
         if (result.success == true) {
-          toast.loading("Transaction confirmed!" + JSON.stringify(result.receipts));
+          toast.loading("Transaction confirmed!" + result.receipts);
           await createOnBackend();
         } else {
           toast.update(connectToast, { render: "Transaction failed or timed out", type: "error", isLoading: false, autoClose: 5000 });
@@ -263,11 +263,11 @@ export default function PurchaseAdPage() {
         }
 
         return result;
-      // } else {
-      //   toast.info("Please confirm the transaction in your wallet");
-      //   //@ts-ignore
-      //   sendCalls({ calls: sendingCalls });
-      // }
+      } else {
+        toast.info("Please confirm the transaction in your wallet");
+        //@ts-ignore
+        sendCalls({ calls: sendingCalls });
+      }
 
     } catch (err) {
       console.error("ETH Payment Error:", err);
