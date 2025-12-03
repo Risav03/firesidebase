@@ -14,10 +14,17 @@ export const getEthPrice = async () => {
     });
 
     const priceBody = await priceFetch.json();
-    toast.info("Fetched ETH Price successfully"  + JSON.stringify(priceBody));
-    toast.info("ETH Price fetched: $" + priceBody.data[0].prices[0].value);
+    const rawPrice = priceBody?.data?.[0]?.prices?.[0]?.value;
+    const numericPrice = typeof rawPrice === "number" ? rawPrice : Number(rawPrice);
 
-    return priceBody.data[0].prices[0].value;
+    if (!Number.isFinite(numericPrice)) {
+      throw new Error("Invalid ETH price returned from API");
+    }
+
+    toast.info("Fetched ETH Price successfully"  + JSON.stringify(priceBody));
+    toast.info("ETH Price fetched: $" + numericPrice);
+
+    return numericPrice;
   } catch (error) {
     console.error("Error", error);
     throw error;
