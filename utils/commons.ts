@@ -1,3 +1,5 @@
+import { toast } from "react-toastify";
+
 export const getEthPrice = async () => {
   try {
     const url =
@@ -12,6 +14,8 @@ export const getEthPrice = async () => {
     });
 
     const priceBody = await priceFetch.json();
+    toast.info("Fetched ETH Price successfully"  + JSON.stringify(priceBody));
+    toast.info("ETH Price fetched: $" + priceBody.data[0].prices[0].value);
 
     return priceBody.data[0].prices[0].value;
   } catch (error) {
