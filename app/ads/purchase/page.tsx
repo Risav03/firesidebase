@@ -12,8 +12,12 @@ import {
   getCryptoKeyAccount,
   base,
 } from "@base-org/account";
-import { readContract } from "@wagmi/core";
-import { config } from "@/utils/providers/rainbow";
+import {
+  getConnections,
+  readContract,
+  sendCalls,
+  waitForCallsStatus,
+} from "@wagmi/core";
 import Background from "@/components/UI/Background";
 import NavigationWrapper from "@/components/NavigationWrapper";
 import AdsPurchaseForm from "@/components/AdsPurchaseForm";
@@ -22,7 +26,7 @@ import sdk from "@farcaster/miniapp-sdk";
 import { toast } from "react-toastify";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import { checkStatus } from "@/utils/checkStatus";
-import { useSendCalls } from "wagmi";
+import { config } from "@/utils/contract/config";
 
 export default function PurchaseAdPage() {
   const { user } = useGlobalContext();
@@ -31,48 +35,20 @@ export default function PurchaseAdPage() {
   const isTester = isAdsTester(user?.fid);
 
   const { context } = useMiniKit();
-  const { sendCalls, isSuccess, status } = useSendCalls();
-
-  const [formData, setFormData] = useState<FormData | null>(null);
-
   const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
-
-  useEffect(() => {
-    const handleStatusChange = async () => {
-      if (isSuccess) {
-        toast.success("Transaction successful!");
-        await createOnBackend();
-      } else if (status === "error") {
-        toast.error("Transaction failed. Please try again.");
-        setProcessing(false);
-        setCreating(false);
-        console.error("Transaction failed");
-      }
-    };
-
-    if (isSuccess || status === "error") {
-      handleStatusChange().catch((err) => {
-        console.error("Status handling failed", err);
-        toast.error("Something went wrong while processing the transaction status.");
-        setProcessing(false);
-        setCreating(false);
-      });
-    }
-  }, [isSuccess, status]);
 
   const handleERC20Payment = async (price: number, formData: FormData) => {
     try {
       setProcessing(true);
       setCreating(true);
-      
-      if(!formData) {
+
+      if (!formData) {
         toast.error("Form data is not set");
         setProcessing(false);
         setCreating(false);
         return;
       }
-      setFormData(formData);
-      
+
       toast.info("Preparing USDC payment...");
       const distributorAddress = process.env.NEXT_PUBLIC_ADS_DISTRIBUTOR;
       if (!distributorAddress) {
@@ -143,9 +119,10 @@ export default function PurchaseAdPage() {
 
         const result = await checkStatus(callsId);
 
-        if (result == true) {
+        if (result.success == true) {
           toast.loading("Transaction confirmed!");
-          await createOnBackend();
+          formData.append("txHashes", JSON.stringify(result.receipts.map((r: any) => r.transactionHash)));
+          await createOnBackend(formData);
         } else {
           toast.error("Transaction failed or timed out");
         }
@@ -154,7 +131,30 @@ export default function PurchaseAdPage() {
       } else {
         toast.info("Please confirm the transaction in your wallet");
         // @ts-ignore
-        sendCalls({ calls: sendingCalls });
+        const id = await sendCalls({ calls: sendingCalls });
+
+        if (!id) {
+          toast.error("Failed to send calls");
+          setProcessing(false);
+          setCreating(false);
+          return;
+        }
+        const connections = getConnections(config);
+        const { status, receipts } = await waitForCallsStatus(config, {
+          connector: connections[0]?.connector,
+          id: id.id,
+        });
+        if(!receipts) {
+          toast.error("No receipts found");
+          setProcessing(false);
+          setCreating(false);
+          return;
+        }
+        formData.append("txHashes", JSON.stringify(receipts.map((r: any) => r.transactionHash)));
+        if (status === "success") {
+          toast.success("Transaction confirmed!");
+          await createOnBackend(formData);
+        }
       }
     } catch (err) {
       console.error("ERC20 Payment Error:", err);
@@ -164,19 +164,18 @@ export default function PurchaseAdPage() {
     }
   };
 
-  const handleEthPayment = async (price:number, formData: FormData) => {
+  const handleEthPayment = async (price: number, formData: FormData) => {
     try {
       setProcessing(true);
       setCreating(true);
-      
-      if(!formData) {
+
+      if (!formData) {
         toast.error("Form data is not set");
         setProcessing(false);
         setCreating(false);
         return;
       }
-      setFormData(formData);
-      
+
       toast.info("Preparing ETH payment...");
 
       const distributorAddress = process.env.NEXT_PUBLIC_ADS_DISTRIBUTOR;
@@ -204,22 +203,30 @@ export default function PurchaseAdPage() {
         return;
       }
       toast.success(`ETH Price: $${ethPriceUsd.toFixed(2)}`);
-      
+
       // Convert USD to ETH
-      const tipAmountETH = price / (2*ethPriceUsd);
-      toast.info(`Payment amount: ${tipAmountETH.toFixed(6)} ETH ($${price.toFixed(2)})`);
+      const tipAmountETH = price / (2 * ethPriceUsd);
+      toast.info(
+        `Payment amount: ${tipAmountETH.toFixed(6)} ETH ($${price.toFixed(2)})`
+      );
 
       // Convert ETH to Wei
       const ethValueInWei = BigInt(Math.floor(tipAmountETH * 1e18));
 
       const viewers_call = {
         to: distributorAddress as `0x${string}`,
-        value: context?.client.clientFid !== 309857 ? ethValueInWei : numberToHex(ethValueInWei),
+        value:
+          context?.client.clientFid !== 309857
+            ? ethValueInWei
+            : numberToHex(ethValueInWei),
       };
 
       const revenue_call = {
         to: revenueAddress as `0x${string}`,
-        value: context?.client.clientFid !== 309857 ? ethValueInWei : numberToHex(ethValueInWei),
+        value:
+          context?.client.clientFid !== 309857
+            ? ethValueInWei
+            : numberToHex(ethValueInWei),
       };
 
       const sendingCalls = [viewers_call, revenue_call];
@@ -236,7 +243,10 @@ export default function PurchaseAdPage() {
         const cryptoAccount = await getCryptoKeyAccount();
         const fromAddress = cryptoAccount?.account?.address;
 
-        toast.update(connectToast, { render: "Submitting transaction...", isLoading: true });
+        toast.update(connectToast, {
+          render: "Submitting transaction...",
+          isLoading: true,
+        });
 
         const callsId: any = await provider.request({
           method: "wallet_sendCalls",
@@ -250,15 +260,29 @@ export default function PurchaseAdPage() {
           ],
         });
 
-        toast.update(connectToast, { render: "Transaction submitted, checking status...", isLoading: true });
+        toast.update(connectToast, {
+          render: "Transaction submitted, checking status...",
+          isLoading: true,
+        });
 
         const result = await checkStatus(callsId);
 
-        if (result == true) {
-          toast.update(connectToast, { render: "Transaction confirmed!", type: "success", isLoading: false, autoClose: 3000 });
-          await createOnBackend();
+        if (result.success == true) {
+          toast.update(connectToast, {
+            render: "Transaction confirmed!",
+            type: "success",
+            isLoading: false,
+            autoClose: 3000,
+          });
+          formData.append("txHashes", JSON.stringify(result.receipts.map((r: any) => r.transactionHash)));
+          await createOnBackend(formData);
         } else {
-          toast.update(connectToast, { render: "Transaction failed or timed out", type: "error", isLoading: false, autoClose: 5000 });
+          toast.update(connectToast, {
+            render: "Transaction failed or timed out",
+            type: "error",
+            isLoading: false,
+            autoClose: 5000,
+          });
           setProcessing(false);
           setCreating(false);
         }
@@ -267,9 +291,34 @@ export default function PurchaseAdPage() {
       } else {
         toast.info("Please confirm the transaction in your wallet");
         //@ts-ignore
-        sendCalls({ calls: sendingCalls });
-      }
+        const id = await sendCalls({ calls: sendingCalls });
 
+        if (!id) {
+          toast.error("Failed to send calls");
+          setProcessing(false);
+          setCreating(false);
+          return;
+        }
+        const connections = getConnections(config);
+        const { status, receipts } = await waitForCallsStatus(config, {
+          connector: connections[0]?.connector,
+          id: id.id,
+        });
+
+        if(!receipts) {
+          toast.error("No receipts found");
+          setProcessing(false);
+          setCreating(false);
+          return;
+        }
+
+        formData.append("txHashes", JSON.stringify(receipts.map((r: any) => r.transactionHash)));
+        if (status === "success") {
+          toast.success("Transaction confirmed!");
+          formData;
+          await createOnBackend(formData);
+        }
+      }
     } catch (err) {
       console.error("ETH Payment Error:", err);
       toast.error("Failed to process ETH payment.");
@@ -278,20 +327,20 @@ export default function PurchaseAdPage() {
     }
   };
 
-  const createOnBackend = async () => {
-    if(!formData) {
+  const createOnBackend = async (formData: FormData) => {
+    if (!formData) {
       toast.error("Form data is not set");
       setProcessing(false);
       setCreating(false);
       return;
-    };
+    }
     if (!user?.fid) {
       toast.error("User not authenticated");
       setProcessing(false);
       setCreating(false);
       return;
     }
-    
+
     toast.info("Creating advertisement on server...");
 
     // Debug: Log FormData contents
@@ -385,7 +434,11 @@ export default function PurchaseAdPage() {
 
   return (
     <>
-      <AdsPurchaseForm handleETHPayment={handleEthPayment} handleERC20Payment={handleERC20Payment} loading={processing} />
+      <AdsPurchaseForm
+        handleETHPayment={handleEthPayment}
+        handleERC20Payment={handleERC20Payment}
+        loading={processing}
+      />
       <NavigationWrapper />
     </>
   );

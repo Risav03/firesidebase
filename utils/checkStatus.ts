@@ -1,7 +1,7 @@
 import { base, createBaseAccountSDK } from "@base-org/account";
 import { toast } from "react-toastify";
 
-export const checkStatus = async (callsId: string, attempt: number = 1): Promise<boolean> => {
+export const checkStatus = async (callsId: string, attempt: number = 1): Promise<{ success: boolean; receipts?: any }> => {
 
     const provider = createBaseAccountSDK({
         appName: "Fireside",
@@ -15,10 +15,10 @@ export const checkStatus = async (callsId: string, attempt: number = 1): Promise
   });
   
   if (status.status === "CONFIRMED") {
-    console.log('Batch completed successfully!');
-    console.log('Transaction receipts:', status.receipts);
     toast.success('Transaction completed successfully!', { toastId: callsId });
-    return true;
+    return {
+      success: true, receipts: status.receipts
+    };
   } else if (status.status === "PENDING") {
     if (attempt < 10) { // Increased max attempts
       console.log(`Batch still pending... (Attempt ${attempt}/10)`);
@@ -28,11 +28,11 @@ export const checkStatus = async (callsId: string, attempt: number = 1): Promise
     } else {
       console.error('Batch failed: Maximum retry attempts (10) reached');
       toast.error('Transaction check failed: Maximum attempts reached', { toastId: callsId });
-      return false;
+      return { success: false };
     }
   } else {
     console.error('Batch failed with status:', status.status);
     toast.error('Transaction failed', { toastId: callsId });
-    return false;
+    return { success: false };
   }
 };
