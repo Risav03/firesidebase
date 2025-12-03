@@ -290,8 +290,8 @@ export default function PurchaseAdPage() {
         return result;
       } else {
         toast.info("Please confirm the transaction in your wallet");
-        //@ts-ignore
-        const id = await sendCalls({ calls: sendingCalls });
+        // @ts-ignore
+        const id = await sendCalls(config, { calls: sendingCalls });
 
         if (!id) {
           toast.error("Failed to send calls");
