@@ -72,7 +72,6 @@ export default function PurchaseAdPage() {
       }
       setFormData(formData);
       
-      toast.info("Preparing USDC payment...");
       const distributorAddress = process.env.NEXT_PUBLIC_ADS_DISTRIBUTOR;
       if (!distributorAddress) {
         toast.error("Distributor address not set");
@@ -84,9 +83,6 @@ export default function PurchaseAdPage() {
         toast.error("Revenue address not set");
         return;
       }
-
-      toast.info("THIS IS THE PRICE:" + price);
-      toast.info("Payment amount: $" + Math.floor((price / 2) * 1e6) + " USDC");
 
       const usdcAmountToSend = BigInt(Math.floor((price / 2) * 1e6)); // USDC has 6 decimals
 
@@ -113,8 +109,6 @@ export default function PurchaseAdPage() {
       const sendingCalls = [viewers_call, revenue_call];
 
       if (context?.client.clientFid === 309857) {
-        toast.loading("Connecting to Base SDK...");
-
         const provider = createBaseAccountSDK({
           appName: "Fireside",
           appLogoUrl: "https://firesidebase.vercel.app/app-icon2.png",
@@ -123,8 +117,6 @@ export default function PurchaseAdPage() {
 
         const cryptoAccount = await getCryptoKeyAccount();
         const fromAddress = cryptoAccount?.account?.address;
-
-        toast.loading("Submitting transaction...");
 
         const callsId: any = await provider.request({
           method: "wallet_sendCalls",
@@ -138,12 +130,9 @@ export default function PurchaseAdPage() {
           ],
         });
 
-        toast.loading("Transaction submitted, checking status...");
-
         const result = await checkStatus(callsId);
 
         if (result.success == true) {
-          toast.loading("Transaction confirmed!" + result.receipts);
           await createOnBackend();
         } else {
           toast.error("Transaction failed or timed out");
@@ -151,7 +140,6 @@ export default function PurchaseAdPage() {
 
         return result;
       } else {
-        toast.info("Please confirm the transaction in your wallet");
         // @ts-ignore
         sendCalls({ calls: sendingCalls });
       }
@@ -176,8 +164,6 @@ export default function PurchaseAdPage() {
       }
       setFormData(formData);
       
-      toast.info("Preparing ETH payment...");
-
       const distributorAddress = process.env.NEXT_PUBLIC_ADS_DISTRIBUTOR;
       if (!distributorAddress) {
         toast.error("Distributor address not set");
@@ -194,7 +180,6 @@ export default function PurchaseAdPage() {
         return;
       }
 
-      toast.info("Fetching current ETH price...");
       const ethPriceUsd = await getEthPrice();
       if (!ethPriceUsd) {
         toast.error("Failed to fetch ETH price");
@@ -202,11 +187,9 @@ export default function PurchaseAdPage() {
         setCreating(false);
         return;
       }
-      toast.success(`ETH Price: $${ethPriceUsd.toFixed(2)}`);
       
       // Convert USD to ETH
       const tipAmountETH = price / (2*ethPriceUsd);
-      toast.info(`Payment amount: ${tipAmountETH.toFixed(6)} ETH ($${price.toFixed(2)})`);
 
       // Convert ETH to Wei
       const ethValueInWei = BigInt(Math.floor(tipAmountETH * 1e18));
@@ -224,8 +207,6 @@ export default function PurchaseAdPage() {
       const sendingCalls = [viewers_call, revenue_call];
 
       if (context?.client.clientFid === 309857) {
-        const connectToast = toast.loading("Connecting to Base SDK...");
-
         const provider = createBaseAccountSDK({
           appName: "Fireside",
           appLogoUrl: "https://firesidebase.vercel.app/app-icon2.png",
@@ -234,8 +215,6 @@ export default function PurchaseAdPage() {
 
         const cryptoAccount = await getCryptoKeyAccount();
         const fromAddress = cryptoAccount?.account?.address;
-
-        toast.update(connectToast, { render: "Submitting transaction...", isLoading: true });
 
         const callsId: any = await provider.request({
           method: "wallet_sendCalls",
@@ -249,22 +228,18 @@ export default function PurchaseAdPage() {
           ],
         });
 
-        toast.update(connectToast, { render: "Transaction submitted, checking status...", isLoading: true });
-
         const result = await checkStatus(callsId);
 
         if (result.success == true) {
-          toast.loading("Transaction confirmed!" + result.receipts);
           await createOnBackend();
         } else {
-          toast.update(connectToast, { render: "Transaction failed or timed out", type: "error", isLoading: false, autoClose: 5000 });
+          toast.error("Transaction failed or timed out");
           setProcessing(false);
           setCreating(false);
         }
 
         return result;
       } else {
-        toast.info("Please confirm the transaction in your wallet");
         //@ts-ignore
         sendCalls({ calls: sendingCalls });
       }
@@ -290,8 +265,6 @@ export default function PurchaseAdPage() {
       setCreating(false);
       return;
     }
-    
-    toast.info("Creating advertisement on server...");
 
     // Debug: Log FormData contents
     console.log("FormData contents:");
