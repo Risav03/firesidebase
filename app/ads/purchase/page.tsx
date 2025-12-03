@@ -50,12 +50,13 @@ export default function PurchaseAdPage() {
     }
   }, [isSuccess, status]);
 
-  const handleERC20Payment = async (price: number) => {
+  const handleERC20Payment = async (price: number, formData: FormData) => {
     try {
       if(!formData) {
         toast.error("Form data is not set");
         return;
       }
+      setFormData(formData);
       const distributorAddress = process.env.NEXT_PUBLIC_ADS_DISTRIBUTOR;
       if (!distributorAddress) {
         toast.error("Distributor address not set");
@@ -140,12 +141,13 @@ export default function PurchaseAdPage() {
     }
   };
 
-  const handleEthPayment = async (price:number) => {
+  const handleEthPayment = async (price:number, formData: FormData) => {
     try {
       if(!formData) {
         toast.error("Form data is not set");
         return;
       }
+      setFormData(formData);
 
       const distributorAddress = process.env.NEXT_PUBLIC_ADS_DISTRIBUTOR;
       if (!distributorAddress) {
@@ -322,7 +324,7 @@ export default function PurchaseAdPage() {
 
   return (
     <>
-      <AdsPurchaseForm setFormData={setFormData} handleETHPayment={handleEthPayment} handleERC20Payment={handleERC20Payment} loading={creating} />
+      <AdsPurchaseForm handleETHPayment={handleEthPayment} handleERC20Payment={handleERC20Payment} loading={creating} />
       <NavigationWrapper />
     </>
   );
