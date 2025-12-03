@@ -31,7 +31,7 @@ export default function PurchaseAdPage() {
   const isTester = isAdsTester(user?.fid);
 
   const { context } = useMiniKit();
-  const { sendCallsAsync, isSuccess, status } = useSendCalls();
+  const { sendCalls, isSuccess, status } = useSendCalls();
 
   const [formData, setFormData] = useState<FormData | null>(null);
 
@@ -85,6 +85,9 @@ export default function PurchaseAdPage() {
         toast.error("Revenue address not set");
         return;
       }
+
+      toast.info("THIS IS THE PRICE:" + price);
+      toast.info("Payment amount: $" + Math.floor((price / 2) * 1e6) + " USDC");
 
       const usdcAmountToSend = BigInt(Math.floor((price / 2) * 1e6)); // USDC has 6 decimals
 
@@ -151,7 +154,7 @@ export default function PurchaseAdPage() {
       } else {
         toast.info("Please confirm the transaction in your wallet");
         // @ts-ignore
-        await sendCallsAsync({ calls: sendingCalls });
+        sendCalls({ calls: sendingCalls });
       }
     } catch (err) {
       console.error("ERC20 Payment Error:", err);
@@ -264,7 +267,7 @@ export default function PurchaseAdPage() {
       } else {
         toast.info("Please confirm the transaction in your wallet");
         //@ts-ignore
-        await sendCallsAsync({ calls: sendingCalls });
+        sendCalls({ calls: sendingCalls });
       }
 
     } catch (err) {

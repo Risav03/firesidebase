@@ -22,10 +22,8 @@ export default function AdsPurchaseForm({ handleERC20Payment, handleETHPayment, 
   const BASE_PRICE = 0.01; // Base price per room per minute per 10 participants in ETH
 
   const quotePrice = () => {
-    
       const priceCalc = rooms * minutes * Math.round(minParticipants / 10) * BASE_PRICE;
-      return priceCalc
-    
+      return priceCalc;
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
