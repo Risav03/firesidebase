@@ -21,7 +21,7 @@ import {
 } from "@tanstack/react-query";
 import { ReactNode } from 'react';
 
-export const config = getDefaultConfig({
+const config = getDefaultConfig({
   appName: 'My RainbowKit App',
   projectId: '5d10af3027c340310f3a3da64cbcedac',
   chains: [base],
