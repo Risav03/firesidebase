@@ -22,7 +22,7 @@ export default function AdsPurchaseForm({ handleERC20Payment, handleETHPayment, 
   const BASE_PRICE = 0.01; // Base price per room per minute per 10 participants in ETH
 
   const quotePrice = () => {
-      const priceCalc = rooms * minutes * Math.round(minParticipants / 10) * BASE_PRICE;
+      const priceCalc = rooms * minutes * (Math.round(minParticipants / 10) + 1) * BASE_PRICE;
       return priceCalc;
   };
 
@@ -102,8 +102,6 @@ export default function AdsPurchaseForm({ handleERC20Payment, handleETHPayment, 
               <input 
                 id="ad-rooms"
                 type="number" 
-                inputMode="numeric"
-                pattern="[0-9]*"
                 min={1} 
                 value={rooms} 
                 onChange={e => setRooms(Number(e.target.value))} 
@@ -116,8 +114,6 @@ export default function AdsPurchaseForm({ handleERC20Payment, handleETHPayment, 
               <input 
                 id="ad-minutes"
                 type="number" 
-                inputMode="numeric"
-                pattern="[0-9]*"
                 min={1} 
                 value={minutes} 
                 onChange={e => setMinutes(Number(e.target.value))} 
@@ -132,8 +128,6 @@ export default function AdsPurchaseForm({ handleERC20Payment, handleETHPayment, 
             <input
               id="ad-participants"
               type="number"
-              inputMode="numeric"
-              pattern="[0-9]*"
               min={1}
               value={minParticipants}
               onChange={e => setMinParticipants(Math.max(1, Number(e.target.value) || 1))}
