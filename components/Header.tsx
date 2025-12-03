@@ -3,21 +3,17 @@
 import { ExitIcon } from "@100mslive/react-icons";
 import {
   selectIsConnectedToRoom,
-  selectHMSMessages,
   useHMSActions,
   useHMSStore,
   selectLocalPeer,
 } from "@100mslive/react-sdk";
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import RoomEndModal from './RoomEndModal';
 import { TbShare3 } from "react-icons/tb";
 import { MdCopyAll, MdOutlineIosShare } from "react-icons/md";
 import { FaXTwitter } from "react-icons/fa6";
 import { sdk } from "@farcaster/miniapp-sdk";
 import { toast } from "react-toastify";
-import { useAdsControlEvent } from '../utils/events';
-import { useGlobalContext } from '@/utils/providers/globalContext';
-import { isAdsTester } from '@/utils/constants';
 import Button from '@/components/UI/Button';
 
 interface HeaderProps {
@@ -31,99 +27,13 @@ import FiresideLogo from "./UI/firesideLogo";
 
 export default function Header({ onToggleChat, isChatOpen = false, roomId }: HeaderProps) {
   const isConnected = useHMSStore(selectIsConnectedToRoom);
-  const messages = useHMSStore(selectHMSMessages);
   const hmsActions = useHMSActions();
   const router = useRouter();
   const localPeer = useHMSStore(selectLocalPeer);
   const [showRoomEndModal, setShowRoomEndModal] = useState(false);
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
-  const [isTogglingAds, setIsTogglingAds] = useState(false);
-  const [adsRunning, setAdsRunning] = useState<boolean>(false);
-  const { user } = useGlobalContext();
 
-  // Ads control event hook
-  const { notifyAdsControl } = useAdsControlEvent();
-
-  // Check if local user is host or co-host
-  const isHostOrCoHost = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
   const isHost = localPeer?.roleName === 'host';
-
-  const canControlAds = Boolean(roomId && isHost && user?.fid && isAdsTester(user?.fid));
-
-  const refreshAdsState = useCallback(async () => {
-    if (!roomId || !canControlAds) return;
-    try {
-      const res = await fetch(`/api/ads/sessions/${roomId}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      const state = data?.state || data?.data?.state;
-      setAdsRunning(state === 'running');
-    } catch (error) {
-      console.error('Failed to refresh ads state', error);
-    }
-  }, [roomId, canControlAds]);
-
-  useEffect(() => {
-    if (!canControlAds) return;
-    refreshAdsState();
-  }, [canControlAds, refreshAdsState]);
-
-  useEffect(() => {
-    if (!canControlAds) return;
-    const id = setInterval(() => {
-      refreshAdsState();
-    }, 2000);
-    return () => clearInterval(id);
-  }, [canControlAds, refreshAdsState]);
-
-  const buildAuthHeaders = async () => {
-    const env = process.env.NEXT_PUBLIC_ENV;
-    if (env === 'DEV') {
-      return { Authorization: 'Bearer dev' } as HeadersInit;
-    }
-    const tokenResponse = await sdk.quickAuth.getToken();
-    if (!tokenResponse?.token) {
-      throw new Error('Missing auth token');
-    }
-    return {
-      Authorization: `Bearer ${tokenResponse.token}`,
-    } as HeadersInit;
-  };
-
-  const handleToggleAds = async () => {
-    if (!roomId || !user) return;
-    try {
-      setIsTogglingAds(true);
-      const headers = await buildAuthHeaders();
-      if (!adsRunning) {
-        const res = await fetch(`/api/ads/controls/start/${roomId}`, {
-          method: 'POST',
-          headers,
-        });
-        if (!res.ok) throw new Error('Failed to start ads');
-        setAdsRunning(true);
-        toast.success('Ads session started');
-        notifyAdsControl('start', roomId);
-        setTimeout(() => {
-          refreshAdsState();
-        }, 1500);
-      } else {
-        const res = await fetch(`/api/ads/controls/stop/${roomId}`, {
-          method: 'POST',
-          headers,
-        });
-        if (!res.ok) throw new Error('Failed to stop ads');
-        setAdsRunning(false);
-        toast.success('Ads session stopped');
-        notifyAdsControl('stop', roomId);
-      }
-    } catch (e) {
-      console.error(e);
-      toast.error('Could not toggle ads');
-    } finally {
-      setIsTogglingAds(false);
-    }
-  };
 
   const handleLeaveClick = () => {
     if (isHost) {
@@ -172,17 +82,6 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
           </div>
           {isConnected && (
             <div className="flex items-center space-x-3">
-              {canControlAds && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleToggleAds}
-                  disabled={isTogglingAds}
-                  title={adsRunning ? 'Stop Ads' : 'Display Ads'}
-                >
-                  {isTogglingAds ? (adsRunning ? 'Stopping…' : 'Starting…') : (adsRunning ? 'Stop Ads' : 'Display Ads')}
-                </Button>
-              )}
               {roomId && (
                 <Button
                   variant="ghost"

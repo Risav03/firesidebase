@@ -42,7 +42,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [showSchedule, setShowSchedule] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [sponsorshipEnabled, setSponsorshipEnabled] = useState(false);
+  const [adsEnabled, setAdsEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState('');
   const navigate = useNavigateWithLoader();
@@ -57,10 +57,10 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
       setStartTime(null);
       setShowSchedule(false);
       setSelectedTags([]);
-      setSponsorshipEnabled(false);
+      setAdsEnabled(Boolean(user?.autoAdsEnabled));
       setNameError('');
     }
-  }, [isOpen]);
+  }, [isOpen, user]);
 
   const createRoomHandler = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -96,7 +96,8 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         startTime: startTime ? startTime.toISOString() : new Date().toISOString(),
         host: user?.fid || '',
         topics: selectedTags,
-        sponsorshipEnabled
+        adsEnabled,
+        sponsorshipEnabled: adsEnabled
       };
 
       const response = await createRoom(roomData, token);      
@@ -107,7 +108,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         setStartTime(null);
         setShowSchedule(false);
         setSelectedTags([]);
-        setSponsorshipEnabled(false);
+        setAdsEnabled(Boolean(user?.autoAdsEnabled));
         onClose();
 
         const now = new Date();
@@ -217,19 +218,25 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
               {selectedTags.length > 3 && <p className="text-fireside-red text-sm mt-1">You can select up to 3 topics only.</p>}
             </div>
             
-            {/* <div className="flex items-center justify-between">
-              <label className="block text-sm font-medium text-gray-300">
-                Enable Sponsorship
-              </label>
-              <div 
-                className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${sponsorshipEnabled ? 'bg-orange-500' : 'bg-white/10'}`}
-                onClick={() => setSponsorshipEnabled(!sponsorshipEnabled)}
-              >
-                <div 
-                  className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${sponsorshipEnabled ? 'translate-x-6' : 'translate-x-0'}`} 
-                />
+            <div className="flex items-center justify-between">
+              <div className="pr-4">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Enable ads for this room
+                </label>
+                <p className="text-xs text-gray-400">
+                  Ads will play automatically once your audience meets the minimum size.
+                </p>
               </div>
-            </div> */}
+              <button
+                type="button"
+                onClick={() => setAdsEnabled(!adsEnabled)}
+                className={`w-14 h-7 rounded-full p-1 flex items-center transition-colors ${adsEnabled ? 'bg-fireside-orange' : 'bg-white/20'}`}
+              >
+                <span
+                  className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 ${adsEnabled ? 'translate-x-7' : 'translate-x-0'}`}
+                />
+              </button>
+            </div>
             {showSchedule && (
               <DateTimePicker
                 label="Start Time"

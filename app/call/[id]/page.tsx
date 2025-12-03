@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
           title: "Tune in!",
           action: {
             type: "launch_frame",
-            name: "Fireside 100ms",
+            name: "Fireside",
             url: process.env.NEXT_PUBLIC_URL+ '/call/' + params.id,
             splashImageUrl: "https://firesidebase.vercel.app/fireside-logo.svg",
             splashBackgroundColor: "#000000",

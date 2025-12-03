@@ -23,7 +23,6 @@ import {
   removeParticipantFromRoom,
   fetchHMSActivePeers,
 } from "@/utils/serverActions";
-import { isAdsTester } from "@/utils/constants";
 
 interface RoomCode {
   id: string;
@@ -50,7 +49,6 @@ export default function CallClient({ roomId }: CallClientProps) {
 
   const [isJoining, setIsJoining] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const showAdsFeature = isAdsTester(user?.fid);
 
   // Function to handle role limit reached error
   const handleRoleLimitError = async (hmsRoomId: string, userFid: number) => {
@@ -452,7 +450,7 @@ export default function CallClient({ roomId }: CallClientProps) {
     <div className="min-h-screen">
       <RoleChangeHandler />
       <Header roomId={roomId} />
-      {showAdsFeature && <AdsOverlay roomId={roomId} />}
+      <AdsOverlay roomId={roomId} />
       <Conference roomId={roomId} />
       <Footer roomId={roomId} />
     </div>

@@ -19,15 +19,16 @@ export interface Room {
   status: string;
   startTime: string;
   strength: number;
-  sponsorshipEnabled: boolean;
+  sponsorshipEnabled?: boolean;
+  adsEnabled?: boolean;
   topics: string[];
 }
 
 export async function generateMetadata(): Promise<Metadata> {
   const URL = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
   return {
-    title: "Fireside 100ms",
-    description: "This is Fireside 100ms - Drop-in audio chat with interesting people",
+    title: "Fireside",
+    description: "This is Fireside - Drop-in audio chat with interesting people",
     other: {
       "fc:frame": JSON.stringify({
         version: "next",
@@ -36,7 +37,7 @@ export async function generateMetadata(): Promise<Metadata> {
           title: `Tune in!`,
           action: {
             type: "launch_frame",
-            name: "Fireside 100ms",
+            name: "Fireside",
             url: URL,
             splashImageUrl: "https://firesidebase.vercel.app/app-icon.png",
             splashBackgroundColor: "#000000",

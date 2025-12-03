@@ -14,6 +14,7 @@ export default function AdsPurchaseForm({ onSubmit, loading = false }: AdsPurcha
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [rooms, setRooms] = useState<number>(1);
   const [minutes, setMinutes] = useState<number>(5);
+  const [minParticipants, setMinParticipants] = useState<number>(1);
   const [price, setPrice] = useState<number | null>(null);
   const [quoting, setQuoting] = useState(false);
 
@@ -24,7 +25,7 @@ export default function AdsPurchaseForm({ onSubmit, loading = false }: AdsPurcha
       const res = await fetch(`${backend}/api/ads/public/quote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rooms, minutes }),
+        body: JSON.stringify({ rooms, minutes, minParticipants }),
       });
       const data = await res.json();
       setPrice(data?.priceUsd ?? data?.data?.priceUsd ?? null);
@@ -45,6 +46,7 @@ export default function AdsPurchaseForm({ onSubmit, loading = false }: AdsPurcha
     formData.append('title', title);
     formData.append('rooms', rooms.toString());
     formData.append('minutes', minutes.toString());
+    formData.append('minParticipants', minParticipants.toString());
     formData.append('paymentMethod', paymentMethod);
     if (selectedImage) {
       formData.append('image', selectedImage);
@@ -55,7 +57,7 @@ export default function AdsPurchaseForm({ onSubmit, loading = false }: AdsPurcha
     onSubmit(formData);
   };
 
-  const isFormValid = title && selectedImage && rooms > 0 && minutes > 0;
+  const isFormValid = title && selectedImage && rooms > 0 && minutes > 0 && minParticipants > 0;
 
   return (
     <div className="min-h-screen flex items-start justify-center p-4 pb-32">
@@ -117,6 +119,19 @@ export default function AdsPurchaseForm({ onSubmit, loading = false }: AdsPurcha
                 required
               />
             </div>
+          </div>
+
+          <div>
+            <label className="text-gray-300 text-sm block mb-1">Minimum participants</label>
+            <input
+              type="number"
+              min={1}
+              value={minParticipants}
+              onChange={e => setMinParticipants(Math.max(1, Number(e.target.value) || 1))}
+              className="w-full px-3 py-2 rounded bg-black/50 text-white border border-white/10"
+              required
+            />
+            <p className="text-gray-400 text-xs mt-1">Ads will begin automatically once a room meets this audience size.</p>
           </div>
         
           <div className="grid grid-cols-2 gap-2">

@@ -2,7 +2,7 @@
 
 import { useGlobalContext } from '@/utils/providers/globalContext';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import NavigationWrapper from '@/components/NavigationWrapper';
 import { IoIosArrowBack } from 'react-icons/io';
 import { IoRefreshOutline } from 'react-icons/io5';
@@ -25,6 +25,10 @@ export default function ProfilePage() {
 
   const [totalAudience, setTotalAudience] = useState<number>(0);
   const [maxAudience, setMaxAudience] = useState<any>(null);
+  const [autoAdsEnabled, setAutoAdsEnabled] = useState<boolean>(false);
+  const [adsPrefLoading, setAdsPrefLoading] = useState<boolean>(false);
+  const [adsPrefSaving, setAdsPrefSaving] = useState<boolean>(false);
+  const adsPrefFetchedForRef = useRef<string | number | null>(null);
 
   // Platform icons mapping
   const platformIcons: { [key: string]: React.ReactNode } = {
@@ -42,6 +46,95 @@ export default function ProfilePage() {
     const baseUrl = platformUrls[platform.toLowerCase()];
     if (baseUrl) {
       window.open(`${baseUrl}${username}`, '_blank');
+    }
+  };
+
+  const buildAuthHeaders = async () => {
+    const env = process.env.NEXT_PUBLIC_ENV;
+    if (env === 'DEV') {
+      return { Authorization: 'Bearer dev' } as HeadersInit;
+    }
+    const tokenResponse = await sdk.quickAuth.getToken();
+    if (!tokenResponse?.token) {
+      throw new Error('Missing auth token');
+    }
+    return {
+      Authorization: `Bearer ${tokenResponse.token}`,
+    } as HeadersInit;
+  };
+
+  useEffect(() => {
+    if (!user) {
+      adsPrefFetchedForRef.current = null;
+      return;
+    }
+    setAutoAdsEnabled(Boolean(user.autoAdsEnabled));
+    if (adsPrefFetchedForRef.current === user.fid) return;
+    adsPrefFetchedForRef.current = user.fid;
+
+    const loadPreference = async () => {
+      try {
+        setAdsPrefLoading(true);
+        const headers = await buildAuthHeaders();
+        const res = await fetch('/api/profile/ads-preference', {
+          method: 'GET',
+          headers,
+          cache: 'no-store',
+        });
+        if (!res.ok) {
+          throw new Error('Failed to fetch ads preference');
+        }
+        const data = await res.json();
+        const pref = Boolean(
+          data.autoAdsEnabled ??
+            data?.data?.autoAdsEnabled ??
+            data?.data?.user?.autoAdsEnabled
+        );
+        setAutoAdsEnabled(pref);
+        setUser((prev: any) => (prev ? { ...prev, autoAdsEnabled: pref } : prev));
+      } catch (error) {
+        console.error('Failed to load ads preference', error);
+      } finally {
+        setAdsPrefLoading(false);
+      }
+    };
+
+    loadPreference();
+  }, [user, setUser]);
+
+  const handleToggleAdsPreference = async () => {
+    if (!user) {
+      toast.error('Please sign in to update preferences');
+      return;
+    }
+    const nextValue = !autoAdsEnabled;
+    setAutoAdsEnabled(nextValue);
+    setAdsPrefSaving(true);
+    try {
+      const headers = await buildAuthHeaders();
+      const res = await fetch('/api/profile/ads-preference', {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ autoAdsEnabled: nextValue }),
+      });
+      if (!res.ok) {
+        throw new Error('Failed to update preference');
+      }
+      const data = await res.json();
+      const persisted = Boolean(
+        data.autoAdsEnabled ??
+          data?.data?.autoAdsEnabled ??
+          nextValue
+      );
+      setAutoAdsEnabled(persisted);
+      setUser((prev: any) => (prev ? { ...prev, autoAdsEnabled: persisted } : prev));
+      toast.success(`Auto ads ${persisted ? 'enabled' : 'disabled'} for new rooms`);
+    } catch (error) {
+      console.error('Failed to update ads preference', error);
+      setAutoAdsEnabled(!nextValue);
+      toast.error('Could not update ads preference');
+    } finally {
+      setAdsPrefSaving(false);
     }
   };
 
@@ -218,6 +311,28 @@ export default function ProfilePage() {
                   ))
                 )}
               </div>
+            </div>
+
+            {/* Ads Preference */}
+            <div className="mt-8">
+              <h2 className="text-xl font-bold text-white mb-4">Monetization</h2>
+              <Card variant="ghost" className="flex items-center justify-between p-4 bg-fireside-orange/10 border border-fireside-orange/30 rounded-xl">
+                <div className="flex-1 pr-4 text-left">
+                  <p className="text-white font-semibold">Automatically enable ads for new rooms</p>
+                  <p className="text-white/70 text-sm">
+                    Hosts who opt in will start serving ads once participant thresholds are met.
+                  </p>
+                </div>
+                <button
+                  onClick={handleToggleAdsPreference}
+                  disabled={adsPrefLoading || adsPrefSaving}
+                  className={`w-14 h-7 rounded-full p-1 flex items-center transition-colors ${autoAdsEnabled ? 'bg-fireside-orange' : 'bg-white/20'} ${adsPrefLoading || adsPrefSaving ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <span
+                    className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 ${autoAdsEnabled ? 'translate-x-7' : 'translate-x-0'}`}
+                  />
+                </button>
+              </Card>
             </div>
 
             {/* Action Buttons */}
