@@ -4,13 +4,12 @@ import { useState } from 'react';
 import { useGlobalContext } from '@/utils/providers/globalContext';
 
 interface AdsPurchaseFormProps {
-  handleETHPayment: (price:number) => void;
-  handleERC20Payment: (price:number) => void;
+  handleETHPayment: (price:number, formData: FormData) => void;
+  handleERC20Payment: (price:number, formData: FormData) => void;
   loading?: boolean;
-  setFormData: (data: FormData) => void;
 }
 
-export default function AdsPurchaseForm({ handleERC20Payment, handleETHPayment, loading = false, setFormData, }: AdsPurchaseFormProps) {
+export default function AdsPurchaseForm({ handleERC20Payment, handleETHPayment, loading = false }: AdsPurchaseFormProps) {
   const { user } = useGlobalContext();
   const [title, setTitle] = useState('');
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -47,15 +46,13 @@ export default function AdsPurchaseForm({ handleERC20Payment, handleETHPayment, 
       formData.append('image', selectedImage);
     }
 
-    setFormData(formData);
-
     const price = quotePrice();
     
     if(paymentMethod === 'USDC') {
-      handleERC20Payment(price);
+      handleERC20Payment(price, formData);
     }
     else if (paymentMethod === 'ETH') {
-      handleETHPayment(price);
+      handleETHPayment(price, formData);
     }
   };
 
