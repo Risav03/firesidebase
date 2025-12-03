@@ -337,7 +337,7 @@ export default function TippingModal({
 
         const result = await checkStatus(callsId);
 
-        if (result == true) {
+        if (result.success == true) {
           toast.loading("Transaction confirmed!");
           await processSuccess("ETH");
         } else {
@@ -475,7 +475,7 @@ export default function TippingModal({
 
           const result = await checkStatus(callsId);
 
-          if (result == true) {
+          if (result.success == true) {
             toast.loading("Transaction confirmed!");
             await processSuccess(tokenSymbol);
           } else {
