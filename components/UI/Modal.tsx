@@ -17,7 +17,7 @@ export default function Modal({ isOpen, onClose, children, maxWidth = 'max-w-md'
       {isOpen && (
         <motion.div 
           key="modal-container"
-          className="fixed inset-0 flex items-center h-screen justify-center z-50 p-4"
+          className="fixed inset-0 flex items-center h-screen justify-center z-[100000] p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
