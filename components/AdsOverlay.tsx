@@ -2,7 +2,6 @@
 
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useAdsControlEvent } from '../utils/events';
 import { Card } from './UI/Card';
 
 type CurrentAd = {
@@ -15,8 +14,6 @@ type CurrentAd = {
   sessionId: string;
 };
 
-const POLL_INTERVAL_MS = 4000;
-
 function remainingMs(current: { durationSec: number; startedAt: string }) {
   const end = new Date(current.startedAt).getTime() + current.durationSec * 1000;
   return Math.max(0, end - Date.now());
@@ -25,9 +22,9 @@ function remainingMs(current: { durationSec: number; startedAt: string }) {
 export default function AdsOverlay({ roomId }: { roomId: string }) {
   const [current, setCurrent] = useState<CurrentAd | null>(null);
   const [msLeft, setMsLeft] = useState<number>(0);
-  const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isFetchingRef = useRef(false);
-  const [adsEnabled, setAdsEnabled] = useState<boolean>(true); // User preference for ads
+  const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const retryDelayRef = useRef(2000);
 
   const parsePayload = (payload: any) => {
     // Accept { state, current } or { success, data: { state, current } }
@@ -37,75 +34,68 @@ export default function AdsOverlay({ roomId }: { roomId: string }) {
     return { state, currentAd };
   };
 
-  const tick = useCallback(async () => {
-    if (isFetchingRef.current) return;
-    isFetchingRef.current = true;
-    try {
-      // First try backend sessions
-      const res = await fetch(`/api/ads/sessions/${roomId}`);
-      if (res.ok) {
-        const data = await res.json();
-        const { state, currentAd } = parsePayload(data);
-        if (state === 'running' && currentAd) {
-          setCurrent(currentAd);
-          setMsLeft(remainingMs(currentAd));
-          return;
-        }
-      }
-      // Fallback: local in-memory cache
-      const localRes = await fetch(`/api/webhooks/ads?roomId=${encodeURIComponent(roomId)}`);
-      if (localRes.ok) {
-        const localData = await localRes.json();
-        const { state, currentAd } = parsePayload(localData);
-        if (state === 'running' && currentAd) {
-          setCurrent(currentAd);
-          setMsLeft(remainingMs(currentAd));
-          return;
-        }
-      }
-      // No current ad
+  const applySnapshot = useCallback((snapshot: any) => {
+    const { state, currentAd } = parsePayload(snapshot);
+    if (state === 'running' && currentAd) {
+      setCurrent(currentAd);
+      setMsLeft(remainingMs(currentAd));
+    } else {
       setCurrent(null);
       setMsLeft(0);
-    } catch {
-      // ignore
-    } finally {
-      isFetchingRef.current = false;
     }
-  }, [roomId]);
-
-  // Handle ads control events
-  useAdsControlEvent((msg) => {
-    if (msg.roomId === roomId && adsEnabled) {
-      tick(); // Trigger tick when ads control event is received
-    }
-  });
+  }, []);
 
   useEffect(() => {
-    if (!adsEnabled) {
-      if (pollTimerRef.current) {
-        clearInterval(pollTimerRef.current);
-        pollTimerRef.current = null;
-      }
-      return;
-    }
+    let isMounted = true;
+    const connect = () => {
+      if (!isMounted) return;
+      eventSourceRef.current?.close();
+      const source = new EventSource(`/api/ads/stream?roomId=${encodeURIComponent(roomId)}`);
+      eventSourceRef.current = source;
 
-    // Initial tick on mount (when someone joins the room and has ads enabled)
-    tick();
+      const resetRetryDelay = () => {
+        retryDelayRef.current = 2000;
+      };
 
-    if (pollTimerRef.current) {
-      clearInterval(pollTimerRef.current);
-    }
-    pollTimerRef.current = setInterval(() => {
-      tick();
-    }, POLL_INTERVAL_MS);
+      source.addEventListener('ad-state', (event) => {
+        resetRetryDelay();
+        try {
+          console.log('[AdsOverlay] SSE payload', (event as MessageEvent).data);
+        } catch {
+          // ignore logging failures
+        }
+        try {
+          const payload = JSON.parse((event as MessageEvent).data);
+          applySnapshot(payload);
+        } catch {
+          // ignore malformed payloads
+        }
+      });
+
+      source.onerror = () => {
+        source.close();
+        if (!isMounted) return;
+        const delay = Math.min(retryDelayRef.current, 30000);
+        reconnectTimerRef.current = setTimeout(() => {
+          reconnectTimerRef.current = null;
+          retryDelayRef.current = Math.min(delay * 1.5, 30000);
+          connect();
+        }, delay);
+      };
+    };
+
+    connect();
 
     return () => {
-      if (pollTimerRef.current) {
-        clearInterval(pollTimerRef.current);
-        pollTimerRef.current = null;
+      isMounted = false;
+      eventSourceRef.current?.close();
+      eventSourceRef.current = null;
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
       }
     };
-  }, [roomId, adsEnabled, tick]);
+  }, [roomId, applySnapshot]);
 
   useEffect(() => {
     if (!current) return;
@@ -115,14 +105,10 @@ export default function AdsOverlay({ roomId }: { roomId: string }) {
       if (left <= 0) {
         clearInterval(id);
         setCurrent(null);
-        // When ad timer expires, check for next ad
-        if (adsEnabled) {
-          tick();
-        }
       }
     }, 250);
     return () => clearInterval(id);
-  }, [current, adsEnabled]);
+  }, [current]);
 
   const secondsLeft = useMemo(() => Math.max(0, Math.ceil(msLeft / 1000)), [msLeft]);
   const progress = useMemo(() => {

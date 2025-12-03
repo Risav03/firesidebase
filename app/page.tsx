@@ -19,7 +19,8 @@ export interface Room {
   status: string;
   startTime: string;
   strength: number;
-  sponsorshipEnabled: boolean;
+  sponsorshipEnabled?: boolean;
+  adsEnabled?: boolean;
   topics: string[];
 }
 

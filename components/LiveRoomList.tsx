@@ -47,7 +47,8 @@ interface Room {
   status: string;
   startTime: string;
   strength: number;
-  sponsorshipEnabled: boolean;
+  sponsorshipEnabled?: boolean;
+  adsEnabled?: boolean;
   topics: string[];
 }
 
@@ -351,13 +352,15 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
               <div>
                 {liveRooms.length > 0 ? (
                   <div className="space-y-3">
-                    {liveRooms.map((room) => (
-                      <Card
-                        onClick={() => router.push(`/call/${room._id}`)}
-                        key={room._id}
-                        variant={room.sponsorshipEnabled ? undefined : "ghost"}
-                        className={`flex items-center gap-3 w-full p-4 font-bold cursor-pointer hover:opacity-80 transition-opacity bg-fireside-orange/10 border-fireside-orange/30 text-white`}
-                      >
+                    {liveRooms.map((room) => {
+                      const roomHasAds = room.adsEnabled ?? room.sponsorshipEnabled ?? false;
+                      return (
+                        <Card
+                          onClick={() => router.push(`/call/${room._id}`)}
+                          key={room._id}
+                          variant={roomHasAds ? undefined : "ghost"}
+                          className={`flex items-center gap-3 w-full p-4 font-bold cursor-pointer hover:opacity-80 transition-opacity bg-fireside-orange/10 border-fireside-orange/30 text-white`}
+                        >
                         <div className="relative">
                           <Image
                             src={`${process.env.NEXT_PUBLIC_URL}/waves.gif`}
@@ -392,8 +395,9 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                             Host: {room.host.displayName || room.host.username}
                           </p>
                         </div>
-                      </Card>
-                    ))}
+                        </Card>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-left">

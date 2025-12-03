@@ -27,7 +27,8 @@ interface Room {
   status: string;
   startTime: string;
   topics: string[];
-  sponsorshipEnabled: boolean;
+  sponsorshipEnabled?: boolean;
+  adsEnabled?: boolean;
   interested: string[];
 }
 

@@ -1,21 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  completeAd,
-  getCurrent,
-  isDuplicateIdempotency,
-  setCurrentAd,
-  setSessionRunning,
-  stopSession,
-} from '@/utils/adsCache';
+import { isDuplicateIdempotency } from '@/utils/adsCache';
+import { clearRoomSnapshot, fetchRoomSnapshot, updateRoomSnapshot } from '@/utils/adsStore';
 import { verifyAdsWebhook } from '@/utils/adsWebhook';
 
 const shouldLog = process.env.NODE_ENV !== 'production';
 const logAdsWebhook = (message: string, meta?: Record<string, unknown>) => {
   if (!shouldLog) return;
+  const timestamp = new Date().toISOString();
   if (meta) {
-    console.log(`[AdsWebhook] ${message}`, meta);
+    console.log(`[${timestamp}] [AdsWebhook] ${message}`, meta);
   } else {
-    console.log(`[AdsWebhook] ${message}`);
+    console.log(`[${timestamp}] [AdsWebhook] ${message}`);
   }
 };
 
@@ -25,13 +20,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'roomId is required' }, { status: 400 });
   }
 
-  const cached = getCurrent(roomId);
+  const snapshot = await fetchRoomSnapshot(roomId);
   logAdsWebhook('Cache requested', {
     roomId,
-    state: cached.state,
-    hasCurrent: Boolean(cached.current),
+    state: snapshot.state,
+    hasCurrent: Boolean(snapshot.current),
   });
-  return NextResponse.json(cached);
+  return NextResponse.json(snapshot);
 }
 
 export async function POST(req: NextRequest) {
@@ -79,7 +74,12 @@ export async function POST(req: NextRequest) {
 
   switch (eventType) {
     case 'ads.session.started':
-      setSessionRunning(roomId, payload.sessionId, payload.startedAt);
+      await updateRoomSnapshot(roomId, (prev) => ({
+        ...prev,
+        state: 'running',
+        sessionId: payload.sessionId ?? prev.sessionId,
+        sessionStartedAt: payload.startedAt ?? prev.sessionStartedAt,
+      }));
       logAdsWebhook('Session marked running', {
         roomId,
         sessionId: payload.sessionId,
@@ -87,15 +87,21 @@ export async function POST(req: NextRequest) {
       break;
     case 'ads.ad.started':
       if (payload.reservationId) {
-        setCurrentAd(roomId, {
-          reservationId: payload.reservationId,
-          adId: payload.adId,
-          title: payload.title,
-          imageUrl: payload.imageUrl,
-          durationSec: payload.durationSec,
-          startedAt: payload.startedAt,
-          sessionId: payload.sessionId,
-        });
+        await updateRoomSnapshot(roomId, (prev) => ({
+          ...prev,
+          state: 'running',
+          sessionId: payload.sessionId ?? prev.sessionId,
+          sessionStartedAt: payload.startedAt ?? prev.sessionStartedAt,
+          current: {
+            reservationId: payload.reservationId,
+            adId: payload.adId,
+            title: payload.title,
+            imageUrl: payload.imageUrl,
+            durationSec: payload.durationSec,
+            startedAt: payload.startedAt,
+            sessionId: payload.sessionId ?? prev.sessionId ?? '',
+          },
+        }));
         logAdsWebhook('Ad cached', {
           roomId,
           reservationId: payload.reservationId,
@@ -106,7 +112,14 @@ export async function POST(req: NextRequest) {
       break;
     case 'ads.ad.completed':
       if (payload.reservationId) {
-        completeAd(roomId, payload.reservationId);
+        await updateRoomSnapshot(roomId, (prev) => {
+          if (prev.current?.reservationId !== payload.reservationId) {
+            return prev;
+          }
+          const next = { ...prev };
+          delete next.current;
+          return next;
+        });
         logAdsWebhook('Ad completion processed', {
           roomId,
           reservationId: payload.reservationId,
@@ -115,7 +128,7 @@ export async function POST(req: NextRequest) {
       break;
     case 'ads.session.stopped':
     case 'ads.session.idle':
-      stopSession(roomId);
+      await clearRoomSnapshot(roomId);
       logAdsWebhook('Session stopped', {
         roomId,
         sessionId: payload.sessionId,

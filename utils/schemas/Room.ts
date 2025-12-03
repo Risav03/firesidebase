@@ -13,6 +13,7 @@ export interface IRoom extends Document {
   status: 'upcoming' | 'ongoing' | 'ended';
   roomId: string;
   sponsorshipEnabled: boolean;
+  adsEnabled?: boolean;
   // baseSponsorshipPrice: number;
   topics: string[];
 }
@@ -33,6 +34,7 @@ const Room: Schema = new Schema({
   },
   roomId: { type: String, required: true, unique: true },
   sponsorshipEnabled: { type: Boolean, default: false },
+  adsEnabled: { type: Boolean, default: false },
   // baseSponsorshipPrice: { type: Number, default: 0 }
   topics: { type: [String], required: true },
 }, {
