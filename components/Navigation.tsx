@@ -44,25 +44,27 @@ export default function Navigation() {
   return (
     <>
       <nav className="fixed bottom-0 left-0 right-0 bg-fireside-dark_orange pb-2  z-50">
-        <div className="gradient-fire px-2 py-2 text-white mb-1 flex items-center justify-between space-x-2">
-          <div>
-            <h2 className="text-white font-bold text-md">
-              Building a Brand? Advertise with us!
-            </h2>
-            <p className="text-sm">Put your brand, blah blah blah</p>
-          </div>
+        {showAdsButton && (
+          <div className="gradient-fire px-2 py-2 text-white mb-1 flex items-center justify-between space-x-2">
+            <div>
+              <h2 className="text-white font-bold text-md">
+                Sponsorship Ad Portal
+              </h2>
+              <p className="text-sm">
+                Build reach with your target audience through ad banners
+              </p>
+            </div>
 
-          {showAdsButton && (
             <Button
               variant="action"
               onClick={() => navigate("/ads/purchase")}
-              className={` rounded-md bg-white text-fireside-orange font-bold text-md px-4 py-2 `}
+              className={` rounded-md bg-white text-fireside-orange font-bold text-md px-6 py-2 `}
             >
-              
-              <span className="">Proceed</span>
+              <span className="">Go</span>
             </Button>
-          )}
-        </div>
+          </div>
+        )}
+
         <div className="max-w-md mx-auto w-full py-3">
           {/* Sliding Indicator */}
           <div className="relative -translate-y-4">
