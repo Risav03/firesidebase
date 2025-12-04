@@ -48,9 +48,9 @@ export default function Providers({ children }: ProvidersProps) {
         pauseOnHover
         theme="dark"
         toastStyle={{
-          background: '#1f2937',
+          background: '#000000',
           color: '#fff',
-          border: '1px solid #374151',
+          border: '1px solid #141414',
         }}
       />
     </>
