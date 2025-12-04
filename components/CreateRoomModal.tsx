@@ -233,7 +233,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                 className={`w-14 h-7 rounded-full p-1 flex items-center transition-colors ${adsEnabled ? 'bg-fireside-orange' : 'bg-white/20'}`}
               >
                 <span
-                  className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 ${adsEnabled ? 'translate-x-7' : 'translate-x-0'}`}
+                  className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 ${adsEnabled ? 'translate-x-5' : 'translate-x-0'}`}
                 />
               </button>
             </div>

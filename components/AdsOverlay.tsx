@@ -123,48 +123,46 @@ export default function AdsOverlay({ roomId }: { roomId: string }) {
   if (!current) return null;
 
   return (
-    <Card className="pointer-events-none fixed inset-x-0 bottom-32 z-[1000] flex object-cover justify-center aspect-[4/1] mx-2 sm:bottom-10 bg-fireside-orange/20 border border-fireside-orange/20 overflow-hidden ">
+    <Card className="pointer-events-none fixed inset-x-0 bottom-32 z-[1000] flex object-cover justify-center aspect-[5/1] mx-2 sm:bottom-10 bg-fireside-orange/20 border border-fireside-orange/20 overflow-hidden">
       <div className='relative w-full h-full'>
-            <div className="aspect-[5/1] w-full object-cover relative ">
-                <Image width={128} height={72} src={current.imageUrl} alt={current.title} className="h-full w-full object-cover" />
-              </div>
-
-              <div className="flex-1 min-w-0 absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-b from-transparent to-black/90">
-              {/* <div className="flex items-center justify-end text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70"> */}
-                {/* <span className="text-fireside-orange">Sponsored</span> */}
-                {/* <span className="text-white">{secondsLeft}s left</span> */}
-              {/* </div> */}
-              <p className="mt-1 text-sm font-semibold text-white truncate sm:text-base">{current.title}</p>
-              <div className="mt-2 h-1.5 w-full rounded-full bg-white/10">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-fireside-orange via-orange-400 to-amber-300 transition-[width] duration-300 ease-out"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div>
-      </div>
-      {/* <div className="pointer-events-auto w-full max-w-xl">
-        <div className="rounded-2xl bg-gradient-to-r from-fireside-orange/60 via-fireside-orange/20 to-transparent p-[1px] shadow-[0_15px_45px_rgba(0,0,0,0.65)]">
-          <div className="flex items-center gap-4 rounded-2xl bg-fireside-dark_orange/80 p-3 backdrop-blur-xl sm:p-4"> */}
-            {/* <div className="flex-shrink-0 overflow-hidden rounded-xl border border-white/10 bg-black/30"> */}
-              
-            {/* </div> */}
-            {/* <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">
-                <span className="text-fireside-orange">Sponsored</span>
-                <span className="text-white">{secondsLeft}s left</span>
-              </div>
-              <p className="mt-1 text-sm font-semibold text-white truncate sm:text-base">{current.title}</p>
-              <div className="mt-2 h-1.5 w-full rounded-full bg-white/10">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-fireside-orange via-orange-400 to-amber-300 transition-[width] duration-300 ease-out"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div> */}
-          {/* </div>
+        <div className="aspect-[5/1] w-full object-cover relative">
+          <Image width={128} height={72} src={current.imageUrl} alt={current.title} className="h-full w-full object-cover" />
         </div>
-      </div> */}
+
+        <div className="flex-1 min-w-0 absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-b from-transparent to-black/90">
+          <p className="mt-1 text-sm font-semibold text-white truncate sm:text-base">{current.title}</p>
+        </div>
+
+        {/* Timer border that disappears as ad progresses */}
+        <div className="absolute inset-0 pointer-events-none">
+          <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+            <rect
+              x="0"
+              y="0"
+              width="100%"
+              height="100%"
+              rx="2"
+              ry="2"
+              fill="none"
+              stroke="url(#gradient)"
+              strokeWidth="6"
+              strokeDasharray="100"
+              strokeDashoffset={progress}
+              pathLength="100"
+              style={{
+                transition: 'stroke-dashoffset 0.3s ease-out',
+              }}
+            />
+            <defs>
+              <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="rgb(251, 146, 60)" />
+                <stop offset="50%" stopColor="rgb(251, 113, 133)" />
+                <stop offset="100%" stopColor="rgb(252, 211, 77)" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+      </div>
     </Card>
   );
 }

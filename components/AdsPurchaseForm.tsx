@@ -19,7 +19,7 @@ export default function AdsPurchaseForm({ handleERC20Payment, handleETHPayment, 
   const [price, setPrice] = useState<number | null>(null);
   const [quoting, setQuoting] = useState(false);
 
-  const BASE_PRICE = 1; // Base price per room per minute per 10 participants in ETH
+  const BASE_PRICE = 0.01; // Base price per room per minute per 10 participants in ETH
 
   const quotePrice = () => {
       const priceCalc = rooms * minutes * (Math.round(minParticipants / 10) + 1) * BASE_PRICE;
