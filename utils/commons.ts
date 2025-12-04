@@ -21,9 +21,6 @@ export const getEthPrice = async () => {
       throw new Error("Invalid ETH price returned from API");
     }
 
-    toast.info("Fetched ETH Price successfully"  + JSON.stringify(priceBody));
-    toast.info("ETH Price fetched: $" + numericPrice);
-
     return numericPrice;
   } catch (error) {
     console.error("Error", error);

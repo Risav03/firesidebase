@@ -23,7 +23,7 @@ export default function Navigation() {
   const isRecordingsPage = pathname === "/recordings";
   const isAdsPage = pathname === "/ads/purchase";
   const showAdsButton = isAdsTester(user?.fid);
-  const navColumnCount = showAdsButton ? 4 : 3;
+  const navColumnCount = 3;
 
   const indicatorVisible =
     isHomePage || isRecordingsPage || (showAdsButton && isAdsPage);
@@ -44,14 +44,14 @@ export default function Navigation() {
   return (
     <>
       <nav className="fixed bottom-0 left-0 right-0 bg-fireside-dark_orange pb-2  z-50">
-        {showAdsButton && (
-          <div className="gradient-fire px-2 py-2 text-white mb-1 flex items-center justify-between space-x-2">
+        {showAdsButton && !isAdsPage && (
+          <div className="gradient-fire px-2 py-2 text-white mb-1 flex items-center justify-between space-x-4">
             <div>
-              <h2 className="text-white font-bold text-md">
+              <h2 className="text-white font-bold text-lg">
                 Sponsorship Ad Portal
               </h2>
               <p className="text-sm">
-                Build reach with your target audience through ad banners
+                Reach your audience with ad banners
               </p>
             </div>
 
