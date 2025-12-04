@@ -5,6 +5,7 @@ import { MicOnIcon, MicOffIcon } from "@100mslive/react-icons";
 import { HMSActions, HMSPeer } from "@100mslive/react-sdk";
 import { useSpeakerRequestEvent, useSpeakerRejectionEvent } from "@/utils/events";
 import { toast } from "react-toastify";
+import Button from "../UI/Button";
 
 interface MicComponentProps {
   isLocalAudioEnabled: boolean;
@@ -75,9 +76,9 @@ export default function MicComponent({
   if (isListener && !canUnmute) {
     return (
       <div className="flex flex-col items-center">
-        <button
-          className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
-            speakerRequested ? "bg-yellow-500 text-white shadow-lg" : "bg-fireside-orange text-white shadow-lg"
+        <Button
+          className={`w-16 p-0 aspect-square rounded-lg flex items-center bg-yellow-500 text-white shadow-lg justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
+            speakerRequested ? "opacity-100" : "opacity-80"
           }`}
           onClick={handleRequestToSpeak}
           disabled={speakerRequested || isRejoining}
@@ -86,14 +87,14 @@ export default function MicComponent({
           {isRejoining ? (
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
           ) : (
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-10 aspect-square" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
             </svg>
           )}
-        </button>
-        <div className="mt-3 text-center">
+        </Button>
+        <div className="mt-1 text-center">
           <p className="text-xs text-gray-500">
-            {speakerRequested ? "Request sent" : "Request to speak"}
+            {speakerRequested ? "Request sent" : "Mic Request"}
           </p>
         </div>
       </div>
@@ -102,8 +103,9 @@ export default function MicComponent({
 
   return (
     <div className="flex flex-col items-center justify-center">
-      <button
-        className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 transform ${
+      <Button
+      variant="ghost"
+        className={`w-16 p-0 aspect-square rounded-full flex items-center justify-center transition-all duration-200 transform ${
           canUnmute && !isRejoining
             ? "hover:scale-105 active:scale-95"
             : "opacity-60 cursor-not-allowed"
@@ -165,12 +167,12 @@ export default function MicComponent({
         {isRejoining ? (
           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
         ) : isLocalAudioEnabled ? (
-          <MicOnIcon className="w-6 h-6" />
+          <MicOnIcon className="w-10 aspect-square" />
         ) : (
-          <MicOffIcon className="w-6 h-6" />
+          <MicOffIcon className="w-10 aspect-square" />
         )}
-      </button>
-      <div className="mt-3 ">
+      </Button>
+      <div className="mt-1 ">
         <p className="text-xs text-gray-500">
           {isRejoining
             ? "Re-joining with new role..."
@@ -178,7 +180,7 @@ export default function MicComponent({
             ? isLocalAudioEnabled
               ? "Tap to mute"
               : "Tap to unmute"
-            : "Role cannot unmute"}
+            : "Cannot unmute"}
         </p>
       </div>
     </div>

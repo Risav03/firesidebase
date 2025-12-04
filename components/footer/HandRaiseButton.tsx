@@ -1,22 +1,26 @@
-import { HandRaiseIcon } from "@100mslive/react-icons";
+import { HiOutlineHandRaised } from "react-icons/hi2";
+import Button from "../UI/Button";
 
 interface HandRaiseButtonProps {
   isHandRaised: boolean;
   handRaiseDisabled: boolean;
   handRaiseCountdown: number;
   onClick: () => void;
+  className?: string;
 }
 
 export default function HandRaiseButton({ 
   isHandRaised, 
   handRaiseDisabled, 
   handRaiseCountdown, 
-  onClick 
+  onClick,
+  className
 }: HandRaiseButtonProps) {
   return (
-    <button
+    <Button
+      variant="ghost"
       onClick={onClick}
-      className={`relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform ${
+      className={`relative p-0 w-12 aspect-square mx-auto  ${
         !handRaiseDisabled ? "hover:scale-105 active:scale-95" : " cursor-not-allowed"
       } ${
         isHandRaised
@@ -27,12 +31,12 @@ export default function HandRaiseButton({
       title={handRaiseDisabled && !isHandRaised ? "Hand raise cooldown (10s)" : isHandRaised ? "Lower hand" : "Raise hand"}
     >
       {!(handRaiseDisabled && !isHandRaised) && (
-        <HandRaiseIcon className="w-5 h-5" />
+        <HiOutlineHandRaised className="text-lg mx-auto" />
       )}
       
       {handRaiseDisabled && !isHandRaised && (
         <div className="absolute inset-0 rounded-full flex items-center justify-center">
-          <svg className="absolute inset-0 w-10 h-10 transform -rotate-90">
+          <svg className="absolute inset-0 w-12 h-12 transform -rotate-90" viewBox="0 0 40 40">
             <circle
               cx="20"
               cy="20"
@@ -58,6 +62,6 @@ export default function HandRaiseButton({
           <span className="text-xs text-white font-semibold z-10">{handRaiseCountdown}</span>
         </div>
       )}
-    </button>
+    </Button>
   );
 }

@@ -1,17 +1,20 @@
+import Button from "../UI/Button";
+
 interface EmojiButtonProps {
   onClick: () => void;
+  className?: string;
 }
 
-export default function EmojiButton({ onClick }: EmojiButtonProps) {
+export default function EmojiButton({ onClick, className }: EmojiButtonProps) {
   return (
-    <button
-      type="button"
+    <Button
+      variant="ghost"
       onClick={(event) => {
         event.preventDefault();
         event.stopPropagation();
         onClick();
       }}
-      className="relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 bg-white/10 text-white hover:white/20 cursor-pointer select-none"
+      className={`relative w-12 p-0 aspect-square ${className || 'rounded-full'} flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 bg-white/10 text-white hover:white/20 cursor-pointer select-none`}
       title="Emoji reactions"
       role="button"
     >
@@ -34,6 +37,6 @@ export default function EmojiButton({ onClick }: EmojiButtonProps) {
           d="M9 11h.01M15 11h.01M8 15h8"
         />
       </svg>
-    </button>
+    </Button>
   );
 }
