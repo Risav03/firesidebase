@@ -397,15 +397,13 @@ useEffect(() => {
     const canManageSpeakers = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
     
     return (
-      <div className="pt-12 pb-32 px-3 relative">
-        {/* <AudioRecoveryBanner /> */}
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-4 mt-6 relative">
-            {/* Speaker Requests Button - Only shown to hosts/co-hosts and when there are requests */}
+      <div className="pt-12 pb-32 px-3 relative min-h-screen">
+
+        {/* Speaker Requests Button - Only shown to hosts/co-hosts and when there are requests */}
             {canManageSpeakers && speakerRequests.length > 0 && (
-              <div className="flex w-full justify-end mb-4">
+              <div className="flex w-full justify-end mb-4 mt-2 absolute bottom-28 right-4">
                 <Button
-                  variant="default"
+                  variant="ghost"
                   onClick={() => setShowSpeakerRequestsDrawer(true)}
                   className="flex items-center gap-2"
                 >
@@ -416,8 +414,11 @@ useEffect(() => {
                 </Button>
               </div>
             )}
+        {/* <AudioRecoveryBanner /> */}
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-4 mt-6 relative">
             <Card variant="ghost" className="p-2 text-left border-fireside-orange/10">
-              <h2 className="text-xl font-bold gradient-fire-text">
+              <h2 className="text-2xl mb-2 font-bold text-center gradient-fire-text">
                 {roomDetails?.name || ""}
               </h2>
               <p className="text-gray-400 text-sm">
@@ -429,24 +430,26 @@ useEffect(() => {
           </div>
   
           <div className="">
-            <div className="grid grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 justify-items-center px-1">
-              {peers.map((peer) => (
-                <PeerWithContextMenu key={peer.id} peer={peer} />
-              ))}
+            {/* Hosts, Co-hosts, and Speakers */}
+            <div className="grid grid-cols-4 gap-4 justify-items-center px-1">
+              {peers
+                .filter((peer) => ['host', 'co-host', 'speaker'].includes(peer.roleName?.toLowerCase() || ''))
+                .map((peer) => (
+                  <PeerWithContextMenu key={peer.id} peer={peer} />
+                ))}
             </div>
-  
-            {presenters.length > 0 && (
-              <div className="mt-8 pt-8 border-t border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
-                  Screen Share
-                </h3>
-                <div className="flex flex-wrap justify-center gap-4">
-                  {presenters.map((peer) => (
-                    <ScreenTile key={"screen" + peer.id} peer={peer} />
+            
+            {/* Listeners */}
+            {peers.some((peer) => peer.roleName?.toLowerCase() === 'listener') && (
+              <div className="grid grid-cols-6 gap-2 justify-items-center px-1 mt-8 opacity-80 ">
+                {peers
+                  .filter((peer) => peer.roleName?.toLowerCase() === 'listener')
+                  .map((peer) => (
+                    <PeerWithContextMenu key={peer.id} peer={peer} />
                   ))}
-                </div>
               </div>
             )}
+  
           </div>
         </div>
         

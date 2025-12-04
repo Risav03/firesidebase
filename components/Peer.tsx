@@ -47,22 +47,23 @@ export default function Peer({ peer }: PeerProps) {
   }, [isSpeaking]);
 
   return (
+    <>
     <Card
-      className={`relative w-full aspect-[3/3.5] flex flex-col transition-all border-t-0 border-l-0 border-b-[5px] duration-200 ease-in-out items-center justify-center group object-contain overflow-hidden ${
+      className={`relative w-full aspect-[3/3.5] flex flex-col transition-all border-t-0 border-l-0 border-b-[6px] duration-200 ease-in-out items-center justify-center group object-contain overflow-hidden ${
         peer.roleName === "host"
           ? "bg-fireside-red/10 ring-fireside-red border-fireside-red shadow-fireside-red/30 text-white"
           : peer.roleName === "co-host"
           ? "bg-fireside-orange/10 ring-fireside-orange border-fireside-orange shadow-fireside-orange/30 text-white"
           : peer.roleName === "speaker"
           ? "bg-fireside-blue/10 ring-fireside-blue border-fireside-blue shadow-fireside-blue/30 text-white"
-          : "bg-gray-500/10 ring-gray-500 border-gray-500 shadow-gray-500/30 text-white"
-      } ${showSpeakingRing ? "ring-2 shadow-lg" : "ring-0 shadow-none"} `}
+          : "bg-gray-500/10 ring-gray-400 border-gray-400 shadow-black/30 shadow-lg text-white rounded-full"
+      } ${showSpeakingRing ? " ring-4 shadow-lg" : "ring-0 shadow-none"} `}
     >
       {peer.metadata && (
         <img
           src={JSON.parse(peer.metadata).avatar}
           alt={peer.name}
-          className={`w-full h-full object-cover transition-all duration-300 ease-in-out ${!isPeerAudioEnabled && peer.roleName !== "listener" ? "opacity-30" : ""}`}
+          className={`w-full h-full object-cover transition-all duration-300 ease-in-out ${(!isPeerAudioEnabled && peer.roleName !== "listener") ? "opacity-30" : ""} ${peer.roleName === "listener" && "opacity-60" } `}
         />
       )}
       
@@ -77,13 +78,15 @@ export default function Peer({ peer }: PeerProps) {
             </div>
           )}
 
-      <div
-        className={`mt-1 text-center absolute pb-3 bottom-0 bg-gradient-to-b from-transparent via-black/50 to-black/90 z-50 w-full `}
-      >
-        <p className="text-[0.75rem] font-medium text-white truncate max-w-full translate-y-2 text-center px-1 ">
+      
+    </Card>
+    
+        <p className={` ${peer.roleName == "listener" ? " text-[0.7rem] " : " text-sm font-bold "} text-white truncate max-w-full mt-1 text-center px-1 `}>
           {peer.name}
         </p>
-      </div>
-    </Card>
+     
+    </>
+
+    
   );
 }

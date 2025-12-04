@@ -1,3 +1,5 @@
+import Button from "../UI/Button";
+
 interface ChatButtonProps {
   isChatOpen: boolean;
   unreadCount: number;
@@ -6,9 +8,10 @@ interface ChatButtonProps {
 
 export default function ChatButton({ isChatOpen, unreadCount, onClick }: ChatButtonProps) {
   return (
-    <button
+    <Button
+      variant="ghost"
       onClick={onClick}
-      className={`relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
+      className={`relative h-12 aspect-square p-2 rounded-lg flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
         isChatOpen
           ? "bg-fireside-orange text-white shadow-lg"
           : "bg-white/10 text-white hover:bg-white/20"
@@ -33,6 +36,6 @@ export default function ChatButton({ isChatOpen, unreadCount, onClick }: ChatBut
           {unreadCount > 9 ? "9+" : unreadCount}
         </div>
       )}
-    </button>
+    </Button>
   );
 }
