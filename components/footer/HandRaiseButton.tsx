@@ -21,9 +21,10 @@ export default function HandRaiseButton({
   return (
     <div className="relative w-full">
       <Button
+      active={false}
         variant="ghost"
         onClick={onClick}
-        className={`relative w-12 aspect-square flex items-center text-xs font-bold border-neutral-orange/30 p-2 rounded-full mx-auto overflow-hidden ${
+        className={`relative w-12 overflow-hidden aspect-square flex items-center text-xs font-bold border-neutral-orange/30 p-2 rounded-full mx-auto overflow-hidden ${
           !handRaiseDisabled ? "hover:scale-105 active:scale-95" : "cursor-not-allowed"
         } ${
           isHandRaised
@@ -35,7 +36,7 @@ export default function HandRaiseButton({
       >
         {handRaiseDisabled && !isHandRaised && (
           <div 
-            className="absolute bottom-0 left-0 h-1 bg-neutral-orange transition-all duration-1000 ease-linear"
+            className="absolute bottom-0 left-0 h-screen bg-gray-400/20 transition-all duration-1000 ease-linear"
             style={{ width: `${progress}%` }}
           />
         )}

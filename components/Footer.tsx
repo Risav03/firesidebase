@@ -92,7 +92,7 @@ export default function Footer({ roomId }: { roomId: string }) {
           />
         </div>
 
-        <div className="flex flex-col items-center justify-center mx-4">
+        <div className="flex flex-col items-center justify-center mx-6">
           <MicComponent
             isLocalAudioEnabled={isLocalAudioEnabled}
             toggleAudio={toggleAudio}

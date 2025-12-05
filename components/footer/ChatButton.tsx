@@ -11,6 +11,7 @@ interface ChatButtonProps {
 export default function ChatButton({ isChatOpen, unreadCount, onClick }: ChatButtonProps) {
   return (
     <Button
+    active={false}
       variant="ghost"
       onClick={onClick}
       className={`w-12 aspect-square rounded-full text-xs p-2 gap-1 flex items-center border-neutral-yellow/30 justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
