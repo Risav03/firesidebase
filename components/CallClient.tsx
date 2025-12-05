@@ -22,6 +22,7 @@ import {
   addParticipantToRoom,
   removeParticipantFromRoom,
   fetchHMSActivePeers,
+  removeHMSPeer,
 } from "@/utils/serverActions";
 
 interface RoomCode {
@@ -53,18 +54,25 @@ export default function CallClient({ roomId }: CallClientProps) {
   // Function to handle role limit reached error
   const handleRoleLimitError = async (hmsRoomId: string, userFid: number) => {
     try {
-      console.log('[Role Limit] Checking for duplicate peer with fid:', userFid);
+      console.log('[Role Limit] Checking for duplicate peer with fid:', userFid, "in room:", hmsRoomId);
       
       // Fetch active peers from HMS room
       const peersResponse = await fetchHMSActivePeers(hmsRoomId);
+
+      console.log("Peers Response:", peersResponse);
       
       if (!peersResponse.ok || !peersResponse.data?.peers) {
         console.error('[Role Limit] Failed to fetch active peers');
         return false;
       }
 
+      console.log("Peers Response:", peersResponse);
+
       // Find peer with matching fid in metadata
       const peers = Object.values(peersResponse.data.peers) as any[];
+
+      console.log('[Role Limit] Active peers fetched:', peers.length, peers);
+
       const duplicatePeer = peers.find((peer) => {
         try {
           if (peer.metadata) {
@@ -80,15 +88,25 @@ export default function CallClient({ roomId }: CallClientProps) {
       if (duplicatePeer) {
         console.log('[Role Limit] Found duplicate peer:', duplicatePeer.id, 'Removing...');
         
-        // Remove the duplicate peer using HMS SDK
-        await hmsActions.removePeer(duplicatePeer.id, 'Removing duplicate session');
+        // Remove the duplicate peer using HMS Management API
+        const removeResponse = await removeHMSPeer(
+          hmsRoomId, 
+          duplicatePeer.id, 
+          duplicatePeer.role || 'listener',
+          'Removing duplicate session'
+        );
         
-        console.log('[Role Limit] Successfully removed duplicate peer');
-        
-        // Wait a bit for the removal to process
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        return true;
+        if (removeResponse.ok) {
+          console.log('[Role Limit] Successfully removed duplicate peer');
+          
+          // Wait a bit for the removal to process
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          
+          return true;
+        } else {
+          console.error('[Role Limit] Failed to remove duplicate peer:', removeResponse);
+          return false;
+        }
       } else {
         console.log('[Role Limit] No duplicate peer found with matching fid');
         return false;
@@ -270,9 +288,11 @@ export default function CallClient({ roomId }: CallClientProps) {
             const roomResponse = await fetchAPI(
               `${URL}/api/rooms/public/${roomId}`
             );
+
+            console.log("ROOM RESPONSE FOR ROLE LIMIT:", roomResponse);
             
-            if (roomResponse.ok && roomResponse.data.data.room.hms_room_id && user?.fid) {
-              const hmsRoomId = roomResponse.data.data.room.hms_room_id;
+            if (roomResponse.ok && roomResponse.data.data.room.roomId && user?.fid) {
+              const hmsRoomId = roomResponse.data.data.room.roomId;
               const removed = await handleRoleLimitError(hmsRoomId, user.fid);
               
               if (removed) {

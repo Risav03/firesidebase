@@ -424,6 +424,43 @@ export async function fetchHMSActivePeers(hmsRoomId: string) {
 }
 
 /**
+ * Remove a peer from an HMS room using 100ms Management API
+ */
+export async function removeHMSPeer(hmsRoomId: string, peerId: string, role: string, reason: string = '') {
+  const HMS_MANAGEMENT_TOKEN = process.env.HMS_MANAGEMENT_TOKEN;
+  
+  if (!HMS_MANAGEMENT_TOKEN) {
+    console.error('HMS_MANAGEMENT_TOKEN not found in environment variables');
+    return { data: null, status: 500, ok: false };
+  }
+
+  try {
+    const response = await fetch(`https://api.100ms.live/v2/active-rooms/${hmsRoomId}/remove-peers`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${HMS_MANAGEMENT_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        peer_id: peerId,
+        reason: reason
+      })
+    });
+
+    const data = await response.json();
+    
+    return {
+      data,
+      status: response.status,
+      ok: response.ok
+    };
+  } catch (error) {
+    console.error('Error removing HMS peer:', error);
+    throw error;
+  }
+}
+
+/**
  * Update user ads preference
  */
 export async function updateAdsPreference(autoAdsEnabled: boolean, token: string | null = null) {
