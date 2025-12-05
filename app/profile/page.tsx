@@ -9,7 +9,7 @@ import { IoRefreshOutline } from 'react-icons/io5';
 import { FaXTwitter } from 'react-icons/fa6';
 import { toast } from 'react-toastify';
 import sdk from '@farcaster/miniapp-sdk';
-import { fetchUserRooms, refreshUserProfile } from '@/utils/serverActions';
+import { fetchUserRooms, refreshUserProfile, updateAdsPreference } from '@/utils/serverActions';
 import { Card } from '@/components/UI/Card';
 import Navigation from '@/components/Navigation';
 import MainHeader from '@/components/UI/MainHeader';
@@ -112,18 +112,23 @@ export default function ProfilePage() {
     setAdsPrefSaving(true);
     try {
       const headers = await buildAuthHeaders();
-      const res = await fetch('/api/profile/ads-preference', {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify({ autoAdsEnabled: nextValue }),
-      });
+
+      let token:any = null;
+
+      if(process.env.NEXT_PUBLIC_ENV !== 'DEV'){
+        const tokenResponse = await sdk.quickAuth.getToken();
+        token = tokenResponse?.token;
+      }
+
+      const res = await updateAdsPreference(nextValue, token);
+     
+      console.log('Ads preference update response:', res);
       if (!res.ok) {
         throw new Error('Failed to update preference');
       }
-      const data = await res.json();
+      
       const persisted = Boolean(
-        data.autoAdsEnabled ??
-          data?.data?.autoAdsEnabled ??
+          res?.data?.autoAdsEnabled ??
           nextValue
       );
       setAutoAdsEnabled(persisted);
@@ -173,7 +178,7 @@ export default function ProfilePage() {
   return (
     <>
       <MainHeader/>
-      <div className="min-h-screen">
+      <div className="min-h-screen pb-32">
         <div className="max-w-2xl mx-auto px-4 pt-6 pb-24">
           
           <Card variant="ghost" className="bg-transparent pt-16 border-0">
