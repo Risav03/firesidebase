@@ -23,19 +23,19 @@ export default function HandRaiseButton({
       <Button
         variant="ghost"
         onClick={onClick}
-        className={`relative w-12 aspect-square flex items-center text-xs font-bold border-fireside-orange/30 p-2 rounded-full mx-auto overflow-hidden ${
+        className={`relative w-12 aspect-square flex items-center text-xs font-bold border-neutral-orange/30 p-2 rounded-full mx-auto overflow-hidden ${
           !handRaiseDisabled ? "hover:scale-105 active:scale-95" : "cursor-not-allowed"
         } ${
           isHandRaised
-            ? "bg-fireside-orange text-white shadow-lg"
-            : "text-fireside-orange bg-fireside-orange/10 hover:bg-white/20"
+            ? "bg-neutral-orange text-white shadow-lg"
+            : "text-neutral-orange bg-neutral-orange/10 hover:bg-white/20"
         }`}
         disabled={handRaiseDisabled && !isHandRaised}
         title={handRaiseDisabled && !isHandRaised ? "Hand raise cooldown (10s)" : isHandRaised ? "Lower hand" : "Raise hand"}
       >
         {handRaiseDisabled && !isHandRaised && (
           <div 
-            className="absolute bottom-0 left-0 h-1 bg-fireside-orange transition-all duration-1000 ease-linear"
+            className="absolute bottom-0 left-0 h-1 bg-neutral-orange transition-all duration-1000 ease-linear"
             style={{ width: `${progress}%` }}
           />
         )}
