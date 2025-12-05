@@ -147,21 +147,25 @@ export default function TippingModal({
   const lastCurrencyRef = useRef<string>("ETH");
 
   useEffect(() => {
-    // When transaction succeeds
-    if (isSuccess) {
-      
-        toast.success("Transaction successful!", );
-      
-      processSuccess(lastCurrencyRef.current);
-    }
-    // When transaction fails (status === 'error')
-    else if (status === "error") {
-      
-        toast.error("Transaction failed. Please try again.");
-      
-      setIsLoading(false);
-      console.error("Transaction failed");
-    }
+    const handleTransactionStatus = async () => {
+      // When transaction succeeds
+      if (isSuccess) {
+        
+          toast.success("Transaction successful!", );
+        
+        await processSuccess(lastCurrencyRef.current);
+      }
+      // When transaction fails (status === 'error')
+      else if (status === "error") {
+        
+          toast.error("Transaction failed. Please try again.");
+        
+        setIsLoading(false);
+        console.error("Transaction failed");
+      }
+    };
+
+    handleTransactionStatus();
   }, [isSuccess, status]);
 
   useEffect(() => {
