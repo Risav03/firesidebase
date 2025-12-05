@@ -67,7 +67,7 @@ function NameDisplay({ name, roleName }: { name: string; roleName?: string }) {
           padding: "0 5px",
         }}
       >
-        {name + "12123123123"}
+        {name}
       </motion.div>
     </div>
   );
