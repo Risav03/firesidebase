@@ -39,26 +39,31 @@ export default function Footer({ roomId }: { roomId: string }) {
   const localRoleName = useHMSStore(selectLocalPeerRoleName);
   const localPeerId = useHMSStore(selectLocalPeerID);
   const isHandRaised = useHMSStore(selectHasPeerHandRaised(localPeerId));
-  
+
   const { user } = useGlobalContext();
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const [isTippingModalOpen, setIsTippingModalOpen] = useState(false);
 
   const { isRejoining } = useRejoinState();
-  
+
   const { isChatOpen, unreadCount, handleChatToggle } = useChatStateLogic({
     roomId,
     messages,
     localPeerName: localPeer?.name,
-    userFid: user?.fid
+    userFid: user?.fid,
   });
 
-  const { toggleRaiseHand, handRaiseDisabled, handRaiseCountdown } = useHandRaiseLogic({
-    isHandRaised,
-    localPeerId
-  });
+  const { toggleRaiseHand, handRaiseDisabled, handRaiseCountdown } =
+    useHandRaiseLogic({
+      isHandRaised,
+      localPeerId,
+    });
 
-  const { floatingEmojis, handleEmojiSelect, isDisabled: isEmojiDisabled } = useEmojiReactionLogic({ user });
+  const {
+    floatingEmojis,
+    handleEmojiSelect,
+    isDisabled: isEmojiDisabled,
+  } = useEmojiReactionLogic({ user });
 
   useHMSNotificationLogger(localPeer, isLocalAudioEnabled);
 
@@ -71,10 +76,13 @@ export default function Footer({ roomId }: { roomId: string }) {
   const isHost = localRoleName === "host" || localRoleName === "co-host";
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 h-28 bg-fireside-darkOrange">
-      <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-center">
-        <div className="flex justify-center space-y-2 flex-col">
-          <EmojiButton onClick={() => setIsEmojiPickerOpen((prev) => !prev)} className="rounded-lg" />
+    <div className="fixed rounded-t-lg border-t-2 border-fireside-orange/30 bottom-0 left-0 right-0 z-50 h-28 bg-fireside-darkOrange">
+      <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-center h-full">
+        <div className="grid grid-cols-2 gap-2 grid-flow-col">
+          <EmojiButton
+            onClick={() => setIsEmojiPickerOpen((prev) => !prev)}
+            className="rounded-lg"
+          />
 
           <HandRaiseButton
             isHandRaised={isHandRaised}
@@ -84,7 +92,7 @@ export default function Footer({ roomId }: { roomId: string }) {
           />
         </div>
 
-        <div className="flex flex-col items-center justify-center mx-4">
+        <div className="flex flex-col items-center justify-center mx-6">
           <MicComponent
             isLocalAudioEnabled={isLocalAudioEnabled}
             toggleAudio={toggleAudio}
@@ -97,21 +105,22 @@ export default function Footer({ roomId }: { roomId: string }) {
           />
         </div>
 
-        <div className="flex flex-col justify-center space-y-2">
-          
-
-          <ChatButton 
+        <div className="grid grid-cols-2 gap-2 grid-flow-col">
+          <TippingButton onClick={handleTippingClick} />
+          <ChatButton
             isChatOpen={isChatOpen}
             unreadCount={unreadCount}
             onClick={handleChatToggle}
           />
-
-          <TippingButton onClick={handleTippingClick} />
         </div>
 
-        <Chat isOpen={isChatOpen} setIsChatOpen={handleChatToggle} roomId={roomId} />
+        <Chat
+          isOpen={isChatOpen}
+          setIsChatOpen={handleChatToggle}
+          roomId={roomId}
+        />
 
-        <EmojiPickerDrawer 
+        <EmojiPickerDrawer
           isOpen={isEmojiPickerOpen}
           onEmojiSelect={handleEmojiSelect}
           onClose={() => setIsEmojiPickerOpen(false)}

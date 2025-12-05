@@ -23,7 +23,7 @@ export default function HandRaiseButton({
       <Button
         variant="ghost"
         onClick={onClick}
-        className={`relative w-32 flex items-center text-xs font-bold border-fireside-orange/30  p-0 px-4 py-2 rounded-full mx-auto overflow-hidden ${
+        className={`relative w-12 aspect-square flex items-center text-xs font-bold border-fireside-orange/30 p-2 rounded-full mx-auto overflow-hidden ${
           !handRaiseDisabled ? "hover:scale-105 active:scale-95" : "cursor-not-allowed"
         } ${
           isHandRaised
@@ -39,8 +39,7 @@ export default function HandRaiseButton({
             style={{ width: `${progress}%` }}
           />
         )}
-        <HiOutlineHandRaised className="w-5 h-5 mx-auto relative z-10" />
-        <span className="relative z-10">Raise Hand</span>
+        <HiOutlineHandRaised className="text-lg mx-auto relative z-10" />
       </Button>
     </div>
   );
