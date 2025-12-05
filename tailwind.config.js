@@ -38,7 +38,7 @@ module.exports = {
           beige: '#F1EFE7',
           green: '#55AB55',
           orange: '#eb6b34',
-          darkOrange: '#0f0704',
+          darkOrange: '#0e0704',
           blue: '#5B9BD5',
           purple: '#8B5A96',
           brown: '#8B4513',
@@ -46,8 +46,12 @@ module.exports = {
           red: '#ef4444',
           'fireside-blue': '#3b82f6',
         },
-        'fireside-red': '#ef4444',
-        'fireside-blue': '#3b82f6',
+        neutral: {
+          green: '#24bb89',
+          yellow: '#f3ad32',
+          orange: '#f78635',
+          blue: '#5f9af9',
+        }
       },
       fontFamily: {
         sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Open Sans', 'Helvetica Neue', 'sans-serif'],

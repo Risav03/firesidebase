@@ -16,7 +16,7 @@ export default function EmojiButton({ onClick, className }: EmojiButtonProps) {
         event.stopPropagation();
         onClick();
       }}
-      className={` w-12 aspect-square text-xs gap-1 font-bold p-2 overflow-visible rounded-full bg-fireside-blue/10 text-fireside-blue border-fireside-blue/30 flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 hover:white/20 cursor-pointer select-none`}
+      className={` w-12 aspect-square text-xs gap-1 font-bold p-2 overflow-visible rounded-full bg-neutral-blue/10 text-neutral-blue border-neutral-blue/30 flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 hover:white/20 cursor-pointer select-none`}
       title="reactions"
       role="button"
     >

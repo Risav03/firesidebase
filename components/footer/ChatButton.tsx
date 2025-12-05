@@ -13,16 +13,16 @@ export default function ChatButton({ isChatOpen, unreadCount, onClick }: ChatBut
     <Button
       variant="ghost"
       onClick={onClick}
-      className={`w-12 aspect-square rounded-full text-xs p-2 gap-1 flex items-center border-fireside-yellow/30 justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
+      className={`w-12 aspect-square rounded-full text-xs p-2 gap-1 flex items-center border-neutral-yellow/30 justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
         isChatOpen
-          ? "bg-fireside-orange text-white shadow-lg"
-          : "bg-fireside-yellow/10 text-fireside-yellow hover:bg-fireside-yellow/20"
+          ? "bg-neutral-orange text-white shadow-lg"
+          : "bg-neutral-yellow/10 text-neutral-yellow hover:bg-neutral-yellow/20"
       }`}
       title="Toggle chat"
     >
       <IoChatbubbleSharp className="text-lg" />
       {unreadCount > 0 && !isChatOpen && (
-        <div className="absolute -top-1 -right-1 w-4 h-4 bg-fireside-red text-white text-xs rounded-full flex items-center justify-center ">
+        <div className="absolute -top-1 -right-1 w-4 h-4 bg-neutral-red text-white text-xs rounded-full flex items-center justify-center ">
           {unreadCount > 9 ? "9+" : unreadCount}
         </div>
       )}
