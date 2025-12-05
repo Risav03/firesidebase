@@ -20,7 +20,7 @@ export default function EmojiPickerDrawer({ isOpen, onEmojiSelect, onClose, isDi
     width: "100%",
     height: "400px",
     margin: "auto",
-    zIndex: 1000
+    zIndex: 100000
   };
 
   useEffect(() => {

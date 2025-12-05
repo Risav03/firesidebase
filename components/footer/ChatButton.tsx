@@ -23,7 +23,7 @@ export default function ChatButton({ isChatOpen, unreadCount, onClick }: ChatBut
     >
       <IoChatbubbleSharp className="text-lg" />
       {unreadCount > 0 && !isChatOpen && (
-        <div className="absolute -top-1 -right-1 w-4 h-4 bg-neutral-red text-white text-xs rounded-full flex items-center justify-center ">
+        <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center ">
           {unreadCount > 9 ? "9+" : unreadCount}
         </div>
       )}
