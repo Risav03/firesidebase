@@ -2,36 +2,26 @@
 
 import { useState, useRef } from "react";
 import { usePathname } from "next/navigation";
-import { useGlobalContext } from "@/utils/providers/globalContext";
 import CreateRoomModal from "@/components/CreateRoomModal";
 import { IoMdHome } from "react-icons/io";
 import { FaPlus } from "react-icons/fa";
 import { useNavigateWithLoader } from "@/utils/useNavigateWithLoader";
-import { RiAdvertisementFill } from "react-icons/ri";
 import { FaRecordVinyl } from "react-icons/fa";
-import { isAdsTester } from "@/utils/constants";
 import Button from "./UI/Button";
 
 export default function Navigation() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const pathname = usePathname();
-  const { user } = useGlobalContext();
   const navigate = useNavigateWithLoader();
   const indicatorRef = useRef<HTMLDivElement>(null);
 
   const isHomePage = pathname === "/";
   const isRecordingsPage = pathname === "/recordings";
   const isAdsPage = pathname === "/ads/purchase";
-  const showAdsButton = isAdsTester(user?.fid);
   const navColumnCount = 3;
 
-  const indicatorVisible =
-    isHomePage || isRecordingsPage || (showAdsButton && isAdsPage);
-  const indicatorColumn = (() => {
-    if (isRecordingsPage) return showAdsButton ? 2 : 2;
-    if (isAdsPage && showAdsButton) return 3;
-    return 0;
-  })();
+  const indicatorVisible = isHomePage || isRecordingsPage;
+  const indicatorColumn = isRecordingsPage ? 2 : 0;
 
   const handleCreateRoom = () => {
     setShowCreateModal(true);

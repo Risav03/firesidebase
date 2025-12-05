@@ -16,7 +16,6 @@ import { readContract } from "@wagmi/core";
 import Background from "@/components/UI/Background";
 import NavigationWrapper from "@/components/NavigationWrapper";
 import AdsPurchaseForm from "@/components/AdsPurchaseForm";
-import { isAdsTester } from "@/utils/constants";
 import sdk from "@farcaster/miniapp-sdk";
 import { toast } from "react-toastify";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
@@ -27,7 +26,6 @@ export default function PurchaseAdPage() {
   const { user } = useGlobalContext();
   const [creating, setCreating] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const isTester = isAdsTester(user?.fid);
 
   const { context } = useMiniKit();
   const { sendCalls, isSuccess, status } = useSendCalls();
@@ -335,26 +333,6 @@ export default function PurchaseAdPage() {
       throw fetchError;
     }
   };
-
-  if (!isTester) {
-    return (
-      <>
-        <div className="min-h-screen flex items-center justify-center px-4">
-          <div className="bg-black/50 border border-white/10 rounded-xl p-6 text-center max-w-md">
-            <p className="text-white text-lg font-semibold mb-2">
-              Ads beta access only
-            </p>
-            <p className="text-gray-300 text-sm">
-              Ads purchasing is currently limited to a small group of testers.
-              Please reach out to the team if you need access.
-            </p>
-          </div>
-        </div>
-        <NavigationWrapper />
-      </>
-    );
-  }
-
   return (
     <>
       <AdsPurchaseForm handleETHPayment={handleEthPayment} handleERC20Payment={handleERC20Payment} loading={processing} />
