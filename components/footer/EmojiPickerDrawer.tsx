@@ -43,7 +43,7 @@ export default function EmojiPickerDrawer({ isOpen, onEmojiSelect, onClose, isDi
   return (
     <div
       ref={pickerRef}
-      className={`absolute left-0 bottom-[8rem] z-50 w-full mx-auto transition-all flex items-center justify-center duration-200 emoji-picker-container ${
+      className={`absolute left-0 bottom-[8rem] z-[10000] w-full mx-auto transition-all flex items-center justify-center duration-200 emoji-picker-container ${
         isOpen ? "" : "opacity-0 pointer-events-none"
       } ${isDisabled ? "pointer-events-none" : ""} rounded-t-xl`}
     >
