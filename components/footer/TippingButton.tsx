@@ -10,10 +10,10 @@ export default function TippingButton({ onClick }: TippingButtonProps) {
     <Button
       variant="ghost"
       onClick={onClick}
-      className="relative w-12 aspect-square rounded-lg p-0 flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 bg-white/10 text-white hover:bg-white/20"
+      className="w-12 aspect-square text-xs font-bold gap-1 rounded-full p-2 text-fireside-green bg-fireside-green/10 border-fireside-green/30 flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 "
       title="Send a tip"
     >
-      <FaMoneyBill className="w-5 h-5" />
+      <FaMoneyBill className="text-lg" />
     </Button>
   );
 }

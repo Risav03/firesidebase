@@ -20,7 +20,7 @@ export default function MainHeader() {
   };
 
   return (
-    <header className=" absolute top-0 left-0 right-0 bg-fireside-dark_orange border-b border-orange-950/50 text-white py-4 w-screen flex items-center justify-center">
+    <header className=" absolute top-0 left-0 right-0 bg-fireside-darkOrange border-b border-orange-950/50 text-white py-4 w-screen flex items-center justify-center">
       
       <FiresideLogo className="w-32" />
       <button

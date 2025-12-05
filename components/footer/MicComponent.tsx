@@ -6,6 +6,7 @@ import { HMSActions, HMSPeer } from "@100mslive/react-sdk";
 import { useSpeakerRequestEvent, useSpeakerRejectionEvent } from "@/utils/events";
 import { toast } from "react-toastify";
 import Button from "../UI/Button";
+import { GiMicrophone } from "react-icons/gi";
 
 interface MicComponentProps {
   isLocalAudioEnabled: boolean;
@@ -77,7 +78,7 @@ export default function MicComponent({
     return (
       <div className="flex flex-col items-center">
         <Button
-          className={`w-16 p-0 aspect-square rounded-lg flex items-center bg-yellow-500 text-white shadow-lg justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
+          className={`w-16 p-0 aspect-square rounded-full flex items-center bg-yellow-500 text-white shadow-lg justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
             speakerRequested ? "opacity-100" : "opacity-80"
           }`}
           onClick={handleRequestToSpeak}
@@ -87,16 +88,10 @@ export default function MicComponent({
           {isRejoining ? (
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
           ) : (
-            <svg className="w-10 aspect-square" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-            </svg>
+            <GiMicrophone className="text-lg aspect-square" />
           )}
         </Button>
-        <div className="mt-1 text-center">
-          <p className="text-xs text-gray-500">
-            {speakerRequested ? "Request sent" : "Mic Request"}
-          </p>
-        </div>
+        
       </div>
     );
   }
@@ -172,17 +167,7 @@ export default function MicComponent({
           <MicOffIcon className="w-10 aspect-square" />
         )}
       </Button>
-      <div className="mt-1 ">
-        <p className="text-xs text-gray-500">
-          {isRejoining
-            ? "Re-joining with new role..."
-            : canUnmute
-            ? isLocalAudioEnabled
-              ? "Tap to mute"
-              : "Tap to unmute"
-            : "Cannot unmute"}
-        </p>
-      </div>
+      
     </div>
   );
 }

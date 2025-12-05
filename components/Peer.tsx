@@ -1,7 +1,7 @@
 "use client";
 
 import { MicOffIcon, PersonIcon } from "@100mslive/react-icons";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   selectIsPeerAudioEnabled,
   selectPeerAudioByID,
@@ -11,9 +11,66 @@ import {
   selectHasPeerHandRaised,
 } from "@100mslive/react-sdk";
 import { Card } from "./UI/Card";
+import { motion } from "framer-motion";
 
 interface PeerProps {
   peer: HMSPeer;
+}
+function NameDisplay({ name, roleName }: { name: string; roleName?: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLDivElement>(null);
+  const [shouldSlide, setShouldSlide] = useState(false);
+  const [offset, setOffset] = useState(0);
+
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (containerRef.current && textRef.current) {
+        const containerWidth = containerRef.current.offsetWidth;
+        const textWidth = textRef.current.scrollWidth;
+        const needsSlide = textWidth > containerWidth;
+        setShouldSlide(needsSlide);
+        if (needsSlide) {
+          setOffset(containerWidth - textWidth);
+        }
+      }
+    };
+
+    checkOverflow();
+    
+    const timeoutId = setTimeout(checkOverflow, 100);
+    
+    return () => clearTimeout(timeoutId);
+  }, [name]);
+
+  return (
+    <div 
+      ref={containerRef}
+      className={`${roleName == "listener" ? " text-[0.7rem] " : " text-sm font-bold "} text-white mt-1 px-1 overflow-hidden relative w-full`}
+    >
+      <motion.div 
+        ref={textRef}
+        className="whitespace-nowrap"
+        animate={shouldSlide ? {
+          x: [0, offset]
+        } : {}}
+        transition={{
+          duration: 6,
+          repeat: Infinity,
+          repeatType: "loop",
+          ease: "easeInOut",
+          repeatDelay: 0.5
+        }}
+        style={{
+          display: 'inline-block',
+          textAlign: shouldSlide ? 'left' : 'center',
+          width: shouldSlide ? 'auto' : '100%',
+          padding: "0 5px",
+        }}
+      >
+        {name + "12123123123"}
+      </motion.div>
+    </div>
+  );
 }
 
 export default function Peer({ peer }: PeerProps) {
@@ -47,9 +104,9 @@ export default function Peer({ peer }: PeerProps) {
   }, [isSpeaking]);
 
   return (
-    <>
+    <div className="flex flex-col w-full min-w-0">
     <Card
-      className={`relative w-full aspect-[3/3.5] flex flex-col transition-all border-t-0 border-l-0 border-b-[6px] duration-200 ease-in-out items-center justify-center group object-contain overflow-hidden ${
+      className={`relative w-full aspect-[3/3.5] flex-shrink-0 flex flex-col transition-all border-t-0 border-l-0 border-b-[6px] duration-200 ease-in-out items-center justify-center group object-contain overflow-hidden ${
         peer.roleName === "host"
           ? "bg-fireside-red/10 ring-fireside-red border-fireside-red shadow-fireside-red/30 text-white"
           : peer.roleName === "co-host"
@@ -81,11 +138,9 @@ export default function Peer({ peer }: PeerProps) {
       
     </Card>
     
-        <p className={` ${peer.roleName == "listener" ? " text-[0.7rem] " : " text-sm font-bold "} text-white truncate max-w-full mt-1 text-center px-1 `}>
-          {peer.name}
-        </p>
+        <NameDisplay name={peer.name} roleName={peer.roleName} />
      
-    </>
+    </div>
 
     
   );
