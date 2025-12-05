@@ -422,3 +422,15 @@ export async function fetchHMSActivePeers(hmsRoomId: string) {
     throw error;
   }
 }
+
+/**
+ * Update user ads preference
+ */
+export async function updateAdsPreference(autoAdsEnabled: boolean, token: string | null = null) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/profile/ads-preference`, {
+    method: 'PUT',
+    body: { autoAdsEnabled },
+    authToken: token
+  });
+}

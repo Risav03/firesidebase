@@ -44,7 +44,7 @@ export default function Navigation() {
   return (
     <>
       <nav className="fixed bottom-0 left-0 right-0 bg-fireside-dark_orange pb-2  z-50">
-        {showAdsButton && !isAdsPage && (
+        { !isAdsPage && (
           <div className="gradient-fire px-2 py-2 text-white mb-1 flex items-center justify-between space-x-4">
             <div>
               <h2 className="text-white font-bold text-lg">
