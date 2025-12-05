@@ -401,11 +401,11 @@ useEffect(() => {
 
         {/* Speaker Requests Button - Only shown to hosts/co-hosts and when there are requests */}
             {canManageSpeakers && speakerRequests.length > 0 && (
-              <div className="flex w-full justify-end mb-4 mt-2 absolute bottom-28 right-4">
+              <div className="flex w-full mb-4 mt-8">
                 <Button
                   variant="ghost"
                   onClick={() => setShowSpeakerRequestsDrawer(true)}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 w-full text-center justify-center"
                 >
                   <span>Speaker Requests</span>
                   <span className="bg-white text-fireside-orange rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
