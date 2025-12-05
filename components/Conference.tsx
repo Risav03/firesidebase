@@ -431,7 +431,7 @@ useEffect(() => {
   
           <div className="">
             {/* Hosts, Co-hosts, and Speakers */}
-            <div className="grid grid-cols-4 gap-4 justify-items-center px-1">
+            <div className="grid grid-cols-4 gap-4 px-1">
               {peers
                 .filter((peer) => ['host', 'co-host', 'speaker'].includes(peer.roleName?.toLowerCase() || ''))
                 .map((peer) => (
@@ -441,7 +441,7 @@ useEffect(() => {
             
             {/* Listeners */}
             {peers.some((peer) => peer.roleName?.toLowerCase() === 'listener') && (
-              <div className="grid grid-cols-6 gap-2 justify-items-center px-1 mt-8 opacity-80 ">
+              <div className="grid grid-cols-6 gap-2 px-1 mt-8 opacity-80 ">
                 {peers
                   .filter((peer) => peer.roleName?.toLowerCase() === 'listener')
                   .map((peer) => (

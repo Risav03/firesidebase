@@ -71,9 +71,9 @@ export default function Footer({ roomId }: { roomId: string }) {
   const isHost = localRoleName === "host" || localRoleName === "co-host";
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 h-28 bg-fireside-dark_orange">
-      <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-center">
-        <div className="flex items-center space-x-4">
+    <div className="fixed bottom-0 left-0 right-0 z-50 h-28 bg-fireside-darkOrange">
+      <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-center">
+        <div className="flex justify-center space-y-2 flex-col">
           <EmojiButton onClick={() => setIsEmojiPickerOpen((prev) => !prev)} className="rounded-lg" />
 
           <HandRaiseButton
@@ -84,7 +84,7 @@ export default function Footer({ roomId }: { roomId: string }) {
           />
         </div>
 
-        <div className="flex flex-col items-center justify-center mx-6">
+        <div className="flex flex-col items-center justify-center mx-4">
           <MicComponent
             isLocalAudioEnabled={isLocalAudioEnabled}
             toggleAudio={toggleAudio}
@@ -97,14 +97,16 @@ export default function Footer({ roomId }: { roomId: string }) {
           />
         </div>
 
-        <div className="flex items-center space-x-4">
-          <TippingButton onClick={handleTippingClick} />
+        <div className="flex flex-col justify-center space-y-2">
+          
 
           <ChatButton 
             isChatOpen={isChatOpen}
             unreadCount={unreadCount}
             onClick={handleChatToggle}
           />
+
+          <TippingButton onClick={handleTippingClick} />
         </div>
 
         <Chat isOpen={isChatOpen} setIsChatOpen={handleChatToggle} roomId={roomId} />
