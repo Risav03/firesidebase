@@ -281,7 +281,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                       Your Schedule ({myUpcomingRooms.length})
                     </Button>
                   </DrawerTrigger>
-                  <DrawerContent className="bg-black">
+                  <DrawerContent className="bg-black overflow-y-scroll max-h-[80vh]">
                     <DrawerHeader>
                       <DrawerTitle className="text-white text-xl font-bold">Your Scheduled Rooms</DrawerTitle>
                     </DrawerHeader>
