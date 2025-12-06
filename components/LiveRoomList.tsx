@@ -217,7 +217,9 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
 
   // Filter only live/ongoing rooms
   const liveRooms = localRooms.filter((room) => room.status === "ongoing");
-  const upcomingRooms = localRooms.filter((room) => room.status === "upcoming" && room.startTime > new Date().toISOString());
+  const upcomingRooms = localRooms
+    .filter((room) => room.status === "upcoming" && room.startTime > new Date().toISOString())
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
 
   return (
     <div className="pt-16 min-h-screen pb-20">
