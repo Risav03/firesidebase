@@ -188,6 +188,17 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
               />
             </div>
 
+            {showSchedule && (
+              <DateTimePicker
+                label="Start Time"
+                value={startTime}
+                onChange={setStartTime}
+                placeholder="Select start time"
+                required
+                minDate={new Date()}
+              />
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Topics (up to 3)*
@@ -237,16 +248,6 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                 />
               </button>
             </div>
-            {showSchedule && (
-              <DateTimePicker
-                label="Start Time"
-                value={startTime}
-                onChange={setStartTime}
-                placeholder="Select start time"
-                required
-                minDate={new Date()}
-              />
-            )}
              
           </div>
         </div>
