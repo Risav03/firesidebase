@@ -196,8 +196,8 @@ export default function AdsPurchaseForm({ handleERC20Payment, handleETHPayment, 
             </div>
           )}
         
-          <div className="grid grid-cols-2 gap-3 pt-2">
-            <Button 
+          <div className="grid grid-cols-1 gap-3 pt-2">
+            {/* <Button 
               variant='action'
               type="button"
               onClick={() => handleSubmit('ETH')} 
@@ -213,7 +213,7 @@ export default function AdsPurchaseForm({ handleERC20Payment, handleETHPayment, 
                   Processing...
                 </>
               ) : 'Pay with ETH'}
-            </Button>
+            </Button> */}
             <Button
             variant='action' 
               type="button"
