@@ -75,6 +75,10 @@
     @apply bg-gradient-to-br from-orange-500 to-orange-400 bg-clip-text text-transparent;
   }
 
+  .gradient-money-text {
+    @apply bg-gradient-to-br from-emerald-500 to-fireside-green bg-clip-text text-transparent;
+  }
+
   .gradient-text {
     @apply bg-gradient-to-br from-orange-500 to-orange-400 bg-clip-text text-transparent;
   }
@@ -87,8 +91,8 @@
     @apply bg-gradient-to-br from-red-700 to-red-600 border-[1px] border-red-200;
   }
 
-  .gradient-emerald {
-    @apply bg-gradient-to-br from-emerald-800 to-emerald-600 border-[1px] border-emerald-700;
+  .gradient-money {
+    @apply bg-gradient-to-br from-emerald-800 to-fireside-green border-[1px] border-emerald-700;
   }
 
   .gradient-yellow {
