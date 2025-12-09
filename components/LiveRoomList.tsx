@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { FaHeadphones } from "react-icons/fa";
 import { IoIosRefresh } from "react-icons/io";
 import { toast } from "react-toastify";
@@ -85,7 +85,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
 
-
+  const [netEarned, setNetEarned] = useState<number>(0);
 
   // Handle topic selection and PATCH request
   const handleTopicSubmit = async (selectedTopics: string[]) => {
@@ -225,10 +225,21 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
     .filter((room) => room.status === "upcoming" && room.startTime > new Date().toISOString())
     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
 
+  // Auto-switch to appropriate tab based on available rooms
+  useEffect(() => {
+    if (!loading && !isUserLoading) {
+      if (liveRooms.length === 0 && upcomingRooms.length > 0) {
+        setActiveTab('upcoming');
+      } else {
+        setActiveTab('live');
+      }
+    }
+  }, [liveRooms.length, upcomingRooms.length, loading, isUserLoading]);
+
   return (
     <div className="pt-16 min-h-screen pb-20">
       <div className="max-w-4xl mx-auto p-4 sm:p-6 pb-24">
-        <div className="text-left mb-8">
+        <div className="text-left mb-6">
           <h1 className="text-2xl font-bold flex items-center gap-2 text-white">
             Welcome,{" "}
             {isUserLoading ? (
@@ -237,8 +248,13 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
               <UserDisplay />
             )}
           </h1>
-          <p className="text-white/70 text-sm">{welcomeMessage}</p>
         </div>
+
+        {user && user?.adEarnings ? <Card className=" bg-fireside-green/10 border-fireside-green/30 rounded-md w-full p-2 text-sm font-bold text-white mb-6 flex justify-between items-center">
+            Listener Rewards earned: <span className="text-fireside-green text-lg">${user?.adEarnings.totalUsd.toFixed(2)}</span> 
+        </Card> : <Card className=" bg-fireside-green/10 border-fireside-green/30 rounded-md w-full p-2 text-xs font-bold text-fireside-green/50 mb-6 flex justify-center items-center">
+            Earn Listener Rewards by joining sponsored rooms! 
+        </Card>}
 
         {/* <div className="mb-6">
           <SearchBar className="w-full" />
@@ -279,7 +295,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                   <DrawerTrigger asChild>
                     <Button 
                       variant="ghost" 
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 w-full justify-center"
                     >
                       <MdOutlineSchedule className="text-lg text-white" />
                       Your Schedule ({myUpcomingRooms.length})
@@ -418,8 +434,8 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                         <Card
                           onClick={() => router.push(`/call/${room._id}`)}
                           key={room._id}
-                          variant={roomHasAds ? undefined : "ghost"}
-                          className={`flex items-center gap-3 w-full p-4 font-bold cursor-pointer hover:opacity-80 transition-opacity bg-fireside-orange/10 border-fireside-orange/30 text-white`}
+                          variant={"ghost"}
+                          className={`flex items-center gap-3 w-full p-4 font-bold cursor-pointer hover:opacity-80 transition-opacity ${roomHasAds ? "bg-fireside-orange/10 border-fireside-orange/30 text-white" : "bg-fireside-green/5 border-fireside-green/20 text-white"} `}
                         >
                         <div className="relative">
                           <Image
