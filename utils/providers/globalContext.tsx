@@ -74,7 +74,10 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
         console.error("Failed to create user:", createUserRes.data);
       }
 
+
+
       var localUser = createUserRes.data.data.user;
+      console.log("User signed in:", localUser);
       if(context){
         localUser.pfp_url = context.user.pfpUrl;
         localUser.username = context?.user.username;
