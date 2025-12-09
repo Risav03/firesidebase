@@ -250,7 +250,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
           </h1>
         </div>
 
-        {user && user?.adEarnings ? <Card className=" bg-fireside-green/10 border-fireside-green/30 rounded-md w-full p-2 text-sm font-bold text-white mb-6 flex justify-between items-center">
+        {user && user?.adEarnings ? <Card className=" bg-fireside-green/10 border-fireside-green/30 text-fireside-green/50 rounded-md w-full p-2 text-sm font-bold text-white mb-6 flex justify-between items-center">
             Listener Rewards earned: <span className="text-fireside-green text-lg">${user?.adEarnings.totalUsd.toFixed(2)}</span> 
         </Card> : <Card className=" bg-fireside-green/10 border-fireside-green/30 rounded-md w-full p-2 text-xs font-bold text-fireside-green/50 mb-6 flex justify-center items-center">
             Earn Listener Rewards by joining sponsored rooms! 
@@ -295,7 +295,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                   <DrawerTrigger asChild>
                     <Button 
                       variant="ghost" 
-                      className="flex items-center gap-2 w-full justify-center"
+                      className="flex items-center gap-2 w-full justify-center text-white"
                     >
                       <MdOutlineSchedule className="text-lg text-white" />
                       Your Schedule ({myUpcomingRooms.length})
