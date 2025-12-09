@@ -27,7 +27,7 @@ export default function AdsPurchaseForm({ handleERC20Payment, handleETHPayment, 
       const r = Number(rooms) || 0;
       const m = Number(minutes) || 0;
       const mp = Number(minParticipants) || 0;
-      const priceCalc = r * m * (Math.round(mp / 10) + 1) * BASE_PRICE;
+      const priceCalc = r * m * (Math.floor(mp / 10) + 1) * BASE_PRICE;
       return priceCalc;
   };
 
@@ -38,7 +38,7 @@ export default function AdsPurchaseForm({ handleERC20Payment, handleETHPayment, 
     const m = Number(minutes) || 0;
     const mp = Number(minParticipants) || 0;
     if (r > 0 && m > 0 && mp > 0) {
-      const calculatedPrice = r * m * (Math.round(mp / 10) + 1) * BASE_PRICE;
+      const calculatedPrice = r * m * (Math.floor(mp / 10) + 1) * BASE_PRICE;
       setPrice(calculatedPrice);
     } else {
       setPrice(null);
@@ -51,7 +51,7 @@ export default function AdsPurchaseForm({ handleERC20Payment, handleETHPayment, 
     const m = Number(value) || 0;
     const mp = Number(minParticipants) || 0;
     if (r > 0 && m > 0 && mp > 0) {
-      const calculatedPrice = r * m * (Math.round(mp / 10) + 1) * BASE_PRICE;
+      const calculatedPrice = r * m * (Math.floor(mp / 10) + 1) * BASE_PRICE;
       setPrice(calculatedPrice);
     } else {
       setPrice(null);
@@ -64,7 +64,7 @@ export default function AdsPurchaseForm({ handleERC20Payment, handleETHPayment, 
     const m = Number(minutes) || 0;
     const mp = Number(value) || 0;
     if (r > 0 && m > 0 && mp > 0) {
-      const calculatedPrice = r * m * (Math.round(mp / 10) + 1) * BASE_PRICE;
+      const calculatedPrice = r * m * (Math.floor(mp / 10) + 1) * BASE_PRICE;
       setPrice(calculatedPrice);
     } else {
       setPrice(null);
