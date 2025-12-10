@@ -270,6 +270,12 @@ export default function TippingModal({
       } else {
         for (const role of selectedRoles) {
           const response = await fetchRoomParticipantsByRole(roomId, role);
+
+          if(!response.ok){
+            toast.error("Error fetching participants for role: " + role);
+            setIsLoading(false);
+            return;
+          }
           if (response.data.success) {
             usersToSend.push(
               ...response.data.data.participants.map((user: Participant) => user.wallet)
