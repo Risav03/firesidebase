@@ -248,10 +248,13 @@ export default function TippingModal({
     var token: any = "";
     if (env !== "DEV") {
       token = (await sdk.quickAuth.getToken()).token;
+      toast.info("Auth token retrieved");
     }
     
     try {
       setIsLoading(true);
+      toast.info("Starting ETH tip process");
+      
       if (!selectedUsers.length && !selectedRoles.length) {
         toast.error("Please select users or roles to tip");
         return;
@@ -267,7 +270,9 @@ export default function TippingModal({
 
       if (selectedUsers.length > 0) {
         usersToSend = selectedUsers.map((user) => user.wallet);
+        toast.info(`Selected ${usersToSend.length} users`);
       } else {
+        toast.info("Fetching participants by role...");
         for (const role of selectedRoles) {
           const response = await fetchRoomParticipantsByRole(roomId, role);
 
@@ -282,6 +287,7 @@ export default function TippingModal({
             );
           }
         }
+        toast.info(`Fetched ${usersToSend.length} users from roles`);
       }
 
       if (usersToSend.length === 0) {
@@ -290,8 +296,11 @@ export default function TippingModal({
       }
 
       lastCurrencyRef.current = "ETH";
+
+      toast.info(`Ref set to ETH`);
       
       const tipAmountUSD = selectedTip ? selectedTip : parseFloat(customTip);
+      toast.info(`Tip amount: $${tipAmountUSD} USD`);
       
       // Check if ETH price is available
       if (!ethPrice) {
@@ -302,7 +311,10 @@ export default function TippingModal({
       
       // Convert USD to ETH
       const tipAmountETH = tipAmountUSD / ethPrice;
+      toast.info(`Converted to ${tipAmountETH.toFixed(6)} ETH`);
+      
       const splitArr = splitIntoBatches(usersToSend);
+      toast.info(`Split into ${splitArr.length} batches`);
       
       // Convert ETH to Wei
       const ethValueInWei = BigInt(Math.floor(tipAmountETH * 1e18));
@@ -316,8 +328,10 @@ export default function TippingModal({
           args: [batch],
         }),
       }));
+      toast.info("Transaction calls prepared");
 
       if (context?.client.clientFid === 309857) {
+        toast.info("Using Base SDK flow (clientFid 309857)");
         toast.loading("Connecting to Base SDK...");
         
         const provider = createBaseAccountSDK({
@@ -325,9 +339,11 @@ export default function TippingModal({
           appLogoUrl: "https://firesidebase.vercel.app/app-icon2.png",
           appChainIds: [base.constants.CHAIN_IDS.base],
         }).getProvider();
+        toast.info("Base SDK provider created");
 
         const cryptoAccount = await getCryptoKeyAccount();
         const fromAddress = cryptoAccount?.account?.address;
+        toast.info(`Using address: ${fromAddress}`);
 
         toast.loading("Submitting transaction...");
 
@@ -342,10 +358,12 @@ export default function TippingModal({
             },
           ],
         });
+        toast.info(`Transaction submitted with ID: ${callsId}`);
 
         toast.loading("Transaction submitted, checking status...");
 
         const result = await checkStatus(callsId);
+        toast.info(`Status check result: ${JSON.stringify(result)}`);
 
         if (result.success == true) {
           toast.loading("Transaction confirmed!");
@@ -356,6 +374,7 @@ export default function TippingModal({
         }
 
       } else {
+        toast.info("Using standard sendCalls flow");
         // @ts-ignore
         sendCalls({ calls: sendingCalls });
       }
@@ -364,7 +383,7 @@ export default function TippingModal({
     } catch (error) {
       console.error("Error tipping users:", error);
       toast.dismiss();
-      toast.error("Failed to process tip. Please try again.");
+      toast.error(`Failed to process tip: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
