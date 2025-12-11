@@ -372,6 +372,7 @@ export default function TippingModal({
 
   const handleUSDCTip = async (tokenAddress: string, tokenSymbol: string) => {
     try {
+      toast.info(`Tipping with ${address?.slice(0, 7)}...${address?.slice(-5)}`);
       setIsLoading(true);
       if (!selectedUsers.length && !selectedRoles.length) {
         toast.error("Please select users or roles to tip");
@@ -393,6 +394,12 @@ export default function TippingModal({
           const response = await fetchRoomParticipantsByRole(roomId, role);
 
           console.log("Fetched participants for role", role, response);
+
+          if(!response.ok){
+            toast.error("Error fetching participants for role: " + role);
+            setIsLoading(false);
+            return;
+          }
 
           if (response.data.success) {
             usersToSend.push(
