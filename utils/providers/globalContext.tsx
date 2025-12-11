@@ -79,7 +79,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
 
       var localUser = createUserRes.data.data.user;
       console.log("User signed in:", localUser);
-      toast.success("user signed in");
+      
       if(context){
         localUser.pfp_url = context.user.pfpUrl;
         localUser.username = context?.user.username;
@@ -92,7 +92,6 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       }
       setIsUserLoading(false);
     } catch (error) {
-      toast.error(`Sign in error ${String(error)} `);
       console.error("Sign in error:", error);
       setIsUserLoading(false);
     }
