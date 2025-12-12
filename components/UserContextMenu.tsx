@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useHMSActions, useHMSStore, selectLocalPeer, selectPermissions, selectIsPeerAudioEnabled } from '@100mslive/react-sdk';
 import { ChevronDownIcon, MicOnIcon, MicOffIcon } from '@100mslive/react-icons';
 import sdk from "@farcaster/miniapp-sdk";
@@ -17,6 +18,7 @@ import { erc20Abi } from '@/utils/contract/abis/erc20abi';
 import { executeTransaction, type TransactionCall } from '@/utils/transactionHelpers';
 import { useTipEvent } from '@/utils/events';
 import { useGlobalContext } from '@/utils/providers/globalContext';
+import Image from 'next/image';
 
 interface UserContextMenuProps {
   peer: any;
@@ -27,6 +29,9 @@ interface UserContextMenuProps {
 }
 
 export default function UserContextMenu({ peer, isVisible, onClose, onViewProfile }: UserContextMenuProps) {
+
+  console.log('Rendering UserContextMenu for peer:', peer);
+
   const hmsActions = useHMSActions();
   const localPeer = useHMSStore(selectLocalPeer);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -151,6 +156,9 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
       setIsOpen(true);
       // Prevent body scroll when modal is open
       document.body.style.overflow = 'hidden';
+    } else {
+      setIsOpen(false);
+      document.body.style.overflow = 'unset';
     }
   }, [isVisible, isCoHostTryingToAccessHost]);
 
@@ -484,7 +492,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
     }
   };
 
-  if (!isVisible || isLocalUser) {
+  if ((!isVisible && !isTipDrawerOpen) || isLocalUser) {
     return null;
   }
 
@@ -494,31 +502,36 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
   // Check if user has role management permissions
   const canManageRoles = isHostOrCoHost && !isCoHostTryingToAccessHost;
 
-  return (
+  const modalContent = (
     <>
       {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
-        onClick={onClose}
-      />
+      {isVisible && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
+          onClick={onClose}
+        />
+      )}
       
       {/* Modal */}
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      {isVisible && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
         <Card
           ref={menuRef}
-          className="bg-black opacity-100 rounded-xl shadow-2xl w-full max-w-sm mx-4 transform transition-all duration-200 ease-out"
+          className="bg-[#000000] rounded-xl shadow-2xl w-full max-w-sm mx-4 transform transition-all duration-200 ease-out"
           style={{
             opacity: isOpen ? 1 : 0,
             transform: isOpen ? 'scale(1) translateY(0)' : 'scale(0.95) translateY(-10px)',
           }}
+          onClick={(e) => e.stopPropagation()}
         >
           {/* User Info Header */}
           <div className="px-6 py-4 border-b border-white/10">
             <div className="flex items-center space-x-4">
               <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-lg font-medium">
+                {peer.metadata ? <><Image unoptimized src={JSON.parse(peer.metadata).avatar} alt={`${peer.name}'s avatar`} width={48} height={48} className="rounded-full w-full h-full" /></> : <><span className="text-white text-lg font-medium">
                   {peer.name?.charAt(0)?.toUpperCase() || 'U'}
-                </span>
+                </span></>}
+                
               </div>
               <div>
                 <p className="text-white font-semibold text-lg">{peer.name}</p>
@@ -539,7 +552,10 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
             
             {/* Tip User Option */}
             <button
-              onClick={() => setIsTipDrawerOpen(true)}
+              onClick={() => {
+                setIsTipDrawerOpen(true);
+                onClose();
+              }}
               className="w-full px-6 py-3 text-left text-sm text-white hover:bg-gray-700 flex items-center space-x-3 transition-colors"
             >
               <span className="w-5 h-5">💸</span>
@@ -627,7 +643,10 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
           {/* Close Button */}
           <div className="px-6 py-3 border-t border-gray-600">
             <button
-              onClick={onClose}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
               className="w-full px-4 py-2 text-center text-sm text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
             >
               Cancel
@@ -635,29 +654,30 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
           </div>
         </Card>
       </div>
+      )}
       
       {/* Tip Drawer */}
       <Drawer open={isTipDrawerOpen} onOpenChange={setIsTipDrawerOpen}>
         <DrawerContent className="bg-black/95 backdrop-blur-lg text-white border-fireside-orange/30">
           <DrawerHeader className="border-b border-orange-500/30">
-            <DrawerTitle className="text-2xl font-bold text-center">
-              Tip {peer.name}
+            <DrawerTitle className="text-2xl font-bold text-center text-white">
+              Tip <span className='gradient-fire-text'>{peer.name}</span>
             </DrawerTitle>
           </DrawerHeader>
           
           <div className="px-4 py-6 space-y-6">
             {/* Recipient Info */}
-            <div className="flex items-center space-x-4 p-4 bg-gray-800/50 rounded-lg">
+            <Card className="flex items-center space-x-4 p-4 bg-white/10 rounded-lg">
               <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-lg font-medium">
+                {peer.metadata ? <><Image unoptimized src={JSON.parse(peer.metadata).avatar} alt={`${peer.name}'s avatar`} width={48} height={48} className="rounded-full w-full h-full" /></> : <><span className="text-white text-lg font-medium">
                   {peer.name?.charAt(0)?.toUpperCase() || 'U'}
-                </span>
+                </span></>}
               </div>
               <div>
                 <p className="text-white font-semibold">{peer.name}</p>
                 <p className="text-gray-400 text-sm capitalize">{peer.roleName}</p>
               </div>
-            </div>
+            </Card>
             
             {/* Tip Amount Input */}
             <div>
@@ -669,7 +689,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
                 value={tipAmount}
                 onChange={(e) => setTipAmount(e.target.value)}
                 placeholder="Enter amount in USD"
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-fireside-orange"
+                className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-fireside-orange"
                 min="0"
                 step="0.01"
                 disabled={isTipping}
@@ -736,4 +756,6 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
       </Drawer>
     </>
   );
+
+  return typeof window !== 'undefined' ? createPortal(modalContent, document.body) : null;
 }

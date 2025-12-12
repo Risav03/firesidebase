@@ -48,7 +48,7 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
   async function composeCast() {
     try {
       await sdk.actions.composeCast({
-        text: `I've just sparked up a Fireside! Come join the conversation https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/call/${roomId}`,
+        text: `Come join the conversation on Farcaster https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/call/${roomId}`,
         embeds: [`https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/call/${roomId}`],
       });
     } catch (e) {
@@ -91,7 +91,7 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
                   title="Share"
                 >
                   <TbShare3 className="w-5 h-5" />
-                  <span className="text-sm">Share</span>
+                  
                 </Button>
               )}
               <Button
