@@ -196,3 +196,30 @@ export const useAdsControlEvent = (
 
   return { notifyAdsControl, sendEvent };
 };
+
+/**
+ * Custom hook for handling tip notification events
+ * @param onEvent Callback function called when a tip is received
+ * @returns Object containing sendEvent function to notify about tips
+ */
+export const useTipEvent = (
+  onEvent?: (msg: { tipper: string; recipientPeerId: string; amount: number; currency: string }) => void
+) => {
+  const { sendEvent } = useCustomEvent({
+    type: "TIP_RECEIVED",
+    onEvent: onEvent || ((msg: { tipper: string; recipientPeerId: string; amount: number; currency: string }) => {}),
+  });
+
+  /**
+   * Send a tip notification to a specific recipient
+   * @param tipper The username of the person sending the tip
+   * @param recipientPeerId The peer ID of the recipient
+   * @param amount The amount tipped in USD
+   * @param currency The currency used (ETH, USDC, or FIRE)
+   */
+  const sendTipNotification = (tipper: string, recipientPeerId: string, amount: number, currency: string) => {
+    sendEvent({ tipper, recipientPeerId, amount, currency });
+  };
+
+  return { sendTipNotification, sendEvent };
+};
