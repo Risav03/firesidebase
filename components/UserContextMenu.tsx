@@ -237,7 +237,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
       <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4">
         <Card
           ref={menuRef}
-          className="bg-black rounded-xl shadow-2xl w-full max-w-sm mx-4 transform transition-all duration-200 ease-out"
+          className="bg-black opacity-100 rounded-xl shadow-2xl w-full max-w-sm mx-4 transform transition-all duration-200 ease-out"
           style={{
             opacity: isOpen ? 1 : 0,
             transform: isOpen ? 'scale(1) translateY(0)' : 'scale(0.95) translateY(-10px)',

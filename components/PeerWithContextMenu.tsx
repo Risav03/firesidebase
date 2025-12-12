@@ -55,7 +55,7 @@ export default function PeerWithContextMenu({ peer }: PeerWithContextMenuProps) 
         <Peer peer={peer} />
       </div>
 
-      {!isLocalUser && (<div className='relative z-[2]'>
+      {!isLocalUser && (<div className='relative z-[1000]'>
         <UserContextMenu
           peer={peer}
           isVisible={showContextMenu}
