@@ -229,12 +229,12 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
     <>
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
         onClick={onClose}
       />
       
       {/* Modal */}
-      <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
         <Card
           ref={menuRef}
           className="bg-black opacity-100 rounded-xl shadow-2xl w-full max-w-sm mx-4 transform transition-all duration-200 ease-out"

@@ -397,7 +397,7 @@ useEffect(() => {
     const canManageSpeakers = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
     
     return (
-      <div className="pt-12 pb-32 px-3 relative min-h-screen">
+      <div className="pt-12 pb-32 px-3 relative min-h-screen z-0">
 
         {/* Speaker Requests Button - Only shown to hosts/co-hosts and when there are requests */}
             {canManageSpeakers && speakerRequests.length > 0 && (
