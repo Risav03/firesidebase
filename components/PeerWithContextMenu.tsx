@@ -51,11 +51,11 @@ export default function PeerWithContextMenu({ peer }: PeerWithContextMenuProps) 
 
   return (
     <div ref={peerRef} className="relative">
-      <div onClick={handlePeerClick}>
+      <div className='relative z-[1]' onClick={handlePeerClick}>
         <Peer peer={peer} />
       </div>
 
-      {!isLocalUser && (
+      {!isLocalUser && (<div className='relative z-[2]'>
         <UserContextMenu
           peer={peer}
           isVisible={showContextMenu}
@@ -63,7 +63,7 @@ export default function PeerWithContextMenu({ peer }: PeerWithContextMenuProps) 
           onViewProfile={handleViewProfile}
           position={{ x: 0, y: 0 }} // Not used anymore but keeping for compatibility
         />
-      )}
+      </div>)}
 
       {/* <ViewProfileModal
         peer={peer}
