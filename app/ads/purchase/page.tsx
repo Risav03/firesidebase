@@ -21,6 +21,7 @@ import { toast } from "react-toastify";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import { checkStatus } from "@/utils/checkStatus";
 import { useSendCalls } from "wagmi";
+import { executeTransaction, type TransactionCall } from "@/utils/transactionHelpers";
 
 export default function PurchaseAdPage() {
   const { user } = useGlobalContext();
@@ -104,43 +105,23 @@ export default function PurchaseAdPage() {
         }),
       };
 
-      const sendingCalls = [viewers_call, revenue_call];
+      const sendingCalls: TransactionCall[] = [viewers_call, revenue_call];
 
-      if (context?.client.clientFid === 309857) {
-        const provider = createBaseAccountSDK({
-          appName: "Fireside",
-          appLogoUrl: "https://firesidebase.vercel.app/app-icon2.png",
-          appChainIds: [base.constants.CHAIN_IDS.base],
-        }).getProvider();
-
-        const cryptoAccount = await getCryptoKeyAccount();
-        const fromAddress = cryptoAccount?.account?.address;
-
-        const callsId: any = await provider.request({
-          method: "wallet_sendCalls",
-          params: [
-            {
-              version: "1.0",
-              chainId: numberToHex(base.constants.CHAIN_IDS.base),
-              from: fromAddress,
-              calls: sendingCalls,
-            },
-          ],
-        });
-
-        const result = await checkStatus(callsId);
-
-        if (result.success == true) {
+      const result = await executeTransaction({
+        calls: sendingCalls,
+        clientFid: context?.client.clientFid,
+        sendCalls,
+        onSuccess: async () => {
           await createOnBackend();
-        } else {
-          toast.error("Transaction failed or timed out");
-        }
+        },
+      });
 
-        return result;
-      } else {
-        // @ts-ignore
-        sendCalls({ calls: sendingCalls });
+      if (!result.success) {
+        setProcessing(false);
+        setCreating(false);
       }
+
+      return result;
     } catch (err) {
       console.error("ERC20 Payment Error:", err);
       toast.error("Failed to process ERC20 payment.");
@@ -202,45 +183,23 @@ export default function PurchaseAdPage() {
         value: context?.client.clientFid !== 309857 ? ethValueInWei : numberToHex(ethValueInWei),
       };
 
-      const sendingCalls = [viewers_call, revenue_call];
+      const sendingCalls: TransactionCall[] = [viewers_call, revenue_call];
 
-      if (context?.client.clientFid === 309857) {
-        const provider = createBaseAccountSDK({
-          appName: "Fireside",
-          appLogoUrl: "https://firesidebase.vercel.app/app-icon2.png",
-          appChainIds: [base.constants.CHAIN_IDS.base],
-        }).getProvider();
-
-        const cryptoAccount = await getCryptoKeyAccount();
-        const fromAddress = cryptoAccount?.account?.address;
-
-        const callsId: any = await provider.request({
-          method: "wallet_sendCalls",
-          params: [
-            {
-              version: "1.0",
-              chainId: numberToHex(base.constants.CHAIN_IDS.base),
-              from: fromAddress,
-              calls: sendingCalls,
-            },
-          ],
-        });
-
-        const result = await checkStatus(callsId);
-
-        if (result.success == true) {
+      const result = await executeTransaction({
+        calls: sendingCalls,
+        clientFid: context?.client.clientFid,
+        sendCalls,
+        onSuccess: async () => {
           await createOnBackend();
-        } else {
-          toast.error("Transaction failed or timed out");
-          setProcessing(false);
-          setCreating(false);
-        }
+        },
+      });
 
-        return result;
-      } else {
-        //@ts-ignore
-        sendCalls({ calls: sendingCalls });
+      if (!result.success) {
+        setProcessing(false);
+        setCreating(false);
       }
+
+      return result;
 
     } catch (err) {
       console.error("ETH Payment Error:", err);
