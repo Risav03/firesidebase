@@ -27,6 +27,7 @@ import { erc20Abi } from "@/utils/contract/abis/erc20abi";
 import { base, createBaseAccountSDK, getCryptoKeyAccount } from "@base-org/account";
 import sdk from '@farcaster/miniapp-sdk';
 import { checkStatus } from "@/utils/checkStatus";
+import { executeTransaction, type TransactionCall } from "@/utils/transactionHelpers";
 
 interface TippingModalProps {
   isOpen: boolean;
@@ -319,7 +320,7 @@ export default function TippingModal({
       // Convert ETH to Wei
       const ethValueInWei = BigInt(Math.floor(tipAmountETH * 1e18));
       
-      const sendingCalls = splitArr.map((batch) => ({
+      const sendingCalls: TransactionCall[] = splitArr.map((batch) => ({
         to: contractAdds.tipping as `0x${string}`,
         value: context?.client.clientFid !== 309857 ? ethValueInWei : numberToHex(ethValueInWei),
         data: encodeFunctionData({
@@ -330,53 +331,17 @@ export default function TippingModal({
       }));
       toast.info("Transaction calls prepared");
 
-      if (context?.client.clientFid === 309857) {
-        toast.info("Using Base SDK flow (clientFid 309857)");
-        toast.loading("Connecting to Base SDK...");
-        
-        const provider = createBaseAccountSDK({
-          appName: "Fireside",
-          appLogoUrl: "https://firesidebase.vercel.app/app-icon2.png",
-          appChainIds: [base.constants.CHAIN_IDS.base],
-        }).getProvider();
-        toast.info("Base SDK provider created");
-
-        const cryptoAccount = await getCryptoKeyAccount();
-        const fromAddress = cryptoAccount?.account?.address;
-        toast.info(`Using address: ${fromAddress}`);
-
-        toast.loading("Submitting transaction...");
-
-        const callsId:any = await provider.request({
-          method: "wallet_sendCalls",
-          params: [
-            {
-              version: "1.0",
-              chainId: numberToHex(base.constants.CHAIN_IDS.base),
-              from: fromAddress,
-              calls: sendingCalls
-            },
-          ],
-        });
-        toast.info(`Transaction submitted with ID: ${callsId}`);
-
-        toast.loading("Transaction submitted, checking status...");
-
-        const result = await checkStatus(callsId);
-        toast.info(`Status check result: ${JSON.stringify(result)}`);
-
-        if (result.success == true) {
-          toast.loading("Transaction confirmed!");
+      const result = await executeTransaction({
+        calls: sendingCalls,
+        clientFid: context?.client.clientFid,
+        sendCalls,
+        onSuccess: async () => {
           await processSuccess("ETH");
-        } else {
-          toast.error("Transaction failed or timed out");
-          setIsLoading(false);
-        }
+        },
+      });
 
-      } else {
-        toast.info("Using standard sendCalls flow");
-        // @ts-ignore
-        sendCalls({ calls: sendingCalls });
+      if (!result.success) {
+        setIsLoading(false);
       }
 
       toast.dismiss(loadingToast);
@@ -479,52 +444,20 @@ export default function TippingModal({
         }),
       }));
 
-      const sendingCalls = [approveCall, ...distributeCalls];
+      const sendingCalls: TransactionCall[] = [approveCall, ...distributeCalls];
 
-      if (context?.client.clientFid === 309857) {
-          toast.loading("Connecting to Base SDK...");
-          
-          const provider = createBaseAccountSDK({
-            appName: "Fireside",
-            appLogoUrl: "https://firesidebase.vercel.app/app-icon2.png",
-            appChainIds: [base.constants.CHAIN_IDS.base],
-          }).getProvider();
+      const result = await executeTransaction({
+        calls: sendingCalls,
+        clientFid: context?.client.clientFid,
+        sendCalls,
+        onSuccess: async () => {
+          await processSuccess(tokenSymbol);
+        },
+      });
 
-          const cryptoAccount = await getCryptoKeyAccount();
-          const fromAddress = cryptoAccount?.account?.address;
-
-          toast.loading("Submitting transaction...");
-
-          const callsId:any = await provider.request({
-            method: "wallet_sendCalls",
-            params: [
-              {
-                version: "1.0",
-                chainId: numberToHex(base.constants.CHAIN_IDS.base),
-                from: fromAddress,
-                calls: sendingCalls
-              },
-            ],
-          });
-
-          toast.loading("Transaction submitted, checking status...");
-
-          const result = await checkStatus(callsId);
-
-          if (result.success == true) {
-            toast.loading("Transaction confirmed!");
-            await processSuccess(tokenSymbol);
-          } else {
-            toast.error("Transaction failed or timed out");
-            setIsLoading(false);
-          }
-
-        }
-        else{
-          // @ts-ignore
-          sendCalls({ calls: sendingCalls });
-
-        }
+      if (!result.success) {
+        setIsLoading(false);
+      }
 
       toast.dismiss(loadingToast);
     } catch (error) {
