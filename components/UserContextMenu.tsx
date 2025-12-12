@@ -5,6 +5,7 @@ import { useHMSActions, useHMSStore, selectLocalPeer, selectPermissions, selectI
 import { ChevronDownIcon, MicOnIcon, MicOffIcon } from '@100mslive/react-icons';
 import sdk from "@farcaster/miniapp-sdk";
 import { updateParticipantRole, transferHostRole } from '@/utils/serverActions';
+import { Card } from './UI/Card';
 
 interface UserContextMenuProps {
   peer: any;
@@ -234,16 +235,16 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
       
       {/* Modal */}
       <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4">
-        <div
+        <Card
           ref={menuRef}
-          className="bg-gray-800 border border-gray-600 rounded-xl shadow-2xl w-full max-w-sm mx-4 transform transition-all duration-200 ease-out"
+          className="bg-black rounded-xl shadow-2xl w-full max-w-sm mx-4 transform transition-all duration-200 ease-out"
           style={{
             opacity: isOpen ? 1 : 0,
             transform: isOpen ? 'scale(1) translateY(0)' : 'scale(0.95) translateY(-10px)',
           }}
         >
           {/* User Info Header */}
-          <div className="px-6 py-4 border-b border-gray-600">
+          <div className="px-6 py-4 border-b border-white/10">
             <div className="flex items-center space-x-4">
               <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
                 <span className="text-white text-lg font-medium">
@@ -354,7 +355,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
               Cancel
             </button>
           </div>
-        </div>
+        </Card>
       </div>
     </>
   );
