@@ -140,7 +140,7 @@ export default function AdsPurchaseForm({ handleERC20Payment, handleETHPayment, 
                 <p className="text-gray-400 text-xs mt-1">{selectedImage.name}</p>
               </div>
             )}
-            <p className="text-gray-400 text-xs mt-1">Upload a 1500x500 image for best visibility</p>
+            <p className="text-gray-400 text-xs mt-1">Upload a 1500x300 image for best visibility</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
