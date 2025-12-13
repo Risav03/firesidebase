@@ -10,9 +10,7 @@ interface ChatButtonProps {
 
 export default function ChatButton({ isChatOpen, unreadCount, onClick }: ChatButtonProps) {
   return (
-    <Button
-    active={false}
-      variant="ghost"
+    <button
       onClick={onClick}
       className={`w-12 aspect-square rounded-full text-xs p-2 gap-1 flex items-center border-0 justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
         isChatOpen
@@ -27,6 +25,6 @@ export default function ChatButton({ isChatOpen, unreadCount, onClick }: ChatBut
           {unreadCount > 9 ? "9+" : unreadCount}
         </div>
       )}
-    </Button>
+    </button>
   );
 }
