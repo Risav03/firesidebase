@@ -14,7 +14,7 @@ import {
   DrawerTitle,
 } from "@/components/UI/drawer";
 import Button from "@/components/UI/Button";
-import { fetchRoomParticipants, fetchRoomParticipantsByRole, sendChatMessage } from "@/utils/serverActions";
+import { fetchRoomParticipants, fetchRoomParticipantsByRole, sendChatMessage, fetchHMSActivePeers, fetchRoomDetails } from "@/utils/serverActions";
 import { useGlobalContext } from "@/utils/providers/globalContext";
 import { useAccount, useSendCalls, useSignTypedData, useWriteContract } from "wagmi";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
@@ -171,38 +171,66 @@ export default function TippingModal({
 
   useEffect(() => {
     if (isOpen) {
+      // Fetch token prices when modal opens
+      fetchTokenPrices();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (showUserDropdown) {
+      console.log("Dropdown opened, fetching participants...");
       setIsLoadingUsers(true);
-      fetchRoomParticipants(roomId)
-        .then((data) => {
-          if (data.data.success) {
-            const activeParticipants = data.data.data.participants.filter(
-              (participant: Participant) => participant.status === "active"
-            );
-            setParticipants(activeParticipants);
+      fetchRoomDetails(roomId)
+        .then(async (roomData) => {
+          if (roomData.data.success && roomData.data.data.room.roomId) {
+            const hmsData = await fetchHMSActivePeers(roomData.data.data.room.roomId);
+            console.log("HMS Active Peers:", hmsData);
+            
+            if (hmsData.ok && hmsData.data.peers) {
+              // Map HMS peers to participant format
+              const activeParticipants: Participant[] = Object.values(hmsData.data.peers)
+                .filter((peer: any) => !peer.role.startsWith('__internal_'))
+                .map((peer: any) => {
+                  let metadata = {};
+                  try {
+                    metadata = peer.metadata ? JSON.parse(peer.metadata) : {};
+                  } catch (e) {
+                    console.error('Error parsing peer metadata:', e);
+                  }
+                  
+                  return {
+                    userId: peer.id,
+                    username: peer.name || 'Anonymous',
+                    pfp_url: (metadata as any).avatar || '/default-avatar.png',
+                    wallet: (metadata as any).wallet || '',
+                    status: 'active',
+                    role: peer.role
+                  };
+                });
+              
+              setParticipants(activeParticipants);
 
-            const rolePresence: Record<string, boolean> = {
-              host: false,
-              "co-host": false,
-              speaker: false,
-              listener: false,
-            };
+              const rolePresence: Record<string, boolean> = {
+                host: false,
+                "co-host": false,
+                speaker: false,
+                listener: false,
+              };
 
-            activeParticipants.forEach((participant: Participant) => {
-              if (participant.role && rolePresence.hasOwnProperty(participant.role)) {
-                rolePresence[participant.role] = true;
-              }
-            });
+              activeParticipants.forEach((participant: Participant) => {
+                if (participant.role && rolePresence.hasOwnProperty(participant.role)) {
+                  rolePresence[participant.role] = true;
+                }
+              });
 
-            setAvailableRoles(rolePresence);
+              setAvailableRoles(rolePresence);
+            }
           }
         })
         .catch((error) => console.error("Error fetching participants:", error))
         .finally(() => setIsLoadingUsers(false));
-      
-      // Fetch token prices when modal opens
-      fetchTokenPrices();
     }
-  }, [isOpen, roomId]);
+  }, [showUserDropdown, roomId]);
 
   const sendTipMessage = async (
     tipper: string,
@@ -317,12 +345,13 @@ export default function TippingModal({
       const splitArr = splitIntoBatches(usersToSend);
       toast.info(`Split into ${splitArr.length} batches`);
       
-      // Convert ETH to Wei
-      const ethValueInWei = BigInt(Math.floor(tipAmountETH * 1e18));
+      // Convert ETH to Wei and divide by number of batches
+      const totalEthValueInWei = BigInt(Math.floor(tipAmountETH * 1e18));
+      const ethValuePerBatch = totalEthValueInWei / BigInt(splitArr.length);
       
       const sendingCalls: TransactionCall[] = splitArr.map((batch) => ({
         to: contractAdds.tipping as `0x${string}`,
-        value: context?.client.clientFid !== 309857 ? ethValueInWei : numberToHex(ethValueInWei),
+        value: context?.client.clientFid !== 309857 ? ethValuePerBatch : numberToHex(ethValuePerBatch),
         data: encodeFunctionData({
           abi: firebaseTipsAbi,
           functionName: "distributeETH",
@@ -423,6 +452,9 @@ export default function TippingModal({
       }
       
       const splitArr = splitIntoBatches(usersToSend);
+      
+      // Calculate amount per user based on TOTAL users, not batch size
+      const amountPerUser = BigInt(Math.floor(Number(tokenAmount) / usersToSend.length));
 
       const approveCall = {
         to: tokenAddress as `0x${string}`,
@@ -440,7 +472,7 @@ export default function TippingModal({
         data: encodeFunctionData({
           abi: firebaseTipsAbi,
           functionName: "distributeToken",
-          args: [tokenAddress, batch, BigInt(Math.floor(Number(tokenAmount) / batch.length))],
+          args: [tokenAddress, batch, amountPerUser],
         }),
       }));
 
