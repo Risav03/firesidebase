@@ -223,3 +223,82 @@ export const useTipEvent = (
 
   return { sendTipNotification, sendEvent };
 };
+
+/**
+ * Sound played event message interface
+ */
+export interface SoundPlayedMessage {
+  soundId: string;
+  soundName: string;
+  soundEmoji: string;
+  senderName: string;
+  senderAvatar?: string;
+  timestamp: number;
+}
+
+/**
+ * Custom hook for handling soundboard sound played events
+ * This is used to sync visual feedback across all peers when a sound is played
+ * @param onEvent Callback function called when a sound is played
+ * @returns Object containing sendEvent function to notify about sound playback
+ */
+export const useSoundPlayedEvent = (
+  onEvent?: (msg: SoundPlayedMessage) => void
+) => {
+  const { sendEvent } = useCustomEvent({
+    type: "SOUND_PLAYED",
+    onEvent: onEvent || ((msg: SoundPlayedMessage) => {}),
+  });
+
+  /**
+   * Notify all peers that a sound was played
+   * @param soundId The ID of the sound played
+   * @param soundName The display name of the sound
+   * @param soundEmoji The emoji representing the sound
+   * @param senderName The name of the person who played the sound
+   * @param senderAvatar Optional avatar URL of the sender
+   */
+  const notifySoundPlayed = (
+    soundId: string,
+    soundName: string,
+    soundEmoji: string,
+    senderName: string,
+    senderAvatar?: string
+  ) => {
+    sendEvent({
+      soundId,
+      soundName,
+      soundEmoji,
+      senderName,
+      senderAvatar,
+      timestamp: Date.now(),
+    });
+  };
+
+  return { notifySoundPlayed, sendEvent };
+};
+
+/**
+ * Custom hook for handling soundboard stop events
+ * This is used when a host stops a sound that's currently playing
+ * @param onEvent Callback function called when a sound is stopped
+ * @returns Object containing sendEvent function to notify about sound stop
+ */
+export const useSoundStoppedEvent = (
+  onEvent?: (msg: { stoppedBy: string }) => void
+) => {
+  const { sendEvent } = useCustomEvent({
+    type: "SOUND_STOPPED",
+    onEvent: onEvent || ((msg: { stoppedBy: string }) => {}),
+  });
+
+  /**
+   * Notify all peers that a sound was stopped
+   * @param stoppedBy The name of the person who stopped the sound
+   */
+  const notifySoundStopped = (stoppedBy: string) => {
+    sendEvent({ stoppedBy });
+  };
+
+  return { notifySoundStopped, sendEvent };
+};

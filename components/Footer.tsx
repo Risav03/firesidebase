@@ -20,13 +20,16 @@ import ChatButton from "./footer/ChatButton";
 import HandRaiseButton from "./footer/HandRaiseButton";
 import EmojiButton from "./footer/EmojiButton";
 import TippingButton from "./footer/TippingButton";
+import SoundboardButton from "./footer/SoundboardButton";
 import EmojiPickerDrawer from "./footer/EmojiPickerDrawer";
 import FloatingEmojis from "./footer/FloatingEmojis";
+import SoundboardDrawer from "./SoundboardDrawer";
 import { useHandRaiseLogic } from "./footer/useHandRaiseLogic";
 import { useEmojiReactionLogic } from "./footer/useEmojiReactionLogic";
 import { useChatStateLogic } from "./footer/useChatStateLogic";
 import { useRejoinState } from "./footer/useRejoinState";
 import { useHMSNotificationLogger } from "./footer/useHMSNotificationLogger";
+import { useSoundboardLogic } from "./footer/useSoundboardLogic";
 
 export default function Footer({ roomId }: { roomId: string }) {
   const { isLocalAudioEnabled, toggleAudio } = useAVToggle((err) => {
@@ -43,8 +46,12 @@ export default function Footer({ roomId }: { roomId: string }) {
   const { user } = useGlobalContext();
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const [isTippingModalOpen, setIsTippingModalOpen] = useState(false);
+  const [isSoundboardOpen, setIsSoundboardOpen] = useState(false);
 
   const { isRejoining } = useRejoinState();
+
+  // Soundboard logic
+  const soundboard = useSoundboardLogic(user);
 
   const { isChatOpen, unreadCount, handleChatToggle } = useChatStateLogic({
     roomId,
@@ -78,10 +85,16 @@ export default function Footer({ roomId }: { roomId: string }) {
   return (
     <div className="fixed rounded-t-lg border-t-2 border-fireside-orange/30 bottom-0 left-0 right-0 z-50 h-28 bg-fireside-darkOrange">
       <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-center h-full">
-        <div className="grid grid-cols-2 gap-2 grid-flow-col">
+        <div className="grid grid-cols-3 gap-2 grid-flow-col">
           <EmojiButton
             onClick={() => setIsEmojiPickerOpen((prev) => !prev)}
             className="rounded-lg"
+          />
+
+          <SoundboardButton
+            onClick={() => setIsSoundboardOpen((prev) => !prev)}
+            isPlaying={soundboard.isPlaying}
+            disabled={!soundboard.canUse}
           />
 
           <HandRaiseButton
@@ -134,6 +147,24 @@ export default function Footer({ roomId }: { roomId: string }) {
         isOpen={isTippingModalOpen}
         onClose={() => setIsTippingModalOpen(false)}
         roomId={roomId}
+      />
+
+      <SoundboardDrawer
+        isOpen={isSoundboardOpen}
+        onClose={() => setIsSoundboardOpen(false)}
+        playSound={soundboard.playSound}
+        stopSound={soundboard.stopSound}
+        setVolume={soundboard.setVolume}
+        isPlaying={soundboard.isPlaying}
+        currentSound={soundboard.currentSound}
+        progress={soundboard.progress}
+        volume={soundboard.volume}
+        cooldownRemaining={soundboard.cooldownRemaining}
+        isOnCooldown={soundboard.isOnCooldown}
+        availableSounds={soundboard.availableSounds}
+        recentSounds={soundboard.recentSounds}
+        notifications={soundboard.notifications}
+        canUse={soundboard.canUse}
       />
     </div>
   );
