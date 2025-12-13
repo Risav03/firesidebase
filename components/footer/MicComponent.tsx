@@ -77,8 +77,7 @@ export default function MicComponent({
   if (isListener && !canUnmute) {
     return (
       <div className="flex flex-col items-center">
-        <Button
-        active={false}
+        <button
           className={`w-[4.5rem] p-0 aspect-square rounded-full flex items-center bg-yellow-500 text-white shadow-lg justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
             speakerRequested ? "opacity-100" : "opacity-80"
           }`}
@@ -91,7 +90,7 @@ export default function MicComponent({
           ) : (
             <GiMicrophone className="text-lg aspect-square" />
           )}
-        </Button>
+        </button>
         
       </div>
     );
@@ -99,9 +98,7 @@ export default function MicComponent({
 
   return (
     <div className="flex flex-col items-center justify-center">
-      <Button
-      active={false}
-      variant="ghost"
+      <button
         className={`w-[4.5rem] p-0 aspect-square rounded-full flex items-center justify-center transition-all duration-200 transform ${
           canUnmute && !isRejoining
             ? "hover:scale-105 active:scale-95"
@@ -168,7 +165,7 @@ export default function MicComponent({
         ) : (
           <MicOffIcon className="w-10 aspect-square" />
         )}
-      </Button>
+      </button>
       
     </div>
   );

@@ -91,11 +91,11 @@ export default function Footer({ roomId }: { roomId: string }) {
             className="rounded-lg"
           />
 
-          <SoundboardButton
+          {/* <SoundboardButton
             onClick={() => setIsSoundboardOpen((prev) => !prev)}
             isPlaying={soundboard.isPlaying}
             disabled={!soundboard.canUse}
-          />
+          /> */}
 
           <HandRaiseButton
             isHandRaised={isHandRaised}

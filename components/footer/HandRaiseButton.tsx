@@ -20,9 +20,7 @@ export default function HandRaiseButton({
   
   return (
     <div className="relative w-full">
-      <Button
-      active={false}
-        variant="ghost"
+      <button
         onClick={onClick}
         className={`relative w-12 overflow-hidden aspect-square flex items-center border-0 text-xs font-bold p-2 rounded-full mx-auto ${
           !handRaiseDisabled ? "hover:scale-105 active:scale-95" : "cursor-not-allowed"
@@ -41,7 +39,7 @@ export default function HandRaiseButton({
           />
         )}
         <HiOutlineHandRaised className="text-xl mx-auto relative z-10" />
-      </Button>
+      </button>
     </div>
   );
 }
