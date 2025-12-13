@@ -14,11 +14,11 @@ export default function EmojiPickerDrawer({ isOpen, onEmojiSelect, onClose, isDi
   const pickerRef = useRef<HTMLDivElement>(null);
   
   const emojiPickerStyles = {
-    backgroundColor: "#000000",
-    "--epr-category-label-bg-color": "#000000",
+    backgroundColor: "#361e14",
+    "--epr-category-label-bg-color": "#361e14",
     borderRadius: "0.5rem",
     width: "100%",
-    height: "400px",
+    height: "500px",
     margin: "auto",
     zIndex: 100000
   };
@@ -26,8 +26,15 @@ export default function EmojiPickerDrawer({ isOpen, onEmojiSelect, onClose, isDi
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (isDisabled) return;
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
-        onClose();
+      const target = event.target as HTMLElement;
+      
+      // Check if click is inside picker or on the emoji button (including its children)
+      if (pickerRef.current && !pickerRef.current.contains(target)) {
+        // Check if the clicked element or any of its parents is the emoji button
+        const isEmojiButton = target.closest('[title="reactions"]');
+        if (!isEmojiButton) {
+          onClose();
+        }
       }
     };
 

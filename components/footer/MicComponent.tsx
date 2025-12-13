@@ -79,7 +79,7 @@ export default function MicComponent({
       <div className="flex flex-col items-center">
         <Button
         active={false}
-          className={`w-16 p-0 aspect-square rounded-full flex items-center bg-yellow-500 text-white shadow-lg justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
+          className={`w-[4.5rem] p-0 aspect-square rounded-full flex items-center bg-yellow-500 text-white shadow-lg justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 ${
             speakerRequested ? "opacity-100" : "opacity-80"
           }`}
           onClick={handleRequestToSpeak}
@@ -102,7 +102,7 @@ export default function MicComponent({
       <Button
       active={false}
       variant="ghost"
-        className={`w-16 p-0 aspect-square rounded-full flex items-center justify-center transition-all duration-200 transform ${
+        className={`w-[4.5rem] p-0 aspect-square rounded-full flex items-center justify-center transition-all duration-200 transform ${
           canUnmute && !isRejoining
             ? "hover:scale-105 active:scale-95"
             : "opacity-60 cursor-not-allowed"

@@ -24,12 +24,12 @@ export default function HandRaiseButton({
       active={false}
         variant="ghost"
         onClick={onClick}
-        className={`relative w-12 overflow-hidden aspect-square flex items-center text-xs font-bold border-neutral-orange/30 p-2 rounded-full mx-auto overflow-hidden ${
+        className={`relative w-12 overflow-hidden aspect-square flex items-center border-0 text-xs font-bold p-2 rounded-full mx-auto ${
           !handRaiseDisabled ? "hover:scale-105 active:scale-95" : "cursor-not-allowed"
         } ${
           isHandRaised
-            ? "bg-neutral-orange text-white shadow-lg"
-            : "text-neutral-orange bg-neutral-orange/10 hover:bg-white/20"
+            ? "bg-neutral-orange text-white shadow-lg focus:bg-neutral-orange focus:text-white active:bg-neutral-orange active:text-white"
+            : "text-neutral-orange bg-neutral-orange/5 hover:bg-white/20 focus:bg-neutral-orange/5 focus:text-neutral-orange active:bg-neutral-orange/5 active:text-neutral-orange"
         }`}
         disabled={handRaiseDisabled && !isHandRaised}
         title={handRaiseDisabled && !isHandRaised ? "Hand raise cooldown (10s)" : isHandRaised ? "Lower hand" : "Raise hand"}
@@ -40,7 +40,7 @@ export default function HandRaiseButton({
             style={{ width: `${progress}%` }}
           />
         )}
-        <HiOutlineHandRaised className="text-lg mx-auto relative z-10" />
+        <HiOutlineHandRaised className="text-xl mx-auto relative z-10" />
       </Button>
     </div>
   );

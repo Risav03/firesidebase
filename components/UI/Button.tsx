@@ -11,7 +11,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ variant = 'default', size = 'md', className, children, disabled, active = false, ...props }, ref) => {
-    const baseStyles = 'rounded-lg font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-black/50 ';
+    const baseStyles = 'rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-black/50 ';
     
     const variants = {
       default: active
@@ -35,6 +35,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         ref={ref}
+        type='button'
         className={cn(
           baseStyles,
           variants[variant],
@@ -42,7 +43,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           className
         )}
         disabled={disabled}
-        {...props}
+        onClick={props.onClick}
       >
         {children}
       </button>
