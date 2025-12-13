@@ -85,7 +85,7 @@ export default function Footer({ roomId }: { roomId: string }) {
   return (
     <div className="fixed rounded-t-lg border-t-2 border-fireside-orange/30 bottom-0 left-0 right-0 z-50 h-28 bg-fireside-darkOrange">
       <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-center h-full">
-        <div className="grid grid-cols-3 gap-2 grid-flow-col">
+        <div className="grid grid-cols-2 gap-2 grid-flow-col">
           <EmojiButton
             onClick={() => setIsEmojiPickerOpen((prev) => !prev)}
             className="rounded-lg"
