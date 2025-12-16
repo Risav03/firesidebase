@@ -61,11 +61,12 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
         console.error("Failed to read contract");
         return false;
       }
-      const balance = await contract.balanceOf("0x9beCa8af462c6fcf80D079D8a6cD4060fB2866E3");
+      const balance = await contract.balanceOf(address);
+      toast.info(`Soundboard eligibility checked. Balance: ${ethers.formatUnits(balance, 18)} FIRE`);
       console.log("User token balance:", balance.toString());
-      const threshold = ethers.parseUnits("1000000", 18);
+      const readableBalance = ethers.formatEther(balance);
 
-      return balance.gte(threshold);
+      return Number(readableBalance) >= 1000000;
     } catch (error) {
       console.error("Error checking soundboard eligibility:", error);
       return false;
