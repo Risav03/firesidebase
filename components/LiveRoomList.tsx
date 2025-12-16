@@ -85,13 +85,6 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
   const navigate = useNavigateWithLoader()
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
-  const {address} = useAccount();
-  toast.info(`Current user address: ${address}`);
-
-
-  const [netEarned, setNetEarned] = useState<number>(0);
-
-  // Handle topic selection and PATCH request
   const handleTopicSubmit = async (selectedTopics: string[]) => {
     try {
       var token: any = "";
