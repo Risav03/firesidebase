@@ -54,7 +54,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const checkSoundboardEligibilty = useCallback(async (): Promise<boolean> => {
+  const checkSoundboardEligibilty = async (): Promise<boolean> => {
     try {
       const contract = await readContractSetup(contractAdds.fireToken, erc20Abi);
       if (!contract) {
@@ -71,7 +71,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       console.error("Error checking soundboard eligibility:", error);
       return false;
     }
-  }, [address]);
+  }
 
   const handleSignIn = async (): Promise<void> => {
     console.log("handleSignIn called", new Date().toISOString());
