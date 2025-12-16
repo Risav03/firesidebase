@@ -14,6 +14,11 @@ import { generateNonce } from "@farcaster/auth-client";
 import { useAddFrame, useMiniKit, useNotification } from "@coinbase/onchainkit/minikit";
 import { fetchAPI } from "@/utils/serverActions";
 import { toast } from "react-toastify";
+import { useAccount } from "wagmi";
+import { readContractSetup } from "../contract/contractSetup";
+import { contractAdds } from "../contract/contractAdds";
+import { erc20Abi } from "../contract/abis/erc20abi";
+import { ethers } from "ethers";
 
 interface GlobalContextProps {
   user: any;
@@ -32,6 +37,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
   const [isPopupOpen, setIsPopupOpen] = useState<boolean>(false);
 
   const {context} = useMiniKit()
+  const {address} = useAccount()
 
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
@@ -47,6 +53,24 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       throw error;
     }
   };
+
+  const checkSoundboardEligibilty = useCallback(async (): Promise<boolean> => {
+    try {
+      const contract = await readContractSetup(contractAdds.fireToken, erc20Abi);
+      if (!contract) {
+        console.error("Failed to read contract");
+        return false;
+      }
+      const balance = await contract.balanceOf("0x9beCa8af462c6fcf80D079D8a6cD4060fB2866E3");
+      console.log("User token balance:", balance.toString());
+      const threshold = ethers.parseUnits("1000000", 18);
+
+      return balance.gte(threshold);
+    } catch (error) {
+      console.error("Error checking soundboard eligibility:", error);
+      return false;
+    }
+  }, [address, URL]);
 
   const handleSignIn = async (): Promise<void> => {
     console.log("handleSignIn called", new Date().toISOString());
@@ -78,6 +102,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
 
 
       var localUser = createUserRes.data.data.user;
+      localUser.soundboardEligible = await checkSoundboardEligibilty();
       console.log("User signed in:", localUser);
       
       if(context){
