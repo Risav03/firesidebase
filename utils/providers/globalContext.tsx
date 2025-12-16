@@ -56,9 +56,11 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
 
   const checkSoundboardEligibilty = async (): Promise<boolean> => {
     try {
+      toast.info("Checking soundboard eligibility...");
       const contract = await readContractSetup(contractAdds.fireToken, erc20Abi);
       if (!contract) {
         console.error("Failed to read contract");
+        toast.error("Failed to read contract for soundboard eligibility");
         return false;
       }
       const balance = await contract.balanceOf(address);
