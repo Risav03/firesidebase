@@ -71,7 +71,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       console.error("Error checking soundboard eligibility:", error);
       return false;
     }
-  }, [address, URL]);
+  }, [address]);
 
   const handleSignIn = async (): Promise<void> => {
     console.log("handleSignIn called", new Date().toISOString());
