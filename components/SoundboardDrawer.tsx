@@ -148,10 +148,10 @@ export default function SoundboardDrawer({
   return (
     <>
       <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DrawerContent className="bg-fireside-darkOrange border-fireside-orange/30 max-h-[85vh]">
+        <DrawerContent className="bg-black border-fireside-orange/30 max-h-[85vh]">
           <DrawerHeader className="pb-2">
-            <DrawerTitle className="text-white flex items-center gap-2">
-              <HiSpeakerWave className="text-fireside-orange" />
+            <DrawerTitle className="gradient-fire-text text-2xl font-bold flex items-center gap-2">
+              
               Soundboard
             </DrawerTitle>
             <DrawerDescription className="text-white/60 text-sm">

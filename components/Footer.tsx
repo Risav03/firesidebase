@@ -83,89 +83,94 @@ export default function Footer({ roomId }: { roomId: string }) {
   const isHost = localRoleName === "host" || localRoleName === "co-host";
 
   return (
-    <div className="fixed rounded-t-lg border-t-2 border-fireside-orange/30 bottom-0 left-0 right-0 z-50 h-28 bg-fireside-darkOrange">
-      <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-center h-full">
-        <div className="grid grid-cols-2 gap-2 grid-flow-col">
-          <EmojiButton
-            onClick={() => setIsEmojiPickerOpen((prev) => !prev)}
-            className="rounded-lg"
-          />
-
-          {/* <SoundboardButton
+    <div className="fixed bottom-0 left-0 right-0 z-50 space-y-2">
+      {localPeer && (localPeer.roleName == "host" || localPeer.roleName == "co-host") && <div className="w-full px-2">
+        <SoundboardButton
             onClick={() => setIsSoundboardOpen((prev) => !prev)}
             isPlaying={soundboard.isPlaying}
             disabled={!soundboard.canUse}
-          /> */}
-
-          <HandRaiseButton
-            isHandRaised={isHandRaised}
-            handRaiseDisabled={handRaiseDisabled}
-            handRaiseCountdown={handRaiseCountdown}
-            onClick={toggleRaiseHand}
           />
+      </div>}
+      
+
+      <div className=" rounded-t-lg border-t-2 border-fireside-orange/30 h-28 bg-fireside-darkOrange">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-center h-full">
+          <div className="grid grid-cols-2 gap-2 grid-flow-col">
+            <EmojiButton
+              onClick={() => setIsEmojiPickerOpen((prev) => !prev)}
+              className="rounded-lg"
+            />
+
+            <HandRaiseButton
+              isHandRaised={isHandRaised}
+              handRaiseDisabled={handRaiseDisabled}
+              handRaiseCountdown={handRaiseCountdown}
+              onClick={toggleRaiseHand}
+            />
+          </div>
+
+          <div className="flex flex-col items-center justify-center mx-4">
+            <MicComponent
+              isLocalAudioEnabled={isLocalAudioEnabled}
+              toggleAudio={toggleAudio}
+              canUnmute={canUnmute}
+              isRejoining={isRejoining}
+              localRoleName={localRoleName}
+              hmsActions={hmsActions}
+              localPeer={localPeer}
+              user={user}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 grid-flow-col">
+            <TippingButton onClick={handleTippingClick} />
+            <ChatButton
+              isChatOpen={isChatOpen}
+              unreadCount={unreadCount}
+              onClick={handleChatToggle}
+            />
+          </div>
+
+          <Chat
+            isOpen={isChatOpen}
+            setIsChatOpen={handleChatToggle}
+            roomId={roomId}
+          />
+
+          <EmojiPickerDrawer
+            isOpen={isEmojiPickerOpen}
+            onEmojiSelect={handleEmojiSelect}
+            onClose={() => setIsEmojiPickerOpen(false)}
+            isDisabled={isEmojiDisabled}
+          />
+
+          <FloatingEmojis emojis={floatingEmojis} />
         </div>
 
-        <div className="flex flex-col items-center justify-center mx-4">
-          <MicComponent
-            isLocalAudioEnabled={isLocalAudioEnabled}
-            toggleAudio={toggleAudio}
-            canUnmute={canUnmute}
-            isRejoining={isRejoining}
-            localRoleName={localRoleName}
-            hmsActions={hmsActions}
-            localPeer={localPeer}
-            user={user}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 grid-flow-col">
-          <TippingButton onClick={handleTippingClick} />
-          <ChatButton
-            isChatOpen={isChatOpen}
-            unreadCount={unreadCount}
-            onClick={handleChatToggle}
-          />
-        </div>
-
-        <Chat
-          isOpen={isChatOpen}
-          setIsChatOpen={handleChatToggle}
+        <TippingModal
+          isOpen={isTippingModalOpen}
+          onClose={() => setIsTippingModalOpen(false)}
           roomId={roomId}
         />
 
-        <EmojiPickerDrawer
-          isOpen={isEmojiPickerOpen}
-          onEmojiSelect={handleEmojiSelect}
-          onClose={() => setIsEmojiPickerOpen(false)}
-          isDisabled={isEmojiDisabled}
+        <SoundboardDrawer
+          isOpen={isSoundboardOpen}
+          onClose={() => setIsSoundboardOpen(false)}
+          playSound={soundboard.playSound}
+          stopSound={soundboard.stopSound}
+          setVolume={soundboard.setVolume}
+          isPlaying={soundboard.isPlaying}
+          currentSound={soundboard.currentSound}
+          progress={soundboard.progress}
+          volume={soundboard.volume}
+          cooldownRemaining={soundboard.cooldownRemaining}
+          isOnCooldown={soundboard.isOnCooldown}
+          availableSounds={soundboard.availableSounds}
+          recentSounds={soundboard.recentSounds}
+          notifications={soundboard.notifications}
+          canUse={soundboard.canUse}
         />
-
-        <FloatingEmojis emojis={floatingEmojis} />
       </div>
-
-      <TippingModal
-        isOpen={isTippingModalOpen}
-        onClose={() => setIsTippingModalOpen(false)}
-        roomId={roomId}
-      />
-
-      <SoundboardDrawer
-        isOpen={isSoundboardOpen}
-        onClose={() => setIsSoundboardOpen(false)}
-        playSound={soundboard.playSound}
-        stopSound={soundboard.stopSound}
-        setVolume={soundboard.setVolume}
-        isPlaying={soundboard.isPlaying}
-        currentSound={soundboard.currentSound}
-        progress={soundboard.progress}
-        volume={soundboard.volume}
-        cooldownRemaining={soundboard.cooldownRemaining}
-        isOnCooldown={soundboard.isOnCooldown}
-        availableSounds={soundboard.availableSounds}
-        recentSounds={soundboard.recentSounds}
-        notifications={soundboard.notifications}
-        canUse={soundboard.canUse}
-      />
     </div>
   );
 }

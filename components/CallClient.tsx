@@ -54,24 +54,17 @@ export default function CallClient({ roomId }: CallClientProps) {
   // Function to handle role limit reached error
   const handleRoleLimitError = async (hmsRoomId: string, userFid: number) => {
     try {
-      console.log('[Role Limit] Checking for duplicate peer with fid:', userFid, "in room:", hmsRoomId);
       
       // Fetch active peers from HMS room
       const peersResponse = await fetchHMSActivePeers(hmsRoomId);
-
-      console.log("Peers Response:", peersResponse);
       
       if (!peersResponse.ok || !peersResponse.data?.peers) {
         console.error('[Role Limit] Failed to fetch active peers');
         return false;
       }
 
-      console.log("Peers Response:", peersResponse);
-
       // Find peer with matching fid in metadata
       const peers = Object.values(peersResponse.data.peers) as any[];
-
-      console.log('[Role Limit] Active peers fetched:', peers.length, peers);
 
       const duplicatePeer = peers.find((peer) => {
         try {
@@ -86,7 +79,6 @@ export default function CallClient({ roomId }: CallClientProps) {
       });
 
       if (duplicatePeer) {
-        console.log('[Role Limit] Found duplicate peer:', duplicatePeer.id, 'Removing...');
         
         // Remove the duplicate peer using HMS Management API
         const removeResponse = await removeHMSPeer(
@@ -97,7 +89,6 @@ export default function CallClient({ roomId }: CallClientProps) {
         );
         
         if (removeResponse.ok) {
-          console.log('[Role Limit] Successfully removed duplicate peer');
           
           // Wait a bit for the removal to process
           await new Promise(resolve => setTimeout(resolve, 3000));
@@ -108,7 +99,6 @@ export default function CallClient({ roomId }: CallClientProps) {
           return false;
         }
       } else {
-        console.log('[Role Limit] No duplicate peer found with matching fid');
         return false;
       }
     } catch (error) {
@@ -124,7 +114,6 @@ export default function CallClient({ roomId }: CallClientProps) {
       try {
         if ('wakeLock' in navigator) {
           wakeLock = await (navigator as any).wakeLock.request('screen');
-          console.log('[Wake Lock] Screen wake lock acquired');
         }
       } catch (err) {
         console.warn('[Wake Lock] Failed to acquire wake lock:', err);
@@ -135,7 +124,6 @@ export default function CallClient({ roomId }: CallClientProps) {
     return () => {
       if (wakeLock) {
         wakeLock.release();
-        console.log('[Wake Lock] Screen wake lock released');
       }
     };
   }, []);
@@ -143,12 +131,6 @@ export default function CallClient({ roomId }: CallClientProps) {
   useEffect(() => {
     const attemptJoin = async (retryCount = 0): Promise<void> => {
       const env = process.env.NEXT_PUBLIC_ENV;
-
-      console.log("[HMS Action - CallClient] Starting join process", {
-        roomId,
-        retryCount,
-        timestamp: new Date().toISOString(),
-      });
 
       var token: any = "";
       if (env !== "DEV") {
@@ -161,14 +143,7 @@ export default function CallClient({ roomId }: CallClientProps) {
         return;
       }
 
-      console.log("[HMS Action - CallClient] Joining room with ID:", roomId);
-
       const response = await fetchRoomCodes(roomId);
-
-      console.log("[HMS Action - CallClient] Room codes response:", {
-        success: response.ok,
-        timestamp: new Date().toISOString(),
-      });
 
       if (!response.ok) {
         throw new Error(response.data.error || "Failed to fetch room codes");
@@ -241,11 +216,6 @@ export default function CallClient({ roomId }: CallClientProps) {
         roomCode: roomCode,
       });
 
-      console.log("[HMS Action - CallClient] Joining room with role:", {
-        role,
-        userName: user.displayName || "Wanderer",
-        timestamp: new Date().toISOString(),
-      });
 
       await hmsActions.join({
         userName: user.displayName || "Wanderer",
@@ -264,7 +234,6 @@ export default function CallClient({ roomId }: CallClientProps) {
         }),
       });
 
-      console.log("[HMS Action - CallClient] Successfully joined room");
       setIsJoining(false);
     };
 
@@ -281,22 +250,18 @@ export default function CallClient({ roomId }: CallClientProps) {
         // Check if error is "role limit reached"
         const errorMessage = err?.message?.toLowerCase() || "";
         if (errorMessage.includes("role limit reached")) {
-          console.log("[HMS Action - CallClient] Role limit reached, attempting to remove duplicate peer");
-          
+
           try {
             // Get HMS room ID from the room data
             const roomResponse = await fetchAPI(
               `${URL}/api/rooms/public/${roomId}`
             );
-
-            console.log("ROOM RESPONSE FOR ROLE LIMIT:", roomResponse);
             
             if (roomResponse.ok && roomResponse.data.data.room.roomId && user?.fid) {
               const hmsRoomId = roomResponse.data.data.room.roomId;
               const removed = await handleRoleLimitError(hmsRoomId, user.fid);
               
               if (removed) {
-                console.log("[HMS Action - CallClient] Retrying join after removing duplicate peer");
                 // Retry joining
                 await attemptJoin(1);
                 return;
@@ -324,19 +289,8 @@ export default function CallClient({ roomId }: CallClientProps) {
     if (isConnected && localPeer && user && !hasJoinedRoom) {
       const role = localPeer.roleName;
 
-      console.log("[HMS Action - CallClient] Connected to room", {
-        role,
-        peerId: localPeer.id,
-        peerName: localPeer.name,
-        timestamp: new Date().toISOString(),
-      });
-
       // Only auto-mute on initial join, not on subsequent peer updates
       if (role === "host" || role === "co-host" || role === "speaker") {
-        console.log(
-          "[HMS Action - CallClient] Auto-muting on join for role:",
-          role
-        );
         hmsActions.setLocalAudioEnabled(false);
       }
 

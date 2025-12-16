@@ -51,6 +51,7 @@ module.exports = {
           yellow: '#f3ad32',
           orange: '#f78635',
           blue: '#5f9af9',
+          purple: '#7b5cf0',
         }
       },
       fontFamily: {
