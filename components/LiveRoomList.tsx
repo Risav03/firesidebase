@@ -33,6 +33,7 @@ import {
 } from "@/components/UI/drawer";
 import { Card } from "@/components/UI/Card";
 import Button from "@/components/UI/Button";
+import { useAccount } from "wagmi";
 
 interface Room {
   _id: string;
@@ -83,6 +84,9 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
 
   const navigate = useNavigateWithLoader()
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+
+  const {address} = useAccount();
+  toast.info(`Current user address: ${address}`);
 
 
   const [netEarned, setNetEarned] = useState<number>(0);
