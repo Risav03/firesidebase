@@ -22,10 +22,13 @@ import { base } from "viem/chains";
 export async function readContractSetup(contractAddress: string, abi: any) {
   try {
     const provider = new ethers.JsonRpcProvider(
-      process.env.NEXT_PUBLIC_RPC_URL
+      "https://base-mainnet.g.alchemy.com/v2/CA4eh0FjTxMenSW3QxTpJ7D-vWMSHVjq"
     );
 
     const contract = new ethers.Contract(contractAddress, abi, provider);
+
+    console.log("Read contract setup successful:", contract);
+
     return contract;
   } catch (error) {
     console.error("Error setting up contract:", error);

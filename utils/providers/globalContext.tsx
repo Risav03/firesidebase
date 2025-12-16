@@ -56,7 +56,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
 
   const checkSoundboardEligibilty = async (): Promise<boolean> => {
     try {
-      toast.info("Checking soundboard eligibility...");
+      // toast.info("Checking soundboard eligibility...");
       const contract = await readContractSetup(contractAdds.fireToken, erc20Abi);
       if (!contract) {
         console.error("Failed to read contract");
@@ -64,6 +64,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
         return false;
       }
       const balance = await contract.balanceOf(address);
+      console.log("Soundboard eligibility balance raw:", String(balance));
       toast.info(`Soundboard eligibility checked. Balance: ${ethers.formatUnits(balance, 18)} FIRE`);
       console.log("User token balance:", balance.toString());
       const readableBalance = ethers.formatEther(balance);
@@ -148,7 +149,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
         }
       }
     })();
-  }, [context]);
+  }, [context, address]);
 
   return (
     <GlobalContext.Provider
