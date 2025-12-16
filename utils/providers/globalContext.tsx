@@ -54,11 +54,13 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const checkSoundboardEligibilty = useCallback(async (): Promise<boolean> => {
+  const checkSoundboardEligibilty = async (): Promise<boolean> => {
     try {
+      toast.info("Checking soundboard eligibility...");
       const contract = await readContractSetup(contractAdds.fireToken, erc20Abi);
       if (!contract) {
         console.error("Failed to read contract");
+        toast.error("Failed to read contract for soundboard eligibility");
         return false;
       }
       const balance = await contract.balanceOf(address);
@@ -71,7 +73,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
       console.error("Error checking soundboard eligibility:", error);
       return false;
     }
-  }, [address]);
+  }
 
   const handleSignIn = async (): Promise<void> => {
     console.log("handleSignIn called", new Date().toISOString());
