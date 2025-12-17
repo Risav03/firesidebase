@@ -6,6 +6,7 @@ import {
   useHMSStore,
   useHMSActions,
   selectLocalPeer,
+  selectHasPeerHandRaised,
 } from "@100mslive/react-sdk";
 import { useSpeakerRequestEvent, useSpeakerRejectionEvent } from "@/utils/events";
 import PeerWithContextMenu from "./PeerWithContextMenu";
@@ -21,6 +22,8 @@ import { fetchRoomDetails, endRoom } from "@/utils/serverActions";
 import SpeakerRequestsDrawer from "./SpeakerRequestsDrawer";
 import { Card } from "@/components/UI/Card";
 import Button from "@/components/UI/Button";
+import { CampfireCircle, FirelightField, AroundTheFireRow, ListGroup, CircleRow, ListenerDot, SegTab, HandRaiseSparks, Avatar } from "./experimental";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/UI/drawer";
 // import AudioRecoveryBanner from "./AudioRecoveryBanner";
 
 
@@ -56,6 +59,8 @@ export default function Conference({ roomId }: { roomId: string }) {
   const [peers, setPeers] = useState(allPeers);
   const [removedPeers, setRemovedPeers] = useState<Set<string>>(new Set());
   const [isEndingRoom, setIsEndingRoom] = useState(false);
+  const [flicker, setFlicker] = useState(0.6);
+  const [reactions, setReactions] = useState<{ id: string; emoji: string; left: number }[]>([]);
   
   // Speaker request management
   interface SpeakerRequest {
@@ -67,6 +72,8 @@ export default function Conference({ roomId }: { roomId: string }) {
   
   const [speakerRequests, setSpeakerRequests] = useState<SpeakerRequest[]>([]);
   const [showSpeakerRequestsDrawer, setShowSpeakerRequestsDrawer] = useState(false);
+  const [showListenersSheet, setShowListenersSheet] = useState(false);
+  const [tab, setTab] = useState<"circle" | "campers">("circle");
   
   const [roomEnded, setRoomEnded] = useState(false);
 
@@ -345,18 +352,25 @@ useEffect(() => {
   // }, [localPeer?.roleName]);
 
   // Handle request approval and rejection
-  const handleApproveRequest = (request: SpeakerRequest) => {
+  const handleApproveRequest = async (request: SpeakerRequest) => {
     if (!request || !request.peerId) {
       console.error("Invalid speaker request for approval", request);
       return;
     }
     
-    setSpeakerRequests((prevRequests) => 
-      prevRequests.filter(req => req.peerId !== request.peerId)
-    );
-    
-    // Log success
-    console.log(`Approved speaker request for peer: ${request.peerId}`);
+    try {
+      // Remove from requests first
+      setSpeakerRequests((prevRequests) => 
+        prevRequests.filter(req => req.peerId !== request.peerId)
+      );
+      
+      // Change role to speaker
+      await hmsActions.changeRoleOfPeer(request.peerId, 'speaker', true);
+      
+      console.log(`Approved speaker request for peer: ${request.peerId}`);
+    } catch (error) {
+      console.error('Error approving speaker request:', error);
+    }
   };
   
   const handleRejectRequest = (request: SpeakerRequest) => {
@@ -396,74 +410,332 @@ useEffect(() => {
     // Only show speaker requests button for hosts and co-hosts
     const canManageSpeakers = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
     
+    // Prepare peers for CampfireCircle
+    const storytellers = peers.filter((peer) => 
+      peer.roleName?.toLowerCase() === 'host' || peer.roleName?.toLowerCase() === 'co-host'
+    );
+    const speakers = peers.filter((peer) => 
+      peer.roleName?.toLowerCase() === 'speaker'
+    );
+    const listeners = peers.filter((peer) => 
+      peer.roleName?.toLowerCase() === 'listener'
+    );
+    
+    // Transform peers to format expected by experimental components
+    const transformPeer = (peer: any, isHandRaised: boolean = false) => ({
+      id: peer.id,
+      name: peer.name,
+      img: peer.metadata ? JSON.parse(peer.metadata).avatar : undefined,
+      role: peer.roleName === 'host' ? 'Host' : peer.roleName === 'co-host' ? 'Co-host' : 'Speaker',
+      speaking: peer.audioTrack && peer.audioLevel > 0,
+      muted: !peer.audioTrack,
+      handRaised: isHandRaised,
+    });
+    
+    const campfirePeople = [...storytellers, ...speakers].map(p => transformPeer(p));
+    const listenerPeople = listeners.map(p => transformPeer(p));
+    
+    // Transform speaker requests to hand raise format
+    const handsRaised = speakerRequests.map(req => {
+      const peer = allPeers.find(p => p.id === req.peerId);
+      return {
+        id: req.peerId,
+        name: req.peerName || peer?.name || 'Unknown',
+        img: req.peerAvatar || (peer?.metadata ? JSON.parse(peer.metadata).avatar : undefined),
+        speaking: false,
+      };
+    });
+    
     return (
-      <div className="pt-12 pb-32 px-3 relative min-h-screen z-0">
-
-        {/* Speaker Requests Button - Only shown to hosts/co-hosts and when there are requests */}
-            {canManageSpeakers && speakerRequests.length > 0 && (
-              <div className="flex w-full mb-4 mt-8">
-                <Button
-                  variant="ghost"
-                  onClick={() => setShowSpeakerRequestsDrawer(true)}
-                  className="flex items-center gap-2 w-full text-center justify-center"
-                >
-                  <span>Speaker Requests</span>
-                  <span className="bg-white text-fireside-orange rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
-                    {speakerRequests.length}
-                  </span>
-                </Button>
-              </div>
-            )}
-        {/* <AudioRecoveryBanner /> */}
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-4 mt-6 relative">
-            <Card variant="ghost" className="p-2 text-left border-fireside-orange/10">
-              <h2 className="text-2xl mb-2 font-bold text-center gradient-fire-text">
-                {roomDetails?.name || ""}
-              </h2>
-              <p className="text-gray-400 text-sm">
-                {roomDetails?.description || ""}
-              </p>
-            </Card>
-            
-            
-          </div>
-  
-          <div className="">
-            {/* Hosts, Co-hosts, and Speakers */}
-            <div className="grid grid-cols-4 gap-4 px-1">
-              {peers
-                .filter((peer) => ['host', 'co-host', 'speaker'].includes(peer.roleName?.toLowerCase() || ''))
-                .map((peer) => (
-                  <PeerWithContextMenu key={peer.id} peer={peer} />
-                ))}
-            </div>
-            
-            {/* Listeners */}
-            {peers.some((peer) => peer.roleName?.toLowerCase() === 'listener') && (
-              <div className="grid grid-cols-6 gap-2 px-1 mt-8 opacity-80 ">
-                {peers
-                  .filter((peer) => peer.roleName?.toLowerCase() === 'listener')
-                  .map((peer) => (
-                    <PeerWithContextMenu key={peer.id} peer={peer} />
-                  ))}
-              </div>
-            )}
-  
-          </div>
-        </div>
+      <div className="relative min-h-screen mt-4">
+        <FirelightField flicker={flicker} />
         
-        {/* Speaker Requests Drawer */}
-        <SpeakerRequestsDrawer
-          isOpen={showSpeakerRequestsDrawer}
-          onClose={() => setShowSpeakerRequestsDrawer(false)}
-          requests={speakerRequests} 
-          onApprove={handleApproveRequest}
-          onReject={handleRejectRequest}
-          roomId={roomId}
-        />
+        <div className="pb-32 px-3 relative z-10">
+          {/* Speaker Requests Button */}
+          {/* {canManageSpeakers && speakerRequests.length > 0 && (
+            <div className="flex w-full mb-4 mt-8">
+              <Button
+                variant="ghost"
+                onClick={() => setShowSpeakerRequestsDrawer(true)}
+                className="flex items-center gap-2 w-full text-center justify-center"
+              >
+                <span>Speaker Requests</span>
+                <span className="bg-white text-fireside-orange rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
+                  {speakerRequests.length}
+                </span>
+              </Button>
+            </div>
+          )} */}
+          
+          <div className="max-w-6xl mx-auto">
+            {/* <div className="text-center mb-4 mt-6 relative">
+              <Card variant="ghost" className="p-2 text-left border-fireside-orange/10">
+                <h2 className="text-2xl mb-2 font-bold text-center gradient-fire-text">
+                  {roomDetails?.name || ""}
+                </h2>
+                <p className="text-gray-400 text-sm">
+                  {roomDetails?.description || ""}
+                </p>
+              </Card>
+            </div> */}
 
-        {/* Sponsorship drawers removed */}
+            {/* Tab Selector */}
+            <div className="flex gap-2 rounded-full p-1 backdrop-blur-md mb-6" style={{
+              border: '1px solid rgba(255,255,255,.08)',
+              background: 'rgba(0,0,0,.14)'
+            }}>
+              <SegTab
+                active={tab === "circle"}
+                onClick={() => setTab("circle")}
+              >
+                Circle
+              </SegTab>
+              <SegTab
+                active={tab === "campers"}
+                onClick={() => setTab("campers")}
+              >
+                Campers{" "}
+                <span style={{ color: 'rgba(255,255,255,.55)' }}>
+                  ({campfirePeople.length + listenerPeople.length})
+                </span>
+              </SegTab>
+            </div>
+    
+            {tab === "circle" ? (
+              <>
+                {/* Campfire Circle Layout */}
+                <CampfireCircle 
+                  people={campfirePeople}
+                  reactions={reactions}
+                  flicker={flicker}
+                />
+                
+                {/* Listeners Below */}
+                {listeners.length > 0 && (
+                  <div className="mt-12">
+                    <AroundTheFireRow 
+                      count={listeners.length}
+                      people={listenerPeople}
+                      onOpen={() => setShowListenersSheet(true)}
+                      hands={handsRaised}
+                    />
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="rounded-3xl p-4 backdrop-blur-md" style={{
+                border: '1px solid rgba(255,255,255,.08)',
+                background: 'rgba(0,0,0,.20)'
+              }}>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <div className="text-xs" style={{ color: 'rgba(255,255,255,.55)' }}>
+                      Everyone here
+                    </div>
+                    <div className="mt-1 text-sm font-semibold" style={{ color: 'rgba(255,255,255,.92)' }}>
+                      {campfirePeople.length + listenerPeople.length} campers
+                    </div>
+                  </div>
+                </div>
+
+                <ListGroup title="In the circle">
+                  {campfirePeople.map((p) => (
+                    <CircleRow key={p.id} p={p} />
+                  ))}
+                </ListGroup>
+
+                {handsRaised.length > 0 && (
+                  <ListGroup title="Spark requests">
+                    {handsRaised.map((p) => {
+                      const request = speakerRequests.find(req => req.peerId === p.id);
+                      return (
+                        <div
+                          key={p.id}
+                          className="flex items-center justify-between rounded-2xl px-3 py-2 backdrop-blur-sm relative"
+                          style={{
+                            border: '1px solid rgba(255,255,255,.08)',
+                            background: 'rgba(0,0,0,.14)',
+                          }}
+                        >
+                          <HandRaiseSparks id={`hand-${p.id}`} />
+                          <div className="flex items-center gap-3 min-w-0">
+                            <Avatar
+                              img={p.img}
+                              name={p.name}
+                              size={36}
+                              speaking={false}
+                              fireDistance={0.72}
+                              depth={0.6}
+                            />
+                            <div className="min-w-0">
+                              <div className="truncate text-sm" style={{ color: 'rgba(255,255,255,.92)' }}>
+                                {p.name}
+                              </div>
+                              <div className="text-xs" style={{ color: 'rgba(255,255,255,.55)' }}>
+                                raised hand
+                              </div>
+                            </div>
+                          </div>
+                          {canManageSpeakers && request && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleApproveRequest(request)}
+                                className="rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-sm"
+                                style={{
+                                  border: '1px solid rgba(255,255,255,.08)',
+                                  background: 'rgba(34,197,94,.15)',
+                                  color: 'rgba(34,197,94,1)',
+                                }}
+                              >
+                                Invite
+                              </button>
+                              <button
+                                onClick={() => handleRejectRequest(request)}
+                                className="rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-sm"
+                                style={{
+                                  border: '1px solid rgba(255,255,255,.08)',
+                                  background: 'rgba(239,68,68,.15)',
+                                  color: 'rgba(239,68,68,1)',
+                                }}
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </ListGroup>
+                )}
+
+                <ListGroup title="Around the fire">
+                  <div
+                    className="rounded-2xl p-3 backdrop-blur-sm"
+                    style={{
+                      border: '1px solid rgba(255,255,255,.08)',
+                      background: 'rgba(0,0,0,.10)',
+                    }}
+                  >
+                    <div className="grid grid-cols-4 gap-4">
+                      {listenerPeople.map((p) => (
+                        <ListenerDot key={p.id} p={p} />
+                      ))}
+                    </div>
+                  </div>
+                </ListGroup>
+              </div>
+            )}
+          </div>
+          
+          {/* Speaker Requests Drawer */}
+          <SpeakerRequestsDrawer
+            isOpen={showSpeakerRequestsDrawer}
+            onClose={() => setShowSpeakerRequestsDrawer(false)}
+            requests={speakerRequests} 
+            onApprove={handleApproveRequest}
+            onReject={handleRejectRequest}
+            roomId={roomId}
+          />
+
+          {/* Listeners Drawer */}
+          <Drawer open={showListenersSheet} onOpenChange={setShowListenersSheet}>
+            <DrawerContent className="border-none backdrop-blur-xl" style={{
+              background: 'rgba(0,0,0,.50)',
+              borderTop: '1px solid rgba(255,255,255,.08)'
+            }}>
+              <div className="px-4 pt-1 pb-2">
+                <div className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,.92)' }}>
+                  Around the fire
+                </div>
+                <div className="text-[11px]" style={{ color: 'rgba(255,255,255,.55)' }}>
+                  {listeners.length} listening
+                </div>
+              </div>
+
+              <div className="px-4 pb-4 overflow-y-auto max-h-[60vh]">
+                {handsRaised.length > 0 && (
+                  <ListGroup title="Spark requests">
+                    {handsRaised.map((p) => {
+                      const request = speakerRequests.find(req => req.peerId === p.id);
+                      return (
+                        <div
+                          key={p.id}
+                          className="flex items-center justify-between rounded-2xl px-3 py-2 backdrop-blur-sm relative"
+                          style={{
+                            border: '1px solid rgba(255,255,255,.08)',
+                            background: 'rgba(0,0,0,.14)',
+                          }}
+                        >
+                          <HandRaiseSparks id={`hand-drawer-${p.id}`} />
+                          <div className="flex items-center gap-3 min-w-0">
+                            <Avatar
+                              img={p.img}
+                              name={p.name}
+                              size={36}
+                              speaking={false}
+                              fireDistance={0.72}
+                              depth={0.6}
+                            />
+                            <div className="min-w-0">
+                              <div className="truncate text-sm" style={{ color: 'rgba(255,255,255,.92)' }}>
+                                {p.name}
+                              </div>
+                              <div className="text-xs" style={{ color: 'rgba(255,255,255,.55)' }}>
+                                raised hand
+                              </div>
+                            </div>
+                          </div>
+                          {canManageSpeakers && request && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleApproveRequest(request)}
+                                className="rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-sm"
+                                style={{
+                                  border: '1px solid rgba(255,255,255,.08)',
+                                  background: 'rgba(34,197,94,.15)',
+                                  color: 'rgba(34,197,94,1)',
+                                }}
+                              >
+                                Invite
+                              </button>
+                              <button
+                                onClick={() => handleRejectRequest(request)}
+                                className="rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-sm"
+                                style={{
+                                  border: '1px solid rgba(255,255,255,.08)',
+                                  background: 'rgba(239,68,68,.15)',
+                                  color: 'rgba(239,68,68,1)',
+                                }}
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </ListGroup>
+                )}
+
+                <ListGroup title="Listeners">
+                  <div
+                    className="rounded-2xl p-3 backdrop-blur-sm"
+                    style={{
+                      border: '1px solid rgba(255,255,255,.08)',
+                      background: 'rgba(0,0,0,.10)',
+                    }}
+                  >
+                    <div className="grid grid-cols-4 gap-4">
+                      {listenerPeople.map((p) => (
+                        <ListenerDot key={p.id} p={p} />
+                      ))}
+                    </div>
+                  </div>
+                </ListGroup>
+              </div>
+            </DrawerContent>
+          </Drawer>
+        </div>
       </div>
     );
   }

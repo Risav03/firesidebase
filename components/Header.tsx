@@ -15,6 +15,7 @@ import { FaXTwitter } from "react-icons/fa6";
 import { sdk } from "@farcaster/miniapp-sdk";
 import { toast } from "react-toastify";
 import Button from '@/components/UI/Button';
+import { StarRings } from "./experimental";
 
 interface HeaderProps {
   onToggleChat?: () => void;
@@ -75,8 +76,13 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 bg-fireside-darkOrange px-6 h-16 my-auto">
-        <div className="max-w-7xl h-full mx-auto flex items-center justify-between">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-fireside-darkOrange px-6 h-16 my-auto relative overflow-hidden">
+        {/* Background visual effect */}
+        <div className="absolute -top-10 -right-10 pointer-events-none opacity-30">
+          <StarRings />
+        </div>
+        
+        <div className="max-w-7xl h-full mx-auto flex items-center justify-between relative z-10">
           <div className="flex items-start justify-start space-x-4">
             <FiresideLogo className="w-32 justify-start"/>
           </div>
