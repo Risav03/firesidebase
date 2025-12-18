@@ -36,7 +36,7 @@ module.exports = {
         },
         fireside: {
           beige: '#F1EFE7',
-          green: '#55AB55',
+          green: '#469946',
           orange: '#eb6b34',
           darkOrange: '#0e0704',
           blue: '#5B9BD5',
@@ -44,6 +44,10 @@ module.exports = {
           brown: '#8B4513',
           yellow: "#FFD700",
           red: '#ef4444',
+          indigo: "rgba(99,102,241)",
+          darkWhite: "rgba(255, 255, 255, 0.3)",
+          white: "rgba(255, 255, 255, 0.2)",
+          lightWhite: "rgba(255, 255, 255, 0.1)",
           'fireside-blue': '#3b82f6',
         },
         neutral: {

@@ -54,12 +54,12 @@ function SoundTile({
       onClick={onPlay}
       disabled={disabled}
       className={`
-        relative flex flex-col items-center justify-center
+        relative flex flex-col items-center justify-center gradient-purple-bg 
         p-3 rounded-xl
         transition-all duration-150
-        bg-white/5 border border-white/10 
-        hover:bg-white/15 hover:border-white/25
-        active:bg-fireside-orange/20 active:border-fireside-orange/40
+        bg-fireside-purple/10 border border-fireside-purple/10 
+        hover:bg-fireside-purple/30 hover:border-fireside-purple/25
+        active:bg-fireside-purple/30 active:border-fireside-purple/40
         ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
       `}
     >
@@ -148,15 +148,16 @@ export default function SoundboardDrawer({
   return (
     <>
       <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DrawerContent className="bg-black border-fireside-orange/30 max-h-[85vh]">
-          <DrawerHeader className="pb-2">
-            <DrawerTitle className="gradient-fire-text text-2xl font-bold flex items-center gap-2">
-              
+        <DrawerContent className="bg-black gradient-purple-bg border-fireside-purple/30 max-h-[85vh]">
+          <DrawerHeader className="pb-2 border-b-[1px] mb-4 border-fireside-lightWhite">
+           <div className="flex items-center gap-2 pb-2">
+            <HiSpeakerWave className="text-fireside-purple text-2xl" />
+            <DrawerTitle className="text-white text-xl  font-semibold flex items-center gap-2">
               Soundboard
             </DrawerTitle>
-            <DrawerDescription className="text-white/60 text-sm">
-              Play sound effects for everyone in the room
-            </DrawerDescription>
+           </div>
+            
+            
           </DrawerHeader>
           
           <div className="px-4 pb-6 overflow-y-auto">
@@ -180,7 +181,7 @@ export default function SoundboardDrawer({
                 onClick={() => setActiveCategory(null)}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
                   activeCategory === null
-                    ? "bg-fireside-orange text-white"
+                    ? "bg-fireside-purple text-white"
                     : "bg-white/5 text-white/60 hover:bg-white/10"
                 }`}
               >
@@ -194,7 +195,7 @@ export default function SoundboardDrawer({
                     onClick={() => setActiveCategory(category)}
                     className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all flex items-center gap-1 ${
                       activeCategory === category
-                        ? "bg-fireside-orange text-white"
+                        ? "bg-fireside-purple text-white"
                         : "bg-white/5 text-white/60 hover:bg-white/10"
                     }`}
                   >

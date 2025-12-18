@@ -83,7 +83,7 @@ export function ChatMessage({ message, isOwnMessage }: ChatMessageProps) {
       <div className="chat-message-content">
         {!isOwnMessage && (
           <div className="chat-message-header">
-            <span className="font-medium text-fireside-orange text-sm">
+            <span className="font-medium text-fireside-green text-sm">
               {senderName}
             </span>
           </div>

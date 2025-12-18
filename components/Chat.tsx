@@ -252,20 +252,14 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
   return (
     <Drawer open={isOpen} onOpenChange={setIsChatOpen}>
-      <DrawerContent className="bg-black/95 backdrop-blur-lg text-white ">
-        <DrawerHeader className="border-b border-fireside-orange/30">
+      <DrawerContent className="gradient-orange-bg backdrop-blur-lg border-fireside-orange/20 text-white ">
+        <DrawerHeader className="border-b border-fireside-lightWhite">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-3 h-3 bg-fireside-orange rounded-full animate-pulse"></div>
               <DrawerTitle className="text-xl font-semibold text-white">Room Chat</DrawerTitle>
             </div>
-            <button
-              onClick={setIsChatOpen}
-              className="text-gray-400 hover:text-white transition-colors p-2"
-              aria-label="Close chat"
-            >
-              <MdClose size={24} />
-            </button>
+            
           </div>
         </DrawerHeader>
 
@@ -311,25 +305,25 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
           )}
         </div>
 
-        <DrawerFooter className="border-t border-fireside-orange/30">
-          <div className="flex items-end space-x-3">
-            <div className="flex-1">
+        <DrawerFooter className="border-t border-fireside-lightWhite">
+          <div className="flex items-start space-x-3">
+            
               <textarea
                 ref={textareaRef}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Type a message..."
-                className="w-full px-4 py-3 bg-white/10 text-white rounded-2xl border border-white/30 focus:border-fireside-orange focus:ring-2 focus:ring-fireside-orange focus:ring-opacity-20 outline-none resize-none min-h-[48px] text-base"
+                className="w-full px-4 py-3 bg-white/5 text-white rounded-lg border border-fireside-lightWhite focus:border-fireside-darkWhite focus:ring-2 focus:ring-fireside-orange transition-colors duration-200 outline-none resize-none min-h-[48px] text-base"
                 maxLength={500}
                 rows={1}
                 onFocus={() => setTimeout(scrollToBottom, 300)}
               />
-            </div>
+           
             <button
               onClick={handleSendMessage}
               disabled={!message.trim()}
-              className="w-12 h-12 bg-fireside-orange text-white rounded-full flex items-center justify-center transition-all hover:bg-fireside-orange/80 disabled:bg-gray-500 disabled:opacity-50"
+              className="w-12 h-12 bg-fireside-orange aspect-square text-white rounded-lg flex items-center justify-center transition-all hover:bg-fireside-orange/80 disabled:bg-gray-500 disabled:opacity-50"
               title="Send message"
             >
               <MdSend size={20} />

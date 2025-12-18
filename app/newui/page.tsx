@@ -556,7 +556,7 @@ export default function FiresideCallMock() {
 
                 <div ref={audienceAnchorRef} />
 
-                <ListGroup title="Around the fire">
+                {listeners.length > 0 && <ListGroup title="Around the fire">
                   <div
                     className="rounded-2xl p-3 backdrop-blur-sm"
                     style={{
@@ -570,7 +570,7 @@ export default function FiresideCallMock() {
                       ))}
                     </div>
                   </div>
-                </ListGroup>
+                </ListGroup>}
               </div>
             )}
           </div>
@@ -585,6 +585,8 @@ export default function FiresideCallMock() {
             handUp={handUp}
             setHandUp={setHandUp}
             onReact={pushReaction}
+            onChat={() => console.log('Chat clicked')}
+            onTip={() => console.log('Tip clicked')}
             onVisibleHeightChange={(h) => setDrawerVisibleH(h)}
           />
 

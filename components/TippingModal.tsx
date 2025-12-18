@@ -14,6 +14,7 @@ import {
   DrawerTitle,
 } from "@/components/UI/drawer";
 import Button from "@/components/UI/Button";
+import Input from "@/components/UI/Input";
 import { fetchRoomParticipants, fetchRoomParticipantsByRole, sendChatMessage, fetchHMSActivePeers, fetchRoomDetails } from "@/utils/serverActions";
 import { useGlobalContext } from "@/utils/providers/globalContext";
 import { useAccount, useSendCalls, useSignTypedData, useWriteContract } from "wagmi";
@@ -23,6 +24,7 @@ import { encodeFunctionData, numberToHex } from "viem";
 import { contractAdds } from "@/utils/contract/contractAdds";
 import { firebaseTipsAbi } from "@/utils/contract/abis/firebaseTipsAbi";
 import { erc20Abi } from "@/utils/contract/abis/erc20abi";
+import { CiMoneyBill } from "react-icons/ci";
 
 import { base, createBaseAccountSDK, getCryptoKeyAccount } from "@base-org/account";
 import sdk from '@farcaster/miniapp-sdk';
@@ -522,19 +524,14 @@ export default function TippingModal({
 
   return (
     <Drawer open={isOpen} onOpenChange={onClose}>
-      <DrawerContent className="bg-black/95 backdrop-blur-lg text-white border-fireside-orange/30">
-        <DrawerHeader className="border-b border-orange-500/30">
-          <div className="flex items-center justify-between">
-            <DrawerTitle className="text-2xl font-bold text-white">
+      <DrawerContent className="gradient-green-bg border-fireside-green/20 text-white ">
+        <DrawerHeader className="border-b border-fireside-lightWhite">
+          <div className="flex items-center gap-3">
+            <CiMoneyBill className="text-fireside-green text-xl"/>
+            <DrawerTitle className="text-xl font-semibold text-white">
               Send a Tip
             </DrawerTitle>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors p-2"
-              aria-label="Close"
-            >
-              <MdClose size={24} />
-            </button>
+            
           </div>
         </DrawerHeader>
 
@@ -542,7 +539,7 @@ export default function TippingModal({
           <div className="space-y-6">
             {/* User Selection */}
             <div>
-              <label className="block text-lg font-bold text-orange-400 mb-3">
+              <label className="block text-lg font-bold text-fireside-green mb-3">
                 Select recipients
               </label>
               
@@ -558,7 +555,7 @@ export default function TippingModal({
                         onClick={() => handleRoleSelection(role)}
                         className={`px-3 py-1 rounded-full text-sm transition-colors ${
                           selectedRoles.includes(role)
-                            ? 'bg-orange-500 text-white'
+                            ? 'bg-fireside-green text-white'
                             : 'bg-white/10 text-gray-300 hover:bg-white/20'
                         }`}
                       >
@@ -572,26 +569,26 @@ export default function TippingModal({
               <div className="mt-4">
                 <button
                   onClick={() => setShowUserDropdown(!showUserDropdown)}
-                  className="w-full bg-white/10 text-white p-3 rounded-lg border border-orange-500/30 hover:bg-white/20 transition-colors text-left flex items-center justify-between"
+                  className="w-full bg-white/10 text-white p-3 rounded-lg border border-fireside-green/30 hover:bg-white/20 transition-colors text-left flex items-center justify-between"
                 >
                   <span className="text-sm text-gray-300">Or select individual users</span>
-                  <span className="text-orange-400">{showUserDropdown ? '▲' : '▼'}</span>
+                  <span className="text-fireside-green">{showUserDropdown ? '▲' : '▼'}</span>
                 </button>
                 
                 {showUserDropdown && (
                   <div className="mt-2">
-                    <input
+                    <Input
                       type="text"
                       placeholder="Search participants..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-white/10 text-white p-3 rounded-lg border border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors mb-2"
+                      className="mb-2 focus:ring-0"
                     />
                     
                     <div className="max-h-32 overflow-y-auto space-y-1 bg-white/5 rounded-lg p-2">
                       {isLoadingUsers ? (
                         <div className="flex items-center justify-center py-4">
-                          <RiLoader5Fill className="animate-spin text-orange-500" size={24} />
+                          <RiLoader5Fill className="animate-spin text-fireside-green" size={24} />
                         </div>
                       ) : (
                         participants
@@ -607,7 +604,7 @@ export default function TippingModal({
                               onClick={() => handleUserSelection(participant)}
                               className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors ${
                                 selectedUsers.some(u => u.userId === participant.userId)
-                                  ? 'bg-orange-500/20 text-orange-300'
+                                  ? 'bg-fireside-green/20 text-fireside-green'
                                   : 'hover:bg-white/10'
                               }`}
                             >
@@ -645,7 +642,7 @@ export default function TippingModal({
                     {selectedRoles.map(role => (
                       <span
                         key={role}
-                        className="bg-orange-500 text-white px-2 py-1 rounded text-sm"
+                        className="bg-fireside-green text-white px-2 py-1 rounded text-sm"
                       >
                         {role}
                       </span>
@@ -653,7 +650,7 @@ export default function TippingModal({
                     {selectedUsers.map(user => (
                       <span
                         key={user.userId}
-                        className="bg-orange-500 text-white px-2 py-1 rounded text-sm"
+                        className="bg-fireside-green text-white px-2 py-1 rounded text-sm"
                       >
                         {user.username}
                       </span>
@@ -665,7 +662,7 @@ export default function TippingModal({
 
             {/* Tip Amount Selection */}
             <div>
-              <label className="block text-lg font-bold text-orange-400 mb-3">
+              <label className="block text-lg font-bold text-fireside-green mb-3">
                 Tip Amount
               </label>
               <div className="grid grid-cols-3 gap-3 mb-4">
@@ -676,37 +673,39 @@ export default function TippingModal({
                       setSelectedTip(amount);
                       setCustomTip('');
                     }}
-                    className={`p-3 rounded-lg border transition-colors ${
+                    className={`p-3 rounded-lg border transition-colors font-bold ${
                       selectedTip === amount
-                        ? 'bg-orange-500 text-white border-orange-500'
-                        : 'bg-white/10 text-gray-300 border-orange-500/30 hover:bg-white/20'
+                        ? 'bg-fireside-green text-white border-fireside-green'
+                        : 'gradient-green-bg text-fireside-green border-fireside-green/30 hover:bg-white/20'
                     }`}
                   >
                     ${amount}
                   </button>
                 ))}
               </div>
-              <input
+              <Input
                 type="number"
                 placeholder="Custom amount"
+                label="Amount"
                 value={customTip}
                 onChange={(e) => {
                   setCustomTip(e.target.value);
                   setSelectedTip(null);
                 }}
-                className="w-full bg-white/10 text-white p-3 rounded-lg border border-orange-500/30 focus:outline-none focus:border-orange-500 transition-colors"
+                className="focus:ring-fireside-green"
+                labelClassName="text-fireside-green"
               />
             </div>
           </div>
         </div>
 
-        <DrawerFooter className="border-t border-fireside-orange/30">
+        <DrawerFooter className="border-t border-white/20">
           <div className="flex gap-3">
             <Button
               variant="action"
               onClick={handleETHTip}
               disabled={isLoading || (!selectedUsers.length && !selectedRoles.length) || (!selectedTip && !customTip)}
-              className=" bg-indigo-500 flex-1 flex items-center justify-center gap-1 text-lg font-bold"
+              className=" gradient-indigo-bg bg-fireside-indigo/10 border-[1px] border-fireside-indigo/10 flex-1 flex items-center justify-center gap-1 text-lg font-bold"
             >
               <img src="/ethereum.svg" alt="ETH" className="w-6 h-6" />
               {isLoading ? 'Processing...' : 'ETH'}
@@ -715,7 +714,7 @@ export default function TippingModal({
             variant="action"
               onClick={() => handleUSDCTip(USDC_ADDRESS, "USDC")}
               disabled={isLoading || (!selectedUsers.length && !selectedRoles.length) || (!selectedTip && !customTip)}
-              className=" flex-1 bg-blue-500 flex items-center justify-center text-lg gap-1 font-bold"
+              className=" flex-1 gradient-blue-bg bg-blue-950/30 border-[1px] border-blue-950/30 flex items-center justify-center text-lg gap-1 font-bold"
             >
               <img src="/usdc.svg" alt="USDC" className="w-6 h-6" />
               {isLoading ? 'Processing...' : 'USDC'}
@@ -724,7 +723,7 @@ export default function TippingModal({
             variant="action"
               onClick={() => handleUSDCTip(FIRE_ADDRESS, "FIRE")}
               disabled={isLoading || (!selectedUsers.length && !selectedRoles.length) || (!selectedTip && !customTip)}
-              className="flex-1 bg-red-700 text-white flex items-center justify-center text-lg font-bold"
+              className="flex-1 gradient-orange-bg border-[1px] border-fireside-orange/10 bg-fireside-orange/10 text-white flex items-center justify-center text-lg font-bold"
             >
               <img src="/fireside-logo.svg" alt="FIRE" className="w-6 h-6" />
               {isLoading ? 'Processing...' : '$FIRE'}

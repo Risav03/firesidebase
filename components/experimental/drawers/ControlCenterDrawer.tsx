@@ -12,10 +12,13 @@ export function ControlCenterDrawer(props: {
   handUp: boolean;
   setHandUp: (v: boolean) => void;
   onReact: () => void;
+  onChat: () => void;
+  onTip: () => void;
+  onSoundboard: () => void;
   onVisibleHeightChange?: (h: number) => void;
 }) {
   const collapsedH = 118;
-  const expandedH = 292;
+  const expandedH = 230;
 
   useEffect(() => {
     props.onVisibleHeightChange?.(collapsedH);
@@ -48,11 +51,9 @@ export function ControlCenterDrawer(props: {
       aria-label="Control center drawer"
     >
       <div
-        className="h-full rounded-3xl backdrop-blur-xl"
+        className="h-full rounded-3xl backdrop-blur-xl gradient-yellow-bg"
         style={{
           border: `1px solid ${TOKENS.line}`,
-          background:
-            "radial-gradient(120% 160% at 50% -10%, rgba(246,206,132,.06), rgba(0,0,0,0) 55%), rgba(0,0,0,.40)",
         }}
       >
         <button
@@ -115,14 +116,14 @@ export function ControlCenterDrawer(props: {
 
         <div className="px-3 pt-3">
           <div className="flex items-center justify-between">
-            <IconButton label="Chat">
+            <IconButton label="Chat" onClick={props.onChat}>
               <MessageCircle
                 className="h-5 w-5"
                 style={{ color: "rgba(255,255,255,.78)" }}
               />
             </IconButton>
 
-            <IconButton label="Tip">
+            <IconButton label="Tip" onClick={props.onTip}>
               <Gift
                 className="h-5 w-5"
                 style={{ color: "rgba(255,255,255,.78)" }}
@@ -186,8 +187,8 @@ export function ControlCenterDrawer(props: {
               transition={{ duration: 0.18 }}
               className="px-3 pt-3"
             >
-              <div className="grid grid-cols-3 gap-2">
-                <div
+              <div className="grid grid-cols-1 gap-2">
+                {/* <div
                   className="rounded-2xl p-3 backdrop-blur-sm"
                   style={{
                     border: `1px solid ${TOKENS.line}`,
@@ -239,36 +240,36 @@ export function ControlCenterDrawer(props: {
                   >
                     support hosts
                   </div>
-                </div>
+                </div> */}
 
-                <div
-                  className="rounded-2xl p-3 backdrop-blur-sm"
+                <button
+                  onClick={props.onSoundboard}
+                  className="w-full rounded-2xl p-3 gradient-purple-bg backdrop-blur-sm h-16 flex justify-center transition-all hover:scale-[1.02] active:scale-[0.98]"
                   style={{
                     border: `1px solid ${TOKENS.line}`,
-                    background: "rgba(0,0,0,.18)",
                   }}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center gap-2">
                     <Volume2
-                      className="h-4 w-4"
+                      className="h-6 w-6"
                       style={{ color: "rgba(255,255,255,.78)" }}
                     />
                     <div
-                      className="text-xs font-semibold"
+                      className="text-md font-semibold"
                       style={{ color: "rgba(255,255,255,.84)" }}
                     >
                       Soundboard
                     </div>
                   </div>
-                  <div
+                  {/* <div
                     className="mt-1 text-[11px]"
                     style={{ color: TOKENS.muted }}
                   >
                     clips & sfx
-                  </div>
-                </div>
+                  </div> */}
+                </button>
 
-                {Array.from({ length: 3 }, (_, i) => (
+                {/* {Array.from({ length: 3 }, (_, i) => (
                   <div
                     key={i}
                     className="rounded-2xl p-3"
@@ -290,7 +291,7 @@ export function ControlCenterDrawer(props: {
                       integration
                     </div>
                   </div>
-                ))}
+                ))} */}
               </div>
             </motion.div>
           ) : null}

@@ -97,6 +97,34 @@
     @apply bg-gradient-to-br from-emerald-800 to-fireside-green border-[1px] border-emerald-700;
   }
 
+  .gradient-yellow-bg {
+    background: radial-gradient(120% 160% at 50% -10%, rgba(255, 217, 0, 0.05), rgba(0,0,0,0) 55%), rgba(0,0,0,.5);
+  }
+
+  .gradient-green-bg {
+    background: radial-gradient(120% 160% at 50% -10%, rgba(70,153,70,.1), rgba(0,0,0,0) 55%), rgba(0,0,0,.5);
+  }
+
+  .gradient-orange-bg {
+    background: radial-gradient(120% 160% at 50% -10%, rgba(235,107,52,.1), rgba(0,0,0,0) 55%), rgba(0,0,0,.5);
+  }
+
+  .gradient-blue-bg {
+    background: radial-gradient(120% 160% at 50% -10%, rgba(91,157,213,0.2), rgba(0,0,0,0) 55%), rgba(0,0,0,.5);
+  }
+
+  .gradient-purple-bg {
+    background: radial-gradient(120% 160% at 50% -10%, rgba(122, 77, 133, 0.2), rgba(0,0,0,0) 55%), rgba(0,0,0,.5);
+  }
+
+  .gradient-indigo-bg {
+    background: radial-gradient(120% 160% at 50% -10%, rgba(99,102,241,.2), rgba(0,0,0,0) 55%), rgba(0,0,0,.5);
+  }
+
+  .gradient-red-bg {
+    background: radial-gradient(120% 160% at 50% -10%, rgba(239,68,68,.1), rgba(0,0,0,0) 55%), rgba(0,0,0,.5);
+  }
+
   .gradient-yellow {
     @apply bg-gradient-to-br from-yellow-700 to-yellow-600 border-[1px] border-yellow-300;
   }
@@ -115,7 +143,7 @@
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: #F97316; /* fireside-orange color */
+    background: #8B5A96; /* fireside-purple color */
     cursor: pointer;
     border: 2px solid white;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -126,7 +154,7 @@
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: #F97316; /* fireside-orange color */
+    background: #8B5A96; /* fireside-orange color */
     cursor: pointer;
     border: 2px solid white;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -136,7 +164,7 @@
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: #F97316; /* fireside-orange color */
+    background: #8B5A96; /* fireside-orange color */
     cursor: pointer;
     border: 2px solid white;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -145,7 +173,7 @@
   
   /* Add orange track fill effect */
   .slider-fireside::-webkit-slider-runnable-track {
-    background-image: linear-gradient(to right, #F97316 var(--track-fill, 0%), rgba(255, 255, 255, 0.3) var(--track-fill, 0%));
+    background-image: linear-gradient(to right, #8B5A96 var(--track-fill, 0%), rgba(255, 255, 255, 0.3) var(--track-fill, 0%));
     border-radius: 4px;
     height: 4px;
     cursor: pointer;
@@ -159,7 +187,7 @@
   }
   
   .slider-fireside::-moz-range-progress {
-    background-color: #F97316;
+    background-color: #8B5A96;
     height: 4px;
     border-radius: 4px;
   }
@@ -173,7 +201,7 @@
   }
   
   .slider-fireside::-ms-fill-lower {
-    background-color: #F97316;
+    background-color: #8B5A96;
     border-radius: 4px;
   }
   
@@ -422,11 +450,11 @@
   }
   
   .chat-message-bubble.other-bubble {
-    @apply bg-gradient-to-tl from-gray-100/20 to-gray-100/40 text-white rounded-tl-none max-w-[90%];
+    @apply bg-white/10 text-white rounded-tl-none max-w-[90%];
   }
   
   .chat-message-bubble.own-bubble {
-    @apply bg-gradient-to-bl from-fireside-orange w-fit to-fireside-orange/40 text-white ml-auto rounded-br-none max-w-[90%];
+    @apply  w-fit bg-fireside-orange  text-white ml-auto rounded-br-none max-w-[90%];
   }
   
   .chat-message.own-message .chat-message-content {
