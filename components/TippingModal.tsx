@@ -179,7 +179,7 @@ export default function TippingModal({
   }, [isOpen]);
 
   useEffect(() => {
-    if (showUserDropdown) {
+    // if (showUserDropdown) {
       console.log("Dropdown opened, fetching participants...");
       setIsLoadingUsers(true);
       fetchRoomDetails(roomId)
@@ -231,7 +231,7 @@ export default function TippingModal({
         })
         .catch((error) => console.error("Error fetching participants:", error))
         .finally(() => setIsLoadingUsers(false));
-    }
+    // }
   }, [showUserDropdown, roomId]);
 
   const sendTipMessage = async (
@@ -279,12 +279,10 @@ export default function TippingModal({
     var token: any = "";
     if (env !== "DEV") {
       token = (await sdk.quickAuth.getToken()).token;
-      toast.info("Auth token retrieved");
     }
     
     try {
       setIsLoading(true);
-      toast.info("Starting ETH tip process");
       
       if (!selectedUsers.length && !selectedRoles.length) {
         toast.error("Please select users or roles to tip");
@@ -301,24 +299,28 @@ export default function TippingModal({
 
       if (selectedUsers.length > 0) {
         usersToSend = selectedUsers.map((user) => user.wallet);
-        toast.info(`Selected ${usersToSend.length} users`);
       } else {
-        toast.info("Fetching participants by role...");
-        for (const role of selectedRoles) {
-          const response = await fetchRoomParticipantsByRole(roomId, role);
-
-          if(!response.ok){
-            toast.error("Error fetching participants for role: " + role);
-            setIsLoading(false);
-            return;
-          }
-          if (response.data.success) {
-            usersToSend.push(
-              ...response.data.data.participants.map((user: Participant) => user.wallet)
-            );
+        const roomData = await fetchRoomDetails(roomId);
+        if (roomData.data.success && roomData.data.data.room.roomId) {
+          const hmsData = await fetchHMSActivePeers(roomData.data.data.room.roomId);
+          
+          if (hmsData.ok && hmsData.data.peers) {
+            const activePeers = Object.values(hmsData.data.peers)
+              .filter((peer: any) => !peer.role.startsWith('__internal_') && selectedRoles.includes(peer.role))
+              .map((peer: any) => {
+                let metadata = {};
+                try {
+                  metadata = peer.metadata ? JSON.parse(peer.metadata) : {};
+                } catch (e) {
+                  console.error('Error parsing peer metadata:', e);
+                }
+                return (metadata as any).wallet || '';
+              })
+              .filter((wallet: string) => wallet !== '');
+            
+            usersToSend.push(...activePeers);
           }
         }
-        toast.info(`Fetched ${usersToSend.length} users from roles`);
       }
 
       if (usersToSend.length === 0) {
@@ -327,11 +329,8 @@ export default function TippingModal({
       }
 
       lastCurrencyRef.current = "ETH";
-
-      toast.info(`Ref set to ETH`);
       
       const tipAmountUSD = selectedTip ? selectedTip : parseFloat(customTip);
-      toast.info(`Tip amount: $${tipAmountUSD} USD`);
       
       // Check if ETH price is available
       if (!ethPrice) {
@@ -342,10 +341,8 @@ export default function TippingModal({
       
       // Convert USD to ETH
       const tipAmountETH = tipAmountUSD / ethPrice;
-      toast.info(`Converted to ${tipAmountETH.toFixed(6)} ETH`);
       
       const splitArr = splitIntoBatches(usersToSend);
-      toast.info(`Split into ${splitArr.length} batches`);
       
       // Convert ETH to Wei and divide by number of batches
       const totalEthValueInWei = BigInt(Math.floor(tipAmountETH * 1e18));
@@ -360,7 +357,6 @@ export default function TippingModal({
           args: [batch],
         }),
       }));
-      toast.info("Transaction calls prepared");
 
       const result = await executeTransaction({
         calls: sendingCalls,
@@ -387,7 +383,6 @@ export default function TippingModal({
 
   const handleUSDCTip = async (tokenAddress: string, tokenSymbol: string) => {
     try {
-      toast.info(`Tipping with ${address?.slice(0, 7)}...${address?.slice(-5)}`);
       setIsLoading(true);
       if (!selectedUsers.length && !selectedRoles.length) {
         toast.error("Please select users or roles to tip");
@@ -405,24 +400,30 @@ export default function TippingModal({
       if (selectedUsers.length > 0) {
         usersToSend = selectedUsers.map((user) => user.wallet);
       } else {
-        for (const role of selectedRoles) {
-          const response = await fetchRoomParticipantsByRole(roomId, role);
-
-          console.log("Fetched participants for role", role, response);
-
-          if(!response.ok){
-            toast.error("Error fetching participants for role: " + role);
-            setIsLoading(false);
-            return;
-          }
-
-          if (response.data.success) {
-            usersToSend.push(
-              ...response.data.data.participants.map((user: Participant) => user.wallet)
-            );
+        const roomData = await fetchRoomDetails(roomId);
+        if (roomData.data.success && roomData.data.data.room.roomId) {
+          const hmsData = await fetchHMSActivePeers(roomData.data.data.room.roomId);
+          
+          if (hmsData.ok && hmsData.data.peers) {
+            const activePeers = Object.values(hmsData.data.peers)
+              .filter((peer: any) => !peer.role.startsWith('__internal_') && selectedRoles.includes(peer.role))
+              .map((peer: any) => {
+                let metadata = {};
+                try {
+                  metadata = peer.metadata ? JSON.parse(peer.metadata) : {};
+                } catch (e) {
+                  console.error('Error parsing peer metadata:', e);
+                }
+                return (metadata as any).wallet || '';
+              })
+              .filter((wallet: string) => wallet !== '');
+            
+            usersToSend.push(...activePeers);
           }
         }
       }
+
+      console.log("Users to send tip to:", usersToSend);
 
       if (usersToSend.length === 0) {
         toast.error("No users found for tipping");

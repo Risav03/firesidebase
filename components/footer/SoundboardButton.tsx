@@ -26,8 +26,6 @@ export default function SoundboardButton({
 
   const {user} = useGlobalContext()
 
-  console.log("SoundboardButton render - user soundboardEligible:", user?.soundboardEligible);
-
   if(user.soundboardEligible !== undefined)
   return (
     <Button
