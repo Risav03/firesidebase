@@ -393,7 +393,7 @@ export async function startRoom(roomId: string, token: string | null = null) {
 /**
  * Fetch active peers in an HMS room using 100ms Management API
  */
-export async function fetchHMSActivePeers(hmsRoomId: string) {
+export async function fetchHMSActivePeers(hmsRoomId: string, role?:string) {
   const HMS_MANAGEMENT_TOKEN = process.env.HMS_MANAGEMENT_TOKEN;
   
   if (!HMS_MANAGEMENT_TOKEN) {
@@ -402,7 +402,7 @@ export async function fetchHMSActivePeers(hmsRoomId: string) {
   }
 
   try {
-    const response = await fetch(`https://api.100ms.live/v2/active-rooms/${hmsRoomId}/peers`, {
+    const response = await fetch(`https://api.100ms.live/v2/active-rooms/${hmsRoomId}/peers${role ? `?role=${role}` : ''}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${HMS_MANAGEMENT_TOKEN}`,
