@@ -122,7 +122,7 @@
   }
 
   .gradient-red-bg {
-    background: radial-gradient(120% 160% at 50% -10%, rgba(239,68,68,.1), rgba(0,0,0,0) 55%), rgba(0,0,0,.5);
+    background: radial-gradient(120% 160% at 50% -10%, rgba(239,88,88,.1), rgba(0,0,0,0) 55%), rgba(0,0,0,.5);
   }
 
   .gradient-yellow {

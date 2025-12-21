@@ -139,7 +139,7 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
   if (!isVisible) return null;
 
   return (
-    <Modal isOpen={isVisible} onClose={onClose} maxWidth="max-w-sm">
+    <Modal isOpen={isVisible} onClose={onClose} className="gradient-red-bg bg-black border-white/5 max-w-sm">
       {/* Header */}
       <div className="mb-4 border-b border-gray-600 pb-4">
         <div className="text-center">
@@ -217,7 +217,7 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
           <button
             onClick={handleEndRoomClick}
             disabled={isLoading}
-            className="w-full px-4 py-3 bg-fireside-orange hover:bg-orange-600 disabled:bg-orange-700 text-white rounded-lg transition-colors flex items-center justify-center space-x-2"
+            className="w-full px-4 py-3 bg-neutral-red hover:bg-orange-600 disabled:bg-orange-700 text-white rounded-lg transition-colors flex items-center justify-center space-x-2"
             aria-label="End room permanently"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -233,7 +233,7 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
             <button
               onClick={handleEndRoomConfirm}
               disabled={isLoading}
-              className="w-full px-4 py-3 bg-red-600 hover:bg-red-700 disabled:bg-red-700 text-white rounded-lg transition-colors flex items-center justify-center space-x-2"
+              className="w-full px-4 py-3 bg-neutral-red hover:bg-red-700 disabled:bg-red-700 text-white rounded-lg transition-colors flex items-center justify-center space-x-2"
               aria-label="Confirm ending the room permanently"
             >
               {isLoading && action === 'end' ? (

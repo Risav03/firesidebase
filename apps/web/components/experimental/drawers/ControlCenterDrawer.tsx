@@ -27,7 +27,7 @@ export function ControlCenterDrawer(props: {
 
   return (
     <motion.div
-      className="absolute inset-x-0 bottom-0 px-4 pb-5"
+      className="absolute inset-x-0 bottom-0 pb-5 flex items-center justify-center w-screen"
       style={{
         height: props.open ? expandedH : collapsedH,
         zIndex: 50,
@@ -51,7 +51,7 @@ export function ControlCenterDrawer(props: {
       aria-label="Control center drawer"
     >
       <div
-        className="h-full rounded-3xl backdrop-blur-xl gradient-yellow-bg"
+        className="h-full w-[95%] rounded-3xl backdrop-blur-xl gradient-yellow-bg"
         style={{
           border: `1px solid ${TOKENS.line}`,
         }}

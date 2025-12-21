@@ -13,6 +13,7 @@ import Footer from "@/components/Footer";
 import RoleChangeHandler from "@/components/RoleChangeHandler";
 import AdsOverlay from "@/components/AdsOverlay";
 import { Loader } from "@/components/Loader";
+import { RoomHeader } from "@/components/experimental";
 import { toast } from "react-toastify";
 import sdk from "@farcaster/miniapp-sdk";
 import { useNavigateWithLoader } from "@/utils/useNavigateWithLoader";
@@ -423,7 +424,7 @@ export default function CallClient({ roomId }: CallClientProps) {
   return (
     <div className="min-h-screen">
       <RoleChangeHandler />
-      <Header roomId={roomId} />
+      <RoomHeader roomId={roomId} live={true} />
       <AdsOverlay roomId={roomId} />
       <Conference roomId={roomId} />
       <Footer roomId={roomId} />

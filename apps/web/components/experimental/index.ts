@@ -5,3 +5,4 @@ export * from './effects';
 export * from './campfire';
 export * from './lists';
 export * from './drawers';
+export * from './RoomHeader';

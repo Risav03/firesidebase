@@ -22,7 +22,7 @@ import { fetchRoomDetails, endRoom } from "@/utils/serverActions";
 import SpeakerRequestsDrawer from "./SpeakerRequestsDrawer";
 import { Card } from "@/components/UI/Card";
 import Button from "@/components/UI/Button";
-import { CampfireCircle, FirelightField, AroundTheFireRow, ListGroup, CircleRow, ListenerDot, SegTab, HandRaiseSparks, Avatar } from "./experimental";
+import { CampfireCircle, FirelightField, AroundTheFireRow, ListGroup, CircleRow, ListenerDot, SegTab, HandRaiseSparks, Avatar, RoomHeader } from "./experimental";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/UI/drawer";
 // import AudioRecoveryBanner from "./AudioRecoveryBanner";
 
@@ -447,10 +447,10 @@ useEffect(() => {
     });
     
     return (
-      <div className="relative min-h-screen mt-4">
+      <div className="relative min-h-screen">
         <FirelightField flicker={flicker} />
         
-        <div className="pb-32 px-3 relative z-10">
+        <div className="pb-32 px-3 relative z-10 mt-4">
           {/* Speaker Requests Button */}
           {/* {canManageSpeakers && speakerRequests.length > 0 && (
             <div className="flex w-full mb-4 mt-8">
@@ -462,17 +462,6 @@ useEffect(() => {
                 <span>Speaker Requests</span>
                 <span className="bg-white text-fireside-orange rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
                   {speakerRequests.length}
-                </span>
-              </Button>
-            </div>
-          )} */}
-          
-          <div className="max-w-6xl mx-auto">
-            {/* <div className="text-center mb-4 mt-6 relative">
-              <Card variant="ghost" className="p-2 text-left border-fireside-orange/10">
-                <h2 className="text-2xl mb-2 font-bold text-center gradient-fire-text">
-                  {roomDetails?.name || ""}
-                </h2>
                 <p className="text-gray-400 text-sm">
                   {roomDetails?.description || ""}
                 </p>
@@ -608,7 +597,7 @@ useEffect(() => {
                   </ListGroup>
                 )}
 
-                <ListGroup title="Around the fire">
+                {listenerPeople.length > 0 && <ListGroup title="Around the fire">
                   <div
                     className="rounded-2xl p-3 backdrop-blur-sm"
                     style={{
@@ -622,7 +611,7 @@ useEffect(() => {
                       ))}
                     </div>
                   </div>
-                </ListGroup>
+                </ListGroup>}
               </div>
             )}
           </div>
@@ -736,7 +725,6 @@ useEffect(() => {
             </DrawerContent>
           </Drawer>
         </div>
-      </div>
     );
   }
 

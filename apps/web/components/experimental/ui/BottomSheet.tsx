@@ -59,7 +59,7 @@ export function BottomSheet(props: {
                   />
                 </button>
               </div>
-              <div className="px-4 pb-5 pt-3">
+              <div className="px-1 pb-5 pt-3">
                 {props.children}
               </div>
             </div>
