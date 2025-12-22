@@ -50,8 +50,8 @@ export default function AllowNotifications() {
       const result = await sdk.actions.addMiniApp();
 
       if(!result.notificationDetails){
-        toast.error("Notification permission failed.");
-        throw new Error("Notification permission failed.");
+        toast.error("Notification permission denied.");
+        throw new Error("Notification permission denied.");
       }
 
       if (result.notificationDetails) {
@@ -61,10 +61,11 @@ export default function AllowNotifications() {
           );
 
       if (!res.ok) {
-        toast.error(res.data.error || "Failed to save notification details");
-        throw new Error(res.data.error || "Failed to save notification details");
+        const errorMsg = res.data?.error || "Failed to save notification details";
+        toast.error(errorMsg);
+        throw new Error(errorMsg);
       }
-      toast.success("Notifications enabled and miniapp added successfully.");
+      toast.success("Notifications enabled successfully.");
       }
 
       // Send test notification
@@ -74,7 +75,8 @@ export default function AllowNotifications() {
 
     } catch (error: any) {
       console.error("Error adding MiniApp:", error);
-      toast.error(error?.message || "Failed to enable notifications. Please try again.");
+      const errorMessage = error?.message || "Failed to enable notifications. Please try again.";
+      toast.error(errorMessage);
     } finally {
       setIsAddingMiniApp(false);
     }

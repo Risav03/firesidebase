@@ -102,7 +102,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
 
       const response = await createRoom(roomData, token);      
       
-      if (response.data.success) {
+      if (response.ok && response.data.success) {
         toast.success('Room created successfully!');
         setFormData({ name: '', description: '' });
         setStartTime(null);
@@ -119,11 +119,11 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
           window?.location.reload();
         }
       } else {
-        toast.error('Error creating room: ' + response.data.error);
+        toast.error(response.data?.error || 'Failed to create room');
       }
     } catch (error) {
       console.error('Error creating room:', error);
-      toast.error('Error creating room. Please try again.');
+      toast.error(error instanceof Error ? error.message : 'Error creating room. Please try again.');
     } finally {
       setLoading(false);
     }

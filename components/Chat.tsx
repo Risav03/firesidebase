@@ -64,11 +64,14 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
         const response = await fetchChatMessages(roomId, 50);
         
-        if (response.data.success) {
+        if (response.ok && response.data.success) {
           setRedisMessages(response.data.data.messages);
+        } else {
+          console.error('Failed to load messages:', response.data.error);
         }
       } catch (error) {
         console.error('Failed to load messages:', error);
+        toast.error('Unable to load chat messages');
       } finally {
         setLoading(false);
       }
@@ -150,7 +153,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         token
       );
 
-      if (response.data.success) {
+      if (response.ok && response.data.success) {
         // Add the new message to our local state
         setRedisMessages(prev => [...prev, response.data.data.message]);
         setTimeout(scrollToBottom, 100);
@@ -160,8 +163,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      // toast.error('Error sending message. Please try again.');
-      // Could show a retry option here
+      toast.error(error instanceof Error ? error.message : 'Failed to send message');
     }
   };
 

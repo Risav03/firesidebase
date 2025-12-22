@@ -182,14 +182,18 @@ useEffect(() => {
     async function getRoomDetails() {
       try {
         const response = await fetchRoomDetails(roomId);
-        if (response.data.success) {
+        if (response.ok && response.data.success) {
           setRoomDetails({ 
             name: response.data.data.room.name, 
             description: response.data.data.room.description
           });
+        } else {
+          console.error('Failed to fetch room details:', response.data.error);
+          toast.error('Failed to load room details');
         }
       } catch (error) {
         console.error('Error fetching room details:', error);
+        toast.error(error instanceof Error ? error.message : 'Unable to load room details');
       }
     }
 
@@ -215,6 +219,7 @@ useEffect(() => {
 
       if (!response.ok) {
         console.error('Failed to end empty room:', response.data.error);
+        toast.error('Failed to end room properly');
         setIsEndingRoom(false);
         return;
       }
@@ -224,6 +229,7 @@ useEffect(() => {
       router.push('/');
     } catch (error) {
       console.error('Error ending empty room:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to end room');
       setIsEndingRoom(false);
     }
   }, [roomId, user, localPeer, isEndingRoom, hmsActions, router]);
