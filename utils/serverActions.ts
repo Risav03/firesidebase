@@ -55,7 +55,17 @@ export async function fetchAPI(url: string, options: FetchOptions = {}) {
     const response = await fetch(url, requestOptions);
     
     // Parse response
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (parseError) {
+      console.error(`Error parsing JSON response from ${url}:`, parseError);
+      return {
+        data: { success: false, error: 'Invalid server response' },
+        status: response.status,
+        ok: false
+      };
+    }
 
     console.log("response", data);    
     
@@ -67,7 +77,14 @@ export async function fetchAPI(url: string, options: FetchOptions = {}) {
     };
   } catch (error) {
     console.error(`Server fetch error for ${url}:`, error);
-    throw error;
+    return {
+      data: { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Network error occurred' 
+      },
+      status: 500,
+      ok: false
+    };
   }
 }
 
@@ -398,7 +415,11 @@ export async function fetchHMSActivePeers(hmsRoomId: string, role?:string) {
   
   if (!HMS_MANAGEMENT_TOKEN) {
     console.error('HMS_MANAGEMENT_TOKEN not found in environment variables');
-    return { data: null, status: 500, ok: false };
+    return { 
+      data: { success: false, error: 'HMS token not configured' }, 
+      status: 500, 
+      ok: false 
+    };
   }
 
   try {
@@ -419,7 +440,14 @@ export async function fetchHMSActivePeers(hmsRoomId: string, role?:string) {
     };
   } catch (error) {
     console.error('Error fetching HMS active peers:', error);
-    throw error;
+    return {
+      data: { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Failed to fetch HMS peers' 
+      },
+      status: 500,
+      ok: false
+    };
   }
 }
 
@@ -431,7 +459,11 @@ export async function removeHMSPeer(hmsRoomId: string, peerId: string, role: str
   
   if (!HMS_MANAGEMENT_TOKEN) {
     console.error('HMS_MANAGEMENT_TOKEN not found in environment variables');
-    return { data: null, status: 500, ok: false };
+    return { 
+      data: { success: false, error: 'HMS token not configured' }, 
+      status: 500, 
+      ok: false 
+    };
   }
 
   try {
@@ -456,7 +488,14 @@ export async function removeHMSPeer(hmsRoomId: string, peerId: string, role: str
     };
   } catch (error) {
     console.error('Error removing HMS peer:', error);
-    throw error;
+    return {
+      data: { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Failed to remove HMS peer' 
+      },
+      status: 500,
+      ok: false
+    };
   }
 }
 

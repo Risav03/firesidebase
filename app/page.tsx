@@ -1,4 +1,3 @@
-'use server'
 import AllowNotifications from '@/components/AllowNotifications';
 import HighTrafficDrawer from '@/components/HighTrafficDrawer';
 import LiveRoomList from '@/components/LiveRoomList';
@@ -25,27 +24,35 @@ export interface Room {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const URL = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
-  return {
-    title: "Fireside",
-    description: "This is Fireside - Drop-in audio chat with interesting people",
-    other: {
-      "fc:frame": JSON.stringify({
-        version: "next",
-        imageUrl: "https://firesidebase.vercel.app/fireside_banner.png",
-        button: {
-          title: `Tune in!`,
-          action: {
-            type: "launch_frame",
-            name: "Fireside",
-            url: URL,
-            splashImageUrl: "https://firesidebase.vercel.app/app-icon.png",
-            splashBackgroundColor: "#000000",
+  try {
+    const URL = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
+    return {
+      title: "Fireside",
+      description: "This is Fireside - Drop-in audio chat with interesting people",
+      other: {
+        "fc:frame": JSON.stringify({
+          version: "next",
+          imageUrl: "https://firesidebase.vercel.app/fireside_banner.png",
+          button: {
+            title: `Tune in!`,
+            action: {
+              type: "launch_frame",
+              name: "Fireside",
+              url: URL,
+              splashImageUrl: "https://firesidebase.vercel.app/app-icon.png",
+              splashBackgroundColor: "#000000",
+            },
           },
-        },
-      }),
-    },
-  };
+        }),
+      },
+    };
+  } catch (error) {
+    console.error('Error generating metadata:', error);
+    return {
+      title: "Fireside",
+      description: "This is Fireside - Drop-in audio chat with interesting people",
+    };
+  }
 }
 
 export default async function Home() {

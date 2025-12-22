@@ -109,7 +109,8 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
         toast.error(res.data.error || "Failed to update topics");
       }
     } catch (err) {
-      toast.error("Error updating topics");
+      console.error("Error updating topics:", err);
+      toast.error(err instanceof Error ? err.message : "Error updating topics");
     }
   };
 
@@ -154,11 +155,14 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
         );
         setMyUpcomingRooms(sortedRooms);
         console.log("My upcoming rooms:", sortedRooms);
+      } else {
+        console.error("Failed to fetch upcoming rooms:", response.data.error);
       }
 
     }
     catch(error){
       console.error("Error fetching my upcoming rooms:", error);
+      toast.error("Failed to load your scheduled rooms");
     }
   }
 
