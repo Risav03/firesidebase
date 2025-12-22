@@ -104,8 +104,10 @@ export function Avatar(props: {
           background:
             "radial-gradient(80% 80% at 30% 25%, rgba(255,255,255,.08), rgba(255,255,255,.02) 55%, rgba(0,0,0,.55) 100%)",
           boxShadow: "inset 0 0 0 1px rgba(255,255,255,.035)",
-          border: `1px solid ${
-            strong || storyteller
+          border: `2px solid ${
+            speaking
+              ? "rgba(246,206,132,.85)"
+              : strong || storyteller
               ? "rgba(255,255,255,.14)"
               : "rgba(255,255,255,.05)"
           }`,
@@ -114,6 +116,7 @@ export function Avatar(props: {
             : "drop-shadow(0 8px 18px rgba(0,0,0,.42))",
         }}
       >
+
         <div
           className="absolute inset-0 rounded-full"
           style={{

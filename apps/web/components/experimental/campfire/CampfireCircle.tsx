@@ -1,7 +1,7 @@
 import React from "react";
 import { AnimatePresence } from "motion/react";
 import { clamp } from "../utils";
-import { Avatar } from "../visuals";
+import { Avatar, ScrollingName } from "../visuals";
 import { EmberReaction, StorytellerRipple } from "../effects";
 import { CampfireMark } from "../visuals";
 
@@ -135,7 +135,7 @@ export function CampfireCircle(props: {
         return (
           <div
             key={p.id}
-            className="absolute"
+            className="absolute flex flex-col items-center gap-1 -translate-x-1"
             style={{
               left: Math.round(pos.x - size / 2),
               top: Math.round(pos.y - size / 2),
@@ -152,6 +152,11 @@ export function CampfireCircle(props: {
               fireDistance={pos.fireDistance}
               depth={0.75}
               onClick={props.onAvatarClick ? () => props.onAvatarClick(p.id) : undefined}
+            />
+            <ScrollingName 
+              name={p.name}
+              className="text-[10px] text-center" 
+              style={{ color: 'rgba(255,255,255,.75)', width: size + 20 }}
             />
           </div>
         );
@@ -194,7 +199,7 @@ export function CampfireCircle(props: {
 
       {storyteller ? (
         <div
-          className="absolute"
+          className="absolute flex flex-col items-center gap-1 -translate-x-3"
           style={{
             left: Math.round(storytellerPos.x - 32),
             top: Math.round(storytellerPos.y - 32),
@@ -217,6 +222,11 @@ export function CampfireCircle(props: {
             fireDistance={storytellerFireDist}
             depth={0}
             onClick={props.onAvatarClick ? () => props.onAvatarClick(storyteller.id) : undefined}
+          />
+          <ScrollingName 
+            name={storyteller.name}
+            className="text-xs text-center font-semibold" 
+            style={{ color: 'rgba(255,255,255,.85)', width: 84 }}
           />
         </div>
       ) : null}

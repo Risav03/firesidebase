@@ -22,7 +22,7 @@ import { fetchRoomDetails, endRoom } from "@/utils/serverActions";
 import SpeakerRequestsDrawer from "./SpeakerRequestsDrawer";
 import { Card } from "@/components/UI/Card";
 import Button from "@/components/UI/Button";
-import { CampfireCircle, FirelightField, AroundTheFireRow, ListGroup, CircleRow, ListenerDot, SegTab, HandRaiseSparks, Avatar, RoomHeader } from "./experimental";
+import { CampfireCircle, FirelightField, AroundTheFireRow, ListGroup, CircleRow, ListenerDot, SegTab, HandRaiseSparks, Avatar, RoomHeader, ScrollingName } from "./experimental";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/UI/drawer";
 import AvatarContextMenu from "./AvatarContextMenu";
 import TippingDrawer from "./TippingDrawer";
@@ -120,6 +120,10 @@ export default function Conference({ roomId }: { roomId: string }) {
           const peer = allPeers.find(p => p.id === peerId);
           if (peer && peer.name) {
             newRequest.peerName = peer.name;
+          }
+
+          if (peer && JSON.parse(peer.metadata as string).avatar) {
+            newRequest.peerAvatar = JSON.parse(peer.metadata as string).avatar;
           }
           
           // Add the new request
@@ -504,6 +508,22 @@ useEffect(() => {
                 </span>
               </SegTab>
             </div>
+            
+            {/* Floating Speaker Requests Button */}
+            {canManageSpeakers && speakerRequests.length > 0 && tab == 'circle' && (
+              <div className="fixed top-[140px] right-4 z-20">
+                <button
+                  onClick={() => setShowSpeakerRequestsDrawer(true)}
+                  className="rounded-full px-4 py-2 backdrop-blur-md shadow-lg flex items-center gap-2 bg-white/5 border border-white/10 text-xs"
+                  
+                >
+                  <span className="text-xs font-semibold">Requests</span>
+                  <span className="bg-white/20 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
+                    {speakerRequests.length}
+                  </span>
+                </button>
+              </div>
+            )}
     
             {tab === "circle" ? (
               <>
@@ -515,19 +535,36 @@ useEffect(() => {
                   onAvatarClick={handleAvatarClick}
                 />
                 
-                {/* Listeners Below */}
+                {/* Listeners Grid */}
                 {listeners.length > 0 && (
                   <div className="mt-12">
-                    <AroundTheFireRow 
-                      count={listeners.length}
-                      people={listenerPeople}
-                      onOpen={() => setShowListenersSheet(true)}
-                      hands={handsRaised}
-                    />
+                    <div className="text-xs mb-3" style={{ color: 'rgba(255,255,255,.55)' }}>
+                      Around the fire ({listeners.length})
+                    </div>
+                    <div className="grid grid-cols-6 gap-4">
+                      {listenerPeople.map((p) => (
+                        <div key={p.id} className="flex flex-col items-center gap-2" onClick={() => handleAvatarClick(p.id)}>
+                          <Avatar
+                            img={p.img}
+                            name={p.name}
+                            size={56}
+                            speaking={p.speaking}
+                            fireDistance={0.85}
+                            depth={0.7}
+                          />
+                          <ScrollingName 
+                            name={p.name}
+                            className="text-xs w-full text-center" 
+                            style={{ color: 'rgba(255,255,255,.75)' }}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </>
             ) : (
+
               <div className="rounded-3xl p-4 backdrop-blur-md" style={{
                 border: '1px solid rgba(255,255,255,.08)',
                 background: 'rgba(0,0,0,.20)'
@@ -623,7 +660,21 @@ useEffect(() => {
                   >
                     <div className="grid grid-cols-4 gap-4">
                       {listenerPeople.map((p) => (
-                        <ListenerDot key={p.id} p={p} onAvatarClick={handleAvatarClick} />
+                        <div key={p.id} className="flex flex-col items-center gap-1" onClick={() => handleAvatarClick(p.id)}>
+                          <Avatar
+                            img={p.img}
+                            name={p.name}
+                            size={48}
+                            speaking={p.speaking}
+                            fireDistance={0.85}
+                            depth={0.7}
+                          />
+                          <ScrollingName 
+                            name={p.name}
+                            className="text-[10px] w-full text-center" 
+                            style={{ color: 'rgba(255,255,255,.65)' }}
+                          />
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -732,7 +783,21 @@ useEffect(() => {
                   >
                     <div className="grid grid-cols-4 gap-4">
                       {listenerPeople.map((p) => (
-                        <ListenerDot key={p.id} p={p} onAvatarClick={handleAvatarClick} />
+                        <div key={p.id} className="flex flex-col items-center gap-1" onClick={() => handleAvatarClick(p.id)}>
+                          <Avatar
+                            img={p.img}
+                            name={p.name}
+                            size={48}
+                            speaking={p.speaking}
+                            fireDistance={0.85}
+                            depth={0.7}
+                          />
+                          <ScrollingName 
+                            name={p.name}
+                            className="text-[10px] w-full text-center" 
+                            style={{ color: 'rgba(255,255,255,.65)' }}
+                          />
+                        </div>
                       ))}
                     </div>
                   </div>

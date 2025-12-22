@@ -124,7 +124,7 @@ export default function SpeakerRequestsDrawer({
 
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DrawerContent className="bg-black border-t-4 border-fireside-orange">
+      <DrawerContent className=" ">
         <DrawerHeader className="border-b border-gray-800">
           <DrawerTitle className="text-white text-center">
             Speaker Requests {safeRequests.length > 0 && `(${safeRequests.length})`}
@@ -169,18 +169,18 @@ export default function SpeakerRequestsDrawer({
                   </div>
                   <div className="flex space-x-2">
                     <Button
-                      variant="default"
+                      variant="ghost"
                       onClick={() => request && handleApprove(request)}
-                      className="bg-green-600 hover:bg-green-700 w-8 aspect-square rounded p-0"
+                      className=" bg-neutral-green/20 border-[1px] border-neutral-green text-xs rounded-full text-neutral-green font-bold px-4 py-1"
                     >
-                      <FaCheck className='mx-auto' />
+                      Invite
                     </Button>
                     <Button
-                      variant="default"
+                      variant="ghost"
                       onClick={() => request && handleReject(request)}
-                      className="bg-red-600 hover:bg-red-700 w-8 aspect-square rounded p-0"
+                      className="bg-neutral-red/10 border-[1px] border-neutral-red text-xs rounded-full text-neutral-red px-4 py-1"
                     >
-                      <MdClose className='mx-auto text-xl' />
+                      Reject
                     </Button>
                   </div>
                 </Card>
