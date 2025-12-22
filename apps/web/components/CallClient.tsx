@@ -55,12 +55,11 @@ export default function CallClient({ roomId }: CallClientProps) {
   // Function to handle role limit reached error
   const handleRoleLimitError = async (hmsRoomId: string, userFid: number) => {
     try {
-      
       // Fetch active peers from HMS room
       const peersResponse = await fetchHMSActivePeers(hmsRoomId);
-      
+
       if (!peersResponse.ok || !peersResponse.data?.peers) {
-        console.error('[Role Limit] Failed to fetch active peers');
+        console.error("[Role Limit] Failed to fetch active peers");
         return false;
       }
 
@@ -74,36 +73,37 @@ export default function CallClient({ roomId }: CallClientProps) {
             return metadata.fid === userFid;
           }
         } catch (e) {
-          console.error('[Role Limit] Error parsing peer metadata:', e);
+          console.error("[Role Limit] Error parsing peer metadata:", e);
         }
         return false;
       });
 
       if (duplicatePeer) {
-        
         // Remove the duplicate peer using HMS Management API
         const removeResponse = await removeHMSPeer(
-          hmsRoomId, 
-          duplicatePeer.id, 
-          duplicatePeer.role || 'listener',
-          'Removing duplicate session'
+          hmsRoomId,
+          duplicatePeer.id,
+          duplicatePeer.role || "listener",
+          "Removing duplicate session"
         );
-        
+
         if (removeResponse.ok) {
-          
           // Wait a bit for the removal to process
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+
           return true;
         } else {
-          console.error('[Role Limit] Failed to remove duplicate peer:', removeResponse);
+          console.error(
+            "[Role Limit] Failed to remove duplicate peer:",
+            removeResponse
+          );
           return false;
         }
       } else {
         return false;
       }
     } catch (error) {
-      console.error('[Role Limit] Error handling role limit:', error);
+      console.error("[Role Limit] Error handling role limit:", error);
       return false;
     }
   };
@@ -113,11 +113,11 @@ export default function CallClient({ roomId }: CallClientProps) {
     let wakeLock: any = null;
     const requestWakeLock = async () => {
       try {
-        if ('wakeLock' in navigator) {
-          wakeLock = await (navigator as any).wakeLock.request('screen');
+        if ("wakeLock" in navigator) {
+          wakeLock = await (navigator as any).wakeLock.request("screen");
         }
       } catch (err) {
-        console.warn('[Wake Lock] Failed to acquire wake lock:', err);
+        console.warn("[Wake Lock] Failed to acquire wake lock:", err);
       }
     };
     requestWakeLock();
@@ -156,14 +156,12 @@ export default function CallClient({ roomId }: CallClientProps) {
       let role = "listener";
       let hmsRoomId = "";
 
-      const roomResponse = await fetchAPI(
-        `${URL}/api/rooms/public/${roomId}`
-      );
+      const roomResponse = await fetchAPI(`${URL}/api/rooms/public/${roomId}`);
 
       if (roomResponse.ok) {
         // Extract HMS room ID from room data
         hmsRoomId = roomResponse.data.data.room.hms_room_id || "";
-        
+
         if (roomResponse.data.data.room.host._id === user._id) {
           const hostCode = roomCodes.find((code) => code.role === "host");
           if (hostCode) {
@@ -217,7 +215,6 @@ export default function CallClient({ roomId }: CallClientProps) {
         roomCode: roomCode,
       });
 
-
       await hmsActions.join({
         userName: user.displayName || "Wanderer",
         authToken,
@@ -225,7 +222,7 @@ export default function CallClient({ roomId }: CallClientProps) {
           isAudioMuted: true,
           isVideoMuted: true,
         },
-        
+
         rememberDeviceSelection: true,
         metaData: JSON.stringify({
           avatar: user.pfp_url,
@@ -251,17 +248,20 @@ export default function CallClient({ roomId }: CallClientProps) {
         // Check if error is "role limit reached"
         const errorMessage = err?.message?.toLowerCase() || "";
         if (errorMessage.includes("role limit reached")) {
-
           try {
             // Get HMS room ID from the room data
             const roomResponse = await fetchAPI(
               `${URL}/api/rooms/public/${roomId}`
             );
-            
-            if (roomResponse.ok && roomResponse.data.data.room.roomId && user?.fid) {
+
+            if (
+              roomResponse.ok &&
+              roomResponse.data.data.room.roomId &&
+              user?.fid
+            ) {
               const hmsRoomId = roomResponse.data.data.room.roomId;
               const removed = await handleRoleLimitError(hmsRoomId, user.fid);
-              
+
               if (removed) {
                 // Retry joining
                 await attemptJoin(1);
@@ -269,7 +269,10 @@ export default function CallClient({ roomId }: CallClientProps) {
               }
             }
           } catch (retryErr) {
-            console.error("[HMS Action - CallClient] Error during retry:", retryErr);
+            console.error(
+              "[HMS Action - CallClient] Error during retry:",
+              retryErr
+            );
           }
         }
 
@@ -278,7 +281,7 @@ export default function CallClient({ roomId }: CallClientProps) {
         toast.error("Failed to join room. Please try again.");
       }
     };
-    
+
     if (user && roomId) {
       joinRoom();
     }
@@ -425,9 +428,11 @@ export default function CallClient({ roomId }: CallClientProps) {
     <div className="min-h-screen">
       <RoleChangeHandler />
       <RoomHeader roomId={roomId} live={true} />
-      <AdsOverlay roomId={roomId} />
-      <Conference roomId={roomId} />
-      <Footer roomId={roomId} />
+      <div className="flex flex-col">
+        <Conference roomId={roomId} />
+        <AdsOverlay roomId={roomId} />
+        <Footer roomId={roomId} />
+      </div>
     </div>
   );
 }

@@ -42,7 +42,7 @@ export function CampfireMark(props: { flicker: number }) {
         style={{ width: 92, height: 22 }}
       >
         <div
-          className="absolute left-1/2 top-1/2 h-[10px] w-[86px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+          className="absolute left-1/2 top-1/2 h-[10px] w-[86px] -translate-x-1/2 -translate-y-1/2 rounded-full "
           style={{ background: TOKENS.logA }}
         />
         <div

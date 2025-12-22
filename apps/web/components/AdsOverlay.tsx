@@ -120,7 +120,11 @@ export default function AdsOverlay({ roomId }: { roomId: string }) {
     return Math.min(100, Math.max(0, (elapsed / total) * 100));
   }, [current, msLeft]);
 
-  if (!current) return null;
+  if (!current) return (
+    <Card className="pointer-events-none border-0 rounded-none fixed bottom-32 w-screen flex object-cover justify-center bg-fireside-orange/20 border-fireside-orange/20 overflow-hidden">
+      <h1>yes</h1>
+    </Card>
+  );
 
   return (
     <Card className="pointer-events-none border-0 rounded-none relative top-16 flex object-cover justify-center aspect-[5/1] bg-fireside-orange/20 border-fireside-orange/20 overflow-hidden">

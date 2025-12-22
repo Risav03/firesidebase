@@ -11,7 +11,8 @@ export function ScrollingName({ name, className, style }: { name: string; classN
     if (textRef.current && containerRef.current) {
       const textWidth = textRef.current.scrollWidth;
       const containerWidth = containerRef.current.clientWidth;
-      const overflow = textWidth > containerWidth;
+      // Add a 2px threshold to prevent false positives from rounding errors
+      const overflow = textWidth > containerWidth + 2;
       setIsOverflowing(overflow);
       if (overflow) {
         setScrollDistance(textWidth - containerWidth);
@@ -25,7 +26,7 @@ export function ScrollingName({ name, className, style }: { name: string; classN
         <motion.div
           ref={textRef}
           animate={{
-            x: [0, -scrollDistance - 2, -scrollDistance - 2, 0],
+            x: [0, -scrollDistance, -scrollDistance, 0],
           }}
           transition={{
             duration: Math.max(3, scrollDistance / 20),

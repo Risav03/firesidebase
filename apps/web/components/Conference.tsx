@@ -26,6 +26,7 @@ import { CampfireCircle, FirelightField, AroundTheFireRow, ListGroup, CircleRow,
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/UI/drawer";
 import AvatarContextMenu from "./AvatarContextMenu";
 import TippingDrawer from "./TippingDrawer";
+import AdsOverlay from "./AdsOverlay";
 // import AudioRecoveryBanner from "./AudioRecoveryBanner";
 
 
@@ -414,6 +415,18 @@ useEffect(() => {
     }
   };
 
+  const openAudience = () => {
+    setTab("campers");
+    // Scroll to audience section after tab switch
+    // setTimeout(() => {
+    //   const container = document.querySelector('[data-campers-scroll]');
+    //   const anchor = document.querySelector('[data-audience-anchor]');
+    //   if (container && anchor) {
+    //     anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    //   }
+    // }, 100);
+  };
+
   // Sponsorship hooks removed as part of ads migration
 
   // Note: Microphone permissions are now handled in CallClient.tsx during initial room join
@@ -488,7 +501,7 @@ useEffect(() => {
             </div> */}
 
             {/* Tab Selector */}
-            <div className="flex gap-2 rounded-full p-1 backdrop-blur-md mb-6" style={{
+            <div className="flex gap-2 rounded-full p-1 backdrop-blur-md mb-2" style={{
               border: '1px solid rgba(255,255,255,.08)',
               background: 'rgba(0,0,0,.14)'
             }}>
@@ -510,7 +523,7 @@ useEffect(() => {
             </div>
             
             {/* Floating Speaker Requests Button */}
-            {canManageSpeakers && speakerRequests.length > 0 && tab == 'circle' && (
+            {/* {canManageSpeakers && speakerRequests.length > 0 && tab == 'circle' && (
               <div className="fixed top-[140px] right-4 z-20">
                 <button
                   onClick={() => setShowSpeakerRequestsDrawer(true)}
@@ -523,10 +536,10 @@ useEffect(() => {
                   </span>
                 </button>
               </div>
-            )}
+            )} */}
     
             {tab === "circle" ? (
-              <>
+              <div className="flex flex-col justify-between">
                 {/* Campfire Circle Layout */}
                 <CampfireCircle 
                   people={campfirePeople}
@@ -535,37 +548,22 @@ useEffect(() => {
                   onAvatarClick={handleAvatarClick}
                 />
                 
-                {/* Listeners Grid */}
+                {/* Listeners */}
                 {listeners.length > 0 && (
-                  <div className="mt-12">
-                    <div className="text-xs mb-3" style={{ color: 'rgba(255,255,255,.55)' }}>
-                      Around the fire ({listeners.length})
-                    </div>
-                    <div className="grid grid-cols-6 gap-4">
-                      {listenerPeople.map((p) => (
-                        <div key={p.id} className="flex flex-col items-center gap-2" onClick={() => handleAvatarClick(p.id)}>
-                          <Avatar
-                            img={p.img}
-                            name={p.name}
-                            size={56}
-                            speaking={p.speaking}
-                            fireDistance={0.85}
-                            depth={0.7}
-                          />
-                          <ScrollingName 
-                            name={p.name}
-                            className="text-xs w-full text-center" 
-                            style={{ color: 'rgba(255,255,255,.75)' }}
-                          />
-                        </div>
-                      ))}
-                    </div>
+                  <div className="mt-8 w-full">
+                    <AroundTheFireRow
+                      count={listeners.length}
+                      people={listenerPeople}
+                      onOpen={openAudience}
+                      hands={handsRaised}
+                      adsOn={false}
+                    />
                   </div>
                 )}
-              </>
+              </div>
             ) : (
 
-              <div className="rounded-3xl p-4 backdrop-blur-md" style={{
+              <div data-campers-scroll className="rounded-3xl p-4 backdrop-blur-md" style={{
                 border: '1px solid rgba(255,255,255,.08)',
                 background: 'rgba(0,0,0,.20)'
               }}>
@@ -650,6 +648,8 @@ useEffect(() => {
                   </ListGroup>
                 )}
 
+                <div data-audience-anchor />
+
                 {listenerPeople.length > 0 && <ListGroup title="Around the fire">
                   <div
                     className="rounded-2xl p-3 backdrop-blur-sm"
@@ -658,7 +658,7 @@ useEffect(() => {
                       background: 'rgba(0,0,0,.10)',
                     }}
                   >
-                    <div className="grid grid-cols-4 gap-4">
+                    <div className="grid grid-cols-4 gap-2">
                       {listenerPeople.map((p) => (
                         <div key={p.id} className="flex flex-col items-center gap-1" onClick={() => handleAvatarClick(p.id)}>
                           <Avatar
@@ -684,14 +684,14 @@ useEffect(() => {
           </div>
           
           {/* Speaker Requests Drawer */}
-          <SpeakerRequestsDrawer
+          {/* <SpeakerRequestsDrawer
             isOpen={showSpeakerRequestsDrawer}
             onClose={() => setShowSpeakerRequestsDrawer(false)}
             requests={speakerRequests} 
             onApprove={handleApproveRequest}
             onReject={handleRejectRequest}
             roomId={roomId}
-          />
+          /> */}
 
           {/* Listeners Drawer */}
           <Drawer open={showListenersSheet} onOpenChange={setShowListenersSheet}>
