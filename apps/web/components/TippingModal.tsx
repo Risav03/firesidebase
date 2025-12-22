@@ -715,7 +715,7 @@ export default function TippingModal({
             variant="action"
               onClick={() => handleUSDCTip(USDC_ADDRESS, "USDC")}
               disabled={isLoading || (!selectedUsers.length && !selectedRoles.length) || (!selectedTip && !customTip)}
-              className=" flex-1 gradient-blue-bg bg-blue-950/30 border-[1px] border-blue-950/30 flex items-center justify-center text-lg gap-1 font-bold"
+              className=" flex-1 gradient-blue-bg bg-fireside-blue/30 border-[1px] border-fireside-blue/30 flex items-center justify-center text-lg gap-1 font-bold"
             >
               <img src="/usdc.svg" alt="USDC" className="w-6 h-6" />
               {isLoading ? 'Processing...' : 'USDC'}

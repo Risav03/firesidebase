@@ -11,6 +11,7 @@ export function CampfireCircle(props: {
   onMore?: () => void;
   reactions: { id: string; emoji: string; left: number }[];
   flicker: number;
+  onAvatarClick?: (id: string) => void;
 }) {
   const maxVisible = props.maxVisible ?? 9;
 
@@ -143,13 +144,14 @@ export function CampfireCircle(props: {
             title={`${p.name} • ${p.role}`}
           >
             <Avatar
-img={p.img}
+              img={p.img}
               name={p.name}
               size={size}
               speaking={p.speaking}
               strong={strong}
               fireDistance={pos.fireDistance}
               depth={0.75}
+              onClick={props.onAvatarClick ? () => props.onAvatarClick(p.id) : undefined}
             />
           </div>
         );
@@ -214,6 +216,7 @@ img={p.img}
             storyteller={true}
             fireDistance={storytellerFireDist}
             depth={0}
+            onClick={props.onAvatarClick ? () => props.onAvatarClick(storyteller.id) : undefined}
           />
         </div>
       ) : null}

@@ -11,16 +11,15 @@ export function Avatar(props: {
   storyteller?: boolean;
   fireDistance?: number;
   depth?: number;
+  onClick?: () => void;
 }) {
-  const { name, img } = props;
+  const { name, img, onClick } = props;
   const size = props.size ?? 44;
   const speaking = !!props.speaking;
   const strong = !!props.strong;
   const storyteller = !!props.storyteller;
   const fireDistance = props.fireDistance ?? 0.6;
   const depth = clamp(props.depth ?? 0.5, 0, 1);
-
-  console.log('Avatar Render:', { name, storyteller, fireDistance, depth, img });
 
   const tone = useMemo(() => {
     const t = hash01(name);
@@ -36,7 +35,8 @@ export function Avatar(props: {
   return (
     <div
       className="relative"
-      style={{ width: size, height: size, opacity: dim }}
+      style={{ width: size, height: size, opacity: dim, cursor: onClick ? 'pointer' : 'default' }}
+      onClick={onClick}
     >
       <div
         className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full blur-md"

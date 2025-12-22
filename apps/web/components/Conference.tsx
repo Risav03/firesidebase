@@ -24,6 +24,8 @@ import { Card } from "@/components/UI/Card";
 import Button from "@/components/UI/Button";
 import { CampfireCircle, FirelightField, AroundTheFireRow, ListGroup, CircleRow, ListenerDot, SegTab, HandRaiseSparks, Avatar, RoomHeader } from "./experimental";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/UI/drawer";
+import AvatarContextMenu from "./AvatarContextMenu";
+import TippingDrawer from "./TippingDrawer";
 // import AudioRecoveryBanner from "./AudioRecoveryBanner";
 
 
@@ -76,6 +78,9 @@ export default function Conference({ roomId }: { roomId: string }) {
   const [tab, setTab] = useState<"circle" | "campers">("circle");
   
   const [roomEnded, setRoomEnded] = useState(false);
+  const [selectedPeer, setSelectedPeer] = useState<any>(null);
+  const [showAvatarContextMenu, setShowAvatarContextMenu] = useState(false);
+  const [showTippingDrawer, setShowTippingDrawer] = useState(false);
 
   //function to fetch room details and save name and description in a useState. Call the function in useEffect
   const [roomDetails, setRoomDetails] = useState<{ name: string; description: string } | null>(null);
@@ -396,6 +401,15 @@ useEffect(() => {
     handleRejectRequest({peerId: msg.peer});
   });
 
+  const handleAvatarClick = (personId: string) => {
+    const peer = allPeers.find(p => p.id === personId);
+    if (peer) {
+      setSelectedPeer(peer);
+      setShowAvatarContextMenu(true);
+      setShowTippingDrawer(false);
+    }
+  };
+
   // Sponsorship hooks removed as part of ads migration
 
   // Note: Microphone permissions are now handled in CallClient.tsx during initial room join
@@ -430,6 +444,7 @@ useEffect(() => {
       speaking: peer.audioTrack && peer.audioLevel > 0,
       muted: !peer.audioTrack,
       handRaised: isHandRaised,
+      peer: peer,
     });
     
     const campfirePeople = [...storytellers, ...speakers].map(p => transformPeer(p));
@@ -497,6 +512,7 @@ useEffect(() => {
                   people={campfirePeople}
                   reactions={reactions}
                   flicker={flicker}
+                  onAvatarClick={handleAvatarClick}
                 />
                 
                 {/* Listeners Below */}
@@ -529,7 +545,7 @@ useEffect(() => {
 
                 <ListGroup title="In the circle">
                   {campfirePeople.map((p) => (
-                    <CircleRow key={p.id} p={p} />
+                    <CircleRow key={p.id} p={p} onAvatarClick={handleAvatarClick} />
                   ))}
                 </ListGroup>
 
@@ -607,7 +623,7 @@ useEffect(() => {
                   >
                     <div className="grid grid-cols-4 gap-4">
                       {listenerPeople.map((p) => (
-                        <ListenerDot key={p.id} p={p} />
+                        <ListenerDot key={p.id} p={p} onAvatarClick={handleAvatarClick} />
                       ))}
                     </div>
                   </div>
@@ -716,7 +732,7 @@ useEffect(() => {
                   >
                     <div className="grid grid-cols-4 gap-4">
                       {listenerPeople.map((p) => (
-                        <ListenerDot key={p.id} p={p} />
+                        <ListenerDot key={p.id} p={p} onAvatarClick={handleAvatarClick} />
                       ))}
                     </div>
                   </div>
@@ -724,6 +740,34 @@ useEffect(() => {
               </div>
             </DrawerContent>
           </Drawer>
+          
+          {/* Avatar Context Menu */}
+          {selectedPeer && (
+            <AvatarContextMenu
+              peer={selectedPeer}
+              isVisible={showAvatarContextMenu}
+              onClose={() => {
+                setShowAvatarContextMenu(false);
+                setSelectedPeer(null);
+              }}
+              onOpenTipDrawer={() => {
+                setShowAvatarContextMenu(false);
+                setShowTippingDrawer(true);
+              }}
+            />
+          )}
+          
+          {/* Tipping Drawer - Rendered after to appear above */}
+          {selectedPeer && (
+            <TippingDrawer
+              peer={selectedPeer}
+              isOpen={showTippingDrawer}
+              onClose={() => {
+                setShowTippingDrawer(false);
+                setSelectedPeer(null);
+              }}
+            />
+          )}
         </div>
     );
   }
