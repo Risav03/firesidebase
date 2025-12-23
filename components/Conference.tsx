@@ -77,13 +77,7 @@ export default function Conference({ roomId }: { roomId: string }) {
    const handleSpeakerRequest = (event: any) => {
       // Extract peer ID from the event
       const peerId = event.peerId || (event.detail && event.detail.peerId);
-      
-      console.log("[HMS Event - Conference] Speaker request received", {
-        peerId,
-        event,
-        localRole: localPeer?.roleName,
-        timestamp: new Date().toISOString(),
-      });
+
       
       if (!peerId) {
         console.error("[HMS Event - Conference] Speaker request missing peer ID", event);
@@ -154,15 +148,7 @@ useEffect(() => {
 
 
   useEffect(() => {
-    if (notification) {
-      console.log("[HMS Event - Conference]", {
-        type: notification.type,
-        timestamp: new Date().toISOString(),
-        data: notification.data,
-        localPeer: localPeer?.name,
-        localPeerId: localPeer?.id,
-      });
-    }
+    
     
     switch (notification?.type) {
       case HMSNotificationTypes.ROOM_ENDED:

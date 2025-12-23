@@ -22,11 +22,6 @@ export function useEmojiReactionLogic({ user }: EmojiReactionLogicProps) {
   const [isDisabled, setIsDisabled] = useState(false);
   
   const { sendEmoji } = useEmojiReactionEvent((msg: { emoji: string; sender: string }) => {
-    console.log("[HMS Event] Emoji reaction received", {
-      emoji: msg.emoji,
-      sender: msg.sender,
-      timestamp: new Date().toISOString(),
-    });
     
     const uniqueMsg = {
       ...msg,

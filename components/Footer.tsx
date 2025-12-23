@@ -28,7 +28,7 @@ import { useHandRaiseLogic } from "./footer/useHandRaiseLogic";
 import { useEmojiReactionLogic } from "./footer/useEmojiReactionLogic";
 import { useChatStateLogic } from "./footer/useChatStateLogic";
 import { useRejoinState } from "./footer/useRejoinState";
-import { useHMSNotificationLogger } from "./footer/useHMSNotificationLogger";
+// import { useHMSNotificationLogger } from "./footer/useHMSNotificationLogger";
 import { useSoundboardLogic } from "./footer/useSoundboardLogic";
 
 export default function Footer({ roomId }: { roomId: string }) {
@@ -72,7 +72,7 @@ export default function Footer({ roomId }: { roomId: string }) {
     isDisabled: isEmojiDisabled,
   } = useEmojiReactionLogic({ user });
 
-  useHMSNotificationLogger(localPeer, isLocalAudioEnabled);
+  // useHMSNotificationLogger(localPeer, isLocalAudioEnabled);
 
   const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
 
