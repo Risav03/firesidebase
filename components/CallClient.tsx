@@ -233,7 +233,7 @@ export default function CallClient({ roomId }: CallClientProps) {
           avatar: user.pfp_url,
           role: role,
           fid: user.fid,
-          wallet: user.wallet || address,
+          wallet: user.wallet,
         }),
       });
 
