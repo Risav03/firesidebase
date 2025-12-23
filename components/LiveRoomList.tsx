@@ -328,8 +328,8 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                                         <Image
                                           width={1080}
                                           height={1080}
-                                          src={room?.host.pfp_url}
-                                          alt={room?.host.displayName}
+                                          src={room?.host?.pfp_url}
+                                          alt={room?.host?.displayName}
                                           className="w-12 h-12 rounded-full border-2 border-white"
                                         />
                                       </div>
@@ -369,8 +369,8 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                                         <Image
                                           width={1080}
                                           height={1080}
-                                          src={room?.host.pfp_url}
-                                          alt={room?.host.displayName}
+                                          src={room?.host?.pfp_url}
+                                          alt={room?.host?.displayName}
                                           className="w-12 h-12 rounded-full border-2 border-white"
                                         />
                                       </div>
@@ -449,8 +449,8 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                           <Image
                             width={1080}
                             height={1080}
-                            src={room?.host.pfp_url}
-                            alt={room?.host.displayName}
+                            src={room?.host?.pfp_url}
+                            alt={room?.host?.displayName}
                             className="w-12 h-12 rounded-full border-2 border-white"
                           />
                         </div>
@@ -469,7 +469,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                             {room?.description.length > 60 ? "..." : ""}
                           </p>
                           <p className="text-white/70 text-xs">
-                            Host: {room?.host.displayName || room?.host.username}
+                            Host: {room?.host?.displayName || room?.host?.username}
                           </p>
                         </div>
                         </Card>
@@ -510,8 +510,8 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                           <Image
                             width={1080}
                             height={1080}
-                            src={room?.host.pfp_url}
-                            alt={room?.host.displayName}
+                            src={room?.host?.pfp_url}
+                            alt={room?.host?.displayName}
                             className="w-12 h-12 rounded-full border-2 border-white"
                           />
                         </div>
@@ -523,7 +523,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                             </h3>
                           </div>
                           <p className="text-white/70 text-xs">
-                            Host: {room?.host.displayName || room?.host.username}
+                            Host: {room?.host?.displayName || room?.host?.username}
                           </p>
                         </div>
                         <div className="absolute bottom-2 right-2 bg-black/10 rounded-full px-2 pb-1">
