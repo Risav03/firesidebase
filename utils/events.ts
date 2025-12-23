@@ -65,7 +65,7 @@ export const useRoomEndedEvent = (
    * Send a room ended event
    * @param message Optional message to include with the event
    */
-  const endRoom = (message: string = "Room has been ended by the host.") => {
+  const endRoom = (message: string = "Room has been ended by the host?.") => {
     sendEvent({ message });
   };
 

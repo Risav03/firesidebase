@@ -10,7 +10,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 
   console.log("Room metadata response:", data);
 
-  const hostName = data.data.room.host.displayName;
+  const hostName = data.data.room.host?.displayName;
 
   console.log("Host name:", hostName);
 

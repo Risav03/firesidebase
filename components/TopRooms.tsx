@@ -29,8 +29,8 @@ export default function TopRooms({ rooms }: { rooms?: any[] }) {
                 <Image
                   width={1080}
                   height={1080}
-                  src={room.host.pfp_url}
-                  alt={room.host.displayName}
+                  src={room.host?.pfp_url}
+                  alt={room.host?.displayName}
                   className="w-8 aspect-square rounded-full border-2 border-white"
                 />
               </div>

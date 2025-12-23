@@ -77,7 +77,7 @@ export default function RoomsList({ rooms }: RoomsListProps) {
                   <div className="w-5 aspect-square rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
                     {room?.host?.pfp_url ? (
                       <img
-                        src={room?.host.pfp_url}
+                        src={room?.host?.pfp_url}
                         alt="Host"
                         className="w-5 aspect-square rounded-full object-cover"
                       />

@@ -166,7 +166,7 @@ export default function CallClient({ roomId }: CallClientProps) {
         // Extract HMS room ID from room data
         hmsRoomId = roomResponse.data.data.room.hms_room_id || "";
         
-        if (roomResponse.data.data.room.host._id === user._id) {
+        if (roomResponse.data.data.room.host?._id === user._id) {
           const hostCode = roomCodes.find((code) => code.role === "host");
           if (hostCode) {
             roomCode = hostCode.code;

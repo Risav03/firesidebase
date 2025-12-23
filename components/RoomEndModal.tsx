@@ -120,7 +120,7 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
       } catch (e) {
         console.warn('Failed to notify ads room-ended', e);
       }
-      endRoom("Room has been ended by the host.");
+      endRoom("Room has been ended by the host?.");
 
     } catch (error) {
       console.error('Error ending room:', error);
