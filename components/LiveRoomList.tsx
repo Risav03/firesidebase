@@ -175,7 +175,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
         token = (await sdk.quickAuth.getToken()).token;
       }
 
-      toast.loading("Starting room...", { toastId: "starting-room" });
+      toast.loading("Starting room?...", { toastId: "starting-room" });
 
       const response = await startRoom(roomId, token);
 
@@ -193,7 +193,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
     } catch (error) {
       console.error("Error starting room:", error);
       toast.dismiss("starting-room");
-      toast.error("Error starting room. Please try again.");
+      toast.error("Error starting room?. Please try again.");
     }
   };
 
@@ -221,9 +221,9 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
   }, []);
 
   // Filter only live/ongoing rooms
-  const liveRooms = localRooms.filter((room) => room.status === "ongoing");
+  const liveRooms = localRooms.filter((room) => room?.status === "ongoing");
   const upcomingRooms = localRooms
-    .filter((room) => room.status === "upcoming" && room.startTime > new Date().toISOString())
+    .filter((room) => room?.status === "upcoming" && room?.startTime > new Date().toISOString())
     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
 
   // Auto-switch to appropriate tab based on available rooms
@@ -309,8 +309,8 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                     <div className="p-4 space-y-3 overflow-y-auto max-h-[60vh]">
                       {(() => {
                         const now = new Date().toISOString();
-                        const readyToStart = myUpcomingRooms.filter((room) => room.startTime <= now);
-                        const upcoming = myUpcomingRooms.filter((room) => room.startTime > now);
+                        const readyToStart = myUpcomingRooms.filter((room) => room?.startTime <= now);
+                        const upcoming = myUpcomingRooms.filter((room) => room?.startTime > now);
                         
                         return (
                           <>
@@ -319,7 +319,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                                 <h3 className="text-white/70 text-sm font-semibold uppercase">Ready to Start</h3>
                                 {readyToStart.map((room) => (
                                   <Card
-                                    key={room._id}
+                                    key={room?._id}
                                     variant="ghost"
                                     className="p-4 backdrop-blur-sm text-white border-fireside-orange/50"
                                   >
@@ -328,8 +328,8 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                                         <Image
                                           width={1080}
                                           height={1080}
-                                          src={room.host.pfp_url}
-                                          alt={room.host.displayName}
+                                          src={room?.host.pfp_url}
+                                          alt={room?.host.displayName}
                                           className="w-12 h-12 rounded-full border-2 border-white"
                                         />
                                       </div>
@@ -337,12 +337,12 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-1 justify-between">
                                           <h3 className="text-lg text-white font-bold truncate">
-                                            {room.name}
+                                            {room?.name}
                                           </h3>
                                           <DrawerClose asChild>
                                             <Button
                                               variant="default"
-                                              onClick={() => handleGoLive(room._id)}
+                                              onClick={() => handleGoLive(room?._id)}
                                             >
                                               Start
                                             </Button>
@@ -360,7 +360,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                                 <h3 className="text-white/70 text-sm font-semibold uppercase">Upcoming</h3>
                                 {upcoming.map((room) => (
                                   <Card
-                                    key={room._id}
+                                    key={room?._id}
                                     variant="ghost"
                                     className="p-4 backdrop-blur-sm text-white"
                                   >
@@ -369,8 +369,8 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                                         <Image
                                           width={1080}
                                           height={1080}
-                                          src={room.host.pfp_url}
-                                          alt={room.host.displayName}
+                                          src={room?.host.pfp_url}
+                                          alt={room?.host.displayName}
                                           className="w-12 h-12 rounded-full border-2 border-white"
                                         />
                                       </div>
@@ -378,11 +378,11 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-1 justify-between">
                                           <h3 className="text-lg text-white font-bold truncate">
-                                            {room.name}
+                                            {room?.name}
                                           </h3>
                                           <div className="bg-black/30 rounded-full px-2 pb-1">
                                             <Countdown
-                                              targetTime={room.startTime}
+                                              targetTime={room?.startTime}
                                               className="text-yellow-200 text-xs"
                                             />
                                           </div>
@@ -430,11 +430,11 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                 {liveRooms.length > 0 ? (
                   <div className="space-y-3">
                     {liveRooms.map((room) => {
-                      const roomHasAds = room.adsEnabled ?? room.sponsorshipEnabled ?? false;
+                      const roomHasAds = room?.adsEnabled ?? room?.sponsorshipEnabled ?? false;
                       return (
                         <Card
-                          onClick={() => router.push(`/call/${room._id}`)}
-                          key={room._id}
+                          onClick={() => router.push(`/call/${room?._id}`)}
+                          key={room?._id}
                           variant={"ghost"}
                           className={`flex items-center gap-3 w-full p-4 font-bold cursor-pointer hover:opacity-80 transition-opacity ${roomHasAds ? "bg-fireside-orange/10 border-fireside-orange/30 text-white" : "bg-fireside-green/5 border-fireside-green/20 text-white"} `}
                         >
@@ -449,27 +449,27 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                           <Image
                             width={1080}
                             height={1080}
-                            src={room.host.pfp_url}
-                            alt={room.host.displayName}
+                            src={room?.host.pfp_url}
+                            alt={room?.host.displayName}
                             className="w-12 h-12 rounded-full border-2 border-white"
                           />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
                             <h3 className="text-lg text-white font-bold truncate">
-                              {room.name.slice(0, 30)}
-                              {room.name.length > 30 ? "..." : ""}
+                              {room?.name.slice(0, 30)}
+                              {room?.name.length > 30 ? "..." : ""}
                             </h3>
                             <span className="text-white flex gap-1 items-center justify-center ml-2">
-                              {room.strength || 0} <FaHeadphones />
+                              {room?.strength || 0} <FaHeadphones />
                             </span>
                           </div>
                           <p className="text-white/80 text-sm truncate">
-                            {room.description.slice(0, 60)}
-                            {room.description.length > 60 ? "..." : ""}
+                            {room?.description.slice(0, 60)}
+                            {room?.description.length > 60 ? "..." : ""}
                           </p>
                           <p className="text-white/70 text-xs">
-                            Host: {room.host.displayName || room.host.username}
+                            Host: {room?.host.displayName || room?.host.username}
                           </p>
                         </div>
                         </Card>
@@ -502,33 +502,33 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                     {upcomingRooms.map((room) => (
                       <Card
                       variant="ghost"
-                        onClick={() => navigate(`/room/${room._id}`)}
-                        key={room._id}
+                        onClick={() => navigate(`/room/${room?._id}`)}
+                        key={room?._id}
                         className="relative flex items-center gap-3 w-full p-4 font-bold cursor-pointer hover:opacity-80 transition-opacity text-white"
                       >
                         <div className="relative">
                           <Image
                             width={1080}
                             height={1080}
-                            src={room.host.pfp_url}
-                            alt={room.host.displayName}
+                            src={room?.host.pfp_url}
+                            alt={room?.host.displayName}
                             className="w-12 h-12 rounded-full border-2 border-white"
                           />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
                             <h3 className="text-lg text-white font-bold truncate">
-                              {room.name.slice(0, 30)}
-                              {room.name.length > 30 ? "..." : ""}
+                              {room?.name.slice(0, 30)}
+                              {room?.name.length > 30 ? "..." : ""}
                             </h3>
                           </div>
                           <p className="text-white/70 text-xs">
-                            Host: {room.host.displayName || room.host.username}
+                            Host: {room?.host.displayName || room?.host.username}
                           </p>
                         </div>
                         <div className="absolute bottom-2 right-2 bg-black/10 rounded-full px-2 pb-1">
                           <Countdown
-                            targetTime={room.startTime}
+                            targetTime={room?.startTime}
                             className="text-yellow-200 text-xs"
                           />
                         </div>
