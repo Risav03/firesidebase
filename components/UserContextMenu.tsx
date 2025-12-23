@@ -30,8 +30,6 @@ interface UserContextMenuProps {
 
 export default function UserContextMenu({ peer, isVisible, onClose, onViewProfile }: UserContextMenuProps) {
 
-  console.log('Rendering UserContextMenu for peer:', peer);
-
   const hmsActions = useHMSActions();
   const localPeer = useHMSStore(selectLocalPeer);
   const menuRef = useRef<HTMLDivElement>(null);
