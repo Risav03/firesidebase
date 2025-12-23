@@ -24,6 +24,7 @@ import {
   fetchHMSActivePeers,
   removeHMSPeer,
 } from "@/utils/serverActions";
+import { useAccount } from "wagmi";
 
 interface RoomCode {
   id: string;
@@ -41,6 +42,8 @@ interface CallClientProps {
 
 export default function CallClient({ roomId }: CallClientProps) {
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
+  const {address} = useAccount()
 
   const { user } = useGlobalContext();
   const hmsActions = useHMSActions();
@@ -230,7 +233,7 @@ export default function CallClient({ roomId }: CallClientProps) {
           avatar: user.pfp_url,
           role: role,
           fid: user.fid,
-          wallet: user.wallet || "",
+          wallet: user.wallet || address,
         }),
       });
 
