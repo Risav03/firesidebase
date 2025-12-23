@@ -453,9 +453,13 @@ export default function TippingModal({
       }
       
       const splitArr = splitIntoBatches(usersToSend);
+
+      console.log(`Tipping a total of ${tokenAmount.toString()} ${tokenSymbol} to ${usersToSend.length} users in ${splitArr.length} batches.`);
       
       // Calculate amount per user based on TOTAL users, not batch size
       const amountPerUser = BigInt(Math.floor(Number(tokenAmount) / usersToSend.length));
+
+      console.log(`Each user will receive approximately ${amountPerUser.toString()} ${tokenSymbol}.`);
 
       const approveCall = {
         to: tokenAddress as `0x${string}`,
@@ -467,17 +471,25 @@ export default function TippingModal({
         }),
       };
 
-      const distributeCalls = splitArr.map((batch) => ({
-        to: contractAdds.tipping as `0x${string}`,
-        value: context?.client.clientFid !== 309857 ? BigInt(0) : "0x0",
-        data: encodeFunctionData({
-          abi: firebaseTipsAbi,
-          functionName: "distributeToken",
-          args: [tokenAddress, batch, amountPerUser],
-        }),
-      }));
+      const distributeCalls = splitArr.map((batch) => {
+        // Calculate total amount for this batch (amountPerUser * number of users in batch)
+        const batchAmount = amountPerUser * BigInt(batch.length);
+        console.log(`Batch with ${batch.length} users will receive ${batchAmount.toString()} ${tokenSymbol} total`);
+        
+        return {
+          to: contractAdds.tipping as `0x${string}`,
+          value: context?.client.clientFid !== 309857 ? BigInt(0) : "0x0",
+          data: encodeFunctionData({
+            abi: firebaseTipsAbi,
+            functionName: "distributeToken",
+            args: [tokenAddress, batch, batchAmount],
+          }),
+        };
+      });
 
       const sendingCalls: TransactionCall[] = [approveCall, ...distributeCalls];
+
+      console.log("Prepared transaction calls:", sendingCalls);
 
       const result = await executeTransaction({
         calls: sendingCalls,
