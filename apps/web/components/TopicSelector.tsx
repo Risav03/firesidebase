@@ -49,14 +49,14 @@ export default function TopicSelector({ onSubmit, maxTopics = 5 }: TopicSelector
           );
         })}
       </div>
-      <Button
+      <button
         type="submit"
-        variant="default"
-        className="w-full"
+        
+        className="w-full gradient-fire py-4 rounded-lg border-l-[1px] border-t-[1px] border-white/50 font-bold"
         disabled={selected.length === 0 || submitting}
       >
         {submitting ? "Setting up" : "Confirm"}
-      </Button>
+      </button>
     </form>
   );
 }

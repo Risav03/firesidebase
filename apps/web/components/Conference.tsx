@@ -157,11 +157,6 @@ export default function Conference({ roomId }: { roomId: string }) {
 
 useEffect(() => {
     if (peer && !peer.isLocal && peer.isHandRaised) {
-        console.log("[HMS Event - Conference] Hand raised", {
-          peerName: peer.name,
-          peerId: peer.id,
-          timestamp: new Date().toISOString(),
-        });
         toast(`${peer.name} raised their hand.`, {
           autoClose: 3000,
           toastId: `hand-raise-${peer.id}-${Date.now()}`
@@ -171,15 +166,6 @@ useEffect(() => {
 
 
   useEffect(() => {
-    if (notification) {
-      console.log("[HMS Event - Conference]", {
-        type: notification.type,
-        timestamp: new Date().toISOString(),
-        data: notification.data,
-        localPeer: localPeer?.name,
-        localPeerId: localPeer?.id,
-      });
-    }
     
     switch (notification?.type) {
       case HMSNotificationTypes.ROOM_ENDED:

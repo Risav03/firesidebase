@@ -143,17 +143,17 @@ export default function Explore({ rooms }: ExploreProps) {
   //     (room) =>
   //       room.name.toLowerCase().includes(query.toLowerCase()) ||
   //       room.description.toLowerCase().includes(query.toLowerCase()) ||
-  //       room.host.username.toLowerCase().includes(query.toLowerCase()) ||
-  //       room.host.displayName.toLowerCase().includes(query.toLowerCase())
+  //       room.host?.username.toLowerCase().includes(query.toLowerCase()) ||
+  //       room.host?.displayName.toLowerCase().includes(query.toLowerCase())
   //   );
 
   //   // Convert to search results format
   //   const results = filteredRooms.map((room) => ({
   //     id: room._id,
   //     title: room.name,
-  //     image: room.host.pfp_url,
+  //     image: room.host?.pfp_url,
   //     description: room.description,
-  //     hostName: room.host.displayName || room.host.username,
+  //     hostName: room.host?.displayName || room.host?.username,
   //   }));
 
   //   setSearchResults(results);

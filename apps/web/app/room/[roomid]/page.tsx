@@ -180,8 +180,8 @@ export default function UpcomingRoomPage() {
           <div className="flex items-start gap-4 mb-6">
             
               <Image
-                src={room.host.pfp_url}
-                alt={room.host.displayName}
+                src={room?.host?.pfp_url}
+                alt={room?.host?.displayName}
                 width={80}
                 height={80}
                 className="w-12 h-12 aspect-square rounded-full border-2 border-fireside-orange"
@@ -199,7 +199,7 @@ export default function UpcomingRoomPage() {
               <div className="flex items-center gap-2 text-xs text-white/80">
                 <span className="">Hosted by</span>
                 <span className="font-semibold">
-                  {room.host.displayName || room.host.username}
+                  {room.host?.displayName || room.host?.username}
                 </span>
               </div>
             </div>

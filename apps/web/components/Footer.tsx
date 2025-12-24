@@ -12,7 +12,6 @@ import {
 import { useGlobalContext } from "../utils/providers/globalContext";
 import { useHandRaiseLogic } from "./footer/useHandRaiseLogic";
 import { useEmojiReactionLogic } from "./footer/useEmojiReactionLogic";
-import { useHMSNotificationLogger } from "./footer/useHMSNotificationLogger";
 import { useSoundboardLogic } from "./footer/useSoundboardLogic";
 import { ControlCenterDrawer } from "./experimental";
 import Chat from "./Chat";
@@ -45,8 +44,6 @@ export default function Footer({ roomId }: { roomId: string }) {
   const { handleEmojiSelect, floatingEmojis, isDisabled } = useEmojiReactionLogic({ user });
 
   const soundboardLogic = useSoundboardLogic(user);
-
-  useHMSNotificationLogger(localPeer, isLocalAudioEnabled);
 
   const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
 
