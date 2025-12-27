@@ -105,6 +105,9 @@ export default function RoleChangeHandler() {
             await hmsActions.join({
               userName: peer.name || 'Anonymous',
               authToken,
+              settings:{
+                isAudioMuted:true
+              },
               metaData: JSON.stringify({
                 avatar: metadata.avatar || '',
                 role: newRole,
