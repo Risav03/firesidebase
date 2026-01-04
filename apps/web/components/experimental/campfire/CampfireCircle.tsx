@@ -151,7 +151,7 @@ export function CampfireCircle(props: {
               strong={strong}
               fireDistance={pos.fireDistance}
               depth={0.75}
-              onClick={props.onAvatarClick ? () => props.onAvatarClick(p.id) : undefined}
+              onClick={props.onAvatarClick ? () => props.onAvatarClick!(p.id) : undefined}
             />
             <ScrollingName 
               name={p.name}
@@ -221,7 +221,7 @@ export function CampfireCircle(props: {
             storyteller={true}
             fireDistance={storytellerFireDist}
             depth={0}
-            onClick={props.onAvatarClick ? () => props.onAvatarClick(storyteller.id) : undefined}
+            onClick={props.onAvatarClick ? () => props.onAvatarClick!(storyteller.id) : undefined}
           />
           <ScrollingName 
             name={storyteller.name}
