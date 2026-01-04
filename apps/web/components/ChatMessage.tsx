@@ -72,13 +72,51 @@ export function ChatMessage({ message, isOwnMessage }: ChatMessageProps) {
     return colors[Math.abs(hash) % colors.length];
   };
 
+  // Get profile picture URL
+  const getPfpUrl = () => {
+    if (isRedisMessage) {
+      return (message as RedisChatMessage).pfp_url || '';
+    } else {
+      // For HMS messages, try to extract pfp_url from parsed metadata
+      const hmsMsg = message as HMSMessage;
+      try {
+        const parsedMsg = JSON.parse(hmsMsg.message);
+        return parsedMsg.pfp_url || '';
+      } catch (e) {
+        return '';
+      }
+    }
+  };
+
+  const pfpUrl = getPfpUrl();
+
   return (
     <div className={`chat-message ${isOwnMessage ? 'own-message' : 'other-message'}`}>
-      {/* {!isOwnMessage && (
-        <div className={`chat-avatar ${getAvatarColor(senderName)}`}>
-          {getInitials(senderName)}
+      {!isOwnMessage && (
+        <div className="chat-avatar flex-shrink-0">
+          {pfpUrl ? (
+            <>
+              <img 
+                src={pfpUrl} 
+                alt={senderName}
+                className="w-8 h-8 rounded-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const fallback = e.currentTarget.nextElementSibling;
+                  if (fallback) (fallback as HTMLElement).style.display = 'flex';
+                }}
+              />
+              <div className={`w-8 h-8 rounded-full ${getAvatarColor(senderName)} flex items-center justify-center text-xs font-semibold text-white hidden`}>
+                {getInitials(senderName)}
+              </div>
+            </>
+          ) : (
+            <div className={`w-8 h-8 rounded-full ${getAvatarColor(senderName)} flex items-center justify-center text-xs font-semibold text-white`}>
+              {getInitials(senderName)}
+            </div>
+          )}
         </div>
-      )} */}
+      )}
       
       <div className="chat-message-content">
         {!isOwnMessage && (

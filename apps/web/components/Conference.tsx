@@ -27,6 +27,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } f
 import AvatarContextMenu from "./AvatarContextMenu";
 import TippingDrawer from "./TippingDrawer";
 import AdsOverlay from "./AdsOverlay";
+import TipsDisplay from "./TipsDisplay";
 // import AudioRecoveryBanner from "./AudioRecoveryBanner";
 
 
@@ -533,6 +534,9 @@ useEffect(() => {
                   flicker={flicker}
                   onAvatarClick={handleAvatarClick}
                 />
+                
+                {/* Tips Display */}
+                <TipsDisplay roomId={roomId} />
                 
                 {/* Listeners */}
                 {listeners.length > 0 && (

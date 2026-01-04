@@ -198,27 +198,46 @@ export const useAdsControlEvent = (
 };
 
 /**
+ * Tip event message interface
+ */
+export interface TipEventMessage {
+  roomId: string;
+  tipper: {
+    username: string;
+    pfp_url: string;
+  };
+  recipients: Array<{
+    username?: string;
+    pfp_url?: string;
+    role?: string;
+  }>;
+  amount: {
+    usd: number;
+    currency: string;
+    native: number;
+  };
+  timestamp: string;
+}
+
+/**
  * Custom hook for handling tip notification events
  * @param onEvent Callback function called when a tip is received
  * @returns Object containing sendEvent function to notify about tips
  */
 export const useTipEvent = (
-  onEvent?: (msg: { tipper: string; recipientPeerId: string; amount: number; currency: string }) => void
+  onEvent?: (msg: TipEventMessage) => void
 ) => {
   const { sendEvent } = useCustomEvent({
     type: "TIP_RECEIVED",
-    onEvent: onEvent || ((msg: { tipper: string; recipientPeerId: string; amount: number; currency: string }) => {}),
+    onEvent: onEvent || ((msg: TipEventMessage) => {}),
   });
 
   /**
-   * Send a tip notification to a specific recipient
-   * @param tipper The username of the person sending the tip
-   * @param recipientPeerId The peer ID of the recipient
-   * @param amount The amount tipped in USD
-   * @param currency The currency used (ETH, USDC, or FIRE)
+   * Send a tip notification to all participants
+   * @param tipData Complete tip information including tipper, recipients, amounts
    */
-  const sendTipNotification = (tipper: string, recipientPeerId: string, amount: number, currency: string) => {
-    sendEvent({ tipper, recipientPeerId, amount, currency });
+  const sendTipNotification = (tipData: TipEventMessage) => {
+    sendEvent(tipData);
   };
 
   return { sendTipNotification, sendEvent };

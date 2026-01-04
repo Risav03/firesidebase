@@ -125,10 +125,13 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
     try {
       // Send to HMS for real-time broadcast
-      // Format the message to include user fid for identification
+      // Format the message to include user fid and pfp_url for identification
       const messageWithMetadata = JSON.stringify({
         text: messageText,
         userFid: user.fid,
+        pfp_url: user.pfp_url || '',
+        username: user.username || '',
+        displayName: user.displayName || user.username || '',
         type: 'chat'
       });
       hmsActions.sendBroadcastMessage(messageWithMetadata);
@@ -144,8 +147,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       const response = await sendChatMessage(
         roomId,
         {
-          message: messageText,
-          userFid: user.fid
+          message: messageText
         },
         token
       );
@@ -218,14 +220,20 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       );
     })
     .map(hmsMsg => {
-      // Try to parse the message as JSON to extract user fid
+      // Try to parse the message as JSON to extract user metadata
       let messageText = hmsMsg.message;
       let messageFid = '';
+      let messagePfpUrl = '';
+      let messageUsername = '';
+      let messageDisplayName = '';
       
       try {
         const parsedMsg = JSON.parse(hmsMsg.message);
         messageText = parsedMsg.text;
         messageFid = parsedMsg.userFid || '';
+        messagePfpUrl = parsedMsg.pfp_url || '';
+        messageUsername = parsedMsg.username || '';
+        messageDisplayName = parsedMsg.displayName || '';
       } catch (e) {
         // If parsing fails, use the message as is
         messageText = hmsMsg.message;
@@ -234,10 +242,10 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       return {
         id: `hms_${hmsMsg.id}`,
         roomId: roomId,
-        userId: messageFid || user.fid || hmsMsg.sender || 'unknown',
-        username: hmsMsg.senderName || hmsMsg.sender || 'Unknown',
-        displayName: hmsMsg.senderName || hmsMsg.sender || 'Unknown',
-        pfp_url: '',
+        userId: String(messageFid || user?.fid || hmsMsg.sender || 'unknown'),
+        username: messageUsername || hmsMsg.senderName || hmsMsg.sender || 'Unknown',
+        displayName: messageDisplayName || hmsMsg.senderName || hmsMsg.sender || 'Unknown',
+        pfp_url: messagePfpUrl,
         message: messageText,
         timestamp: hmsMsg.time.toISOString(),
         type: 'text' as const
@@ -291,7 +299,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
           ) : (
             <div className="space-y-4 pb-4">
               {combinedMessages.map((msg) => {
-                const isOwn = msg.userId === user?.fid;
+                const isOwn = String(msg.userId) === String(user?.fid);
                 return (
                   <ChatMessage
                     key={msg.id}
@@ -323,7 +331,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
             <button
               onClick={handleSendMessage}
               disabled={!message.trim()}
-              className="w-12 h-12 bg-fireside-orange aspect-square text-white rounded-lg flex items-center justify-center transition-all hover:bg-fireside-orange/80 disabled:bg-gray-500 disabled:opacity-50"
+              className="w-12 h-12 bg-fireside-orange aspect-square text-white rounded-lg flex items-center justify-center transition-all hover:bg-fireside-orange/80 disabled:bg-fireside-orange disabled:opacity-30"
               title="Send message"
             >
               <MdSend size={20} />
