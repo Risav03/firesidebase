@@ -510,3 +510,47 @@ export async function updateAdsPreference(autoAdsEnabled: boolean, token: string
     authToken: token
   });
 }
+
+/**
+ * Save a tip record to Redis
+ */
+export async function saveTipRecord(
+  roomId: string,
+  tipData: {
+    tipper: {
+      userId: string;
+      username: string;
+      pfp_url: string;
+    };
+    recipients: Array<{
+      userId?: string;
+      username?: string;
+      pfp_url?: string;
+      role?: string;
+    }>;
+    amount: {
+      usd: number;
+      currency: string;
+      native: number;
+    };
+  },
+  token: string | null = null
+) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/rooms/protected/${roomId}/tips`, {
+    method: 'POST',
+    body: tipData,
+    authToken: token
+  });
+}
+
+/**
+ * Fetch tip statistics for a room
+ */
+export async function fetchRoomTips(roomId: string, token: string | null = null) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/rooms/protected/${roomId}/tips`, {
+    method: 'GET',
+    authToken: token
+  });
+}

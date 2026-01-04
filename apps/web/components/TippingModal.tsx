@@ -15,7 +15,7 @@ import {
 } from "@/components/UI/drawer";
 import Button from "@/components/UI/Button";
 import Input from "@/components/UI/Input";
-import { fetchRoomParticipants, fetchRoomParticipantsByRole, sendChatMessage, fetchHMSActivePeers, fetchRoomDetails } from "@/utils/serverActions";
+import { fetchRoomParticipants, fetchRoomParticipantsByRole, sendChatMessage, fetchHMSActivePeers, fetchRoomDetails, saveTipRecord } from "@/utils/serverActions";
 import { useGlobalContext } from "@/utils/providers/globalContext";
 import { useAccount, useSendCalls, useSignTypedData, useWriteContract } from "wagmi";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
@@ -25,11 +25,14 @@ import { contractAdds } from "@/utils/contract/contractAdds";
 import { firebaseTipsAbi } from "@/utils/contract/abis/firebaseTipsAbi";
 import { erc20Abi } from "@/utils/contract/abis/erc20abi";
 import { CiMoneyBill } from "react-icons/ci";
+import { useTipEvent } from "@/utils/events";
 
 import { base, createBaseAccountSDK, getCryptoKeyAccount } from "@base-org/account";
 import sdk from '@farcaster/miniapp-sdk';
 import { checkStatus } from "@/utils/checkStatus";
 import { executeTransaction, type TransactionCall } from "@/utils/transactionHelpers";
+export { useTipEvent };
+
 
 interface TippingModalProps {
   isOpen: boolean;
@@ -80,6 +83,7 @@ export default function TippingModal({
   const { address } = useAccount();
   const hmsActions = useHMSActions();
   const { sendCalls, isSuccess, status  } = useSendCalls();
+  const { sendTipNotification } = useTipEvent();
 
   const splitIntoBatches = (array: any[]) => {
     const batches = [];
@@ -257,7 +261,7 @@ export default function TippingModal({
     }
   };
 
-  const processSuccess = async (currency: string = "ETH") => {
+  const processSuccess = async (currency: string = "ETH", nativeAmount: number = 0) => {
     const tipAmountUSD = selectedTip ? selectedTip : parseFloat(customTip);
     const tipper = user?.username || "Someone";
     const recipients = selectedUsers.length
@@ -265,6 +269,47 @@ export default function TippingModal({
       : selectedRoles.map((role) => (role === "host" ? role : `${role}s`)).join(", ");
     
     await sendTipMessage(tipper, recipients, tipAmountUSD, currency, user?.fid || "unknown");
+
+    // Prepare tip data for Redis
+    const tipData = {
+      tipper: {
+        userId: user?.fid || "unknown",
+        username: user?.username || "Someone",
+        pfp_url: user?.pfp_url || "",
+      },
+      recipients: selectedUsers.length
+        ? selectedUsers.map((u) => ({
+            userId: u.userId,
+            username: u.username,
+            pfp_url: u.pfp_url,
+          }))
+        : selectedRoles.map((role) => ({ role })),
+      amount: {
+        usd: tipAmountUSD,
+        currency,
+        native: nativeAmount,
+      },
+    };
+
+    try {
+      // Save to Redis
+      const { token } = await sdk.quickAuth.getToken();
+      await saveTipRecord(roomId, tipData, token);
+
+      // Emit tip event
+      sendTipNotification({
+        roomId,
+        tipper: {
+          username: tipData.tipper.username,
+          pfp_url: tipData.tipper.pfp_url,
+        },
+        recipients: tipData.recipients,
+        amount: tipData.amount,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error saving tip record:", error);
+    }
 
     onClose();
     setSelectedUsers([]);
@@ -363,7 +408,7 @@ export default function TippingModal({
         clientFid: context?.client.clientFid,
         sendCalls,
         onSuccess: async () => {
-          await processSuccess("ETH");
+          await processSuccess("ETH", tipAmountETH);
         },
       });
 
@@ -491,14 +536,18 @@ export default function TippingModal({
 
       const sendingCalls: TransactionCall[] = [approveCall, ...distributeCalls];
 
-      console.log("Prepared transaction calls:", sendingCalls);
+      const nativeTokenAmount = tokenSymbol === "USDC" 
+        ? tipAmountUSD 
+        : tokenSymbol === "FIRE" && firePrice 
+          ? tipAmountUSD / firePrice 
+          : tipAmountUSD;
 
       const result = await executeTransaction({
         calls: sendingCalls,
         clientFid: context?.client.clientFid,
         sendCalls,
         onSuccess: async () => {
-          await processSuccess(tokenSymbol);
+          await processSuccess(tokenSymbol, nativeTokenAmount);
         },
       });
 
