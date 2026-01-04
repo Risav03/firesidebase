@@ -37,8 +37,15 @@ export default function AvatarContextMenu({ peer, isVisible, onClose, onOpenTipD
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
   useTipEvent((msg) => {
-    if (msg.recipientPeerId === localPeer?.id) {
-      toast.success(`${msg.tipper} tipped you $${msg.amount} in ${msg.currency}! 🎉`);
+    // Check if the local peer is one of the tip recipients
+    const isRecipient = msg.recipients.some(
+      (recipient) => recipient.username === localPeer?.name
+    );
+    
+    if (isRecipient) {
+      toast.success(
+        `${msg.tipper.username} tipped you $${msg.amount.usd.toFixed(2)} in ${msg.amount.currency}! 🎉`
+      );
     }
   });
 
