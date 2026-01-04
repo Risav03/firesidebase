@@ -1,7 +1,9 @@
 export async function GET() {
-  let header, payload, signature;
+
   const baseUrl = process.env.NEXT_PUBLIC_URL || "https://firesidebase.vercel.app";
-  
+  const header = process.env.FARCASTER_HEADER;
+  const payload = process.env.FARCASTER_PAYLOAD;
+  const signature = process.env.FARCASTER_SIGNATURE;
   return Response.json({
     frame: {
       name: "Fireside",
@@ -21,9 +23,9 @@ export async function GET() {
       ogTitle: "Fireside"
     },
      accountAssociation: {
-    header: "eyJmaWQiOjEzMTc5MDYsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHg2QzI5OTI3Yzc3MWQ5NTc5ZDc4OEQ4MzBmYTBCMDEzNGYyMDQ5NDQzIn0",
-    payload: "eyJkb21haW4iOiJmaXJlc2lkZWJhc2UudmVyY2VsLmFwcCJ9",
-    signature: "XrvnA/vGmyjKGGag5/N83QXHLMRcrrzZtKqvRaXKgSw4S6YxKka212w5wrhwVPtbDLelUvOa3PaRl8impP5yHBw="
+    header: header,
+    payload: payload,
+    signature: signature
   },
   baseBuilder: {
     allowedAddresses: ["0x2E6bcE51aDCF88E58fe8276a210508D6c4085121", "0x3FF23652c47477B69B6b7bc90A79a515860b7165"]
