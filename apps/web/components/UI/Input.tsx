@@ -12,7 +12,8 @@ export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ label, type = 'text', className, labelClassName, error, id, ...props }, ref) => {
     const [isFocused, setIsFocused] = React.useState(false);
-    const inputId = id || `input-${React.useId()}`;
+    const generatedId = React.useId();
+    const inputId = id || `input-${generatedId}`;
 
     return (
       <div className="w-full">
