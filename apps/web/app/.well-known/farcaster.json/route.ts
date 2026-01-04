@@ -1,9 +1,9 @@
 export async function GET() {
 
   const baseUrl = process.env.NEXT_PUBLIC_URL || "https://firesidebase.vercel.app";
-  const header = process.env.FARCASTER_HEADER;
-  const payload = process.env.FARCASTER_PAYLOAD;
-  const signature = process.env.FARCASTER_SIGNATURE;
+  const header = process.env.NEXT_PUBLIC_FARCASTER_HEADER;
+  const payload = process.env.NEXT_PUBLIC_FARCASTER_PAYLOAD;
+  const signature = process.env.NEXT_PUBLIC_FARCASTER_SIGNATURE;
   return Response.json({
     frame: {
       name: "Fireside",
