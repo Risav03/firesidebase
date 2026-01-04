@@ -6,7 +6,7 @@ export async function GET() {
   const signature = process.env.NEXT_PUBLIC_FARCASTER_SIGNATURE;
   return Response.json({
     frame: {
-      name: "Fireside",
+      name: baseUrl == "https://firesidebase.vercel.app" ? "Fireside" : "Fireside-test",
       version: "1",
       iconUrl: `${baseUrl}/app-icon2.png`,
       homeUrl: baseUrl,
