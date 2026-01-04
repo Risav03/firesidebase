@@ -51,6 +51,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
   const { address } = useAccount();
   const { sendCalls, isSuccess, status } = useSendCalls();
   const lastCurrencyRef = useRef<string>('ETH');
+  const roomId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() || '' : '';
 
   // Add this hook to get peer audio state
   const permissions = useHMSStore(selectPermissions);
@@ -74,8 +75,10 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
 
   // Listen for incoming tips
   useTipEvent((msg) => {
-    if (msg.recipientPeerId === localPeer?.id) {
-      toast.success(`${msg.tipper} tipped you $${msg.amount} in ${msg.currency}! 🎉`);
+    const localUsername = user?.username;
+    const isRecipient = msg.recipients.some(r => r.username === localUsername);
+    if (isRecipient) {
+      toast.success(`${msg.tipper.username} tipped you $${msg.amount.usd} in ${msg.amount.currency}! 🎉`);
     }
   });
   
@@ -330,7 +333,24 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
     const recipient = peer.name || 'User';
     
     // Send tip notification to recipient
-    sendTipNotification(tipper, peer.id, tipAmountUSD, currency);
+    sendTipNotification({
+      roomId: roomId,
+      tipper: {
+        username: tipper,
+        pfp_url: user?.pfp_url || '',
+      },
+      recipients: [{
+        username: recipient,
+        pfp_url: peer.pfp_url || '',
+        role: peer.roleName,
+      }],
+      amount: {
+        usd: tipAmountUSD,
+        currency: currency,
+        native: parseFloat(tipAmount),
+      },
+      timestamp: new Date().toISOString(),
+    });
     
     // Broadcast message to room
     const emoji = tipAmountUSD >= 100 ? '💸' : tipAmountUSD >= 25 ? '🎉' : '👍';

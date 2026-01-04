@@ -44,6 +44,7 @@ export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerPr
   const lastCurrencyRef = useRef<string>('ETH');
   
   const { sendTipNotification } = useTipEvent();
+  const roomId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() || '' : '';
 
   const fetchTokenPrices = async () => {
     try {
@@ -107,7 +108,24 @@ export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerPr
     const tipper = user?.username || 'Someone';
     const recipient = peer.name || 'User';
     
-    sendTipNotification(tipper, peer.id, tipAmountUSD, currency);
+    sendTipNotification({
+      roomId: roomId,
+      tipper: {
+        username: tipper,
+        pfp_url: user?.pfp_url || '',
+      },
+      recipients: [{
+        username: recipient,
+        pfp_url: peer.pfp_url || '',
+        role: peer.roleName,
+      }],
+      amount: {
+        usd: tipAmountUSD,
+        currency: currency,
+        native: parseFloat(tipAmount),
+      },
+      timestamp: new Date().toISOString(),
+    });
     
     const emoji = tipAmountUSD >= 100 ? '💸' : tipAmountUSD >= 25 ? '🎉' : '👍';
     const message = `${emoji} ${tipper} tipped ${recipient} $${tipAmountUSD} in ${currency}!`;
