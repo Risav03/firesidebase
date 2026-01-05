@@ -65,14 +65,14 @@ export const tippingRoutes = new Elysia()
   .group('/protected', (app) =>
     app
       /**
-       * POST /:roomId/tips
+       * POST /:id/tips
        * Save a new tip record to Redis
        */
       .post(
-        '/:roomId/tips',
+        '/:id/tips',
         async ({ params, body, headers, set }) => {
           try {
-            const { roomId } = params;
+            const { id: roomId } = params;
             const tipData = body as any;
             const userFid = headers['x-user-fid'] as string;
 
@@ -114,14 +114,14 @@ export const tippingRoutes = new Elysia()
         }
       )
       /**
-       * GET /:roomId/tips
+       * GET /:id/tips
        * Retrieve tip statistics and history for a room
        */
       .get(
-        '/:roomId/tips',
+        '/:id/tips',
         async ({ params, headers, set }) => {
           try {
-            const { roomId } = params;
+            const { id: roomId } = params;
             const userFid = headers['x-user-fid'] as string;
 
             if (!userFid) {
