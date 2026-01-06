@@ -1,3 +1,14 @@
+/**
+ * @deprecated PENDING MIGRATION TO REALTIMEKIT (Phase 8)
+ * 
+ * This file uses 100ms hooks (useHMSStore, useCustomAudioTrack).
+ * 
+ * RealtimeKit equivalent:
+ * - Custom audio tracks: Need to use Web Audio API or RealtimeKit audio streams
+ * - Sound sync events: Use custom events layer
+ * 
+ * TODO: Create useSoundboardLogicRTK.ts
+ */
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";

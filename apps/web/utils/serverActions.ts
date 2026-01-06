@@ -139,11 +139,21 @@ export async function fetchRoomRecordings(roomId: string) {
 }
 
 /**
- * Fetch room codes (for CallClient)
+ * Fetch room codes (for CallClient - legacy 100ms)
  */
 export async function fetchRoomCodes(roomId: string) {
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
   return fetchAPI(`${URL}/api/rooms/public/${roomId}/codes`);
+}
+
+/**
+ * Fetch RealtimeKit auth token (for CallClient - new)
+ */
+export async function fetchRealtimeKitToken(roomId: string, token: string | null = null) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/rooms/protected/${roomId}/rtk-token`, {
+    authToken: token
+  });
 }
 
 /**

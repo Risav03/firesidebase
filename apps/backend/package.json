@@ -4,6 +4,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "bun run --watch src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "start": "bun run dist/index.js",
+    "lint": "bunx tsc --noEmit",
+    "type-check": "bunx tsc --noEmit",
     "search:setup": "bun run src/scripts/setup-elasticsearch.ts",
     "search:reindex": "bun run src/scripts/reindex-data.ts",
     "search:reindex:recreate": "bun run src/scripts/reindex-data.ts --recreate",

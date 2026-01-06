@@ -1,4 +1,9 @@
-import CallClient from '@/components/CallClient';
+/**
+ * Call Page - Main entry point for joining a room
+ * 
+ * Now uses RealtimeKit (Cloudflare) instead of 100ms
+ */
+import CallClientRTK from '@/components/CallClientRTK';
 import { fetchAPI } from '@/utils/serverActions';
 import { Metadata } from 'next';
 
@@ -38,5 +43,6 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 }
 
 export default function CallPage({ params }: { params: { id: string } }) {
-  return <CallClient roomId={params.id} />;
+  // Now using RealtimeKit instead of 100ms
+  return <CallClientRTK roomId={params.id} />;
 }

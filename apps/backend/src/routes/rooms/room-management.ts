@@ -9,7 +9,9 @@ import {
 } from "../../schemas";
 import { errorResponse, successResponse, isValidRoomStatus } from "../../utils";
 import { authMiddleware } from "../../middleware/auth";
-import { HMSAPI } from "../../services/hmsAPI";
+// @deprecated - 100ms has been replaced with RealtimeKit
+// import { HMSAPI } from "../../services/hmsAPI";
+import { realtimekitAPI } from "../../services/realtimekitAPI";
 import { RedisRoomParticipantsService } from "../../services/redis";
 import { trackViewerJoin } from "../../services/ads/viewTracking";
 import { evaluateAutoAds, forceStopAds } from "../ads";
@@ -140,28 +142,31 @@ export const roomManagementRoutes = new Elysia()
             }
           }
 
-          // Get the active participants count for each room using HMS API
-          const hmsAPI = new HMSAPI();
-
           console.log("HOST MAP", hostMap);
 
           // Add strength field and host details to each room
+          // Uses RealtimeKit API to get participant count for active rooms
           const roomsWithStrength = await Promise.all(
             rooms.map(async (room: any) => {
               try {
-                console.log("Fetching peers for room:", room.roomId);
-                // Call HMS API to get peers for this room
-                const peersData = await hmsAPI.listRoomPeers(room.roomId);
-                console.log("This is peers data", peersData, room.roomId);
-                // Add strength field and host details
+                let strength = 0;
+                
+                // Only fetch participants if room has an active RTK meeting
+                if (room.rtkMeetingId && realtimekitAPI.isConfigured()) {
+                  console.log("Fetching participants for RTK meeting:", room.rtkMeetingId);
+                  const participantsData = await realtimekitAPI.listParticipants(room.rtkMeetingId);
+                  strength = participantsData.data?.length || 0;
+                  console.log("RTK participants count:", strength, room.rtkMeetingId);
+                }
+                
                 return {
                   ...room,
                   host: hostMap[room.host.toString()] || null,
-                  strength: peersData.count,
+                  strength,
                 };
               } catch (error) {
                 console.error(
-                  `Failed to get peers for room ${room.roomId}:`,
+                  `Failed to get participants for room ${room.rtkMeetingId}:`,
                   error
                 );
                 // Return room with zero strength if we can't get the count
@@ -366,49 +371,44 @@ Retrieves multiple rooms by their MongoDB ObjectIds in a single request.
       )
 
       // Get recordings for a room
+      // @deprecated - Recordings endpoint disabled (100ms dependency removed)
+      // RealtimeKit recording integration pending
+      // .get("/:id/recordings", async ({ params, set }) => {
+      //   try {
+      //     const room = await Room.findOne({ roomId: params.id });
+      //     if (!room) {
+      //       set.status = 404;
+      //       return errorResponse("Room not found");
+      //     }
+      //     // TODO: Implement RealtimeKit recording API when available
+      //     return successResponse({ recordings: [] });
+      //   } catch (error) {
+      //     console.error("Error fetching recording assets:", error);
+      //     set.status = 500;
+      //     return errorResponse("Failed to fetch recording assets");
+      //   }
+      // })
+
+      // Placeholder for recordings endpoint (returns empty until RTK recording is implemented)
       .get("/:id/recordings", async ({ params, set }) => {
-        try {
-          const room = await Room.findOne({ roomId: params.id });
-
-          if (!room) {
-            set.status = 404;
-            return errorResponse("Room not found");
-          }
-
-          const hmsAPI = new HMSAPI();
-          const recordingsData = await hmsAPI.getRecordingAssets(room.roomId);
-
-          return successResponse({ recordings: recordingsData });
-        } catch (error) {
-          console.error("Error fetching recording assets:", error);
-          set.status = 500;
-          return errorResponse(
-            "Failed to fetch recording assets",
-            error instanceof Error ? error.message : "Unknown error"
-          );
-        }
+        // TODO: Implement RealtimeKit recording API when available
+        return successResponse({ recordings: [], message: "Recordings feature pending RealtimeKit integration" });
       }, {
         params: t.Object({
-          id: t.String({ description: '100ms room ID' })
+          id: t.String({ description: 'Room ID' })
         }),
         response: {
           200: GetRecordingsResponseSchema,
-          404: ErrorResponse,
           500: ErrorResponse
         },
         detail: {
           tags: ['Rooms'],
-          summary: 'Get Room Recordings',
+          summary: 'Get Room Recordings (Pending)',
           description: `
-Retrieves recording assets for a room from 100ms.
+**⚠️ PENDING IMPLEMENTATION**
 
-**Note:** The \`id\` parameter should be the 100ms room ID, not the MongoDB ObjectId.
-
-**Returns:**
-- List of available recording assets
-- Recording metadata including duration and URLs
-
-**Note:** This is a public endpoint and does not require authentication.
+This endpoint will return recordings once RealtimeKit recording integration is complete.
+Currently returns an empty array.
           `
         }
       })
@@ -508,35 +508,31 @@ Retrieves rooms that match any of the provided topics.
                   ? adsEnabled
                   : Boolean((hostUser as any).autoAdsEnabled);
 
-              const hmsAPI = new HMSAPI();
-
-              //trim the name off any symbols or digits and append Date.now() to ensure uniqueness
+              // Trim the name off any symbols or digits and append Date.now() to ensure uniqueness
               const trimmedName = name.replace(/[^\w\s]/gi, "").trim();
               const uniqueName = `${trimmedName}-${Date.now()}`;
 
               const currentTime = new Date();
               const roomStartTime = new Date(startTime);
 
+              let rtkMeetingId = "";
+
+              // Only create RealtimeKit meeting if room is starting now (not scheduled)
               if (currentTime > roomStartTime) {
-                try {
-                  hmsRoom = await hmsAPI.createRoom(
-                    uniqueName,
-                    description || ""
-                  );
-                } catch (error) {
-                  console.error("Error creating room in 100ms:", error);
-                  set.status = 500;
-                  return errorResponse(
-                    "Failed to create room in 100ms service"
-                  );
+                // Create RealtimeKit meeting
+                if (!realtimekitAPI.isConfigured()) {
+                  set.status = 503;
+                  return errorResponse("RealtimeKit is not configured. Please set REALTIMEKIT_API_KEY and REALTIMEKIT_ORG_ID.");
                 }
 
                 try {
-                  await hmsAPI.generateRoomCodes(hmsRoom.id);
+                  const rtkMeeting = await realtimekitAPI.createMeeting(uniqueName);
+                  rtkMeetingId = rtkMeeting.data.id;
+                  console.log(`[Room Create] Created RealtimeKit meeting: ${rtkMeetingId}`);
                 } catch (error) {
-                  console.error("Error generating room codes:", error);
+                  console.error("Error creating RealtimeKit meeting:", error);
                   set.status = 500;
-                  return errorResponse("Failed to generate room codes");
+                  return errorResponse("Failed to create RealtimeKit meeting");
                 }
               }
 
@@ -545,7 +541,8 @@ Retrieves rooms that match any of the provided topics.
                 description: description || "",
                 host: hostUser._id,
                 startTime: roomStartTime,
-                roomId: hmsRoom ? hmsRoom.id : "",
+                roomId: "", // Deprecated: 100ms room ID (kept for schema compatibility)
+                rtkMeetingId: rtkMeetingId,
                 status: currentTime < roomStartTime ? "upcoming" : "ongoing",
                 enabled: true,
                 topics,
@@ -732,36 +729,32 @@ Retrieves all upcoming rooms hosted by the authenticated user.
               return errorResponse("Only the room host can start the room");
             }
 
-            // Check if room already has an HMS room ID
-            if (room.roomId) {
+            // Check if room already has a RealtimeKit meeting ID
+            if (room.rtkMeetingId) {
               set.status = 400;
               return errorResponse("Room has already been started");
             }
 
-            const hmsAPI = new HMSAPI();
-            let hmsRoom: any = null;
+            // Ensure RealtimeKit is configured
+            if (!realtimekitAPI.isConfigured()) {
+              set.status = 503;
+              return errorResponse("RealtimeKit is not configured. Please set REALTIMEKIT_API_KEY and REALTIMEKIT_ORG_ID.");
+            }
+
+            let rtkMeeting: any = null;
 
             // Trim the name off any symbols or digits and append Date.now() to ensure uniqueness
             const trimmedName = room.name.replace(/[^\w\s]/gi, "").trim();
             const uniqueName = `${trimmedName}-${Date.now()}`;
 
+            // Create RealtimeKit meeting
             try {
-              hmsRoom = await hmsAPI.createRoom(
-                uniqueName,
-                room.description || ""
-              );
+              rtkMeeting = await realtimekitAPI.createMeeting(uniqueName);
+              console.log(`[Room Start] Created RealtimeKit meeting: ${rtkMeeting.data.id}`);
             } catch (error) {
-              console.error("Error creating room in 100ms:", error);
+              console.error("Error creating RealtimeKit meeting:", error);
               set.status = 500;
-              return errorResponse("Failed to create room in 100ms service");
-            }
-
-            try {
-              await hmsAPI.generateRoomCodes(hmsRoom.id);
-            } catch (error) {
-              console.error("Error generating room codes:", error);
-              set.status = 500;
-              return errorResponse("Failed to generate room codes");
+              return errorResponse("Failed to create RealtimeKit meeting");
             }
 
             const interested = room.interested || [];
@@ -773,18 +766,18 @@ Retrieves all upcoming rooms hosted by the authenticated user.
               })
             );
 
-            // Update the room with HMS room ID and set status to ongoing
+            // Update the room with RealtimeKit meeting ID and set status to ongoing
             const updatedRoom = await Room.findByIdAndUpdate(
               params.roomId,
               {
-                roomId: hmsRoom.id,
+                rtkMeetingId: rtkMeeting.data.id,
                 status: "ongoing",
               },
               { new: true }
             ).populate("host", "fid username displayName pfp_url");
 
             console.log(
-              `[Room Start] Successfully started room ${params.roomId} with HMS ID: ${hmsRoom.id}`
+              `[Room Start] Successfully started room ${params.roomId} with RTK ID: ${rtkMeeting.data.id}`
             );
 
             const res1 = await fetch(
