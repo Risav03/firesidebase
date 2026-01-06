@@ -158,14 +158,14 @@ export default function TippingModal({
     const handleTransactionStatus = async () => {
       // When transaction succeeds
       if (isSuccess) {
-        
-          toast.success("Transaction successful!", );
-        
+  
+          toast.success("Transaction successful!");
+      
         await processSuccess(lastCurrencyRef.current);
       }
       // When transaction fails (status === 'error')
       else if (status === "error") {
-        
+      
           toast.error("Transaction failed. Please try again.");
         
         setIsLoading(false);
@@ -266,6 +266,7 @@ export default function TippingModal({
       }
     } catch (error) {
       console.error("Error saving tip message to Redis:", error);
+      // Non-critical error, don't show toast to user
     }
   };
 
@@ -317,6 +318,7 @@ export default function TippingModal({
       });
     } catch (error) {
       console.error("Error saving tip record:", error);
+      // Non-critical error, don't interrupt the flow
     }
 
     onClose();
@@ -328,56 +330,64 @@ export default function TippingModal({
   };
 
   const handleETHTip = async () => {
-    const env = process.env.NEXT_PUBLIC_ENV;
-    var token: any = "";
-    if (env !== "DEV") {
-      token = (await sdk.quickAuth.getToken()).token;
-    }
+    let loadingToast: any = null;
     
     try {
       setIsLoading(true);
       
       if (!selectedUsers.length && !selectedRoles.length) {
         toast.error("Please select users or roles to tip");
+        setIsLoading(false);
         return;
       }
       if (!selectedTip && !customTip) {
         toast.error("Please specify a tip amount");
+        setIsLoading(false);
         return;
       }
 
-      const loadingToast = toast.loading("Processing your tip...");
+      loadingToast = toast.loading("Processing your tip...");
 
       let usersToSend: any = [];
 
       if (selectedUsers.length > 0) {
-        usersToSend = selectedUsers.map((user) => user.wallet);
+        usersToSend = selectedUsers.map((user) => user.wallet).filter((wallet: string) => wallet !== '');
       } else {
-        const roomData = await fetchRoomDetails(roomId);
-        if (roomData.data.success && roomData.data.data.room.roomId) {
-          const hmsData = await fetchHMSActivePeers(roomData.data.data.room.roomId);
-          
-          if (hmsData.ok && hmsData.data.peers) {
-            const activePeers = Object.values(hmsData.data.peers)
-              .filter((peer: any) => !peer.role.startsWith('__internal_') && selectedRoles.includes(peer.role))
-              .map((peer: any) => {
-                let metadata = {};
-                try {
-                  metadata = peer.metadata ? JSON.parse(peer.metadata) : {};
-                } catch (e) {
-                  console.error('Error parsing peer metadata:', e);
-                }
-                return (metadata as any).wallet || '';
-              })
-              .filter((wallet: string) => wallet !== '');
+        try {
+          const roomData = await fetchRoomDetails(roomId);
+          if (roomData.data.success && roomData.data.data.room.roomId) {
+            const hmsData = await fetchHMSActivePeers(roomData.data.data.room.roomId);
             
-            usersToSend.push(...activePeers);
+            if (hmsData.ok && hmsData.data.peers) {
+              const activePeers = Object.values(hmsData.data.peers)
+                .filter((peer: any) => !peer.role.startsWith('__internal_') && selectedRoles.includes(peer.role))
+                .map((peer: any) => {
+                  let metadata = {};
+                  try {
+                    metadata = peer.metadata ? JSON.parse(peer.metadata) : {};
+                  } catch (e) {
+                    console.error('Error parsing peer metadata:', e);
+                  }
+                  return (metadata as any).wallet || '';
+                })
+                .filter((wallet: string) => wallet !== '');
+              
+              usersToSend.push(...activePeers);
+            }
           }
+        } catch (err) {
+          console.error('Error fetching room participants:', err);
+          toast.dismiss(loadingToast);
+          toast.error('Failed to fetch participants. Please try again.');
+          setIsLoading(false);
+          return;
         }
       }
 
       if (usersToSend.length === 0) {
+        toast.dismiss(loadingToast);
         toast.error("No users found for tipping");
+        setIsLoading(false);
         return;
       }
 
@@ -387,6 +397,7 @@ export default function TippingModal({
       
       // Check if ETH price is available
       if (!ethPrice) {
+        toast.dismiss(loadingToast);
         toast.error('ETH price not available. Please try again.');
         setIsLoading(false);
         return;
@@ -427,59 +438,76 @@ export default function TippingModal({
       toast.dismiss(loadingToast);
     } catch (error) {
       console.error("Error tipping users:", error);
-      toast.dismiss();
+      if (loadingToast) {
+        toast.dismiss(loadingToast);
+      }
       toast.error(`Failed to process tip: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setIsLoading(false);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleUSDCTip = async (tokenAddress: string, tokenSymbol: string) => {
+    let loadingToast: any = null;
+    
     try {
       setIsLoading(true);
       if (!selectedUsers.length && !selectedRoles.length) {
         toast.error("Please select users or roles to tip");
+        setIsLoading(false);
         return;
       }
       if (!selectedTip && !customTip) {
         toast.error("Please specify a tip amount");
+        setIsLoading(false);
         return;
       }
 
-      const loadingToast = toast.loading("Processing your tip...");
+      loadingToast = toast.loading("Processing your tip...");
 
       let usersToSend: any = [];
 
       if (selectedUsers.length > 0) {
-        usersToSend = selectedUsers.map((user) => user.wallet);
+        usersToSend = selectedUsers.map((user) => user.wallet).filter((wallet: string) => wallet !== '');
       } else {
-        const roomData = await fetchRoomDetails(roomId);
-        if (roomData.data.success && roomData.data.data.room.roomId) {
-          const hmsData = await fetchHMSActivePeers(roomData.data.data.room.roomId);
-          
-          if (hmsData.ok && hmsData.data.peers) {
-            const activePeers = Object.values(hmsData.data.peers)
-              .filter((peer: any) => !peer.role.startsWith('__internal_') && selectedRoles.includes(peer.role))
-              .map((peer: any) => {
-                let metadata = {};
-                try {
-                  metadata = peer.metadata ? JSON.parse(peer.metadata) : {};
-                } catch (e) {
-                  console.error('Error parsing peer metadata:', e);
-                }
-                return (metadata as any).wallet || '';
-              })
-              .filter((wallet: string) => wallet !== '');
+        try {
+          const roomData = await fetchRoomDetails(roomId);
+          if (roomData.data.success && roomData.data.data.room.roomId) {
+            const hmsData = await fetchHMSActivePeers(roomData.data.data.room.roomId);
             
-            usersToSend.push(...activePeers);
+            if (hmsData.ok && hmsData.data.peers) {
+              const activePeers = Object.values(hmsData.data.peers)
+                .filter((peer: any) => !peer.role.startsWith('__internal_') && selectedRoles.includes(peer.role))
+                .map((peer: any) => {
+                  let metadata = {};
+                  try {
+                    metadata = peer.metadata ? JSON.parse(peer.metadata) : {};
+                  } catch (e) {
+                    console.error('Error parsing peer metadata:', e);
+                  }
+                  return (metadata as any).wallet || '';
+                })
+                .filter((wallet: string) => wallet !== '');
+              
+              usersToSend.push(...activePeers);
+            }
           }
+        } catch (err) {
+          console.error('Error fetching room participants:', err);
+          toast.dismiss(loadingToast);
+          toast.error('Failed to fetch participants. Please try again.');
+          setIsLoading(false);
+          return;
         }
       }
 
       console.log("Users to send tip to:", usersToSend);
 
       if (usersToSend.length === 0) {
+        toast.dismiss(loadingToast);
         toast.error("No users found for tipping");
+        setIsLoading(false);
         return;
       }
 
@@ -496,6 +524,7 @@ export default function TippingModal({
       } else if (tokenSymbol === "FIRE") {
         // Check if FIRE price is available
         if (!firePrice) {
+          toast.dismiss(loadingToast);
           toast.error('FIRE price not available. Please try again.');
           setIsLoading(false);
           return;
@@ -566,8 +595,11 @@ export default function TippingModal({
       toast.dismiss(loadingToast);
     } catch (error) {
       console.error("Error tipping users:", error);
-      toast.dismiss();
-      toast.error("Failed to process tip. Please try again.");
+      if (loadingToast) {
+        toast.dismiss(loadingToast);
+      }
+      toast.error(`Failed to process tip: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setIsLoading(false);
     } finally {
       setIsLoading(false);
     }
