@@ -1,3 +1,15 @@
+/**
+ * @deprecated PENDING MIGRATION TO REALTIMEKIT (Phase 8)
+ * 
+ * This hook uses 100ms for custom audio tracks (soundboard).
+ * 
+ * RealtimeKit equivalent:
+ * - Use Web Audio API for local playback
+ * - For broadcasting: Need to capture audio output and send via RealtimeKit
+ * - Alternative: Use custom events to sync sound IDs, play locally on all clients
+ * 
+ * TODO: Create useCustomAudioTrackRTK.ts
+ */
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";

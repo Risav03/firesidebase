@@ -1,6 +1,24 @@
+/**
+ * @deprecated PENDING MIGRATION TO REALTIMEKIT (Phase 6)
+ * 
+ * This file uses 100ms custom events (useCustomEvent).
+ * RealtimeKit equivalent: meeting.chat.sendMessage() for custom events
+ * or use WebSocket/other transport for non-chat events.
+ * 
+ * Features to migrate:
+ * - Speaker request events → Now handled by Stage Management
+ * - Emoji reaction events → Need custom events layer
+ * - Tip notifications → Need custom events layer
+ * - Soundboard sync → Need custom events layer
+ * - Room ended events → Handled by meeting.self.on('roomLeft')
+ * 
+ * TODO: Create eventsRTK.ts with RealtimeKit equivalents
+ */
+
 import { useCustomEvent } from "@100mslive/react-sdk";
 
 /**
+ * @deprecated Use Stage Management instead: meeting.stage.requestAccess()
  * Custom hook for handling speaker requests
  * @param onEvent Callback function called when a speaker request is received
  * @returns Object containing sendEvent function to send a speaker request

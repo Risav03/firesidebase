@@ -1,11 +1,35 @@
 'use client'
 
+/**
+ * UserContextMenuRTK - RealtimeKit version of UserContextMenu
+ * 
+ * Key changes from 100ms version:
+ * - Uses useLocalParticipant() instead of selectLocalPeer
+ * - Uses useParticipantActions() for mute/kick
+ * - Uses useStageManagement() for stage operations
+ * - Uses participant.disableAudio() instead of setRemoteTrackEnabled
+ * - Uses participant.kick() instead of removePeer
+ * - Uses stage.grantAccess(userIds) for promoting to speaker
+ * - Uses stage.kick(userIds) for demoting to listener
+ * 
+ * Note: Stage APIs use userId (persistent), not id (session)
+ */
+
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useHMSActions, useHMSStore, selectLocalPeer, selectPermissions, selectIsPeerAudioEnabled } from '@100mslive/react-sdk';
-import { ChevronDownIcon, MicOnIcon, MicOffIcon } from '@100mslive/react-icons';
+import { useRealtimeKit } from '@/utils/providers/realtimekit';
+import { 
+  useLocalParticipant, 
+  useParticipantActions,
+  useStageManagement,
+  getParticipantRole,
+  isHostOrCohost,
+  canMuteOthers,
+  canKickParticipants,
+  type RealtimeKitParticipant 
+} from '@/utils/providers/realtimekit-hooks';
 import sdk from "@farcaster/miniapp-sdk";
-import { updateParticipantRole, transferHostRole } from '@/utils/serverActions';
+import { updateParticipantRole } from '@/utils/serverActions';
 import { Card } from './UI/Card';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from './UI/drawer';
 import { toast } from 'react-toastify';
@@ -16,21 +40,24 @@ import { contractAdds } from '@/utils/contract/contractAdds';
 import { firebaseTipsAbi } from '@/utils/contract/abis/firebaseTipsAbi';
 import { erc20Abi } from '@/utils/contract/abis/erc20abi';
 import { executeTransaction, type TransactionCall } from '@/utils/transactionHelpers';
-import { useTipEvent } from '@/utils/events';
 import { useGlobalContext } from '@/utils/providers/globalContext';
 import Image from 'next/image';
+import { MdMic, MdMicOff, MdPersonRemove, MdArrowUpward, MdArrowDownward } from 'react-icons/md';
 
-interface UserContextMenuProps {
-  peer: any;
+interface UserContextMenuRTKProps {
+  peer: RealtimeKitParticipant;
   isVisible: boolean;
   onClose: () => void;
-  position: { x: number; y: number }; // We won't use this anymore
+  position?: { x: number; y: number };
   onViewProfile?: () => void;
 }
 
-export default function UserContextMenu({ peer, isVisible, onClose, onViewProfile }: UserContextMenuProps) {
-  const hmsActions = useHMSActions();
-  const localPeer = useHMSStore(selectLocalPeer);
+export default function UserContextMenuRTK({ peer, isVisible, onClose, onViewProfile }: UserContextMenuRTKProps) {
+  const { meeting } = useRealtimeKit();
+  const localParticipant = useLocalParticipant(meeting);
+  const { muteParticipant, kickParticipant } = useParticipantActions(meeting);
+  const { acceptStageRequest, removeFromStage } = useStageManagement(meeting);
+  
   const menuRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,42 +79,36 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
   const { sendCalls, isSuccess, status } = useSendCalls();
   const lastCurrencyRef = useRef<string>('ETH');
 
-  // Add this hook to get peer audio state
-  const permissions = useHMSStore(selectPermissions);
-  const isPeerAudioEnabled = useHMSStore(selectIsPeerAudioEnabled(peer.id));
-  const canRemoteMute = Boolean(permissions?.mute);          // depends on your template perms
-  const canRemovePeer = Boolean(permissions?.removeOthers);  // depends on your template perms
+  // Permissions
+  const canMute = canMuteOthers(meeting);
+  const canKick = canKickParticipants(meeting);
+  
+  // Role checks
+  const localRole = localParticipant ? getParticipantRole(localParticipant) : 'listener';
+  const peerRole = getParticipantRole(peer);
+  const isLocalHostOrCohost = isHostOrCohost(localParticipant as any);
+  const isLocalUser = peer.id === localParticipant?.id;
+  const isTargetPeerHost = peerRole === 'host';
+  const isCoHostTryingToAccessHost = localRole === 'co-host' && isTargetPeerHost;
 
-  // Check if local user is host or co-host
-  const isHostOrCoHost = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
-  
-  // Check if this is the local user
-  const isLocalUser = peer.id === localPeer?.id;
-  
-  // Check if target peer is a host (to prevent co-hosts from accessing host's context menu)
-  const isTargetPeerHost = peer.roleName === 'host';
-  
-  // Check if local user is co-host trying to access host's menu (not allowed)
-  const isCoHostTryingToAccessHost = localPeer?.roleName === 'co-host' && isTargetPeerHost;
+  // Get peer metadata
+  const getPeerMetadata = () => {
+    try {
+      if (peer.metadata) {
+        return JSON.parse(peer.metadata);
+      }
+    } catch (e) {}
+    return {};
+  };
 
-  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-
-  // Listen for incoming tips
-  useTipEvent((msg) => {
-    if (msg.recipientPeerId === localPeer?.id) {
-      toast.success(`${msg.tipper} tipped you $${msg.amount} in ${msg.currency}! 🎉`);
-    }
-  });
-  
-  // Send tip notification
-  const { sendTipNotification } = useTipEvent();
+  const peerMetadata = getPeerMetadata();
+  const isPeerAudioEnabled = peer.audioEnabled;
 
   // Fetch token prices
   const fetchTokenPrices = async () => {
     try {
       setIsFetchingPrices(true);
       
-      // Fetch ETH price from CoinGecko
       try {
         const response = await fetch(
           'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd',
@@ -105,7 +126,6 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
         console.error('Error fetching ETH price:', ethError);
       }
 
-      // Fetch FIRE price from DexScreener
       try {
         const fireResponse = await fetch(
           `https://api.dexscreener.com/latest/dex/tokens/${FIRE_ADDRESS}`
@@ -127,7 +147,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
       setIsFetchingPrices(false);
     }
   };
-  
+
   // Monitor transaction status
   useEffect(() => {
     const handleTransactionStatus = async () => {
@@ -140,7 +160,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
     };
     handleTransactionStatus();
   }, [isSuccess, status]);
-  
+
   // Fetch prices when tip drawer opens
   useEffect(() => {
     if (isTipDrawerOpen) {
@@ -151,7 +171,6 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
   useEffect(() => {
     if (isVisible && !isCoHostTryingToAccessHost) {
       setIsOpen(true);
-      // Prevent body scroll when modal is open
       document.body.style.overflow = 'hidden';
     } else {
       setIsOpen(false);
@@ -169,147 +188,102 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     } else {
-      // Restore body scroll when modal is not open
       document.body.style.overflow = 'unset';
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      // Restore body scroll when component unmounts
       document.body.style.overflow = 'unset';
     };
   }, [isOpen, onClose]);
 
+  /**
+   * Handle role change using Stage Management
+   * 
+   * For speaker promotion: grantAccess(userIds)
+   * For listener demotion: kick(userIds) from stage
+   * 
+   * Note: Uses userId (persistent), not id (session)
+   */
   const handleRoleChange = async (newRole: string) => {
     const env = process.env.NEXT_PUBLIC_ENV;
-        
-    var token: any = "";
+    let token = "";
     if (env !== "DEV") {
       token = (await sdk.quickAuth.getToken()).token;
-    };
+    }
     
     try {
       setIsLoading(true);
       
-      // Change role in HMS
-      await hmsActions.changeRoleOfPeer(peer.id, newRole, true);
+      // Use userId for Stage APIs (not id)
+      const targetUserId = peer.userId;
       
-      // Sync role change with Redis if we have user metadata
+      if (newRole === 'speaker') {
+        // Promote to speaker using Stage Management
+        await acceptStageRequest([targetUserId]);
+      } else if (newRole === 'listener') {
+        // Demote to listener using Stage Management
+        await removeFromStage([targetUserId]);
+      }
+      // Note: co-host and host changes would need backend REST API
+      // which will be implemented in Phase 9
+      
+      // Sync role change with Redis
       try {
-        const metadata = peer.metadata ? JSON.parse(peer.metadata) : null;
-        const userFid = metadata?.fid;
+        const userFid = peerMetadata?.fid;
         
         if (userFid) {
-          // Get room ID from URL or context
           const pathParts = window.location.pathname.split('/');
           const roomId = pathParts[pathParts.length - 1];
-
           await updateParticipantRole(roomId, userFid, newRole, token);
         }
       } catch (redisError) {
         console.error('Error syncing role with Redis:', redisError);
-        // Don't fail the main operation if Redis sync fails
       }
       
+      toast.success(`Changed ${peer.name}'s role to ${newRole}`);
       onClose();
     } catch (error) {
       console.error('Error changing role:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const handleTransferHost = async () => {
-    if (!localPeer) {
-      console.error('Local peer not found');
-      return;
-    }
-    
-    try {
-      setIsLoading(true);
-      // Get room ID from URL
-      const pathParts = window.location.pathname.split('/');
-      const roomId = pathParts[pathParts.length - 1];
-      
-      // Extract FIDs from metadata
-      const peerMetadata = peer.metadata ? JSON.parse(peer.metadata) : null;
-      const peerFid = peerMetadata?.fid;
-      
-      let localFid = null;
-      if (localPeer.metadata) {
-        const localMetadata = JSON.parse(localPeer.metadata);
-        localFid = localMetadata?.fid;
-      }
-      
-      if (!peerFid || !localFid) {
-        console.error('Missing user FIDs, cannot transfer host role');
-        return;
-      }
-      
-      // First promote the co-host to host using API
-      const promoteResponse = await transferHostRole(roomId, peerFid, 'host');
-      
-      if (!promoteResponse.ok) {
-        console.error('Failed to promote user to host');
-        throw new Error('Failed to promote user to host');
-      }
-      
-      // Then demote the current host to co-host
-      const demoteResponse = await transferHostRole(roomId, localFid, 'co-host');
-      
-      if (!demoteResponse.ok) {
-        console.error('Failed to demote current host to co-host');
-        // Even if this fails, the other user is now host
-      }
-      
-      // For HMS SDK, we still need to update the local state
-      // This should trigger when the webhook comes back, but we do it here for immediate UI feedback
-      await hmsActions.changeRole(peer.id, 'host', true);
-      await hmsActions.changeRole(localPeer.id, 'co-host', true);
-      
-      // Force a reconnection for the promoted user by sending a message
-      try {
-        await hmsActions.sendDirectMessage(
-          'HOST_TRANSFER_RECONNECT', 
-          peer.id
-        );
-        
-      } catch (msgError) {
-        console.error('Failed to send reconnect message:', msgError);
-      }
-      
-      onClose();
-    } catch (error) {
-      console.error('Error transferring host role:', error);
+      toast.error('Failed to change role');
     } finally {
       setIsLoading(false);
     }
   };
 
+  /**
+   * Mute participant using participant.disableAudio()
+   */
   const handleMuteToggle = async () => {
-    if (!peer.audioTrack || !canRemoteMute) return;
+    if (!canMute) return;
     try {
-      await hmsActions.setRemoteTrackEnabled(peer.audioTrack, !isPeerAudioEnabled);
+      await muteParticipant(peer.id);
+      toast.success(`Muted ${peer.name}`);
       onClose();
     } catch (err) {
       console.error('Remote mute failed:', err);
+      toast.error('Failed to mute user');
     }
   };
 
+  /**
+   * Remove user using participant.kick()
+   */
   const handleRemoveUser = async () => {
-    if (!canRemovePeer) return;
+    if (!canKick) return;
     try {
-      await hmsActions.removePeer(peer.id, 'Host removed you from the room!');
+      await kickParticipant(peer.id);
+      toast.success(`Removed ${peer.name} from room`);
       onClose();
     } catch (err) {
       console.error('Remove peer failed:', err);
+      toast.error('Failed to remove user');
     }
   };
 
   const handleViewProfile = async () => {
     try {
-      const metadata = peer.metadata ? JSON.parse(peer.metadata) : null;
-      const userFid = metadata?.fid;
+      const userFid = peerMetadata?.fid;
       
       if (userFid) {
         await sdk.actions.viewProfile({ 
@@ -323,19 +297,11 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
       console.error('Error viewing profile:', error);
     }
   };
-  
+
   const processSuccess = async (currency: string) => {
     const tipAmountUSD = parseFloat(tipAmount);
     const tipper = user?.username || 'Someone';
     const recipient = peer.name || 'User';
-    
-    // Send tip notification to recipient
-    sendTipNotification(tipper, peer.id, tipAmountUSD, currency);
-    
-    // Broadcast message to room
-    const emoji = tipAmountUSD >= 100 ? '💸' : tipAmountUSD >= 25 ? '🎉' : '👍';
-    const message = `${emoji} ${tipper} tipped ${recipient} $${tipAmountUSD} in ${currency}!`;
-    hmsActions.sendBroadcastMessage(message);
     
     toast.success('Tip sent successfully!');
     setIsTipDrawerOpen(false);
@@ -343,14 +309,8 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
     setIsTipping(false);
     onClose();
   };
-  
+
   const handleETHTip = async () => {
-    const env = process.env.NEXT_PUBLIC_ENV;
-    let token: any = '';
-    if (env !== 'DEV') {
-      token = (await sdk.quickAuth.getToken()).token;
-    }
-    
     try {
       setIsTipping(true);
       
@@ -366,8 +326,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
         return;
       }
       
-      const metadata = peer.metadata ? JSON.parse(peer.metadata) : null;
-      const recipientWallet = metadata?.wallet || peer.wallet;
+      const recipientWallet = peerMetadata?.wallet;
       
       if (!recipientWallet) {
         toast.error('Recipient wallet not found');
@@ -409,7 +368,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
       setIsTipping(false);
     }
   };
-  
+
   const handleTokenTip = async (tokenAddress: string, tokenSymbol: string) => {
     try {
       setIsTipping(true);
@@ -420,8 +379,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
         return;
       }
       
-      const metadata = peer.metadata ? JSON.parse(peer.metadata) : null;
-      const recipientWallet = metadata?.wallet || peer.wallet;
+      const recipientWallet = peerMetadata?.wallet;
       
       if (!recipientWallet) {
         toast.error('Recipient wallet not found');
@@ -493,11 +451,8 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
     return null;
   }
 
-  const currentRole = peer.roleName;
+  const canManageRoles = isLocalHostOrCohost && !isCoHostTryingToAccessHost;
   const isMuted = !isPeerAudioEnabled;
-
-  // Check if user has role management permissions
-  const canManageRoles = isHostOrCoHost && !isCoHostTryingToAccessHost;
 
   const modalContent = (
     <>
@@ -512,145 +467,131 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
       {/* Modal */}
       {isVisible && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
-        <Card
-          ref={menuRef}
-          className="bg-[#000000] rounded-xl shadow-2xl w-full max-w-sm mx-4 transform transition-all duration-200 ease-out"
-          style={{
-            opacity: isOpen ? 1 : 0,
-            transform: isOpen ? 'scale(1) translateY(0)' : 'scale(0.95) translateY(-10px)',
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* User Info Header */}
-          <div className="px-6 py-4 border-b border-white/10">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
-                {peer.metadata ? <><Image unoptimized src={JSON.parse(peer.metadata).avatar} alt={`${peer.name}'s avatar`} width={48} height={48} className="rounded-full w-full h-full" /></> : <><span className="text-white text-lg font-medium">
-                  {peer.name?.charAt(0)?.toUpperCase() || 'U'}
-                </span></>}
-                
-              </div>
-              <div>
-                <p className="text-white font-semibold text-lg">{peer.name}</p>
-                <p className="text-gray-400 text-sm capitalize">{currentRole}</p>
+          <Card
+            ref={menuRef}
+            className="bg-[#000000] rounded-xl shadow-2xl w-full max-w-sm mx-4 transform transition-all duration-200 ease-out"
+            style={{
+              opacity: isOpen ? 1 : 0,
+              transform: isOpen ? 'scale(1) translateY(0)' : 'scale(0.95) translateY(-10px)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* User Info Header */}
+            <div className="px-6 py-4 border-b border-white/10">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center overflow-hidden">
+                  {peerMetadata.avatar || peer.picture ? (
+                    <Image 
+                      unoptimized 
+                      src={peerMetadata.avatar || peer.picture} 
+                      alt={`${peer.name}'s avatar`} 
+                      width={48} 
+                      height={48} 
+                      className="rounded-full w-full h-full object-cover" 
+                    />
+                  ) : (
+                    <span className="text-white text-lg font-medium">
+                      {peer.name?.charAt(0)?.toUpperCase() || 'U'}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <p className="text-white font-semibold text-lg">{peer.name}</p>
+                  <p className="text-gray-400 text-sm capitalize">{peerRole}</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* View Profile Option */}
-          <div className="py-2">
-            <button
-              onClick={handleViewProfile}
-              className="w-full px-6 py-3 text-left text-sm text-white hover:bg-gray-700 flex items-center space-x-3 transition-colors"
-            >
-              <span className="w-5 h-5">👤</span>
-              <span className="font-medium">View Profile</span>
-            </button>
-            
-            {/* Tip User Option */}
-            <button
-              onClick={() => {
-                setIsTipDrawerOpen(true);
-                onClose();
-              }}
-              className="w-full px-6 py-3 text-left text-sm text-white hover:bg-gray-700 flex items-center space-x-3 transition-colors"
-            >
-              <span className="w-5 h-5">💸</span>
-              <span className="font-medium">Tip User</span>
-            </button>
-          </div>
-
-          {/* Role Management Options - Only show if user can manage roles */}
-          {canManageRoles && (
-            <div className="py-2 border-t border-gray-600">
-              {/* Make Speaker */}
-              {currentRole !== 'speaker' && (
+            {/* View Profile Option */}
+            <div className="py-2">
               <button
-                onClick={() => handleRoleChange('speaker')}
-                disabled={isLoading}
-                className="w-full px-6 py-3 text-left text-sm text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-3 transition-colors"
-              >
-                <MicOnIcon className="w-5 h-5" />
-                <span className="font-medium">{isLoading ? 'Changing...' : 'Make Speaker'}</span>
-              </button>
-            )}
-
-            {/* Make Co-host */}
-            {currentRole !== 'co-host' && (
-              <button
-                onClick={() => handleRoleChange('co-host')}
-                disabled={isLoading}
-                className="w-full px-6 py-3 text-left text-sm text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-3 transition-colors"
-              >
-                <ChevronDownIcon className="w-5 h-5" />
-                <span className="font-medium">{isLoading ? 'Changing...' : 'Make Co-host'}</span>
-              </button>
-            )}
-
-            {/* Make Host - only when local user is host and peer is co-host */}
-            {localPeer?.roleName === 'host' && currentRole === 'co-host' && (
-              <button
-                onClick={handleTransferHost}
-                disabled={isLoading}
-                className="w-full px-6 py-3 text-left text-sm text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-3 transition-colors"
-              >
-                <ChevronDownIcon className="w-5 h-5" />
-                <span className="font-medium">{isLoading ? 'Transferring...' : 'Make Host'}</span>
-              </button>
-            )}
-
-            {/* Make Listener */}
-            {currentRole !== 'listener' && (
-              <button
-                onClick={() => handleRoleChange('listener')}
-                disabled={isLoading}
-                className="w-full px-6 py-3 text-left text-sm text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-3 transition-colors"
-              >
-                <MicOnIcon className="w-5 h-5" />
-                <span className="font-medium">{isLoading ? 'Changing...' : 'Make Listener'}</span>
-              </button>
-            )}
-
-            {/* Mute - only show for speakers and co-hosts who are NOT muted */}
-            {(currentRole === 'speaker' || currentRole === 'co-host') && canRemoteMute && peer.audioTrack && !isMuted && (
-              <button
-                onClick={handleMuteToggle}
+                onClick={handleViewProfile}
                 className="w-full px-6 py-3 text-left text-sm text-white hover:bg-gray-700 flex items-center space-x-3 transition-colors"
               >
-                <MicOffIcon className="w-5 h-5" />
-                <span className="font-medium">Mute</span>
+                <span className="w-5 h-5">👤</span>
+                <span className="font-medium">View Profile</span>
               </button>
+              
+              {/* Tip User Option */}
+              <button
+                onClick={() => {
+                  setIsTipDrawerOpen(true);
+                  onClose();
+                }}
+                className="w-full px-6 py-3 text-left text-sm text-white hover:bg-gray-700 flex items-center space-x-3 transition-colors"
+              >
+                <span className="w-5 h-5">💸</span>
+                <span className="font-medium">Tip User</span>
+              </button>
+            </div>
+
+            {/* Role Management Options */}
+            {canManageRoles && (
+              <div className="py-2 border-t border-gray-600">
+                {/* Make Speaker (uses Stage grantAccess) */}
+                {peerRole !== 'speaker' && peerRole === 'listener' && (
+                  <button
+                    onClick={() => handleRoleChange('speaker')}
+                    disabled={isLoading}
+                    className="w-full px-6 py-3 text-left text-sm text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-3 transition-colors"
+                  >
+                    <MdArrowUpward className="w-5 h-5" />
+                    <span className="font-medium">{isLoading ? 'Changing...' : 'Make Speaker'}</span>
+                  </button>
+                )}
+
+                {/* Make Listener (uses Stage kick) */}
+                {peerRole === 'speaker' && (
+                  <button
+                    onClick={() => handleRoleChange('listener')}
+                    disabled={isLoading}
+                    className="w-full px-6 py-3 text-left text-sm text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-3 transition-colors"
+                  >
+                    <MdArrowDownward className="w-5 h-5" />
+                    <span className="font-medium">{isLoading ? 'Changing...' : 'Make Listener'}</span>
+                  </button>
+                )}
+
+                {/* Mute - only show for speakers who are NOT muted */}
+                {(peerRole === 'speaker' || peerRole === 'co-host') && canMute && !isMuted && (
+                  <button
+                    onClick={handleMuteToggle}
+                    className="w-full px-6 py-3 text-left text-sm text-white hover:bg-gray-700 flex items-center space-x-3 transition-colors"
+                  >
+                    <MdMicOff className="w-5 h-5" />
+                    <span className="font-medium">Mute</span>
+                  </button>
+                )}
+
+                {/* Remove User (only for host) */}
+                {localRole === 'host' && canKick && (
+                  <div className="border-t border-gray-600 mt-2 pt-2">
+                    <button
+                      onClick={handleRemoveUser}
+                      className="w-full px-6 py-3 text-left text-sm text-red-400 hover:bg-red-900/20 flex items-center space-x-3 transition-colors"
+                    >
+                      <MdPersonRemove className="w-5 h-5" />
+                      <span className="font-medium">Remove User</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
 
-              {/* Remove User (only for host) */}
-              {localPeer?.roleName === 'host' && canRemovePeer && (
-                <div className="border-t border-gray-600 mt-2 pt-2">
-                  <button
-                    onClick={handleRemoveUser}
-                    className="w-full px-6 py-3 text-left text-sm text-red-400 hover:bg-red-900/20 flex items-center space-x-3 transition-colors"
-                  >
-                    <span className="w-5 h-5">🚫</span>
-                    <span className="font-medium">Remove User</span>
-                  </button>
-                </div>
-              )}
+            {/* Close Button */}
+            <div className="px-6 py-3 border-t border-gray-600">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClose();
+                }}
+                className="w-full px-4 py-2 text-center text-sm text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
             </div>
-          )}
-
-          {/* Close Button */}
-          <div className="px-6 py-3 border-t border-gray-600">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onClose();
-              }}
-              className="w-full px-4 py-2 text-center text-sm text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </Card>
-      </div>
+          </Card>
+        </div>
       )}
       
       {/* Tip Drawer */}
@@ -665,14 +606,25 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
           <div className="px-4 py-6 space-y-6">
             {/* Recipient Info */}
             <Card className="flex items-center space-x-4 p-4 bg-white/10 rounded-lg">
-              <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
-                {peer.metadata ? <><Image unoptimized src={JSON.parse(peer.metadata).avatar} alt={`${peer.name}'s avatar`} width={48} height={48} className="rounded-full w-full h-full" /></> : <><span className="text-white text-lg font-medium">
-                  {peer.name?.charAt(0)?.toUpperCase() || 'U'}
-                </span></>}
+              <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center overflow-hidden">
+                {peerMetadata.avatar || peer.picture ? (
+                  <Image 
+                    unoptimized 
+                    src={peerMetadata.avatar || peer.picture} 
+                    alt={`${peer.name}'s avatar`} 
+                    width={48} 
+                    height={48} 
+                    className="rounded-full w-full h-full object-cover" 
+                  />
+                ) : (
+                  <span className="text-white text-lg font-medium">
+                    {peer.name?.charAt(0)?.toUpperCase() || 'U'}
+                  </span>
+                )}
               </div>
               <div>
                 <p className="text-white font-semibold">{peer.name}</p>
-                <p className="text-gray-400 text-sm capitalize">{peer.roleName}</p>
+                <p className="text-gray-400 text-sm capitalize">{peerRole}</p>
               </div>
             </Card>
             
@@ -709,7 +661,6 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
           
           <DrawerFooter className="border-t border-fireside-orange/30">
             <div className="space-y-3">
-              {/* ETH Button */}
               <button
                 onClick={handleETHTip}
                 disabled={isTipping || !tipAmount || !ethPrice || isFetchingPrices}
@@ -718,7 +669,6 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
                 {isTipping && lastCurrencyRef.current === 'ETH' ? 'Processing...' : 'Tip in ETH'}
               </button>
               
-              {/* USDC Button */}
               <button
                 onClick={() => handleTokenTip(USDC_ADDRESS, 'USDC')}
                 disabled={isTipping || !tipAmount || isFetchingPrices}
@@ -727,7 +677,6 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
                 {isTipping && lastCurrencyRef.current === 'USDC' ? 'Processing...' : 'Tip in USDC'}
               </button>
               
-              {/* FIRE Button */}
               <button
                 onClick={() => handleTokenTip(FIRE_ADDRESS, 'FIRE')}
                 disabled={isTipping || !tipAmount || !firePrice || isFetchingPrices}
@@ -736,7 +685,6 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
                 {isTipping && lastCurrencyRef.current === 'FIRE' ? 'Processing...' : 'Tip in FIRE'}
               </button>
               
-              {/* Cancel Button */}
               <button
                 onClick={() => {
                   setIsTipDrawerOpen(false);
@@ -756,3 +704,4 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
 
   return typeof window !== 'undefined' ? createPortal(modalContent, document.body) : null;
 }
+

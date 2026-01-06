@@ -20,6 +20,11 @@ interface Config {
   neynarApiKey: string;
   hundredMsManagementToken: string;
   hundredMsTemplateId: string;
+  
+  // RealtimeKit (Cloudflare) Configuration
+  realtimekitApiKey: string;
+  realtimekitOrgId: string;
+  realtimekitBaseUrl: string;
 
   // Authentication
   devHeader?: string;
@@ -83,6 +88,13 @@ export const config = {
   neynarApiKey: getOptionalEnvVar('NEYNAR_API_KEY', ''),
   hundredMsManagementToken: getOptionalEnvVar('HUNDRED_MS_MANAGEMENT_TOKEN', ''),
   hundredMsTemplateId: getOptionalEnvVar('HUNDRED_MS_TEMPLATE_ID', ''),
+  
+  // RealtimeKit (Cloudflare) Configuration
+  // Get credentials from: https://dash.realtime.cloudflare.com
+  // Docs: https://docs.realtime.cloudflare.com
+  realtimekitApiKey: getOptionalEnvVar('REALTIMEKIT_API_KEY', ''),
+  realtimekitOrgId: getOptionalEnvVar('REALTIMEKIT_ORG_ID', ''),
+  realtimekitBaseUrl: getOptionalEnvVar('REALTIMEKIT_BASE_URL', 'https://api.realtime.cloudflare.com/v2'),
 
   // Authentication
   devHeader: getOptionalEnvVar('DEV_HEADER'),
@@ -152,7 +164,9 @@ const validateConfig = () => {
   const optional = [
     'NEYNAR_API_KEY',
     'HUNDRED_MS_MANAGEMENT_TOKEN', 
-    'HUNDRED_MS_TEMPLATE_ID'
+    'HUNDRED_MS_TEMPLATE_ID',
+    'REALTIMEKIT_API_KEY',
+    'REALTIMEKIT_ORG_ID'
   ];
 
   const awsRequired = [

@@ -1,3 +1,17 @@
+/**
+ * @deprecated PENDING MIGRATION TO REALTIMEKIT (Phase 7)
+ * 
+ * This file uses 100ms hooks for hand raising.
+ * 
+ * RealtimeKit equivalent:
+ * - Use meeting.stage.requestAccess() to raise hand
+ * - Use meeting.stage.cancelRequest() to lower hand
+ * - Listen to stage events for status updates
+ * 
+ * See: useStageManagement() in realtimekit-hooks.ts
+ * 
+ * TODO: This can be replaced with useStageManagement hook
+ */
 "use client";
 
 import { useState, useEffect, useCallback } from "react";

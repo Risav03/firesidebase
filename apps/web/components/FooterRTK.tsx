@@ -1,33 +1,39 @@
 "use client";
 
+/**
+ * FooterRTK - RealtimeKit version of Footer
+ * 
+ * Key changes from 100ms version:
+ * - Uses useAudioToggle() hook instead of useAVToggle()
+ * - Uses useLocalParticipant() instead of selectLocalPeer
+ * - Uses useStageRequests() for hand raise via Stage Management
+ * - Uses meeting.self.permissions for permission checks
+ */
+
 import { useState } from "react";
-import {
-  selectIsAllowedToPublish,
-  useAVToggle,
-  useHMSStore,
-  selectLocalPeerID,
-  selectHasPeerHandRaised,
-  selectLocalPeer,
-} from "@100mslive/react-sdk";
+import { useRealtimeKit } from "@/utils/providers/realtimekit";
+import { 
+  useAudioToggle, 
+  useLocalParticipant,
+  useStageRequests,
+  canProduceAudio 
+} from "@/utils/providers/realtimekit-hooks";
 import { useGlobalContext } from "../utils/providers/globalContext";
-import { useHandRaiseLogic } from "./footer/useHandRaiseLogic";
-import { useEmojiReactionLogic } from "./footer/useEmojiReactionLogic";
-import { useSoundboardLogic } from "./footer/useSoundboardLogic";
+// Use RTK stubs instead of 100ms versions (pending Phase 6 & 8 migration)
+import { useEmojiReactionLogicRTK } from "./footer/useEmojiReactionLogicRTK";
+import { useSoundboardLogicRTK } from "./footer/useSoundboardLogicRTK";
 import { ControlCenterDrawer } from "./experimental";
-import Chat from "./Chat";
+import ChatRTK from "./ChatRTK";
 import TippingModal from "./TippingModal";
 import EmojiPickerDrawer from "./footer/EmojiPickerDrawer";
 import FloatingEmojis from "./footer/FloatingEmojis";
 import SoundboardDrawer from "./SoundboardDrawer";
 
-export default function Footer({ roomId }: { roomId: string }) {
-  const { isLocalAudioEnabled, toggleAudio } = useAVToggle((err) => {
-    console.error("[HMS] useAVToggle error:", err);
-  });
-  const localPeer = useHMSStore(selectLocalPeer);
-  const publishPermissions = useHMSStore(selectIsAllowedToPublish);
-  const localPeerId = useHMSStore(selectLocalPeerID);
-  const isHandRaised = useHMSStore(selectHasPeerHandRaised(localPeerId));
+export default function FooterRTK({ roomId }: { roomId: string }) {
+  const { meeting } = useRealtimeKit();
+  const { isLocalAudioEnabled, toggleAudio } = useAudioToggle(meeting);
+  const localParticipant = useLocalParticipant(meeting);
+  const { requestAccess } = useStageRequests(meeting);
 
   const { user } = useGlobalContext();
   const [controlsOpen, setControlsOpen] = useState(false);
@@ -35,17 +41,33 @@ export default function Footer({ roomId }: { roomId: string }) {
   const [isTippingOpen, setIsTippingOpen] = useState(false);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const [isSoundboardOpen, setIsSoundboardOpen] = useState(false);
+  const [isHandRaised, setIsHandRaised] = useState(false);
 
-  const { toggleRaiseHand } = useHandRaiseLogic({
-    isHandRaised,
-    localPeerId,
-  });
+  // Use RTK stubs (pending full implementation in Phase 6 & 8)
+  const { handleEmojiSelect, floatingEmojis, isDisabled } = useEmojiReactionLogicRTK({ user });
+  const soundboardLogic = useSoundboardLogicRTK(user);
 
-  const { handleEmojiSelect, floatingEmojis, isDisabled } = useEmojiReactionLogic({ user });
+  // Check if user can unmute (has audio permission)
+  const canUnmute = canProduceAudio(meeting);
 
-  const soundboardLogic = useSoundboardLogic(user);
-
-  const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
+  // Handle hand raise using Stage Management
+  // Note: Stage management must be enabled in RealtimeKit presets for this to work
+  const toggleRaiseHand = async () => {
+    if (isHandRaised) {
+      // Lower hand - just update local state
+      setIsHandRaised(false);
+    } else {
+      try {
+        // Raise hand - request stage access
+        await requestAccess();
+        setIsHandRaised(true);
+      } catch (err) {
+        console.warn('[FooterRTK] Hand raise failed (stage may be disabled):', err);
+        // Still toggle the visual state for UX feedback
+        setIsHandRaised(true);
+      }
+    }
+  };
 
   const handleReaction = () => {
     setIsEmojiPickerOpen(true);
@@ -83,7 +105,7 @@ export default function Footer({ roomId }: { roomId: string }) {
       
       <FloatingEmojis emojis={floatingEmojis} />
       
-      <Chat
+      <ChatRTK
         isOpen={isChatOpen}
         setIsChatOpen={() => setIsChatOpen(!isChatOpen)}
         roomId={roomId}
@@ -110,3 +132,4 @@ export default function Footer({ roomId }: { roomId: string }) {
     </>
   );
 }
+

@@ -19,7 +19,8 @@ import { fetchRoomParticipants, fetchRoomParticipantsByRole, sendChatMessage, fe
 import { useGlobalContext } from "@/utils/providers/globalContext";
 import { useAccount, useSendCalls, useSignTypedData, useWriteContract } from "wagmi";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
-import { useHMSActions } from "@100mslive/react-sdk";
+// Removed: import { useHMSActions } from "@100mslive/react-sdk";
+import { useRealtimeKit } from "@/utils/providers/realtimekit";
 import { encodeFunctionData, numberToHex } from "viem";
 import { contractAdds } from "@/utils/contract/contractAdds";
 import { firebaseTipsAbi } from "@/utils/contract/abis/firebaseTipsAbi";
@@ -78,7 +79,7 @@ export default function TippingModal({
   const { writeContractAsync } = useWriteContract();
   const { context } = useMiniKit();
   const { address } = useAccount();
-  const hmsActions = useHMSActions();
+  const { meeting } = useRealtimeKit(); // RealtimeKit for chat
   const { sendCalls, isSuccess, status  } = useSendCalls();
 
   const splitIntoBatches = (array: any[]) => {
@@ -244,7 +245,14 @@ export default function TippingModal({
     const emoji = amount >= 100 ? "💸" : amount >= 25 ? "🎉" : "👍";
     const message = `${emoji} ${tipper} tipped ${recipients} $${amount} in ${currency}!`;
 
-    hmsActions.sendBroadcastMessage(message);
+    // Send broadcast message via RealtimeKit chat
+    if (meeting?.chat) {
+      try {
+        await meeting.chat.sendTextMessage(message);
+      } catch (err) {
+        console.warn('[TippingModal] Failed to send tip notification:', err);
+      }
+    }
 
     try {
       const { token } = await sdk.quickAuth.getToken();

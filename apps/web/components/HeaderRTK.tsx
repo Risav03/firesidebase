@@ -1,14 +1,23 @@
 'use client'
 
-import { ExitIcon } from "@100mslive/react-icons";
-import {
-  selectIsConnectedToRoom,
-  useHMSActions,
-  useHMSStore,
-  selectLocalPeer,
-} from "@100mslive/react-sdk";
+/**
+ * HeaderRTK - RealtimeKit version of Header
+ * 
+ * Key changes from 100ms version:
+ * - Uses useRealtimeKit() context instead of useHMSActions
+ * - Uses useConnectionState() instead of selectIsConnectedToRoom
+ * - Uses useLocalParticipant() instead of selectLocalPeer
+ * - Uses meeting.leave() for leaving
+ * - Uses meeting.participants.kickAll() for ending room (host)
+ */
+
 import { useState } from 'react';
-import RoomEndModal from './RoomEndModal';
+import { useRealtimeKit } from "@/utils/providers/realtimekit";
+import { 
+  useConnectionState, 
+  useLocalParticipant,
+  useParticipantActions 
+} from "@/utils/providers/realtimekit-hooks";
 import { TbShare3 } from "react-icons/tb";
 import { MdCopyAll, MdOutlineIosShare } from "react-icons/md";
 import { FaXTwitter } from "react-icons/fa6";
@@ -16,34 +25,61 @@ import { sdk } from "@farcaster/miniapp-sdk";
 import { toast } from "react-toastify";
 import Button from '@/components/UI/Button';
 import { StarRings } from "./experimental";
+import { useRouter } from "next/navigation";
+import FiresideLogo from "./UI/firesideLogo";
+import { IoExitOutline } from "react-icons/io5";
 
-interface HeaderProps {
+interface HeaderRTKProps {
   onToggleChat?: () => void;
   isChatOpen?: boolean;
   roomId?: string;
 }
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import FiresideLogo from "./UI/firesideLogo";
 
-export default function Header({ onToggleChat, isChatOpen = false, roomId }: HeaderProps) {
-  const isConnected = useHMSStore(selectIsConnectedToRoom);
-  const hmsActions = useHMSActions();
+export default function HeaderRTK({ onToggleChat, isChatOpen = false, roomId }: HeaderRTKProps) {
+  const { meeting, leaveRoom } = useRealtimeKit();
+  const isConnected = useConnectionState(meeting);
+  const localParticipant = useLocalParticipant(meeting);
+  const { kickAll } = useParticipantActions(meeting);
   const router = useRouter();
-  const localPeer = useHMSStore(selectLocalPeer);
+
   const [showRoomEndModal, setShowRoomEndModal] = useState(false);
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
 
-  const isHost = localPeer?.roleName === 'host';
+  // Check if user is host based on preset
+  const isHost = localParticipant?.presetName?.toLowerCase() === 'host';
 
-  const handleLeaveClick = () => {
+  const handleLeaveClick = async () => {
     if (isHost) {
       setShowRoomEndModal(true);
     } else {
       // Direct leave for other roles
-      hmsActions.leave();
+      await leaveRoom();
       router.push('/');
     }
+  };
+
+  // Handle ending room for everyone (host only)
+  // Note: "End room for all" should use kickAll(), not meeting.leave()
+  // This is exposed for use by RoomEndModalRTK
+  const handleEndRoom = async () => {
+    try {
+      // Kick all participants first
+      await kickAll();
+      // Then leave
+      await leaveRoom();
+      router.push('/');
+    } catch (err) {
+      console.error('[RTK] Error ending room:', err);
+      // Still try to leave even if kickAll fails
+      await leaveRoom();
+      router.push('/');
+    }
+  };
+
+  // Simple leave for non-hosts
+  const handleSimpleLeave = async () => {
+    await leaveRoom();
+    router.push('/');
   };
 
   async function composeCast() {
@@ -97,7 +133,6 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
                   title="Share"
                 >
                   <TbShare3 className="w-5 h-5" />
-                  
                 </Button>
               )}
               <Button
@@ -107,7 +142,7 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
                 className="bg-fireside-red px-2 py-1 flex items-center"
                 onClick={handleLeaveClick}
               >
-                <ExitIcon className="w-6 h-6" />
+                <IoExitOutline className="w-6 h-6" />
               </Button>
             </div>
           )}
@@ -155,14 +190,38 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
         )}
       </div>
 
-      {/* Room End Modal */}
+      {/* Room End Confirmation for RTK */}
       {showRoomEndModal && roomId && (
-        <RoomEndModal
-          isVisible={showRoomEndModal}
-          onClose={() => setShowRoomEndModal(false)}
-          roomId={roomId}
-        />
+        <div className="fixed inset-0 z-[1001] flex items-center justify-center bg-black/60">
+          <div className="bg-gray-900 border border-white/10 rounded-xl p-6 max-w-sm w-full mx-4">
+            <h3 className="text-white font-semibold text-lg mb-2">End Room?</h3>
+            <p className="text-gray-400 text-sm mb-6">
+              This will end the room for all participants and cannot be undone.
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={handleEndRoom}
+                className="w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+              >
+                End Room for Everyone
+              </button>
+              <button
+                onClick={handleSimpleLeave}
+                className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
+                Just Leave
+              </button>
+              <button
+                onClick={() => setShowRoomEndModal(false)}
+                className="w-full px-4 py-3 bg-white/10 text-gray-300 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
 }
+
