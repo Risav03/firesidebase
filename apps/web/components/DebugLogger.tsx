@@ -141,13 +141,14 @@ export function DebugLoggerDisplay({ className = '' }: DebugLoggerDisplayProps) 
   };
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { 
+    const time = date.toLocaleTimeString('en-US', { 
       hour12: false, 
       hour: '2-digit', 
       minute: '2-digit', 
       second: '2-digit',
-      fractionalSecondDigits: 3,
     });
+    const ms = date.getMilliseconds().toString().padStart(3, '0');
+    return `${time}.${ms}`;
   };
 
   const formatData = (data: any) => {
