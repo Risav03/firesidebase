@@ -124,7 +124,8 @@ export function DebugLoggerDisplay({ className = '' }: DebugLoggerDisplayProps) 
     return (
       <button
         onClick={() => setIsEnabled(true)}
-        className="fixed bottom-4 right-4 z-50 bg-gray-800 text-white px-3 py-1 rounded-full text-xs opacity-50 hover:opacity-100"
+        className="fixed right-4 z-[9999] bg-gray-800 text-white px-3 py-1 rounded-full text-xs opacity-50 hover:opacity-100"
+        style={{ bottom: 'max(16px, env(safe-area-inset-bottom, 16px))' }}
       >
         🐛 Debug
       </button>
@@ -161,7 +162,10 @@ export function DebugLoggerDisplay({ className = '' }: DebugLoggerDisplayProps) 
   };
 
   return (
-    <div className={`fixed bottom-0 left-0 right-0 z-50 ${className}`}>
+    <div 
+      className={`fixed left-0 right-0 z-[9999] ${className}`}
+      style={{ bottom: 'env(safe-area-inset-bottom, 0px)' }}
+    >
       {/* Toggle bar */}
       <div className="flex items-center justify-between bg-gray-900 border-t border-gray-700 px-3 py-2">
         <button
