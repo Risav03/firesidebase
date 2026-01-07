@@ -20,7 +20,7 @@ interface Config {
   neynarApiKey: string;
   hundredMsManagementToken: string;
   hundredMsTemplateId: string;
-  
+
   // RealtimeKit (Cloudflare) Configuration
   realtimekitApiKey: string;
   realtimekitOrgId: string;

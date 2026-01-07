@@ -126,6 +126,18 @@ export default function CallClientRTK({ roomId }: CallClientRTKProps) {
         setCurrentPreset(preset);
         
         console.log('[RTK] Got token, preset:', preset, 'meetingId:', meetingId);
+        
+        // Debug: Log token details (first/last chars only for security)
+        if (authToken) {
+          console.log('[RTK] Token received:', {
+            length: authToken.length,
+            starts: authToken.substring(0, 10) + '...',
+            ends: '...' + authToken.substring(authToken.length - 10),
+          });
+        } else {
+          console.error('[RTK] No auth token received!');
+          throw new Error('No auth token received from backend');
+        }
 
         // Step 2: Initialize AND join in one atomic call
         // This prevents race conditions between init and join

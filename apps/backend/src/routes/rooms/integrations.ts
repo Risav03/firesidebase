@@ -166,13 +166,26 @@ Use the \`/protected/:id/rtk-token\` endpoint to get RealtimeKit auth tokens.
           }
           
           // Get auth token from RealtimeKit
+          const participantName = user.displayName || user.username || 'Wanderer';
+          
+          console.log('[RTK Token] Generating token for:', {
+            roomId,
+            userFid,
+            participantName,
+            preset,
+            meetingId: room.rtkMeetingId,
+            hasProfilePic: !!user.pfp_url,
+          });
+          
           const authToken = await realtimekitAPI.getParticipantToken(
             room.rtkMeetingId,
-            user.displayName || user.username || 'Wanderer',
+            participantName,
             preset,
             userFid, // Use FID as custom participant ID for consistency
             user.pfp_url
           );
+          
+          console.log('[RTK Token] Token generated successfully, length:', authToken?.length);
 
           return successResponse({
             authToken,

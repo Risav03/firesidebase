@@ -161,14 +161,14 @@ export default function TippingModal({
     const handleTransactionStatus = async () => {
       // When transaction succeeds
       if (isSuccess) {
-  
+        
           toast.success("Transaction successful!");
-      
+        
         await processSuccess(lastCurrencyRef.current);
       }
       // When transaction fails (status === 'error')
       else if (status === "error") {
-      
+        
           toast.error("Transaction failed. Please try again.");
         
         setIsLoading(false);
@@ -357,26 +357,26 @@ export default function TippingModal({
         usersToSend = selectedUsers.map((user) => user.wallet).filter((wallet: string) => wallet !== '');
       } else {
         try {
-          const roomData = await fetchRoomDetails(roomId);
-          if (roomData.data.success && roomData.data.data.room.roomId) {
-            const hmsData = await fetchHMSActivePeers(roomData.data.data.room.roomId);
+        const roomData = await fetchRoomDetails(roomId);
+        if (roomData.data.success && roomData.data.data.room.roomId) {
+          const hmsData = await fetchHMSActivePeers(roomData.data.data.room.roomId);
+          
+          if (hmsData.ok && hmsData.data.peers) {
+            const activePeers = Object.values(hmsData.data.peers)
+              .filter((peer: any) => !peer.role.startsWith('__internal_') && selectedRoles.includes(peer.role))
+              .map((peer: any) => {
+                let metadata = {};
+                try {
+                  metadata = peer.metadata ? JSON.parse(peer.metadata) : {};
+                } catch (e) {
+                  console.error('Error parsing peer metadata:', e);
+                }
+                return (metadata as any).wallet || '';
+              })
+              .filter((wallet: string) => wallet !== '');
             
-            if (hmsData.ok && hmsData.data.peers) {
-              const activePeers = Object.values(hmsData.data.peers)
-                .filter((peer: any) => !peer.role.startsWith('__internal_') && selectedRoles.includes(peer.role))
-                .map((peer: any) => {
-                  let metadata = {};
-                  try {
-                    metadata = peer.metadata ? JSON.parse(peer.metadata) : {};
-                  } catch (e) {
-                    console.error('Error parsing peer metadata:', e);
-                  }
-                  return (metadata as any).wallet || '';
-                })
-                .filter((wallet: string) => wallet !== '');
-              
-              usersToSend.push(...activePeers);
-            }
+            usersToSend.push(...activePeers);
+          }
           }
         } catch (err) {
           console.error('Error fetching room participants:', err);
@@ -475,26 +475,26 @@ export default function TippingModal({
         usersToSend = selectedUsers.map((user) => user.wallet).filter((wallet: string) => wallet !== '');
       } else {
         try {
-          const roomData = await fetchRoomDetails(roomId);
-          if (roomData.data.success && roomData.data.data.room.roomId) {
-            const hmsData = await fetchHMSActivePeers(roomData.data.data.room.roomId);
+        const roomData = await fetchRoomDetails(roomId);
+        if (roomData.data.success && roomData.data.data.room.roomId) {
+          const hmsData = await fetchHMSActivePeers(roomData.data.data.room.roomId);
+          
+          if (hmsData.ok && hmsData.data.peers) {
+            const activePeers = Object.values(hmsData.data.peers)
+              .filter((peer: any) => !peer.role.startsWith('__internal_') && selectedRoles.includes(peer.role))
+              .map((peer: any) => {
+                let metadata = {};
+                try {
+                  metadata = peer.metadata ? JSON.parse(peer.metadata) : {};
+                } catch (e) {
+                  console.error('Error parsing peer metadata:', e);
+                }
+                return (metadata as any).wallet || '';
+              })
+              .filter((wallet: string) => wallet !== '');
             
-            if (hmsData.ok && hmsData.data.peers) {
-              const activePeers = Object.values(hmsData.data.peers)
-                .filter((peer: any) => !peer.role.startsWith('__internal_') && selectedRoles.includes(peer.role))
-                .map((peer: any) => {
-                  let metadata = {};
-                  try {
-                    metadata = peer.metadata ? JSON.parse(peer.metadata) : {};
-                  } catch (e) {
-                    console.error('Error parsing peer metadata:', e);
-                  }
-                  return (metadata as any).wallet || '';
-                })
-                .filter((wallet: string) => wallet !== '');
-              
-              usersToSend.push(...activePeers);
-            }
+            usersToSend.push(...activePeers);
+          }
           }
         } catch (err) {
           console.error('Error fetching room participants:', err);

@@ -111,9 +111,25 @@ export function RealtimeKitWrapper({ children }: RealtimeKitWrapperProps) {
       
       console.log('[RealtimeKit] Successfully joined room');
       
-    } catch (err) {
+    } catch (err: any) {
       console.error('[RealtimeKit] Init/Join error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to join room');
+      console.error('[RealtimeKit] Error details:', {
+        message: err?.message,
+        name: err?.name,
+        stack: err?.stack?.substring(0, 500),
+        // Check for specific RealtimeKit error codes
+        code: err?.code,
+      });
+      
+      // Provide more helpful error message
+      let errorMessage = 'Failed to join room';
+      if (err?.message?.includes('r.name.toLowerCase')) {
+        errorMessage = 'Invalid preset configuration. Check RealtimeKit dashboard presets.';
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
       setIsJoining(false);
       throw err;
     } finally {
