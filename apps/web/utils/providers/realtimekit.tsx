@@ -71,14 +71,41 @@ export function RealtimeKitWrapper({ children }: RealtimeKitWrapperProps) {
     try {
       console.log('[RealtimeKit] Initializing meeting...');
       
+      // Debug: Decode and log token payload (JWT is base64)
+      try {
+        const tokenParts = config.authToken.split('.');
+        if (tokenParts.length === 3) {
+          const payload = JSON.parse(atob(tokenParts[1]));
+          console.log('[RealtimeKit] Token payload:', {
+            preset: payload.preset,
+            presetName: payload.presetName,
+            preset_name: payload.preset_name,
+            role: payload.role,
+            // Log all keys to see what's available
+            keys: Object.keys(payload),
+          });
+        }
+      } catch (e) {
+        console.warn('[RealtimeKit] Could not decode token payload:', e);
+      }
+      
       // Step 1: Initialize the meeting
-      const meetingInstance = await initMeetingFn({
-        authToken: config.authToken,
-        defaults: {
-          audio: config.defaults?.audio ?? false,
-          video: config.defaults?.video ?? false,
-        },
-      });
+      let meetingInstance;
+      try {
+        meetingInstance = await initMeetingFn({
+          authToken: config.authToken,
+          defaults: {
+            audio: config.defaults?.audio ?? false,
+            video: config.defaults?.video ?? false,
+          },
+        });
+      } catch (initError: any) {
+        console.error('[RealtimeKit] initMeetingFn failed:', {
+          message: initError?.message,
+          stack: initError?.stack?.substring(0, 300),
+        });
+        throw initError;
+      }
       
       setIsInitialized(true);
       console.log('[RealtimeKit] Meeting initialized, joining...');
