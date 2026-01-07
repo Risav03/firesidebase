@@ -26,13 +26,12 @@ import { contractAdds } from "@/utils/contract/contractAdds";
 import { firebaseTipsAbi } from "@/utils/contract/abis/firebaseTipsAbi";
 import { erc20Abi } from "@/utils/contract/abis/erc20abi";
 import { CiMoneyBill } from "react-icons/ci";
-import { useTipEvent } from "@/utils/events";
+// Removed: import { useTipEvent } from "@/utils/events"; // Uses 100ms
 
 import { base, createBaseAccountSDK, getCryptoKeyAccount } from "@base-org/account";
 import sdk from '@farcaster/miniapp-sdk';
 import { checkStatus } from "@/utils/checkStatus";
 import { executeTransaction, type TransactionCall } from "@/utils/transactionHelpers";
-export { useTipEvent };
 
 
 interface TippingModalProps {
@@ -84,7 +83,11 @@ export default function TippingModal({
   const { address } = useAccount();
   const { meeting } = useRealtimeKit(); // RealtimeKit for chat
   const { sendCalls, isSuccess, status  } = useSendCalls();
-  const { sendTipNotification } = useTipEvent();
+  
+  // Stub for tip notification (pending Phase 6 custom events migration)
+  const sendTipNotification = (tipper: string, recipientId: string, amount: number, currency: string) => {
+    console.log('[TippingModal] Tip notification pending migration:', { tipper, recipientId, amount, currency });
+  };
 
   const splitIntoBatches = (array: any[]) => {
     const batches = [];

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useTipEvent, TipEventMessage } from '@/utils/events';
+import { useState, useEffect, useCallback } from 'react';
+// Removed: import { useTipEvent, TipEventMessage } from '@/utils/events'; // Uses 100ms
 import { fetchRoomTips } from '@/utils/serverActions';
 import sdk from '@farcaster/miniapp-sdk';
 import { RiLoader5Fill } from 'react-icons/ri';
@@ -58,16 +58,17 @@ export default function TipsDisplay({ roomId }: TipsDisplayProps) {
     }
   };
 
-  // Listen for tip events
-  useTipEvent((msg: TipEventMessage) => {
-    console.log('Tip received:', msg);
-    // Refetch statistics when a new tip is received
-    fetchStatistics();
-  });
-
-  // Initial fetch
+  // Poll for new tips every 30 seconds (pending Phase 6 custom events migration)
+  // TODO: Replace with RealtimeKit chat-based tip events when Phase 6 is complete
   useEffect(() => {
     fetchStatistics();
+    
+    // Poll for updates
+    const interval = setInterval(() => {
+      fetchStatistics();
+    }, 30000); // 30 seconds
+    
+    return () => clearInterval(interval);
   }, [roomId]);
 
   if (isLoading) {
