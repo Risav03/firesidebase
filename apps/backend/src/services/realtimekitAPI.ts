@@ -24,14 +24,26 @@
 import config from '../config';
 
 /**
- * Preset names that map to 100ms roles
- * These should be configured in the RealtimeKit dashboard
+ * Preset names for Cloudflare RealtimeKit
+ * 
+ * IMPORTANT: These must match the presets configured in your RealtimeKit dashboard
+ * at dash.realtime.cloudflare.com
+ * 
+ * Default RealtimeKit presets (if you haven't created custom ones):
+ * - 'group_call_host' - Full permissions
+ * - 'group_call_participant' - Standard participant
+ * - 'webinar_presenter' - Can present
+ * - 'webinar_viewer' - View only
+ * 
+ * If using custom presets, update these values to match your dashboard config.
  */
 export const PRESETS = {
-  HOST: 'host',
-  COHOST: 'co-host', 
-  SPEAKER: 'speaker',
-  LISTENER: 'listener',
+  // Using RealtimeKit default preset names
+  // Change these if you've created custom presets in the dashboard
+  HOST: 'group_call_host',
+  COHOST: 'group_call_host', // Use same as host for co-host (or create custom)
+  SPEAKER: 'group_call_participant',
+  LISTENER: 'webinar_viewer',
 } as const;
 
 export type PresetName = typeof PRESETS[keyof typeof PRESETS];
@@ -198,11 +210,30 @@ export class RealtimeKitAPI {
       body.picture = picture;
     }
 
-    return this.makeRequest<AddParticipantResponse>(
-      `/meetings/${meetingId}/participants`,
-      'POST',
-      body
-    );
+    console.log('[RealtimeKit] Adding participant:', {
+      meetingId,
+      name,
+      presetName,
+      customParticipantId,
+      hasPicture: !!picture,
+    });
+
+    try {
+      const response = await this.makeRequest<AddParticipantResponse>(
+        `/meetings/${meetingId}/participants`,
+        'POST',
+        body
+      );
+      console.log('[RealtimeKit] Participant added successfully');
+      return response;
+    } catch (error: any) {
+      console.error('[RealtimeKit] Failed to add participant:', {
+        error: error.message,
+        presetName,
+        hint: 'Check that the preset exists in your RealtimeKit dashboard at dash.realtime.cloudflare.com',
+      });
+      throw error;
+    }
   }
 
   /**
