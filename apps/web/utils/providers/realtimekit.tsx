@@ -104,6 +104,9 @@ export function RealtimeKitWrapper({ children }: RealtimeKitWrapperProps) {
       }
       
       // Step 3: Join the room
+      if (!meetingInstance) {
+        throw new Error('Meeting instance not initialized');
+      }
       await meetingInstance.join();
       
       console.log('[RealtimeKit] Successfully joined room');

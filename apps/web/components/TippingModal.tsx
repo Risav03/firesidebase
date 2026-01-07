@@ -85,8 +85,8 @@ export default function TippingModal({
   const { sendCalls, isSuccess, status  } = useSendCalls();
   
   // Stub for tip notification (pending Phase 6 custom events migration)
-  const sendTipNotification = (tipper: string, recipientId: string, amount: number, currency: string) => {
-    console.log('[TippingModal] Tip notification pending migration:', { tipper, recipientId, amount, currency });
+  const sendTipNotification = (tipData: any) => {
+    console.log('[TippingModal] Tip notification pending migration:', tipData);
   };
 
   const splitIntoBatches = (array: any[]) => {

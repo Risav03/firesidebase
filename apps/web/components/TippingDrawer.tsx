@@ -44,9 +44,9 @@ export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerPr
   const lastCurrencyRef = useRef<string>('ETH');
   
   // Stub for tip notification (pending Phase 6 custom events migration)
-  const sendTipNotification = useCallback((tipper: string, recipientId: string, amount: number, currency: string) => {
+  const sendTipNotification = useCallback((tipData: any) => {
     // TODO: Implement with RealtimeKit custom events
-    console.log('[TippingDrawer] Tip notification pending migration:', { tipper, recipientId, amount, currency });
+    console.log('[TippingDrawer] Tip notification pending migration:', tipData);
   }, []);
 
   const fetchTokenPrices = async () => {
@@ -111,8 +111,8 @@ export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerPr
     const tipper = user?.username || 'Someone';
     const recipient = peer.name || 'User';
     
+    // Tip notification pending Phase 6 custom events migration
     sendTipNotification({
-      roomId: roomId,
       tipper: {
         username: tipper,
         pfp_url: user?.pfp_url || '',

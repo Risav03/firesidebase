@@ -16,7 +16,8 @@ import type { SoundEffect } from "@/utils/soundboard/sounds";
 
 // Match the SoundNotification interface from useSoundboardLogic
 export interface SoundNotification {
-  id: string;
+  id: number;
+  soundId: string;
   soundName: string;
   soundEmoji: string;
   senderName: string;
