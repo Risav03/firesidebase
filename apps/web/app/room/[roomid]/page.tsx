@@ -8,7 +8,7 @@ import { fetchRoomDetails, updateRoom } from "@/utils/serverActions";
 import Countdown from "@/components/Countdown";
 import sdk from "@farcaster/miniapp-sdk";
 import Image from "next/image";
-import Header from "@/components/Header";
+import MainHeader from "@/components/UI/MainHeader";
 import { TbShare3 } from "react-icons/tb";
 import { MdCopyAll, MdOutlineIosShare } from "react-icons/md";
 import { IoMdArrowBack } from "react-icons/io";
@@ -173,7 +173,7 @@ export default function UpcomingRoomPage() {
   return (
     
     <div className="pt-16 min-h-screen">
-        <Header/>
+        <MainHeader/>
       <div className="max-w-4xl mx-auto p-4 sm:p-6">
         <div className="rounded-lg text-white">
           {/* Room Header */}
