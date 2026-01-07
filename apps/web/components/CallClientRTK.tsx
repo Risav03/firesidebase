@@ -31,6 +31,7 @@ import {
   removeParticipantFromRoom,
 } from "@/utils/serverActions";
 import { useAccount } from "wagmi";
+import { debugLog } from "@/components/DebugLogger";
 
 interface CallClientRTKProps {
   roomId: string;
@@ -98,21 +99,25 @@ export default function CallClientRTK({ roomId }: CallClientRTKProps) {
 
       // Get Farcaster auth token
       let farcasterToken = "";
+      debugLog('info', `Environment: ${env}`);
       if (env !== "DEV") {
         try {
+          debugLog('info', 'Getting Farcaster quickAuth token...');
           farcasterToken = (await sdk.quickAuth.getToken()).token;
-        } catch (err) {
-          console.warn('[RTK] Could not get Farcaster token:', err);
+          debugLog('info', `Got Farcaster token (${farcasterToken.length} chars)`);
+        } catch (err: any) {
+          debugLog('warn', 'Could not get Farcaster token', err?.message);
         }
       }
 
       try {
         // Step 1: Fetch RealtimeKit auth token from backend
-        console.log('[RTK] Fetching auth token for room:', roomId);
+        debugLog('info', `Fetching RTK auth token for room: ${roomId}`);
         const tokenResponse = await fetchRealtimeKitToken(roomId, farcasterToken);
 
         if (!tokenResponse.ok) {
           const errorMsg = tokenResponse.data?.error || "Failed to get auth token";
+          debugLog('error', `Token fetch failed: ${errorMsg}`);
           
           // Check if room doesn't have RTK meeting yet
           if (errorMsg.includes("does not have an active RealtimeKit meeting")) {
@@ -125,22 +130,23 @@ export default function CallClientRTK({ roomId }: CallClientRTKProps) {
         const { authToken, preset, meetingId, userId } = tokenResponse.data.data;
         setCurrentPreset(preset);
         
-        console.log('[RTK] Got token, preset:', preset, 'meetingId:', meetingId);
+        debugLog('info', `Got token - preset: ${preset}, meetingId: ${meetingId}`);
         
         // Debug: Log token details (first/last chars only for security)
         if (authToken) {
-          console.log('[RTK] Token received:', {
+          debugLog('info', 'Token received', {
             length: authToken.length,
             starts: authToken.substring(0, 10) + '...',
             ends: '...' + authToken.substring(authToken.length - 10),
           });
         } else {
-          console.error('[RTK] No auth token received!');
+          debugLog('error', 'No auth token received!');
           throw new Error('No auth token received from backend');
         }
 
         // Step 2: Initialize AND join in one atomic call
         // This prevents race conditions between init and join
+        debugLog('info', 'Calling initAndJoin...');
         await initAndJoin({
           authToken,
           defaults: {
@@ -149,14 +155,13 @@ export default function CallClientRTK({ roomId }: CallClientRTKProps) {
           },
         });
 
-        console.log('[RTK] Successfully joined room');
+        debugLog('info', 'Successfully joined room!');
         setIsJoining(false);
 
       } catch (err: any) {
-        console.error("[RTK] Error joining room:", {
-          error: err,
+        debugLog('error', 'Error joining room', {
           message: err?.message,
-          timestamp: new Date().toISOString(),
+          name: err?.name,
         });
 
         setError(err instanceof Error ? err.message : "Failed to join room");

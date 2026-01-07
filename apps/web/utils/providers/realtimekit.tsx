@@ -7,6 +7,7 @@ import {
   useRealtimeKitSelector 
 } from "@cloudflare/realtimekit-react";
 import { ReactNode, createContext, useContext, useState, useCallback, useRef } from "react";
+import { debugLog } from "@/components/DebugLogger";
 
 /**
  * RealtimeKit Context for managing meeting state across the app
@@ -60,7 +61,7 @@ export function RealtimeKitWrapper({ children }: RealtimeKitWrapperProps) {
   }) => {
     // Prevent concurrent calls
     if (joinInProgressRef.current) {
-      console.log('[RealtimeKit] Join already in progress, skipping');
+      debugLog('warn', 'Join already in progress, skipping');
       return;
     }
     
@@ -69,29 +70,30 @@ export function RealtimeKitWrapper({ children }: RealtimeKitWrapperProps) {
     setError(null);
     
     try {
-      console.log('[RealtimeKit] Initializing meeting...');
+      debugLog('info', 'Initializing meeting...');
       
       // Debug: Decode and log token payload (JWT is base64)
       try {
         const tokenParts = config.authToken.split('.');
+        debugLog('info', `Token has ${tokenParts.length} parts`);
         if (tokenParts.length === 3) {
           const payload = JSON.parse(atob(tokenParts[1]));
-          console.log('[RealtimeKit] Token payload:', {
+          debugLog('info', 'Token payload decoded', {
             preset: payload.preset,
             presetName: payload.presetName,
             preset_name: payload.preset_name,
             role: payload.role,
-            // Log all keys to see what's available
             keys: Object.keys(payload),
           });
         }
-      } catch (e) {
-        console.warn('[RealtimeKit] Could not decode token payload:', e);
+      } catch (e: any) {
+        debugLog('warn', 'Could not decode token payload', e?.message);
       }
       
       // Step 1: Initialize the meeting
       let meetingInstance;
       try {
+        debugLog('info', 'Calling initMeetingFn...');
         meetingInstance = await initMeetingFn({
           authToken: config.authToken,
           defaults: {
@@ -99,8 +101,9 @@ export function RealtimeKitWrapper({ children }: RealtimeKitWrapperProps) {
             video: config.defaults?.video ?? false,
           },
         });
+        debugLog('info', 'initMeetingFn returned', { hasMeeting: !!meetingInstance });
       } catch (initError: any) {
-        console.error('[RealtimeKit] initMeetingFn failed:', {
+        debugLog('error', 'initMeetingFn failed', {
           message: initError?.message,
           stack: initError?.stack?.substring(0, 300),
         });
@@ -108,17 +111,17 @@ export function RealtimeKitWrapper({ children }: RealtimeKitWrapperProps) {
       }
       
       setIsInitialized(true);
-      console.log('[RealtimeKit] Meeting initialized, joining...');
+      debugLog('info', 'Meeting initialized, joining...');
       
       // Step 2: Set up room event listeners
       const handleRoomJoined = () => {
-        console.log('[RealtimeKit] Room joined event received');
+        debugLog('info', 'Room joined event received');
         setIsConnected(true);
         setIsJoining(false);
       };
       
       const handleRoomLeft = () => {
-        console.log('[RealtimeKit] Room left event received');
+        debugLog('info', 'Room left event received');
         setIsConnected(false);
         setIsInitialized(false);
       };
@@ -132,19 +135,20 @@ export function RealtimeKitWrapper({ children }: RealtimeKitWrapperProps) {
       
       // Step 3: Join the room
       if (!meetingInstance) {
+        debugLog('error', 'Meeting instance is null after init!');
         throw new Error('Meeting instance not initialized');
       }
+      debugLog('info', 'Calling meetingInstance.join()...');
       await meetingInstance.join();
       
-      console.log('[RealtimeKit] Successfully joined room');
+      debugLog('info', 'Successfully joined room!');
       
     } catch (err: any) {
-      console.error('[RealtimeKit] Init/Join error:', err);
-      console.error('[RealtimeKit] Error details:', {
+      debugLog('error', 'Init/Join error', err?.message);
+      debugLog('error', 'Error details', {
         message: err?.message,
         name: err?.name,
         stack: err?.stack?.substring(0, 500),
-        // Check for specific RealtimeKit error codes
         code: err?.code,
       });
       
@@ -175,9 +179,9 @@ export function RealtimeKitWrapper({ children }: RealtimeKitWrapperProps) {
       setIsConnected(false);
       setIsInitialized(false);
       joinInProgressRef.current = false;
-      console.log('[RealtimeKit] Left room');
-    } catch (err) {
-      console.error('[RealtimeKit] Leave error:', err);
+      debugLog('info', 'Left room');
+    } catch (err: any) {
+      debugLog('error', 'Leave error', err?.message);
       // Don't throw - we want to allow cleanup even if leave fails
     }
   }, [meeting]);

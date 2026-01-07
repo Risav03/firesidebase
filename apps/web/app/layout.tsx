@@ -3,11 +3,14 @@ import { ReactNode } from "react";
 import { Metadata } from "next";
 import Providers from "@/utils/providers/providers";
 import Background from "@/components/UI/Background";
+import { DebugLoggerProvider, DebugLoggerDisplay } from "@/components/DebugLogger";
 
 interface RootLayoutProps {
   children: ReactNode;
 }
 
+// Enable debug mode via URL param or environment
+const isDebugEnabled = process.env.NEXT_PUBLIC_DEBUG === 'true';
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
@@ -17,10 +20,13 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover, height=device-height" />
       </head>
       <body className="text-white relative max-h-screen overflow-x-hidden mb-40">
-        <Background />
-        <div className="relative z-10 h-full">
-          <Providers>{children}</Providers>
-        </div>
+        <DebugLoggerProvider defaultEnabled={isDebugEnabled}>
+          <Background />
+          <div className="relative z-10 h-full">
+            <Providers>{children}</Providers>
+          </div>
+          <DebugLoggerDisplay />
+        </DebugLoggerProvider>
       </body>
     </html>
   );
