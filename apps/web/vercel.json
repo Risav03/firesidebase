@@ -1,4 +1,8 @@
 {
+  "buildCommand": "cd ../.. && npm run build --filter=web",
+  "outputDirectory": ".next",
+  "installCommand": "npm install",
+  "framework": "nextjs",
   "crons": [
     {
       "path": "/api/cron",
