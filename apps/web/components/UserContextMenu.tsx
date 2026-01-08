@@ -75,8 +75,12 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
 
   // Listen for incoming tips
   useTipEvent((msg) => {
-    if (msg.recipientPeerId === localPeer?.id) {
-      toast.success(`${msg.tipper} tipped you $${msg.amount} in ${msg.currency}! 🎉`);
+    // Check if the local peer is one of the recipients by peer ID
+    const isRecipient = msg.recipients.some(
+      recipient => recipient.id === localPeer?.id
+    );
+    if (isRecipient) {
+      toast.success(`${msg.tipper.username} tipped you $${msg.amount.usd} in ${msg.amount.currency}! 🎉`);
     }
   });
   
@@ -329,9 +333,28 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
     const tipAmountUSD = parseFloat(tipAmount);
     const tipper = user?.username || 'Someone';
     const recipient = peer.name || 'User';
+    const recipientId = peer.id || '';
     
     // Send tip notification to recipient
-    sendTipNotification(tipper, peer.id, tipAmountUSD, currency);
+    sendTipNotification({
+      roomId: roomId,
+      tipper: {
+        username: tipper,
+        pfp_url: user?.pfp_url || '',
+      },
+      recipients: [{
+        username: recipient,
+        pfp_url: peer.pfp_url || '',
+        role: peer.roleName,
+        id: recipientId,
+      }],
+      amount: {
+        usd: tipAmountUSD,
+        currency: currency,
+        native: parseFloat(tipAmount),
+      },
+      timestamp: new Date().toISOString(),
+    });
     
     // Broadcast message to room
     const emoji = tipAmountUSD >= 100 ? '💸' : tipAmountUSD >= 25 ? '🎉' : '👍';

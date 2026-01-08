@@ -210,6 +210,7 @@ export interface TipEventMessage {
     username?: string;
     pfp_url?: string;
     role?: string;
+    id?: string;
   }>;
   amount: {
     usd: number;
