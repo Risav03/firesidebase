@@ -131,11 +131,12 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
     (async () => {
       await handleSignIn();
       sdk.actions.ready();
+      await sdk.actions.requestCameraAndMicrophoneAccess();
       if (process.env.NEXT_PUBLIC_ENV !== "DEV") {
         
 
         try {
-          await sdk.actions.requestCameraAndMicrophoneAccess();
+          
           console.log(
             "[HMS Action - CallClient] Microphone and camera permissions granted"
           );
