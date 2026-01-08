@@ -124,8 +124,7 @@ export function DebugLoggerDisplay({ className = '' }: DebugLoggerDisplayProps) 
     return (
       <button
         onClick={() => setIsEnabled(true)}
-        className="fixed right-4 z-[9999] bg-gray-800 text-white px-3 py-1 rounded-full text-xs opacity-50 hover:opacity-100"
-        style={{ bottom: 'max(16px, env(safe-area-inset-bottom, 16px))' }}
+        className="absolute top-2 right-2 z-[9999] bg-gray-800 text-white px-3 py-1 rounded-full text-xs opacity-50 hover:opacity-100"
       >
         🐛 Debug
       </button>
@@ -163,16 +162,15 @@ export function DebugLoggerDisplay({ className = '' }: DebugLoggerDisplayProps) 
 
   return (
     <div 
-      className={`fixed left-0 right-0 z-[9999] ${className}`}
-      style={{ bottom: 'env(safe-area-inset-bottom, 0px)' }}
+      className={`absolute top-0 left-0 right-0 z-[9999] ${className}`}
     >
       {/* Toggle bar */}
-      <div className="flex items-center justify-between bg-gray-900 border-t border-gray-700 px-3 py-2">
+      <div className="flex items-center justify-between bg-gray-900 border-b border-gray-700 px-3 py-2">
         <button
           onClick={() => setIsExpanded(!isExpanded)}
           className="flex items-center gap-2 text-white text-sm"
         >
-          <span>{isExpanded ? '▼' : '▲'}</span>
+          <span>{isExpanded ? '▲' : '▼'}</span>
           <span>🐛 Debug Logs ({logs.length})</span>
         </button>
         <div className="flex gap-2">
