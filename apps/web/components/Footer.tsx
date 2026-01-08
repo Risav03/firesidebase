@@ -46,6 +46,7 @@ export default function Footer({ roomId }: { roomId: string }) {
   const soundboardLogic = useSoundboardLogic(user);
 
   const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
+  const isListener = localPeer?.roleName?.toLowerCase() === 'listener';
 
   const handleReaction = () => {
     setIsEmojiPickerOpen(true);
@@ -57,9 +58,12 @@ export default function Footer({ roomId }: { roomId: string }) {
         <ControlCenterDrawer
           open={controlsOpen}
           setOpen={setControlsOpen}
-          muted={!isLocalAudioEnabled}
+          muted={isListener ? false : !isLocalAudioEnabled}
           setMuted={(muted) => {
-            if (muted && isLocalAudioEnabled && toggleAudio) {
+            if (isListener) {
+              // For listeners, the mute button becomes a request button
+              toggleRaiseHand();
+            } else if (muted && isLocalAudioEnabled && toggleAudio) {
               toggleAudio();
             } else if (!muted && !isLocalAudioEnabled && canUnmute && toggleAudio) {
               toggleAudio();
@@ -71,6 +75,8 @@ export default function Footer({ roomId }: { roomId: string }) {
               toggleRaiseHand();
             }
           }}
+          isListener={isListener}
+          requestSent={isListener && isHandRaised}
           onReact={handleReaction}
           onChat={() => setIsChatOpen(true)}
           onTip={() => setIsTippingOpen(true)}

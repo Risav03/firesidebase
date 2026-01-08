@@ -54,7 +54,7 @@ export default function FloatingEmojis({ emojis }: FloatingEmojisProps) {
       {emojis.map((floatingEmoji) => (
         <div
           key={floatingEmoji.id}
-          className="absolute bottom-0 animate-float"
+          className="absolute bottom-0 animate-float z-50"
           style={{
             right: `${floatingEmoji.position}%`,
             transform: "translateX(-50%)",

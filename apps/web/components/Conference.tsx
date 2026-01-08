@@ -7,6 +7,7 @@ import {
   useHMSActions,
   selectLocalPeer,
   selectHasPeerHandRaised,
+  selectIsPeerAudioEnabled,
 } from "@100mslive/react-sdk";
 import { useSpeakerRequestEvent, useSpeakerRejectionEvent } from "@/utils/events";
 import PeerWithContextMenu from "./PeerWithContextMenu";
@@ -20,13 +21,14 @@ import RoomEndScreen from "./RoomEndScreen";
 import { toast } from "react-toastify";
 import { fetchRoomDetails, endRoom } from "@/utils/serverActions";
 import SpeakerRequestsDrawer from "./SpeakerRequestsDrawer";
-import { Card } from "@/components/UI/Card";
-import Button from "@/components/UI/Button";
-import { CampfireCircle, FirelightField, AroundTheFireRow, ListGroup, CircleRow, ListenerDot, SegTab, HandRaiseSparks, Avatar, RoomHeader, ScrollingName } from "./experimental";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/UI/drawer";
+import { HandRaiseSparks, ScrollingName } from "./experimental";
+import {FirelightField} from "./experimental";
 import AvatarContextMenu from "./AvatarContextMenu";
+import PanelMember from "./PanelMember";
+import ListenerMember from "./ListenerMember";
 import TippingDrawer from "./TippingDrawer";
 import AdsOverlay from "./AdsOverlay";
+import { Card } from "./UI/Card";
 // import AudioRecoveryBanner from "./AudioRecoveryBanner";
 
 
@@ -75,8 +77,6 @@ export default function Conference({ roomId }: { roomId: string }) {
   
   const [speakerRequests, setSpeakerRequests] = useState<SpeakerRequest[]>([]);
   const [showSpeakerRequestsDrawer, setShowSpeakerRequestsDrawer] = useState(false);
-  const [showListenersSheet, setShowListenersSheet] = useState(false);
-  const [tab, setTab] = useState<"circle" | "campers">("circle");
   
   const [roomEnded, setRoomEnded] = useState(false);
   const [selectedPeer, setSelectedPeer] = useState<any>(null);
@@ -401,17 +401,7 @@ useEffect(() => {
     }
   };
 
-  const openAudience = () => {
-    setTab("campers");
-    // Scroll to audience section after tab switch
-    // setTimeout(() => {
-    //   const container = document.querySelector('[data-campers-scroll]');
-    //   const anchor = document.querySelector('[data-audience-anchor]');
-    //   if (container && anchor) {
-    //     anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    //   }
-    // }, 100);
-  };
+
 
   // Sponsorship hooks removed as part of ads migration
 
@@ -445,7 +435,7 @@ useEffect(() => {
       img: peer.metadata ? JSON.parse(peer.metadata).avatar : undefined,
       role: peer.roleName === 'host' ? 'Host' : peer.roleName === 'co-host' ? 'Co-host' : 'Speaker',
       speaking: peer.audioTrack && peer.audioLevel > 0,
-      muted: !peer.audioTrack,
+      muted: !peer.audioEnabled,
       handRaised: isHandRaised,
       peer: peer,
     });
@@ -467,6 +457,11 @@ useEffect(() => {
     return (
       <div className="relative min-h-screen">
         <FirelightField flicker={flicker} />
+
+        <Card className="bg-fireside-orange/5 gradient-orange-bg m-3 px-2 py-4 rounded-2xl">
+          <h1 className="text-lg font-bold gradient-fire-text">{roomDetails?.name}</h1>
+          <p className="text-sm text-gray-300">{roomDetails?.description}</p>
+        </Card>
         
         <div className="pb-32 px-3 relative z-10 mt-4">
           {/* Speaker Requests Button */}
@@ -486,185 +481,131 @@ useEffect(() => {
               </Card>
             </div> */}
 
-            {/* Tab Selector */}
-            <div className="flex gap-2 rounded-full p-1 backdrop-blur-md mb-2" style={{
-              border: '1px solid rgba(255,255,255,.08)',
-              background: 'rgba(0,0,0,.14)'
-            }}>
-              <SegTab
-                active={tab === "circle"}
-                onClick={() => setTab("circle")}
-              >
-                Circle
-              </SegTab>
-              <SegTab
-                active={tab === "campers"}
-                onClick={() => setTab("campers")}
-              >
-                Campers{" "}
-                <span style={{ color: 'rgba(255,255,255,.55)' }}>
-                  ({campfirePeople.length + listenerPeople.length})
-                </span>
-              </SegTab>
-            </div>
-            
-            {/* Floating Speaker Requests Button */}
-            {/* {canManageSpeakers && speakerRequests.length > 0 && tab == 'circle' && (
-              <div className="fixed top-[140px] right-4 z-20">
-                <button
-                  onClick={() => setShowSpeakerRequestsDrawer(true)}
-                  className="rounded-full px-4 py-2 backdrop-blur-md shadow-lg flex items-center gap-2 bg-white/5 border border-white/10 text-xs"
-                  
-                >
-                  <span className="text-xs font-semibold">Requests</span>
-                  <span className="bg-white/20 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
-                    {speakerRequests.length}
-                  </span>
-                </button>
-              </div>
-            )} */}
-    
-            {tab === "circle" ? (
-              <div className="flex flex-col justify-between">
-                {/* Campfire Circle Layout */}
-                <CampfireCircle 
-                  people={campfirePeople}
-                  reactions={reactions}
-                  flicker={flicker}
-                  onAvatarClick={handleAvatarClick}
-                />
-                
-                {/* Listeners */}
-                {listeners.length > 0 && (
-                  <div className="mt-8 w-full">
-                    <AroundTheFireRow
-                      count={listeners.length}
-                      people={listenerPeople}
-                      onOpen={openAudience}
-                      hands={handsRaised}
-                      adsOn={false}
-                    />
-                  </div>
-                )}
-              </div>
-            ) : (
-
-              <div data-campers-scroll className="rounded-3xl p-4 backdrop-blur-md" style={{
-                border: '1px solid rgba(255,255,255,.08)',
-                background: 'rgba(0,0,0,.20)'
-              }}>
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <div className="text-xs" style={{ color: 'rgba(255,255,255,.55)' }}>
-                      Everyone here
-                    </div>
-                    <div className="mt-1 text-sm font-semibold" style={{ color: 'rgba(255,255,255,.92)' }}>
-                      {campfirePeople.length + listenerPeople.length} campers
-                    </div>
-                  </div>
+            {/* Speakers Grid */}
+            {campfirePeople.length > 0 && (
+              <div className="mb-6">
+                <div className="text-xs mb-3" style={{ color: 'rgba(255,255,255,.55)' }}>
+                  Panel ({campfirePeople.length})
                 </div>
-
-                <ListGroup title="In the circle">
+                <div className="grid grid-cols-4 gap-3">
                   {campfirePeople.map((p) => (
-                    <CircleRow key={p.id} p={p} onAvatarClick={handleAvatarClick} />
+                    <PanelMember
+                      key={p.id}
+                      id={p.id}
+                      name={p.name}
+                      img={p.img}
+                      role={p.role}
+                      speaking={p.speaking}
+                      muted={p.muted}
+                      onClick={handleAvatarClick}
+                    />
                   ))}
-                </ListGroup>
+                </div>
+              </div>
+            )}
 
-                {handsRaised.length > 0 && (
-                  <ListGroup title="Spark requests">
-                    {handsRaised.map((p) => {
-                      const request = speakerRequests.find(req => req.peerId === p.id);
-                      return (
-                        <div
-                          key={p.id}
-                          className="flex items-center justify-between rounded-2xl px-3 py-2 backdrop-blur-sm relative"
-                          style={{
-                            border: '1px solid rgba(255,255,255,.08)',
-                            background: 'rgba(0,0,0,.14)',
-                          }}
-                        >
-                          <HandRaiseSparks id={`hand-${p.id}`} />
-                          <div className="flex items-center gap-3 min-w-0">
-                            <Avatar
-                              img={p.img}
-                              name={p.name}
-                              size={36}
-                              speaking={false}
-                              fireDistance={0.72}
-                              depth={0.6}
+            {/* Hand Raise Requests */}
+            {handsRaised.length > 0 && (
+              <div className="mb-6">
+                <div className="text-xs mb-3" style={{ color: 'rgba(255,255,255,.55)' }}>
+                  Spark requests
+                </div>
+                <div className="space-y-2">
+                  {handsRaised.map((p) => {
+                    const request = speakerRequests.find(req => req.peerId === p.id);
+                    return (
+                      <div
+                        key={p.id}
+                        className="flex items-center justify-between rounded-2xl px-3 py-2 backdrop-blur-sm relative"
+                        style={{
+                          border: '1px solid rgba(255,255,255,.08)',
+                          background: 'rgba(0,0,0,.14)',
+                        }}
+                      >
+                        <HandRaiseSparks id={`hand-${p.id}`} />
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div
+                            className="rounded-xl overflow-hidden flex-shrink-0"
+                            style={{
+                              width: '36px',
+                              height: '36px',
+                            }}
+                          >
+                            <img
+                              src={p.img || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.name}`}
+                              alt={p.name}
+                              className="w-full h-full object-cover"
                             />
-                            <div className="min-w-0">
-                              <div className="truncate text-sm" style={{ color: 'rgba(255,255,255,.92)' }}>
-                                {p.name}
-                              </div>
-                              <div className="text-xs" style={{ color: 'rgba(255,255,255,.55)' }}>
-                                raised hand
-                              </div>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <ScrollingName 
+                              name={p.name}
+                              className="text-sm" 
+                              style={{ color: 'rgba(255,255,255,.92)' }}
+                            />
+                            <div className="text-xs" style={{ color: 'rgba(255,255,255,.55)' }}>
+                              raised hand
                             </div>
                           </div>
-                          {canManageSpeakers && request && (
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleApproveRequest(request)}
-                                className="rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-sm"
-                                style={{
-                                  border: '1px solid rgba(255,255,255,.08)',
-                                  background: 'rgba(34,197,94,.15)',
-                                  color: 'rgba(34,197,94,1)',
-                                }}
-                              >
-                                Invite
-                              </button>
-                              <button
-                                onClick={() => handleRejectRequest(request)}
-                                className="rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-sm"
-                                style={{
-                                  border: '1px solid rgba(255,255,255,.08)',
-                                  background: 'rgba(239,68,68,.15)',
-                                  color: 'rgba(239,68,68,1)',
-                                }}
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          )}
                         </div>
-                      );
-                    })}
-                  </ListGroup>
-                )}
+                        {canManageSpeakers && request && (
+                          <div className="flex gap-2 flex-shrink-0">
+                            <button
+                              onClick={() => handleApproveRequest(request)}
+                              className="rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-sm"
+                              style={{
+                                border: '1px solid rgba(255,255,255,.08)',
+                                background: 'rgba(34,197,94,.15)',
+                                color: 'rgba(34,197,94,1)',
+                              }}
+                            >
+                              Invite
+                            </button>
+                            <button
+                              onClick={() => handleRejectRequest(request)}
+                              className="rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-sm"
+                              style={{
+                                border: '1px solid rgba(255,255,255,.08)',
+                                background: 'rgba(239,68,68,.15)',
+                                color: 'rgba(239,68,68,1)',
+                              }}
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
-                <div data-audience-anchor />
-
-                {listenerPeople.length > 0 && <ListGroup title="Around the fire">
-                  <div
-                    className="rounded-2xl p-3 backdrop-blur-sm"
-                    style={{
-                      border: '1px solid rgba(255,255,255,.08)',
-                      background: 'rgba(0,0,0,.10)',
-                    }}
-                  >
-                    <div className="grid grid-cols-4 gap-2">
-                      {listenerPeople.map((p) => (
-                        <div key={p.id} className="flex flex-col items-center gap-1" onClick={() => handleAvatarClick(p.id)}>
-                          <Avatar
-                            img={p.img}
-                            name={p.name}
-                            size={48}
-                            speaking={p.speaking}
-                            fireDistance={0.85}
-                            depth={0.7}
-                          />
-                          <ScrollingName 
-                            name={p.name}
-                            className="text-[10px] w-full text-center" 
-                            style={{ color: 'rgba(255,255,255,.65)' }}
-                          />
-                        </div>
-                      ))}
-                    </div>
+            {/* Listeners */}
+            {listenerPeople.length > 0 && (
+              <div>
+                <div className="text-xs mb-3" style={{ color: 'rgba(255,255,255,.55)' }}>
+                  Listeners ({listenerPeople.length})
+                </div>
+                <div
+                  className="rounded-2xl p-3 backdrop-blur-sm"
+                  style={{
+                    border: '1px solid rgba(255,255,255,.08)',
+                    background: 'rgba(0,0,0,.10)',
+                  }}
+                >
+                  <div className="grid grid-cols-6 gap-3">
+                    {listenerPeople.map((p) => (
+                      <ListenerMember
+                        key={p.id}
+                        id={p.id}
+                        name={p.name}
+                        img={p.img}
+                        onClick={handleAvatarClick}
+                      />
+                    ))}
                   </div>
-                </ListGroup>}
+                </div>
               </div>
             )}
           </div>
@@ -679,119 +620,7 @@ useEffect(() => {
             roomId={roomId}
           /> */}
 
-          {/* Listeners Drawer */}
-          <Drawer open={showListenersSheet} onOpenChange={setShowListenersSheet}>
-            <DrawerContent className="border-none backdrop-blur-xl" style={{
-              background: 'rgba(0,0,0,.50)',
-              borderTop: '1px solid rgba(255,255,255,.08)'
-            }}>
-              <div className="px-4 pt-1 pb-2">
-                <div className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,.92)' }}>
-                  Around the fire
-                </div>
-                <div className="text-[11px]" style={{ color: 'rgba(255,255,255,.55)' }}>
-                  {listeners.length} listening
-                </div>
-              </div>
 
-              <div className="px-4 pb-4 overflow-y-auto max-h-[60vh]">
-                {handsRaised.length > 0 && (
-                  <ListGroup title="Spark requests">
-                    {handsRaised.map((p) => {
-                      const request = speakerRequests.find(req => req.peerId === p.id);
-                      return (
-                        <div
-                          key={p.id}
-                          className="flex items-center justify-between rounded-2xl px-3 py-2 backdrop-blur-sm relative"
-                          style={{
-                            border: '1px solid rgba(255,255,255,.08)',
-                            background: 'rgba(0,0,0,.14)',
-                          }}
-                        >
-                          <HandRaiseSparks id={`hand-drawer-${p.id}`} />
-                          <div className="flex items-center gap-3 min-w-0">
-                            <Avatar
-                              img={p.img}
-                              name={p.name}
-                              size={36}
-                              speaking={false}
-                              fireDistance={0.72}
-                              depth={0.6}
-                            />
-                            <div className="min-w-0">
-                              <div className="truncate text-sm" style={{ color: 'rgba(255,255,255,.92)' }}>
-                                {p.name}
-                              </div>
-                              <div className="text-xs" style={{ color: 'rgba(255,255,255,.55)' }}>
-                                raised hand
-                              </div>
-                            </div>
-                          </div>
-                          {canManageSpeakers && request && (
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleApproveRequest(request)}
-                                className="rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-sm"
-                                style={{
-                                  border: '1px solid rgba(255,255,255,.08)',
-                                  background: 'rgba(34,197,94,.15)',
-                                  color: 'rgba(34,197,94,1)',
-                                }}
-                              >
-                                Invite
-                              </button>
-                              <button
-                                onClick={() => handleRejectRequest(request)}
-                                className="rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-sm"
-                                style={{
-                                  border: '1px solid rgba(255,255,255,.08)',
-                                  background: 'rgba(239,68,68,.15)',
-                                  color: 'rgba(239,68,68,1)',
-                                }}
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </ListGroup>
-                )}
-
-                <ListGroup title="Listeners">
-                  <div
-                    className="rounded-2xl p-3 backdrop-blur-sm"
-                    style={{
-                      border: '1px solid rgba(255,255,255,.08)',
-                      background: 'rgba(0,0,0,.10)',
-                    }}
-                  >
-                    <div className="grid grid-cols-4 gap-4">
-                      {listenerPeople.map((p) => (
-                        <div key={p.id} className="flex flex-col items-center gap-1" onClick={() => handleAvatarClick(p.id)}>
-                          <Avatar
-                            img={p.img}
-                            name={p.name}
-                            size={48}
-                            speaking={p.speaking}
-                            fireDistance={0.85}
-                            depth={0.7}
-                          />
-                          <ScrollingName 
-                            name={p.name}
-                            className="text-[10px] w-full text-center" 
-                            style={{ color: 'rgba(255,255,255,.65)' }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </ListGroup>
-              </div>
-            </DrawerContent>
-          </Drawer>
-          
           {/* Avatar Context Menu */}
           {selectedPeer && (
             <AvatarContextMenu
