@@ -1,16 +1,3 @@
-/**
- * @deprecated PENDING MIGRATION TO REALTIMEKIT
- * 
- * This modal uses 100ms hooks for room ending.
- * 
- * RealtimeKit equivalent:
- * - Use meeting.leave() for leaving
- * - Use meeting.participants.kickAll() for ending room (host only)
- * - Use realtimekitAPI.endMeeting() on backend
- * 
- * Note: HeaderRTK.tsx already has leave/end functionality.
- * This component is kept for backward compatibility.
- */
 'use client'
 
 import { useState, useRef, useEffect } from 'react';

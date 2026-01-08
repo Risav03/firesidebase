@@ -1,14 +1,3 @@
-/**
- * @deprecated PENDING MIGRATION TO REALTIMEKIT (Phase 6)
- * 
- * This file uses 100ms hooks for emoji reactions.
- * 
- * RealtimeKit equivalent:
- * - Use meeting.chat.sendTextMessage() with JSON payload for emoji events
- * - Or use a custom events layer via chat
- * 
- * TODO: Create useEmojiReactionLogicRTK.ts
- */
 "use client";
 
 import { useState, useEffect } from "react";

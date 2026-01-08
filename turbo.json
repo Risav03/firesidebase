@@ -1,16 +1,14 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["**/.env.*local", "**/.env"],
-  "tasks": {
+  "globalDependencies": ["**/.env.*local"],
+  "pipeline": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
-      "env": ["NODE_ENV", "NEXT_PUBLIC_*"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "dev": {
       "cache": false,
-      "persistent": true,
-      "env": ["NODE_ENV", "NEXT_PUBLIC_*", "MONGO_URI", "REDIS_URL", "HMS_*", "AWS_*"]
+      "persistent": true
     },
     "lint": {
       "dependsOn": ["^lint"]

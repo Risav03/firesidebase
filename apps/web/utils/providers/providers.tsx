@@ -1,5 +1,6 @@
 "use client";
 
+import { HMSRoomProvider } from "@100mslive/react-sdk";
 import { MiniKitProvider } from "@coinbase/onchainkit/minikit";
 import { base } from "wagmi/chains";
 import { ReactNode, useEffect } from "react";
@@ -8,7 +9,6 @@ import "react-toastify/dist/ReactToastify.css";
 import Rainbow from "./rainbow";
 import { GlobalProvider } from "./globalContext";
 import { initViewportFix } from "../viewport";
-import { RealtimeKitWrapper } from "./realtimekit";
 
 interface ProvidersProps {
   children: ReactNode;
@@ -32,8 +32,7 @@ export default function Providers({ children }: ProvidersProps) {
       >
         <GlobalProvider>
         <Rainbow>
-          {/* RealtimeKit replaces HMSRoomProvider */}
-          <RealtimeKitWrapper>{children}</RealtimeKitWrapper>
+          <HMSRoomProvider>{children}</HMSRoomProvider>
         </Rainbow>
         </GlobalProvider>
       </MiniKitProvider>

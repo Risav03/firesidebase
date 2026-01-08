@@ -1,18 +1,3 @@
-/**
- * @deprecated PENDING MIGRATION TO REALTIMEKIT
- * 
- * This drawer uses 100ms hooks for speaker request management.
- * 
- * RealtimeKit equivalent:
- * - Speaker requests are handled via Stage Management
- * - Use useStageEvents() and useStageManagement() hooks
- * - Requests come from meeting.stage.on('newStageRequest')
- * - Approve with meeting.stage.grantAccess([userIds])
- * - Reject with meeting.stage.denyAccess([userIds])
- * 
- * The functionality is already built into ConferenceRTK.tsx
- * This component can be deleted once RTK is fully stable.
- */
 'use client'
 
 import { useEffect, useState } from 'react';

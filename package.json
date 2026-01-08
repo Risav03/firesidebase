@@ -8,17 +8,14 @@
   ],
   "scripts": {
     "dev": "turbo run dev",
-    "dev:web": "turbo run dev --filter=web",
-    "dev:backend": "turbo run dev --filter=fireside-backend",
     "build": "turbo run build",
     "lint": "turbo run lint",
-    "type-check": "turbo run type-check",
-    "clean": "rm -rf node_modules apps/*/node_modules apps/*/.next apps/*/dist"
+    "type-check": "turbo run type-check"
   },
   "devDependencies": {
-    "turbo": "^2.3.0"
+    "turbo": "latest"
   },
-  "packageManager": "bun@1.2.21",
+  "packageManager": "npm@10.2.4",
   "engines": {
     "node": ">=18.0.0"
   }

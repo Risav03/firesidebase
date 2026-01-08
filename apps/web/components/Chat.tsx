@@ -1,23 +1,18 @@
 "use client";
 
-/**
- * ChatRTK - RealtimeKit version of Chat
- * 
- * Key changes from 100ms version:
- * - Uses useChat() hook instead of selectHMSMessages + sendBroadcastMessage
- * - Uses meeting.chat.sendTextMessage() for broadcast messages
- * - Uses meeting.chat.on('chatUpdate') for receiving messages
- * - Maintains Redis persistence for message history
- */
-
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useRealtimeKit } from "@/utils/providers/realtimekit";
-import { useChat, useLocalParticipant, type ChatMessage as RTKChatMessage } from "@/utils/providers/realtimekit-hooks";
+import {
+  selectHMSMessages,
+  selectLocalPeer,
+  useHMSActions,
+  useHMSStore,
+  HMSMessage,
+} from "@100mslive/react-sdk";
 import { ChatMessage } from "./ChatMessage";
 import { useGlobalContext } from "@/utils/providers/globalContext";
 import { toast } from "react-toastify";
 import sdk from "@farcaster/miniapp-sdk";
-import { MdSend } from 'react-icons/md';
+import { MdClose, MdSend } from 'react-icons/md';
 import { fetchChatMessages, sendChatMessage } from "@/utils/serverActions";
 import {
   Drawer,
@@ -27,34 +22,21 @@ import {
   DrawerTitle,
 } from "@/components/UI/drawer";
 
-interface RedisChatMessage {
-  id: string;
-  roomId: string;
-  userId: string | number;
-  username: string;
-  displayName: string;
-  pfp_url: string;
-  message: string;
-  timestamp: string;
-  type: 'text';
-}
-
-interface ChatRTKProps {
+interface ChatProps {
   isOpen: boolean;
   setIsChatOpen: () => void;
   roomId: string;
 }
 
-export default function ChatRTK({ isOpen, setIsChatOpen, roomId }: ChatRTKProps) {
+export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   const [message, setMessage] = useState("");
   const [redisMessages, setRedisMessages] = useState<RedisChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { meeting } = useRealtimeKit();
-  const { messages: rtkMessages, sendBroadcastMessage } = useChat(meeting);
-  const localParticipant = useLocalParticipant(meeting);
+  const messages = useHMSStore(selectHMSMessages);
+  const hmsActions = useHMSActions();
   const { user } = useGlobalContext();
 
   // Scroll to bottom function
@@ -67,13 +49,19 @@ export default function ChatRTK({ isOpen, setIsChatOpen, roomId }: ChatRTKProps)
     }
   }, []);
 
-  // Load messages from Redis on mount
   useEffect(() => {
     const loadMessages = async () => {
       if (!roomId) return;
 
       setLoading(true);
       try {
+        const env = process.env.NEXT_PUBLIC_ENV;
+        
+        var token: any = "";
+        if (env !== "DEV") {
+          token = (await sdk.quickAuth.getToken()).token;
+        };
+
         const response = await fetchChatMessages(roomId, 50);
         
         if (response.ok && response.data.success) {
@@ -97,7 +85,9 @@ export default function ChatRTK({ isOpen, setIsChatOpen, roomId }: ChatRTKProps)
     if (isOpen) {
       setTimeout(scrollToBottom, 300);
     }
-  }, [isOpen, rtkMessages, redisMessages, scrollToBottom]);
+  }, [isOpen, messages, redisMessages, scrollToBottom]);
+
+
 
   // Auto-resize textarea based on content
   const adjustTextareaHeight = () => {
@@ -105,8 +95,8 @@ export default function ChatRTK({ isOpen, setIsChatOpen, roomId }: ChatRTKProps)
     if (textarea) {
       textarea.style.height = 'auto';
       const scrollHeight = textarea.scrollHeight;
-      const maxHeight = 120;
-      const minHeight = 48;
+      const maxHeight = 120; // Maximum height in pixels (roughly 4-5 lines)
+      const minHeight = 48; // Minimum height in pixels
       
       if (scrollHeight <= maxHeight) {
         textarea.style.height = `${Math.max(scrollHeight, minHeight)}px`;
@@ -124,10 +114,11 @@ export default function ChatRTK({ isOpen, setIsChatOpen, roomId }: ChatRTKProps)
   }, [message]);
 
   const handleSendMessage = async () => {
+    const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
     if (!message.trim() || !user?.fid) return;
 
     const messageText = message.trim();
-    setMessage("");
+    setMessage(""); // Clear input immediately
     
     // Reset textarea height after clearing message
     setTimeout(() => {
@@ -136,8 +127,8 @@ export default function ChatRTK({ isOpen, setIsChatOpen, roomId }: ChatRTKProps)
     }, 0);
 
     try {
-      // Send to RealtimeKit for real-time broadcast
-      // Format: meeting.chat.sendTextMessage(text)
+      // Send to HMS for real-time broadcast
+      // Format the message to include user fid for identification
       const messageWithMetadata = JSON.stringify({
         text: messageText,
         userFid: user.fid,
@@ -146,15 +137,14 @@ export default function ChatRTK({ isOpen, setIsChatOpen, roomId }: ChatRTKProps)
         displayName: user.displayName || user.username || '',
         type: 'chat'
       });
-      
-      await sendBroadcastMessage(messageWithMetadata);
+      hmsActions.sendBroadcastMessage(messageWithMetadata);
 
-      // Get auth token for backend
       const env = process.env.NEXT_PUBLIC_ENV;
-      let token = "";
+        
+      var token: any = "";
       if (env !== "DEV") {
         token = (await sdk.quickAuth.getToken()).token;
-      }
+      };
 
       // Store in Redis for persistence
       const response = await sendChatMessage(
@@ -175,6 +165,8 @@ export default function ChatRTK({ isOpen, setIsChatOpen, roomId }: ChatRTKProps)
       }
     } catch (error) {
       console.error('Error sending message:', error);
+      // toast.error('Error sending message. Please try again.');
+      // Could show a retry option here
     }
   };
 
@@ -185,6 +177,8 @@ export default function ChatRTK({ isOpen, setIsChatOpen, roomId }: ChatRTKProps)
     }
   };
 
+
+
   // Helper function to validate message structure
   const isValidMessageStructure = (msg: any): boolean => {
     if (!msg || typeof msg !== 'object') return false;
@@ -192,12 +186,14 @@ export default function ChatRTK({ isOpen, setIsChatOpen, roomId }: ChatRTKProps)
     // For Redis messages
     if ('timestamp' in msg && 'message' in msg && typeof msg.message === 'string') return true;
     
-    // For RTK messages
+    // For HMS messages
     if ('time' in msg && 'message' in msg) {
+      // Check if the message is a JSON string containing our metadata
       try {
         const parsedMessage = JSON.parse(msg.message);
         return typeof parsedMessage === 'object' && 'text' in parsedMessage;
       } catch (e) {
+        // If it's not parseable as JSON, check if it's a plain string message
         return typeof msg.message === 'string';
       }
     }
@@ -207,12 +203,12 @@ export default function ChatRTK({ isOpen, setIsChatOpen, roomId }: ChatRTKProps)
 
   // Filter and combine messages
   const validRedisMessages = redisMessages.filter(isValidMessageStructure);
-  
-  const validRTKMessages = rtkMessages
+  const validHMSMessages = messages
     .filter(msg => {
       if (!isValidMessageStructure(msg)) return false;
       
-      // Extract text for deduplication
+      // Check if this message already exists in Redis
+      // For HMS messages that contain JSON, we need to extract the text part
       let messageText;
       try {
         const parsedMsg = JSON.parse(msg.message);
@@ -221,60 +217,64 @@ export default function ChatRTK({ isOpen, setIsChatOpen, roomId }: ChatRTKProps)
         messageText = msg.message;
       }
 
-      // Check if already in Redis
       return !validRedisMessages.some(redisMsg =>
         redisMsg.message === messageText &&
         Math.abs(new Date(redisMsg.timestamp).getTime() - msg.time.getTime()) < 5000
       );
     })
-    .map(rtkMsg => {
-      // Parse the message to extract metadata
-      let messageText = rtkMsg.message;
+    .map(hmsMsg => {
+      // Try to parse the message as JSON to extract user fid
+      let messageText = hmsMsg.message;
       let messageFid = '';
       let messagePfpUrl = '';
       let messageUsername = '';
       let messageDisplayName = '';
       
       try {
-        const parsedMsg = JSON.parse(rtkMsg.message);
+        const parsedMsg = JSON.parse(hmsMsg.message);
         messageText = parsedMsg.text;
         messageFid = parsedMsg.userFid || '';
         messagePfpUrl = parsedMsg.pfp_url || '';
         messageUsername = parsedMsg.username || '';
         messageDisplayName = parsedMsg.displayName || '';
       } catch (e) {
-        messageText = rtkMsg.message;
+        // If parsing fails, use the message as is
+        messageText = hmsMsg.message;
       }
       
       return {
-        id: `rtk_${rtkMsg.id}`,
+        id: `hms_${hmsMsg.id}`,
         roomId: roomId,
-        userId: messageFid || user?.fid || rtkMsg.participantId || 'unknown',
-        username: rtkMsg.displayName || 'Unknown',
-        displayName: rtkMsg.displayName || 'Unknown',
+        userId: messageFid || user.fid || hmsMsg.sender || 'unknown',
+        username: hmsMsg.senderName || hmsMsg.sender || 'Unknown',
+        displayName: hmsMsg.senderName || hmsMsg.sender || 'Unknown',
         pfp_url: '',
         message: messageText,
-        timestamp: rtkMsg.time.toISOString(),
+        timestamp: hmsMsg.time.toISOString(),
         type: 'text' as const
       };
     });
 
-  const combinedMessages = [...validRedisMessages, ...validRTKMessages]
+  const combinedMessages = [...validRedisMessages, ...validHMSMessages]
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+  // Always render, but control visibility through CSS classes
+  // const modalClass = `chat-modal ${isOpen ? 'open' : ''} ${isClosing ? 'closing' : ''}`;
 
   return (
     <Drawer open={isOpen} onOpenChange={setIsChatOpen}>
-      <DrawerContent className="gradient-orange-bg backdrop-blur-lg border-fireside-orange/20 text-white">
+      <DrawerContent className="gradient-orange-bg backdrop-blur-lg border-fireside-orange/20 text-white ">
         <DrawerHeader className="border-b border-fireside-lightWhite">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-3 h-3 bg-fireside-orange rounded-full animate-pulse"></div>
               <DrawerTitle className="text-xl font-semibold text-white">Room Chat</DrawerTitle>
             </div>
+            
           </div>
         </DrawerHeader>
 
-        <div className="flex-1 overflow-y-auto px-4 py-6 max-h-[90vh]">
+        <div className="flex-1 overflow-y-auto px-4 py-6 max-h-[90vh] ">
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-white text-sm">Loading messages...</div>
@@ -318,17 +318,19 @@ export default function ChatRTK({ isOpen, setIsChatOpen, roomId }: ChatRTKProps)
 
         <DrawerFooter className="border-t border-fireside-lightWhite">
           <div className="flex items-start space-x-3">
-            <textarea
-              ref={textareaRef}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Type a message..."
-              className="w-full px-4 py-3 bg-white/5 text-white rounded-lg border border-fireside-lightWhite focus:border-fireside-darkWhite focus:ring-2 focus:ring-fireside-orange transition-colors duration-200 outline-none resize-none min-h-[48px] text-base"
-              maxLength={500}
-              rows={1}
-              onFocus={() => setTimeout(scrollToBottom, 300)}
-            />
+            
+              <textarea
+                ref={textareaRef}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Type a message..."
+                className="w-full px-4 py-3 bg-white/5 text-white rounded-lg border border-fireside-lightWhite focus:border-fireside-darkWhite focus:ring-2 focus:ring-fireside-orange transition-colors duration-200 outline-none resize-none min-h-[48px] text-base"
+                maxLength={500}
+                rows={1}
+                onFocus={() => setTimeout(scrollToBottom, 300)}
+              />
+           
             <button
               onClick={handleSendMessage}
               disabled={!message.trim()}
@@ -348,4 +350,3 @@ export default function ChatRTK({ isOpen, setIsChatOpen, roomId }: ChatRTKProps)
     </Drawer>
   );
 }
-

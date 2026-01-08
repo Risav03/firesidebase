@@ -9,8 +9,6 @@
     "@100mslive/hms-video-store": "^0.12.39",
     "@100mslive/react-icons": "^0.10.36",
     "@100mslive/react-sdk": "^0.10.39",
-    "@cloudflare/realtimekit-react": "^1.2.2",
-    "@cloudflare/realtimekit-react-ui": "^1.0.8",
     "@coinbase/onchainkit": "^0.38.19",
     "@emoji-mart/data": "^1.2.1",
     "@emoji-mart/react": "^1.1.1",
@@ -52,7 +50,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "bunx tsc --noEmit --skipLibCheck"
+    "type-check": "tsc --noEmit"
   },
   "eslintConfig": {
     "extends": [

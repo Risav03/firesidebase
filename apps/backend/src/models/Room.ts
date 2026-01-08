@@ -16,8 +16,7 @@ const Room: Schema = new Schema({
     enum: ['upcoming', 'ongoing', 'ended'], 
     default: 'upcoming' 
   },
-  roomId: { type: String, default: "" }, // HMS Room ID (legacy)
-  rtkMeetingId: { type: String, default: "" }, // RealtimeKit Meeting ID
+  roomId: { type: String, default: "" }, // HMS Room ID
   interested: [{ type: mongoose.Schema.Types.ObjectId, default: [] }], // Array of user FIDs who showed interest
   participants: [{ type: mongoose.Schema.Types.ObjectId, default: [] }], // Array of user FIDs who participated
   topics: [{ type: String, default: [] }],

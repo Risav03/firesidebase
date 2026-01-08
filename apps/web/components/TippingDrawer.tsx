@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-// Removed 100ms imports - using RealtimeKit
-import { useRealtimeKit } from '@/utils/providers/realtimekit';
+import { useState, useEffect, useRef } from 'react';
+import { useHMSActions, useHMSStore, selectLocalPeer } from '@100mslive/react-sdk';
 import { useGlobalContext } from '@/utils/providers/globalContext';
 import sdk from '@farcaster/miniapp-sdk';
 import { toast } from 'react-toastify';
-// Removed: import { useTipEvent } from '@/utils/events'; // Uses 100ms
+import { useTipEvent } from '@/utils/events';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/UI/drawer';
 import { useMiniKit } from '@coinbase/onchainkit/minikit';
 import { encodeFunctionData } from 'viem';
@@ -26,7 +25,8 @@ interface TippingDrawerProps {
 }
 
 export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerProps) {
-  const { meeting } = useRealtimeKit(); // RealtimeKit for chat
+  const hmsActions = useHMSActions();
+  const localPeer = useHMSStore(selectLocalPeer);
   
   const [tipAmount, setTipAmount] = useState<string>('');
   const [isTipping, setIsTipping] = useState(false);
@@ -43,11 +43,8 @@ export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerPr
   const { sendCalls, isSuccess, status } = useSendCalls();
   const lastCurrencyRef = useRef<string>('ETH');
   
-  // Stub for tip notification (pending Phase 6 custom events migration)
-  const sendTipNotification = useCallback((tipData: any) => {
-    // TODO: Implement with RealtimeKit custom events
-    console.log('[TippingDrawer] Tip notification pending migration:', tipData);
-  }, []);
+  const { sendTipNotification } = useTipEvent();
+  const roomId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() || '' : '';
 
   const fetchTokenPrices = async () => {
     try {
@@ -112,7 +109,8 @@ export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerPr
     const recipient = peer.name || 'User';
     
     // Tip notification pending Phase 6 custom events migration
-    sendTipNotification({
+     sendTipNotification({
+      roomId: roomId,
       tipper: {
         username: tipper,
         pfp_url: user?.pfp_url || '',
@@ -132,15 +130,7 @@ export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerPr
     
     const emoji = tipAmountUSD >= 100 ? '💸' : tipAmountUSD >= 25 ? '🎉' : '👍';
     const message = `${emoji} ${tipper} tipped ${recipient} $${tipAmountUSD} in ${currency}!`;
-    
-    // Send broadcast message via RealtimeKit chat
-    if (meeting?.chat) {
-      try {
-        await meeting.chat.sendTextMessage(message);
-      } catch (err) {
-        console.warn('[TippingDrawer] Failed to send tip notification:', err);
-      }
-    }
+    hmsActions.sendBroadcastMessage(message);
     
     toast.success('Tip sent successfully!');
     setTipAmount('');
