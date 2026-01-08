@@ -130,8 +130,9 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
     
     (async () => {
       await handleSignIn();
+      sdk.actions.ready();
       if (process.env.NEXT_PUBLIC_ENV !== "DEV") {
-        sdk.actions.ready();
+        
 
         try {
           await sdk.actions.requestCameraAndMicrophoneAccess();
