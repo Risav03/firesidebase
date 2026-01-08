@@ -86,7 +86,7 @@ export default function RoleChangeHandler() {
             });
 
             // Parse metadata if it exists
-            let metadata: { avatar?: string; fid?: string } = {};
+            let metadata: { avatar?: string; fid?: string; wallet?: string } = {};
             try {
               if (peer.metadata) {
                 metadata = JSON.parse(peer.metadata);
@@ -105,10 +105,14 @@ export default function RoleChangeHandler() {
             await hmsActions.join({
               userName: peer.name || 'Anonymous',
               authToken,
+              settings:{
+                isAudioMuted:true
+              },
               metaData: JSON.stringify({
                 avatar: metadata.avatar || '',
                 role: newRole,
-                fid: metadata.fid || ''
+                fid: metadata.fid || '',
+                wallet: metadata.wallet || '',
               })
             });
             
