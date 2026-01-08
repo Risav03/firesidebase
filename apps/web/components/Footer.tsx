@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   selectIsAllowedToPublish,
   useAVToggle,
@@ -8,17 +8,20 @@ import {
   selectLocalPeerID,
   selectHasPeerHandRaised,
   selectLocalPeer,
+  useHMSActions,
 } from "@100mslive/react-sdk";
 import { useGlobalContext } from "../utils/providers/globalContext";
 import { useHandRaiseLogic } from "./footer/useHandRaiseLogic";
 import { useEmojiReactionLogic } from "./footer/useEmojiReactionLogic";
 import { useSoundboardLogic } from "./footer/useSoundboardLogic";
+import { useSpeakerRequestEvent, useSpeakerRejectionEvent } from "../utils/events";
 import { ControlCenterDrawer } from "./experimental";
 import Chat from "./Chat";
 import TippingModal from "./TippingModal";
 import EmojiPickerDrawer from "./footer/EmojiPickerDrawer";
 import FloatingEmojis from "./footer/FloatingEmojis";
 import SoundboardDrawer from "./SoundboardDrawer";
+import { toast } from "react-toastify";
 
 export default function Footer({ roomId }: { roomId: string }) {
   const { isLocalAudioEnabled, toggleAudio } = useAVToggle((err) => {
@@ -30,11 +33,48 @@ export default function Footer({ roomId }: { roomId: string }) {
   const isHandRaised = useHMSStore(selectHasPeerHandRaised(localPeerId));
 
   const { user } = useGlobalContext();
+  const hmsActions = useHMSActions();
   const [controlsOpen, setControlsOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isTippingOpen, setIsTippingOpen] = useState(false);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const [isSoundboardOpen, setIsSoundboardOpen] = useState(false);
+
+    const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
+  const [speakerRequested, setSpeakerRequested] = useState(false);
+
+  const { requestToSpeak } = useSpeakerRequestEvent();
+
+  // Load speaker request state from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedRequest = localStorage.getItem(`speakerRequested_${localPeerId || user?.fid}`);
+      if (storedRequest === 'true') {
+        setSpeakerRequested(true);
+      }
+    }
+  }, [localPeerId, user?.fid]);
+
+  // Handle speaker rejection
+  useSpeakerRejectionEvent((msg) => {
+    if (msg.peer === (localPeerId || user?.fid)) {
+      setSpeakerRequested(false);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(`speakerRequested_${localPeerId || user?.fid}`);
+      }
+    }
+  });
+
+  // Clear speaker request when unmute permission is granted
+  useEffect(() => {
+    if (canUnmute && speakerRequested) {
+      setSpeakerRequested(false);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(`speakerRequested_${localPeerId || user?.fid}`);
+      }
+      toast.success("You can now speak!", { autoClose: 3000 });
+    }
+  }, [canUnmute, speakerRequested, localPeerId, user?.fid]);
 
   const { toggleRaiseHand } = useHandRaiseLogic({
     isHandRaised,
@@ -45,8 +85,21 @@ export default function Footer({ roomId }: { roomId: string }) {
 
   const soundboardLogic = useSoundboardLogic(user);
 
-  const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
   const isListener = localPeer?.roleName?.toLowerCase() === 'listener';
+
+  const handleRequestToSpeak = () => {
+    setSpeakerRequested(true);
+    
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`speakerRequested_${localPeerId || user?.fid}`, 'true');
+    }
+    
+    requestToSpeak(localPeerId as string);
+    
+    toast.success("🎙️ Speaker request sent", { 
+      autoClose: 3000
+    });
+  };
 
   const handleReaction = () => {
     setIsEmojiPickerOpen(true);
@@ -60,9 +113,9 @@ export default function Footer({ roomId }: { roomId: string }) {
           setOpen={setControlsOpen}
           muted={isListener ? false : !isLocalAudioEnabled}
           setMuted={(muted) => {
-            if (isListener) {
-              // For listeners, the mute button becomes a request button
-              toggleRaiseHand();
+            if (isListener && !canUnmute) {
+              // For listeners without unmute permission, handle speaker request
+              handleRequestToSpeak();
             } else if (muted && isLocalAudioEnabled && toggleAudio) {
               toggleAudio();
             } else if (!muted && !isLocalAudioEnabled && canUnmute && toggleAudio) {
@@ -75,8 +128,6 @@ export default function Footer({ roomId }: { roomId: string }) {
               toggleRaiseHand();
             }
           }}
-          isListener={isListener}
-          requestSent={isListener && isHandRaised}
           onReact={handleReaction}
           onChat={() => setIsChatOpen(true)}
           onTip={() => setIsTippingOpen(true)}
@@ -84,6 +135,10 @@ export default function Footer({ roomId }: { roomId: string }) {
           onVisibleHeightChange={(h) => {
             // Optional: track drawer height if needed
           }}
+          canUnmute={canUnmute}
+          isListener={isListener}
+          speakerRequested={speakerRequested}
+          hmsActions={hmsActions}
         />
       </div>
       

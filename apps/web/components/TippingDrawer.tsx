@@ -107,6 +107,7 @@ export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerPr
     const tipAmountUSD = parseFloat(tipAmount);
     const tipper = user?.username || 'Someone';
     const recipient = peer.name || 'User';
+    const recipientId = peer.id || '';
     
     // Tip notification pending Phase 6 custom events migration
      sendTipNotification({
@@ -119,6 +120,7 @@ export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerPr
         username: recipient,
         pfp_url: peer.pfp_url || '',
         role: peer.roleName,
+        id: recipientId,
       }],
       amount: {
         usd: tipAmountUSD,

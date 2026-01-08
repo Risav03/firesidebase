@@ -3,6 +3,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { ChevronDown, MessageCircle, Gift, Mic, MicOff, Hand, Sparkles, Volume2 } from "lucide-react";
 import { TOKENS } from "../utils";
 import { IconButton } from "../ui";
+import { HMSActions } from "@100mslive/react-sdk";
+import { GiMicrophone } from "react-icons/gi";
 
 export function ControlCenterDrawer(props: {
   open: boolean;
@@ -16,6 +18,10 @@ export function ControlCenterDrawer(props: {
   onTip: () => void;
   onSoundboard: () => void;
   onVisibleHeightChange?: (h: number) => void;
+  canUnmute: boolean;
+  isListener: boolean;
+  speakerRequested: boolean;
+  hmsActions: HMSActions;
 }) {
   const collapsedH = 118;
   const expandedH = 230;
@@ -135,26 +141,43 @@ export function ControlCenterDrawer(props: {
               whileTap={{ scale: 0.98 }}
               className="grid h-12 w-[120px] place-items-center rounded-2xl text-sm font-semibold backdrop-blur-md"
               style={{
-                border: `1px solid ${props.muted ? TOKENS.line : "rgba(255,90,106,.32)"}`,
-                background: props.muted
-                  ? "rgba(0,0,0,.22)"
-                  : "rgba(255,90,106,.11)",
+                border: `1px solid ${props.isListener && !props.canUnmute ? (props.speakerRequested ? "rgba(255,255,255,.32)" : "rgba(255,220,90,.32)") : (props.muted ? TOKENS.line : "rgba(255,90,106,.32)")}`,
+                background: props.isListener && !props.canUnmute
+                  ? (props.speakerRequested ? "rgba(0,0,0,.22)" : "rgba(255,220,90,.11)")
+                  : (props.muted ? "rgba(0,0,0,.22)" : "rgba(255,90,106,.11)"),
                 color: TOKENS.text,
-                boxShadow: props.muted
-                  ? "none"
-                  : "0 0 22px rgba(255,90,106,.13)",
+                boxShadow: props.isListener && !props.canUnmute
+                  ? (props.speakerRequested ? "none" : "0 0 22px rgba(255,220,90,.13)")
+                  : (props.muted ? "none" : "0 0 22px rgba(255,90,106,.13)"),
+                opacity: props.speakerRequested ? 0.7 : 1,
               }}
-              aria-label={props.muted ? "Unmute" : "Mute"}
+              disabled={props.speakerRequested}
+              aria-label={
+                props.isListener && !props.canUnmute
+                  ? (props.speakerRequested ? "Request sent" : "Request to speak")
+                  : (props.muted ? "Unmute" : "Mute")
+              }
             >
               <div className="flex items-center gap-2">
-                {props.muted ? (
-                  <MicOff className="h-5 w-5" />
+                {props.isListener && !props.canUnmute ? (
+                  <>
+                    <GiMicrophone className="h-5 w-5" />
+                    <span className="text-xs">
+                      {props.speakerRequested ? "Sent" : "Request"}
+                    </span>
+                  </>
                 ) : (
-                  <Mic className="h-5 w-5" />
+                  <>
+                    {props.muted ? (
+                      <MicOff className="h-5 w-5" />
+                    ) : (
+                      <Mic className="h-5 w-5" />
+                    )}
+                    <span className="text-xs">
+                      {props.muted ? "Muted" : "Live"}
+                    </span>
+                  </>
                 )}
-                <span className="text-xs">
-                  {props.muted ? "Muted" : "Live"}
-                </span>
               </div>
             </motion.button>
 
