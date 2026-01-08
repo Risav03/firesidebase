@@ -119,7 +119,7 @@ export default function Conference({ roomId }: { roomId: string }) {
     };
 
   // Use the custom hook for speaker requests
-  useSpeakerRequestEvent((msg) => {
+  useSpeakerRequestEvent((msg:any) => {
     console.log("[HMS Event - Conference] Speaker request event received", {
       peer: msg.peer,
       timestamp: new Date().toISOString(),
