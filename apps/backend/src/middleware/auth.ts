@@ -12,8 +12,8 @@ export const authMiddleware = async ({ set, headers, request }: { set: any, head
       const client = createClient();
       let authorization: string | null = null;
 
-      // In development mode, use DEV_HEADER if available
-      if (config.isDevelopment && config.devHeader) {
+      // In development mode OR if ENABLE_DEV_AUTH is set, use DEV_HEADER if available
+      if ((config.isDevelopment || config.enableDevAuth) && config.devHeader) {
         authorization = `Bearer ${config.devHeader}`;
         console.log("🛠️  Using development header for authentication");
       } else {
