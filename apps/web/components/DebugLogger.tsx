@@ -96,6 +96,53 @@ export function DebugLoggerProvider({ children, defaultEnabled = false }: DebugL
     };
   }, [addLog]);
 
+  // Intercept fetch to log network requests (for debugging CORS issues)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const originalFetch = window.fetch;
+    
+    window.fetch = async function(input: RequestInfo | URL, init?: RequestInit) {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      const method = init?.method || 'GET';
+      
+      // Only log RealtimeKit/Cloudflare related requests
+      if (url.includes('realtime') || url.includes('cloudflare') || url.includes('dyte') || url.includes('rtk')) {
+        addLog('info', `[NET] ${method} ${url.substring(0, 80)}...`);
+      }
+      
+      try {
+        const response = await originalFetch.call(window, input, init);
+        
+        if (url.includes('realtime') || url.includes('cloudflare') || url.includes('dyte') || url.includes('rtk')) {
+          if (!response.ok) {
+            addLog('error', `[NET] ${method} ${response.status}`, {
+              url: url.substring(0, 100),
+              status: response.status,
+              statusText: response.statusText,
+            });
+          } else {
+            addLog('info', `[NET] ${method} ${response.status} OK`);
+          }
+        }
+        
+        return response;
+      } catch (error: any) {
+        // This catches CORS errors, network errors, etc.
+        addLog('error', `[NET ERROR] ${method}`, {
+          url: url.substring(0, 100),
+          error: error?.message || 'Network error (possible CORS)',
+          type: error?.name,
+        });
+        throw error;
+      }
+    };
+    
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, [addLog]);
+
   return (
     <DebugLoggerContext.Provider value={{ logs, addLog, clearLogs, isEnabled, setIsEnabled }}>
       {children}
