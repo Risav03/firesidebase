@@ -100,8 +100,6 @@ export const config = {
   devHeader: getOptionalEnvVar('DEV_HEADER'),
   devJwtDomain: getOptionalEnvVar('DEV_JWT_DOMAIN'),
   adminToken: getOptionalEnvVar('ADMIN_TOKEN'),
-  // Set ENABLE_DEV_AUTH=true to use DEV_HEADER even in production (for testing)
-  enableDevAuth: getOptionalEnvVar('ENABLE_DEV_AUTH', 'false') === 'true',
 
   // AWS/S3 Configuration
   awsRegion: getEnvVar('AWS_REGION', 'us-east-1'),
