@@ -18,8 +18,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ? 'gradient-fire text-white shadow-lg hover:shadow-xl hover:scale-[1.02] duration-200 rounded-full font-bold'
         : 'gradient-fire text-white shadow-lg hover:shadow-xl hover:scale-[1.02] duration-200 rounded-full',
       ghost: active 
-        ? 'bg-white/20 border-t-[1px] border-l-[1px] border-white/20 text-white font-bold'
-        : 'bg-white/5 border-t-[1px] border-l-[1px] border-white/20 text-white/70 hover:bg-white/20 hover:text-white',
+        ? 'bg-white/20 text-white font-bold'
+        : 'bg-white/5 text-white/70 hover:bg-white/20 hover:text-white',
       outline: 'bg-transparent border-2 border-fireside-orange text-fireside-orange hover:bg-fireside-orange/10 hover:shadow-md rounded-full',
       action: active
         ? 'gradient-fire border-t-[1px] border-l-[1px] border-white/50 text-white font-bold'

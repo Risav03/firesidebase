@@ -142,7 +142,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
 
   return (
     <Drawer open={isOpen} onOpenChange={onClose}>
-      <DrawerContent className="bg-black/95 backdrop-blur-lg text-white ">
+      <DrawerContent className="bg-black/95 backdrop-blur-lg text-white gradient-orange-bg ">
         <DrawerHeader className="border-b border-orange-500/30">
           <div className="flex items-center justify-between">
             <DrawerTitle className="text-2xl font-semibold text-white">Create New Room</DrawerTitle>
@@ -257,6 +257,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
             {!showSchedule ? (
               <>
                 <Button
+                  variant={'action'}                
                   disabled={loading}
                   onClick={createRoomHandler}
                   className="gradient-fire w-[70%] text-white font-medium"
