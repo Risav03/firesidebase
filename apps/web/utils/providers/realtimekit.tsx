@@ -72,6 +72,19 @@ export function RealtimeKitWrapper({ children }: RealtimeKitWrapperProps) {
     try {
       debugLog('info', 'Initializing meeting...');
       
+      // Debug: Log browser/WebView environment info
+      if (typeof window !== 'undefined') {
+        const ua = navigator.userAgent;
+        debugLog('info', 'User Agent', ua.substring(0, 100));
+        debugLog('info', 'Environment check', {
+          isWebView: /wv|WebView/i.test(ua),
+          isFarcaster: /Farcaster/i.test(ua),
+          isIOS: /iPhone|iPad|iPod/i.test(ua),
+          hasWebRTC: !!(window as any).RTCPeerConnection,
+          hasMediaDevices: !!navigator.mediaDevices,
+        });
+      }
+      
       // Debug: Decode and log token payload (JWT is base64)
       try {
         const tokenParts = config.authToken.split('.');
