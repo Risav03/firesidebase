@@ -151,6 +151,9 @@ export default function Conference({ roomId }: { roomId: string }) {
     handleSpeakerRequest({ peerId: msg.peer });
   });
 
+  // Use the custom hook for sending speaker rejections
+  const { rejectSpeakerRequest } = useSpeakerRejectionEvent();
+
 
   const handRaise = useHMSNotifications(HMSNotificationTypes.HAND_RAISE_CHANGED);
   const peer = handRaise?.data;
@@ -379,11 +382,14 @@ useEffect(() => {
       prevRequests.filter(req => req.peerId !== request.peerId)
     );
     
+    // Send rejection event to the peer
+    rejectSpeakerRequest(request.peerId);
+    
     // Log rejection
     console.log(`Rejected speaker request for peer: ${request.peerId}`);
   };
 
-  // Use the custom hook for speaker rejections
+  // Use the custom hook for speaker rejections listener (to handle when remote peer is rejected)
   useSpeakerRejectionEvent((msg) => {
     console.log("[HMS Event - Conference] Speaker rejection event received", {
       peer: msg.peer,
@@ -458,7 +464,7 @@ useEffect(() => {
       <div className="relative min-h-screen">
         <FirelightField flicker={flicker} />
 
-        <Card className="bg-fireside-orange/5 gradient-orange-bg m-3 px-2 py-4 rounded-2xl">
+        <Card className="bg-fireside-orange/5 gradient-orange-bg m-3 p-4 rounded-2xl">
           <h1 className="text-lg font-bold gradient-fire-text">{roomDetails?.name}</h1>
           <p className="text-sm text-gray-300">{roomDetails?.description}</p>
         </Card>
@@ -508,7 +514,7 @@ useEffect(() => {
             {handsRaised.length > 0 && (
               <div className="mb-6">
                 <div className="text-xs mb-3" style={{ color: 'rgba(255,255,255,.55)' }}>
-                  Spark requests
+                  Speaker requests ({speakerRequests.length})
                 </div>
                 <div className="space-y-2">
                   {handsRaised.map((p) => {
