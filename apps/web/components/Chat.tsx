@@ -246,9 +246,9 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         id: `hms_${hmsMsg.id}`,
         roomId: roomId,
         userId: messageFid || user.fid || hmsMsg.sender || 'unknown',
-        username: hmsMsg.senderName || hmsMsg.sender || 'Unknown',
-        displayName: hmsMsg.senderName || hmsMsg.sender || 'Unknown',
-        pfp_url: '',
+        username: messageUsername || hmsMsg.senderName || hmsMsg.sender || 'Unknown',
+        displayName: messageDisplayName || hmsMsg.senderName || hmsMsg.sender || 'Unknown',
+        pfp_url: messagePfpUrl,
         message: messageText,
         timestamp: hmsMsg.time.toISOString(),
         type: 'text' as const

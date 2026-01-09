@@ -163,7 +163,7 @@ export function ControlCenterDrawer(props: {
                   <>
                     <GiMicrophone className="h-5 w-5" />
                     <span className="text-xs">
-                      {props.speakerRequested ? "Send" : "Request"}
+                      {props.speakerRequested ? "Sent" : "Request"}
                     </span>
                   </>
                 ) : (

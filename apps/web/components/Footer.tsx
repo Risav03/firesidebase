@@ -57,6 +57,7 @@ export default function Footer({ roomId }: { roomId: string }) {
 
   // Handle speaker rejection
   useSpeakerRejectionEvent((msg) => {
+    console.log("Received speaker rejection event:", msg);
     if (msg.peer === (localPeerId || user?.fid)) {
       setSpeakerRequested(false);
       if (typeof window !== 'undefined') {
