@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ChevronDown, MessageCircle, Gift, Mic, MicOff, Hand, Sparkles, Volume2 } from "lucide-react";
+import { ChevronDown, MessageCircle, Gift, Mic, MicOff, Hand, Sparkles, Volume2, Coins, SmilePlus } from "lucide-react";
 import { TOKENS } from "../utils";
 import { IconButton } from "../ui";
 import { HMSActions } from "@100mslive/react-sdk";
@@ -130,7 +130,7 @@ export function ControlCenterDrawer(props: {
             </IconButton>
 
             <IconButton label="Tip" onClick={props.onTip}>
-              <Gift
+              <Coins
                 className="h-5 w-5"
                 style={{ color: "rgba(255,255,255,.78)" }}
               />
@@ -189,7 +189,7 @@ export function ControlCenterDrawer(props: {
             </IconButton>
 
             <IconButton label="React" onClick={props.onReact}>
-              <Sparkles
+              <SmilePlus
                 className="h-5 w-5"
                 style={{ color: "rgba(255,255,255,.78)" }}
               />
