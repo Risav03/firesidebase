@@ -184,7 +184,7 @@ export async function fetchChatMessages(roomId: string, limit: number = 50) {
   const messages = response.data.data.messages;
   
   // Extract unique fids from messages
-  const uniqueFids = [...new Set(messages.map((msg: any) => msg.userId).filter(Boolean))];
+  const uniqueFids = Array.from(new Set(messages.map((msg: any) => msg.userId).filter(Boolean)));
   
   if (uniqueFids.length === 0) {
     return response;
