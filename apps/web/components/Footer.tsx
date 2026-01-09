@@ -39,11 +39,9 @@ export default function Footer({ roomId }: { roomId: string }) {
   const [isTippingOpen, setIsTippingOpen] = useState(false);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const [isSoundboardOpen, setIsSoundboardOpen] = useState(false);
-
+  const [canRequestToSpeak, setCanRequestToSpeak] = useState(false);
   const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
-  const [cooldownEndTime, setCooldownEndTime] = useState<number>(0);
-  const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
-
+  
   const { requestToSpeak } = useSpeakerRequestEvent();
 
   useSpeakerRejectionEvent((msg) => {
@@ -60,51 +58,22 @@ export default function Footer({ roomId }: { roomId: string }) {
         autoClose: 3000,
         toastId: `speaker-reject-${peerId}-${Date.now()}`
       });
+      if(typeof window !== 'undefined'){
+        localStorage.setItem('speakerRequested', 'false');
+      }
+      setCanRequestToSpeak(true);
     }
   };
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedCooldown = localStorage.getItem(`speakerCooldown_${localPeerId || user?.fid}`);
-      if (storedCooldown) {
-        const endTime = parseInt(storedCooldown);
-        if (endTime > Date.now()) {
-          setCooldownEndTime(endTime);
-        } else {
-          localStorage.removeItem(`speakerCooldown_${localPeerId || user?.fid}`);
-        }
-      }
+    const speakerRequested = localStorage.getItem('speakerRequested');
+    if (speakerRequested === 'true') {
+      setCanRequestToSpeak(false);
+    } else {
+      setCanRequestToSpeak(true);
     }
-  }, [localPeerId, user?.fid]);
+  },[localStorage])
 
-  useEffect(() => {
-    if (cooldownEndTime > Date.now()) {
-      const interval = setInterval(() => {
-        const remaining = Math.ceil((cooldownEndTime - Date.now()) / 1000);
-        if (remaining <= 0) {
-          setCooldownEndTime(0);
-          setCooldownRemaining(0);
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem(`speakerCooldown_${localPeerId || user?.fid}`);
-          }
-        } else {
-          setCooldownRemaining(remaining);
-        }
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [cooldownEndTime, localPeerId, user?.fid]);
-
-  useEffect(() => {
-    if (canUnmute && cooldownEndTime > 0) {
-      setCooldownEndTime(0);
-      setCooldownRemaining(0);
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem(`speakerCooldown_${localPeerId || user?.fid}`);
-      }
-      toast.success("You can now speak!", { autoClose: 3000 });
-    }
-  }, [canUnmute, cooldownEndTime, localPeerId, user?.fid]);
 
   const { toggleRaiseHand } = useHandRaiseLogic({
     isHandRaised,
@@ -119,11 +88,9 @@ export default function Footer({ roomId }: { roomId: string }) {
 
   const handleRequestToSpeak = () => {
     const endTime = Date.now() + 90000;
-    setCooldownEndTime(endTime);
-    setCooldownRemaining(90);
     
     if (typeof window !== 'undefined') {
-      localStorage.setItem(`speakerCooldown_${localPeerId || user?.fid}`, endTime.toString());
+      localStorage.setItem('speakerRequested', 'true');
     }
     
     requestToSpeak(localPeerId as string);
@@ -168,8 +135,9 @@ export default function Footer({ roomId }: { roomId: string }) {
           }}
           canUnmute={canUnmute}
           isListener={isListener}
-          cooldownRemaining={cooldownRemaining}
+          // cooldownRemaining={cooldownRemaining}
           hmsActions={hmsActions}
+          canRequestToSpeak={canRequestToSpeak}
         />
       </div>
       

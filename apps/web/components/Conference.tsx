@@ -20,7 +20,7 @@ import { useHMSNotifications, HMSNotificationTypes } from '@100mslive/react-sdk'
 import RoomEndScreen from "./RoomEndScreen";
 import { toast } from "react-toastify";
 import { fetchRoomDetails, endRoom } from "@/utils/serverActions";
-import SpeakerRequestsDrawer from "./SpeakerRequestsDrawer";
+
 import { HandRaiseSparks, ScrollingName } from "./experimental";
 import {FirelightField} from "./experimental";
 import AvatarContextMenu from "./AvatarContextMenu";
@@ -68,6 +68,19 @@ export default function Conference({ roomId }: { roomId: string }) {
   const [reactions, setReactions] = useState<{ id: string; emoji: string; left: number }[]>([]);
   
   const {rejectSpeakerRequest} = useSpeakerRejectionEvent();
+
+
+  const handleReject = (request: SpeakerRequest) => {
+    // Validate the request object
+    if (!request || !request.peerId) {
+      console.error('Invalid speaker request received for rejection');
+      return;
+    }
+    
+    // Trigger the SPEAKER_REJECTED event
+    rejectSpeakerRequest(request.peerId);
+
+  };
 
 
   // Speaker request management
@@ -553,7 +566,7 @@ useEffect(() => {
                               Invite
                             </button>
                             <button
-                              onClick={() => handleRejectRequest(request)}
+                              onClick={() => handleReject(request)}
                               className="rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-sm"
                               style={{
                                 border: '1px solid rgba(255,255,255,.08)',
