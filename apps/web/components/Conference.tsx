@@ -74,6 +74,7 @@ export default function Conference({ roomId }: { roomId: string }) {
   // Speaker request management
   interface SpeakerRequest {
     peerId: string;
+    fid: string;
     peerName?: string;
     peerAvatar?: string | null;
     timestamp?: string;
@@ -107,7 +108,7 @@ export default function Conference({ roomId }: { roomId: string }) {
     );
     
     // Trigger the SPEAKER_REJECTED event
-    rejectSpeakerRequest(request.peerId);
+    rejectSpeakerRequest(request.fid);
 
   };
 
@@ -137,12 +138,13 @@ export default function Conference({ roomId }: { roomId: string }) {
           // Create a new request object that matches our interface
           const newRequest: SpeakerRequest = {
             peerId: peerId,
+            fid: event.fid,
             peerName: "Unknown User", // Default name if not provided
             timestamp: new Date().toISOString() // Current timestamp
           };
           
           // Try to find peer in room to get their name
-          const peer = allPeers.find(p => JSON.parse(p.metadata as string).fid === peerId);
+          const peer = allPeers.find(p => JSON.parse(p.metadata as string).fid === event.fid);
           if (peer && peer.name) {
             newRequest.peerName = peer.name;
           }
@@ -171,7 +173,7 @@ export default function Conference({ roomId }: { roomId: string }) {
       peer: msg.peer,
       timestamp: new Date().toISOString(),
     });
-    handleSpeakerRequest({ peerId: msg.peerId });
+    handleSpeakerRequest({ peerId: msg.peerId, fid: msg.peer});
   });
 
   const handRaise = useHMSNotifications(HMSNotificationTypes.HAND_RAISE_CHANGED);
@@ -391,18 +393,6 @@ useEffect(() => {
     }
   };
   
-  const handleRejectRequest = (request: SpeakerRequest) => {
-    if (!request || !request.peerId) {
-      console.error("Invalid speaker request for rejection", request);
-      return;
-    }
-    
-    setSpeakerRequests((prevRequests) => 
-      prevRequests.filter(req => req.peerId !== request.peerId)
-    );
-    
-    console.log(`Rejected speaker request for peer: ${request.peerId}`);
-  };
 
   const handleAvatarClick = (personId: string) => {
     const peer = allPeers.find(p => p.id === personId);
