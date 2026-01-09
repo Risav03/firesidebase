@@ -258,7 +258,7 @@ export async function fetchChatMessages(roomId: string, limit: number = 50) {
  */
 export async function sendChatMessage(
   roomId: string, 
-  messageData: { message: string; replyToId?: string }, 
+  messageData: { message: string; replyToId?: string; userFid?: string }, 
   token: string | null = null
 ) {
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
