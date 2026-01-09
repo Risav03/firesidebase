@@ -60,9 +60,9 @@ export function ReplyPreview({ replyTo, onClear, onClick, variant = 'inline' }: 
       className="mb-1 px-2 border-l-2 rounded-lg py-1 bg-white/30 border-fireside-orange/40 cursor-pointer hover:border-fireside-orange/60 transition-colors"
       onClick={onClick}
     >
-      <div className="flex items-center space-x-1 mb-0.5">
+      <div className="flex items-center justify-between space-x-1 mb-0.5">
         <MdReply className="text-white/80" size={12} />
-        <p className="text-xs text-white/80 font-medium">
+        <p className="text-xs text-white/80 text-right font-medium">
           {replyTo.username}
         </p>
       </div>
