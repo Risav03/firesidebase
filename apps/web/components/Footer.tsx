@@ -97,7 +97,7 @@ export default function Footer({ roomId }: { roomId: string }) {
       return;
     }
     
-    requestToSpeak(JSON.parse(localPeer?.metadata as string).fid as string);
+    requestToSpeak(JSON.parse(localPeer?.metadata as string).fid as string, localPeer.id);
     
     toast.success("🎙️ Speaker request sent", { 
       autoClose: 3000
