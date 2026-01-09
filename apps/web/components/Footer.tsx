@@ -40,6 +40,7 @@ export default function Footer({ roomId }: { roomId: string }) {
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const [isSoundboardOpen, setIsSoundboardOpen] = useState(false);
   const [canRequestToSpeak, setCanRequestToSpeak] = useState(false);
+  const [requestTimeoutId, setRequestTimeoutId] = useState<NodeJS.Timeout | null>(null);
   const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
   
   const { requestToSpeak } = useSpeakerRequestEvent();
@@ -62,6 +63,12 @@ export default function Footer({ roomId }: { roomId: string }) {
         localStorage.setItem('speakerRequested', 'false');
       }
       setCanRequestToSpeak(true);
+      
+      // Clear the timeout if request was rejected
+      if (requestTimeoutId) {
+        clearTimeout(requestTimeoutId);
+        setRequestTimeoutId(null);
+      }
     }
   };
 
@@ -85,6 +92,15 @@ export default function Footer({ roomId }: { roomId: string }) {
   const soundboardLogic = useSoundboardLogic(user);
 
   const isListener = localPeer?.roleName?.toLowerCase() === 'listener';
+  
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (requestTimeoutId) {
+        clearTimeout(requestTimeoutId);
+      }
+    };
+  }, [requestTimeoutId]);
 
   const handleRequestToSpeak = () => {
     const endTime = Date.now() + 90000;
@@ -103,6 +119,17 @@ export default function Footer({ roomId }: { roomId: string }) {
       autoClose: 3000
     });
     setCanRequestToSpeak(false);
+    
+    // Set a 60-second timeout to reset the request state
+    const timeoutId = setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('speakerRequested', 'false');
+      }
+      setCanRequestToSpeak(true);
+      setRequestTimeoutId(null);
+    }, 60000); // 60 seconds
+    
+    setRequestTimeoutId(timeoutId);
   };
 
   const handleReaction = () => {
