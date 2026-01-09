@@ -116,7 +116,7 @@ Retrieves chat messages for a room with pagination support.
       .post('/:id/messages', async ({ headers, params, body, set }) => {
         try {
           const userFid = headers['x-user-fid'] as string;
-          const { message } = body;
+          const { message, replyToId } = body;
 
           if (!userFid) {
             set.status = 401;
@@ -140,7 +140,8 @@ Retrieves chat messages for a room with pagination support.
           const chatMessage = await RedisChatService.storeMessage(
             params.id, 
             user.toObject(), 
-            message
+            message,
+            replyToId
           );
           
           return successResponse(chatMessage, 'Message sent successfully');
@@ -155,7 +156,10 @@ Retrieves chat messages for a room with pagination support.
             minLength: 1, 
             maxLength: 1000,
             description: 'Message content (1-1000 characters)'
-          })
+          }),
+          replyToId: t.Optional(t.String({
+            description: 'Optional message ID to reply to'
+          }))
         }),
         params: t.Object({
           id: t.String({ description: 'MongoDB ObjectId of the room' })

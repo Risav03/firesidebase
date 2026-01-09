@@ -426,11 +426,25 @@
   }
   
   .chat-message {
-    @apply flex space-x-3;
+    @apply flex space-x-3 transition-all duration-200;
   }
   
   .chat-message.own-message {
     @apply flex-row-reverse space-x-reverse;
+  }
+
+  /* Highlight flash animation for scrolled-to messages */
+  @keyframes highlight-flash {
+    0%, 100% {
+      background-color: transparent;
+    }
+    50% {
+      background-color: rgba(251, 146, 60, 0.2);
+    }
+  }
+
+  .highlight-flash {
+    animation: highlight-flash 2s ease-in-out;
   }
   
   .chat-avatar {

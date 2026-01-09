@@ -9,6 +9,7 @@ import {
   HMSMessage,
 } from "@100mslive/react-sdk";
 import { ChatMessage } from "./ChatMessage";
+import { ReplyPreview } from "./ReplyPreview";
 import { useGlobalContext } from "@/utils/providers/globalContext";
 import { toast } from "react-toastify";
 import sdk from "@farcaster/miniapp-sdk";
@@ -32,6 +33,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   const [message, setMessage] = useState("");
   const [redisMessages, setRedisMessages] = useState<RedisChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedReplyMessage, setSelectedReplyMessage] = useState<RedisChatMessage | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -118,7 +120,10 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
     if (!message.trim() || !user?.fid) return;
 
     const messageText = message.trim();
+    const replyToId = selectedReplyMessage?.id;
+    
     setMessage(""); // Clear input immediately
+    setSelectedReplyMessage(null); // Clear reply selection
     
     // Reset textarea height after clearing message
     setTimeout(() => {
@@ -128,14 +133,20 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
 
     try {
       // Send to HMS for real-time broadcast
-      // Format the message to include user fid for identification
+      // Format the message to include user fid and reply metadata for identification
       const messageWithMetadata = JSON.stringify({
         text: messageText,
         userFid: user.fid,
         pfp_url: user.pfp_url || '',
         username: user.username || '',
         displayName: user.displayName || user.username || '',
-        type: 'chat'
+        type: 'chat',
+        replyTo: selectedReplyMessage ? {
+          messageId: selectedReplyMessage.id,
+          message: selectedReplyMessage.message.substring(0, 100),
+          username: selectedReplyMessage.username,
+          pfp_url: selectedReplyMessage.pfp_url
+        } : undefined
       });
       hmsActions.sendBroadcastMessage(messageWithMetadata);
 
@@ -150,7 +161,8 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       const response = await sendChatMessage(
         roomId,
         {
-          message: messageText
+          message: messageText,
+          replyToId: replyToId
         },
         token
       );
@@ -174,6 +186,36 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
+    }
+  };
+
+  // Handler for selecting a message to reply to
+  const handleSelectForReply = (msg: RedisChatMessage) => {
+    setSelectedReplyMessage(msg);
+    // Focus the textarea after selection
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 100);
+  };
+
+  // Handler for clearing reply selection
+  const handleClearReply = () => {
+    setSelectedReplyMessage(null);
+  };
+
+  // Scroll to a specific message
+  const handleScrollToMessage = (messageId: string) => {
+    const messageElement = document.getElementById(`message-${messageId}`);
+    if (messageElement) {
+      messageElement.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+      // Add temporary highlight effect
+      messageElement.classList.add('highlight-flash');
+      setTimeout(() => {
+        messageElement.classList.remove('highlight-flash');
+      }, 2000);
     }
   };
 
@@ -229,6 +271,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       let messagePfpUrl = '';
       let messageUsername = '';
       let messageDisplayName = '';
+      let messageReplyTo = undefined;
       
       try {
         const parsedMsg = JSON.parse(hmsMsg.message);
@@ -237,6 +280,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         messagePfpUrl = parsedMsg.pfp_url || '';
         messageUsername = parsedMsg.username || '';
         messageDisplayName = parsedMsg.displayName || '';
+        messageReplyTo = parsedMsg.replyTo;
       } catch (e) {
         // If parsing fails, use the message as is
         messageText = hmsMsg.message;
@@ -251,7 +295,8 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         pfp_url: messagePfpUrl,
         message: messageText,
         timestamp: hmsMsg.time.toISOString(),
-        type: 'text' as const
+        type: 'text' as const,
+        replyTo: messageReplyTo
       };
     });
 
@@ -303,11 +348,15 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
             <div className="space-y-4 pb-4">
               {combinedMessages.map((msg) => {
                 const isOwn = String(msg.userId) === String(user?.fid);
+                const isSelected = selectedReplyMessage?.id === msg.id;
                 return (
                   <ChatMessage
                     key={msg.id}
                     message={msg}
                     isOwnMessage={isOwn}
+                    onSelectForReply={handleSelectForReply}
+                    onScrollToMessage={handleScrollToMessage}
+                    isSelected={isSelected}
                   />
                 );
               })}
@@ -317,6 +366,19 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         </div>
 
         <DrawerFooter className="border-t border-fireside-lightWhite">
+          {selectedReplyMessage && (
+            <ReplyPreview
+              replyTo={{
+                messageId: selectedReplyMessage.id,
+                message: selectedReplyMessage.message,
+                username: selectedReplyMessage.username,
+                pfp_url: selectedReplyMessage.pfp_url
+              }}
+              variant="input-banner"
+              onClear={handleClearReply}
+              onClick={() => handleScrollToMessage(selectedReplyMessage.id)}
+            />
+          )}
           <div className="flex items-start space-x-3">
             
               <textarea

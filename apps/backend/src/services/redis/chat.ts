@@ -14,7 +14,7 @@ export class RedisChatService {
     /**
      * Store a chat message
      */
-    static async storeMessage(roomId: string, user: any, message: string): Promise<ChatMessage> {
+    static async storeMessage(roomId: string, user: any, message: string, replyToId?: string): Promise<ChatMessage> {
         const messageId = `${Date.now()}_${user.fid}`;
         const timestamp = new Date().toISOString();
         
@@ -29,11 +29,33 @@ export class RedisChatService {
             timestamp,
         };
 
+        // If replying to a message, fetch and attach reply metadata
+        if (replyToId) {
+            const client = await RedisUtils.getClient();
+            const replyToMessage = await client.hgetall(RedisUtils.messageKeys.message(replyToId));
+            
+            if (replyToMessage && replyToMessage.id) {
+                chatMessage.replyTo = {
+                    messageId: replyToMessage.id,
+                    message: replyToMessage.message.substring(0, 100), // Truncate to 100 chars
+                    username: replyToMessage.username || 'Unknown',
+                    pfp_url: replyToMessage.pfp_url || ''
+                };
+            }
+        }
+
         const client = await RedisUtils.getClient();
         const pipeline = client.pipeline();
         
+        // Prepare message data for Redis hash storage
+        // Redis hashes don't support nested objects, so stringify replyTo if present
+        const messageDataForRedis: any = { ...chatMessage };
+        if (chatMessage.replyTo) {
+            messageDataForRedis.replyTo = JSON.stringify(chatMessage.replyTo);
+        }
+        
         // Store message data and add to sorted set
-        pipeline.hmset(RedisUtils.messageKeys.message(messageId), chatMessage as any);
+        pipeline.hmset(RedisUtils.messageKeys.message(messageId), messageDataForRedis);
         pipeline.zadd(RedisUtils.roomKeys.messages(roomId), Date.now(), messageId);
         pipeline.expire(RedisUtils.messageKeys.message(messageId), RedisUtils.TTL);
         pipeline.expire(RedisUtils.roomKeys.messages(roomId), RedisUtils.TTL);
@@ -122,7 +144,17 @@ export class RedisChatService {
             if (result && result[1]) {
                 const messageData = result[1] as Record<string, string>;
                 if (messageData.id) {
-                    messages.push(messageData as ChatMessage);
+                    // Parse replyTo if it exists (stored as JSON string)
+                    const parsedMessage: any = { ...messageData };
+                    if (messageData.replyTo && typeof messageData.replyTo === 'string') {
+                        try {
+                            parsedMessage.replyTo = JSON.parse(messageData.replyTo);
+                        } catch (e) {
+                            // If parsing fails, remove replyTo to avoid errors
+                            delete parsedMessage.replyTo;
+                        }
+                    }
+                    messages.push(parsedMessage as ChatMessage);
                 }
             }
         });
