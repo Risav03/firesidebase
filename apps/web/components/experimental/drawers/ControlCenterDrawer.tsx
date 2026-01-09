@@ -141,18 +141,18 @@ export function ControlCenterDrawer(props: {
               whileTap={{ scale: 0.98 }}
               className="grid h-12 w-[120px] place-items-center rounded-2xl text-sm font-semibold backdrop-blur-md"
               style={{
-                border: `1px solid ${props.isListener && !props.canUnmute ? "rgba(255,220,90,.32)" : (props.muted ? TOKENS.line : "rgba(255,90,106,.32)")}`,
+                border: `1px solid ${props.isListener && !props.canUnmute ? (props.canRequestToSpeak ? "rgba(255,220,90,.32)" : "rgba(156,163,175,.32)") : (props.muted ? TOKENS.line : "rgba(255,90,106,.32)")}`,
                 background: props.isListener && !props.canUnmute
-                  ? "rgba(255,220,90,.11)"
+                  ? (props.canRequestToSpeak ? "rgba(255,220,90,.11)" : "rgba(156,163,175,.11)")
                   : (props.muted ? "rgba(0,0,0,.22)" : "rgba(255,90,106,.11)"),
                 color: TOKENS.text,
                 boxShadow: props.isListener && !props.canUnmute
-                  ? "0 0 22px rgba(255,220,90,.13)"
+                  ? (props.canRequestToSpeak ? "0 0 22px rgba(255,220,90,.13)" : "none")
                   : (props.muted ? "none" : "0 0 22px rgba(255,90,106,.13)"),
               }}
               aria-label={
                 props.isListener && !props.canUnmute
-                  ? "Request to speak"
+                  ? (props.canRequestToSpeak ? "Request to speak" : "Request sent")
                   : (props.muted ? "Unmute" : "Mute")
               }
             >
@@ -160,7 +160,7 @@ export function ControlCenterDrawer(props: {
                 {props.isListener && !props.canUnmute ? (
                   <>
                     <GiMicrophone className="h-5 w-5" />
-                    <span className="text-xs">Request</span>
+                    <span className="text-xs">{props.canRequestToSpeak ? "Request" : "Sent"}</span>
                   </>
                 ) : (
                   <>

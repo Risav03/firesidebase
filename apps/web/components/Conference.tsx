@@ -67,20 +67,7 @@ export default function Conference({ roomId }: { roomId: string }) {
   const [flicker, setFlicker] = useState(0.6);
   const [reactions, setReactions] = useState<{ id: string; emoji: string; left: number }[]>([]);
   
-  const {rejectSpeakerRequest} = useSpeakerRejectionEvent();
-
-
-  const handleReject = (request: SpeakerRequest) => {
-    // Validate the request object
-    if (!request || !request.peerId) {
-      console.error('Invalid speaker request received for rejection');
-      return;
-    }
-    
-    // Trigger the SPEAKER_REJECTED event
-    rejectSpeakerRequest(request.peerId);
-
-  };
+  
 
 
   // Speaker request management
@@ -102,6 +89,26 @@ export default function Conference({ roomId }: { roomId: string }) {
   //function to fetch room details and save name and description in a useState. Call the function in useEffect
   const [roomDetails, setRoomDetails] = useState<{ name: string; description: string } | null>(null);
   
+
+  const {rejectSpeakerRequest} = useSpeakerRejectionEvent();
+
+
+  const handleReject = (request: SpeakerRequest) => {
+    // Validate the request object
+    if (!request || !request.peerId) {
+      console.error('Invalid speaker request received for rejection');
+      return;
+    }
+    
+    // Remove from state
+    setSpeakerRequests((prevRequests) => 
+      prevRequests.filter(req => req.peerId !== request.peerId)
+    );
+    
+    // Trigger the SPEAKER_REJECTED event
+    rejectSpeakerRequest(request.peerId);
+
+  };
 
    const handleSpeakerRequest = (event: any) => {
       // Extract peer ID from the event

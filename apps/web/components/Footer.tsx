@@ -98,6 +98,7 @@ export default function Footer({ roomId }: { roomId: string }) {
     toast.success("🎙️ Speaker request sent", { 
       autoClose: 3000
     });
+    setCanRequestToSpeak(false);
   };
 
   const handleReaction = () => {
