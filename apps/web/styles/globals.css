@@ -427,6 +427,10 @@
   
   .chat-message {
     @apply flex space-x-3 transition-all duration-200;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
   }
   
   .chat-message.own-message {
@@ -437,9 +441,13 @@
   @keyframes highlight-flash {
     0%, 100% {
       background-color: transparent;
+      padding: 0;
+      border-radius: 10px;
     }
     50% {
       background-color: rgba(251, 146, 60, 0.2);
+      padding: 5px;
+      border-radius: 10px;
     }
   }
 
