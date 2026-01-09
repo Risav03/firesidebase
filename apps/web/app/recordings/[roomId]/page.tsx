@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { FaArrowLeft, FaPlay, FaPause, FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
+import { FaArrowLeft, FaPlay, FaPause, FaVolumeUp, FaVolumeMute, FaDownload } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import Image from 'next/image';
 import { fetchRoomRecordings } from '@/utils/serverActions';
@@ -145,6 +145,18 @@ export default function RecordingsPage() {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  const handleDownload = () => {
+    if (selectedRecording) {
+      const link = document.createElement('a');
+      link.href = selectedRecording;
+      link.download = `recording-${roomId}-${Date.now()}.webm`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success('Download started');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen">
@@ -212,14 +224,21 @@ export default function RecordingsPage() {
             </div> */}
 
             <div className="space-y-4">
-              {/* Play/Pause Button */}
-              <div className="flex justify-center">
+              {/* Play/Pause and Download Buttons */}
+              <div className="flex justify-center items-center gap-4">
                 <Button
                   variant="default"
                   onClick={togglePlayPause}
                   className="w-16 h-16 rounded-full flex items-center justify-center p-0"
                 >
                   {isPlaying ? <FaPause className="text-xl" /> : <FaPlay className="text-xl" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={handleDownload}
+                  className="p-3 hover:text-orange-400"
+                >
+                  <FaDownload className="text-xl" />
                 </Button>
               </div>
 
