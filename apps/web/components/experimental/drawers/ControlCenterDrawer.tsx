@@ -20,8 +20,8 @@ export function ControlCenterDrawer(props: {
   onVisibleHeightChange?: (h: number) => void;
   canUnmute: boolean;
   isListener: boolean;
-  cooldownRemaining: number;
   hmsActions: HMSActions;
+  canRequestToSpeak: boolean;
 }) {
   const collapsedH = 118;
   const expandedH = 230;
@@ -141,20 +141,18 @@ export function ControlCenterDrawer(props: {
               whileTap={{ scale: 0.98 }}
               className="grid h-12 w-[120px] place-items-center rounded-2xl text-sm font-semibold backdrop-blur-md"
               style={{
-                border: `1px solid ${props.isListener && !props.canUnmute ? (props.cooldownRemaining > 0 ? "rgba(255,255,255,.32)" : "rgba(255,220,90,.32)") : (props.muted ? TOKENS.line : "rgba(255,90,106,.32)")}`,
+                border: `1px solid ${props.isListener && !props.canUnmute ? "rgba(255,220,90,.32)" : (props.muted ? TOKENS.line : "rgba(255,90,106,.32)")}`,
                 background: props.isListener && !props.canUnmute
-                  ? (props.cooldownRemaining > 0 ? "rgba(0,0,0,.22)" : "rgba(255,220,90,.11)")
+                  ? "rgba(255,220,90,.11)"
                   : (props.muted ? "rgba(0,0,0,.22)" : "rgba(255,90,106,.11)"),
                 color: TOKENS.text,
                 boxShadow: props.isListener && !props.canUnmute
-                  ? (props.cooldownRemaining > 0 ? "none" : "0 0 22px rgba(255,220,90,.13)")
+                  ? "0 0 22px rgba(255,220,90,.13)"
                   : (props.muted ? "none" : "0 0 22px rgba(255,90,106,.13)"),
-                opacity: props.cooldownRemaining > 0 ? 0.7 : 1,
               }}
-              disabled={props.cooldownRemaining > 0}
               aria-label={
                 props.isListener && !props.canUnmute
-                  ? (props.cooldownRemaining > 0 ? `Wait ${props.cooldownRemaining}s` : "Request to speak")
+                  ? "Request to speak"
                   : (props.muted ? "Unmute" : "Mute")
               }
             >
@@ -162,9 +160,7 @@ export function ControlCenterDrawer(props: {
                 {props.isListener && !props.canUnmute ? (
                   <>
                     <GiMicrophone className="h-5 w-5" />
-                    <span className="text-xs">
-                      {props.cooldownRemaining > 0 ? `${props.cooldownRemaining}s` : "Request"}
-                    </span>
+                    <span className="text-xs">Request</span>
                   </>
                 ) : (
                   <>
