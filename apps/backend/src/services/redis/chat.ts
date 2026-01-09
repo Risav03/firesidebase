@@ -14,7 +14,7 @@ export class RedisChatService {
     /**
      * Store a chat message
      */
-    static async storeMessage(roomId: string, user: any, message: string): Promise<ChatMessage> {
+    static async storeMessage(roomId: string, user: any, message: string, replyToId?: string): Promise<ChatMessage> {
         const messageId = `${Date.now()}_${user.fid}`;
         const timestamp = new Date().toISOString();
         
@@ -28,6 +28,21 @@ export class RedisChatService {
             message: message.trim(),
             timestamp,
         };
+
+        // If replying to a message, fetch and attach reply metadata
+        if (replyToId) {
+            const client = await RedisUtils.getClient();
+            const replyToMessage = await client.hgetall(RedisUtils.messageKeys.message(replyToId));
+            
+            if (replyToMessage && replyToMessage.id) {
+                chatMessage.replyTo = {
+                    messageId: replyToMessage.id,
+                    message: replyToMessage.message.substring(0, 100), // Truncate to 100 chars
+                    username: replyToMessage.username || 'Unknown',
+                    pfp_url: replyToMessage.pfp_url || ''
+                };
+            }
+        }
 
         const client = await RedisUtils.getClient();
         const pipeline = client.pipeline();

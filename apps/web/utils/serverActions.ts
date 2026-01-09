@@ -256,7 +256,11 @@ export async function fetchChatMessages(roomId: string, limit: number = 50) {
 /**
  * Send a chat message to a room
  */
-export async function sendChatMessage(roomId: string, messageData: any, token: string | null = null) {
+export async function sendChatMessage(
+  roomId: string, 
+  messageData: { message: string; replyToId?: string }, 
+  token: string | null = null
+) {
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
   return fetchAPI(`${URL}/api/rooms/protected/${roomId}/messages`, {
     method: 'POST',

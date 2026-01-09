@@ -8,6 +8,12 @@ type RedisChatMessage = {
     pfp_url: string;
     message: string;
     timestamp: string;
+    replyTo?: {
+        messageId: string;
+        message: string;
+        username: string;
+        pfp_url: string;
+    };
 }
 
 type RoomParticipant = {

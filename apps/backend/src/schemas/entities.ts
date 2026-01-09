@@ -37,7 +37,13 @@ export const ChatMessageSchema = t.Object({
   displayName: t.String(),
   pfp_url: t.String(),
   message: t.String(),
-  timestamp: t.String()
+  timestamp: t.String(),
+  replyTo: t.Optional(t.Object({
+    messageId: t.String(),
+    message: t.String(),
+    username: t.String(),
+    pfp_url: t.String()
+  }))
 });
 
 export const RoomSchema = t.Object({

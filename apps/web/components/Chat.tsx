@@ -9,6 +9,7 @@ import {
   HMSMessage,
 } from "@100mslive/react-sdk";
 import { ChatMessage } from "./ChatMessage";
+import { ReplyPreview } from "./ReplyPreview";
 import { useGlobalContext } from "@/utils/providers/globalContext";
 import { toast } from "react-toastify";
 import sdk from "@farcaster/miniapp-sdk";
