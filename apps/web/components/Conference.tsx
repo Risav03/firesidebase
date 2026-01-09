@@ -16,6 +16,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import sdk from "@farcaster/miniapp-sdk";
 import { useRouter } from "next/navigation";
 import { useGlobalContext } from "@/utils/providers/globalContext";
+import { motion, AnimatePresence } from "framer-motion";
 import { useHMSNotifications, HMSNotificationTypes } from '@100mslive/react-sdk';
 import RoomEndScreen from "./RoomEndScreen";
 import { toast } from "react-toastify";
@@ -170,7 +171,7 @@ export default function Conference({ roomId }: { roomId: string }) {
       peer: msg.peer,
       timestamp: new Date().toISOString(),
     });
-    handleSpeakerRequest({ peerId: msg.peer });
+    handleSpeakerRequest({ peerId: msg.peerId });
   });
 
   const handRaise = useHMSNotifications(HMSNotificationTypes.HAND_RAISE_CHANGED);
@@ -499,17 +500,24 @@ useEffect(() => {
                   Panel ({campfirePeople.length})
                 </div>
                 <div className="grid grid-cols-4 gap-3">
-                  {campfirePeople.map((p) => (
-                    <PanelMember
+                  {campfirePeople.map((p, index) => (
+                    <motion.div
                       key={p.id}
-                      id={p.id}
-                      name={p.name}
-                      img={p.img}
-                      role={p.role}
-                      speaking={p.speaking}
-                      muted={p.muted}
-                      onClick={handleAvatarClick}
-                    />
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0 }}
+                      transition={{ duration: 0.5, delay: index * 0.05 }}
+                    >
+                      <PanelMember
+                        id={p.id}
+                        name={p.name}
+                        img={p.img}
+                        role={p.role}
+                        speaking={p.speaking}
+                        muted={p.muted}
+                        onClick={handleAvatarClick}
+                      />
+                    </motion.div>
                   ))}
                 </div>
               </div>
@@ -522,11 +530,15 @@ useEffect(() => {
                   Speaker requests ({speakerRequests.length})
                 </div>
                 <div className="space-y-2">
-                  {handsRaised.map((p) => {
+                  {handsRaised.map((p, index) => {
                     const request = speakerRequests.find(req => req.peerId === p.id);
                     return (
-                      <div
+                      <motion.div
                         key={p.id}
+                        initial={{ opacity: 0, scale: 0.8, height: 0 }}
+                        animate={{ opacity: 1, scale: 1, height: 'auto' }}
+                        exit={{ opacity: 0, scale: 0.8, height: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
                         className="flex items-center justify-between rounded-2xl px-3 py-2 backdrop-blur-sm relative"
                         style={{
                           border: '1px solid rgba(255,255,255,.08)',
@@ -585,7 +597,7 @@ useEffect(() => {
                             </button>
                           </div>
                         )}
-                      </div>
+                      </motion.div>
                     );
                   })}
                 </div>
@@ -606,14 +618,21 @@ useEffect(() => {
                   }}
                 >
                   <div className="grid grid-cols-6 gap-3">
-                    {listenerPeople.map((p) => (
-                      <ListenerMember
+                    {listenerPeople.map((p, index) => (
+                      <motion.div
                         key={p.id}
-                        id={p.id}
-                        name={p.name}
-                        img={p.img}
-                        onClick={handleAvatarClick}
-                      />
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.03 }}
+                      >
+                        <ListenerMember
+                          id={p.id}
+                          name={p.name}
+                          img={p.img}
+                          onClick={handleAvatarClick}
+                        />
+                      </motion.div>
                     ))}
                   </div>
                 </div>

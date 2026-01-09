@@ -6,7 +6,7 @@ import { useCustomEvent } from "@100mslive/react-sdk";
  * @returns Object containing sendEvent function to send a speaker request
  */
 export const useSpeakerRequestEvent = (
-  onEvent?: (msg: { peer: string }) => void
+  onEvent?: (msg: { peer: string, peerId:string }) => void
 ) => {
   const { sendEvent } = useCustomEvent({
     type: "SPEAKER_REQUESTED",
@@ -17,8 +17,8 @@ export const useSpeakerRequestEvent = (
    * Send a speaker request
    * @param peerId ID of the peer requesting to be a speaker
    */
-  const requestToSpeak = (peerId: string) => {
-    sendEvent({ peer: peerId });
+  const requestToSpeak = (fid: string, peerId: string) => {
+    sendEvent({ peer: fid, peerId: peerId });
   };
 
   return { requestToSpeak, sendEvent };
