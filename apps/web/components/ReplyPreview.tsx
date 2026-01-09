@@ -15,13 +15,15 @@ interface ReplyPreviewProps {
 }
 
 export function ReplyPreview({ replyTo, onClear, onClick, variant = 'inline' }: ReplyPreviewProps) {
-  const truncatedMessage = replyTo.message.length > 50 
-    ? `${replyTo.message.substring(0, 50)}...` 
-    : replyTo.message;
+  // Safety check for undefined message
+  const messageText = replyTo?.message || '';
+  const truncatedMessage = messageText.length > 50 
+    ? `${messageText.substring(0, 50)}...` 
+    : messageText;
 
   if (variant === 'input-banner') {
     return (
-      <div className="px-4 py-2 bg-white/5 border-l-2 border-fireside-orange flex items-center justify-between">
+      <div className="px-4 py-2 bg-white/5 p-2 rounded-lg border-l-2 border-fireside-orange flex items-center justify-between">
         <div 
           className="flex items-center space-x-2 flex-1 cursor-pointer"
           onClick={onClick}
@@ -55,16 +57,16 @@ export function ReplyPreview({ replyTo, onClear, onClick, variant = 'inline' }: 
   // Inline variant - shown above message bubble
   return (
     <div 
-      className="mb-1 pl-3 border-l-2 border-fireside-orange/40 cursor-pointer hover:border-fireside-orange/60 transition-colors"
+      className="mb-1 px-2 border-l-2 rounded-lg py-1 bg-white/30 border-fireside-orange/40 cursor-pointer hover:border-fireside-orange/60 transition-colors"
       onClick={onClick}
     >
       <div className="flex items-center space-x-1 mb-0.5">
-        <MdReply className="text-fireside-orange/60" size={12} />
-        <p className="text-xs text-fireside-orange/80 font-medium">
+        <MdReply className="text-white/80" size={12} />
+        <p className="text-xs text-white/80 font-medium">
           {replyTo.username}
         </p>
       </div>
-      <p className="text-xs text-white/50 line-clamp-2">
+      <p className="text-xs text-white line-clamp-2">
         {truncatedMessage}
       </p>
     </div>

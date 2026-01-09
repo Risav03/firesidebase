@@ -129,8 +129,7 @@ export function ChatMessage({ message, isOwnMessage, onSelectForReply, onScrollT
       displayName: messageDisplayName || hmsMsg.senderName || 'Unknown',
       pfp_url: messagePfpUrl,
       message: messageText,
-      timestamp: hmsMsg.time.toISOString(),
-      type: 'text' as const
+      timestamp: hmsMsg.time.toISOString()
     };
   };
 
@@ -177,7 +176,7 @@ export function ChatMessage({ message, isOwnMessage, onSelectForReply, onScrollT
 
   return (
     <div 
-      className={`chat-message ${isOwnMessage ? 'own-message' : 'other-message'} ${isSelected ? 'ring-2 ring-fireside-orange' : ''} ${isLongPressing ? 'opacity-70' : ''}`}
+      className={`chat-message p-2 ${isOwnMessage ? 'own-message' : 'other-message'} ${isSelected ? 'bg-white/5 rounded-lg' : ''} ${isLongPressing ? 'opacity-70' : ''}`}
       id={`message-${isRedisMessage ? (message as RedisChatMessage).id : `hms_${(message as HMSMessage).id}`}`}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
@@ -195,10 +194,10 @@ export function ChatMessage({ message, isOwnMessage, onSelectForReply, onScrollT
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                   const fallback = e.currentTarget.nextElementSibling;
-                  if (fallback) (fallback as HTMLElement).style.display = 'flex';
+                  if (fallback) (fallback as HTMLElement).classList.remove('hidden');
                 }}
               />
-              <div className={`w-8 h-8 rounded-full ${getAvatarColor(senderName)} flex items-center justify-center text-xs font-semibold text-white hidden`}>
+              <div className={`w-8 h-8 rounded-full ${getAvatarColor(senderName)} hidden items-center justify-center text-xs font-semibold text-white`}>
                 {getInitials(senderName)}
               </div>
             </>
