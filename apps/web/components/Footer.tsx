@@ -53,7 +53,7 @@ export default function Footer({ roomId }: { roomId: string }) {
   });
 
   const handleRejectRequest = ({ peerId }: { peerId: string }) => {
-    if (localPeer?.id === peerId) {
+    if (JSON.parse(localPeer?.metadata as string).fid === peerId) {
       toast.info(`Your speaker request was rejected.`, {
         autoClose: 3000,
         toastId: `speaker-reject-${peerId}-${Date.now()}`
@@ -92,8 +92,12 @@ export default function Footer({ roomId }: { roomId: string }) {
     if (typeof window !== 'undefined') {
       localStorage.setItem('speakerRequested', 'true');
     }
+
+    if(!localPeer){
+      return;
+    }
     
-    requestToSpeak(localPeerId as string);
+    requestToSpeak(JSON.parse(localPeer?.metadata as string).fid as string);
     
     toast.success("🎙️ Speaker request sent", { 
       autoClose: 3000

@@ -141,7 +141,7 @@ export default function Conference({ roomId }: { roomId: string }) {
           };
           
           // Try to find peer in room to get their name
-          const peer = allPeers.find(p => p.id === peerId);
+          const peer = allPeers.find(p => JSON.parse(p.metadata as string).fid === peerId);
           if (peer && peer.name) {
             newRequest.peerName = peer.name;
           }
