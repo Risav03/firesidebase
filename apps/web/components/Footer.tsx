@@ -14,7 +14,7 @@ import { useGlobalContext } from "../utils/providers/globalContext";
 import { useHandRaiseLogic } from "./footer/useHandRaiseLogic";
 import { useEmojiReactionLogic } from "./footer/useEmojiReactionLogic";
 import { useSoundboardLogic } from "./footer/useSoundboardLogic";
-import { useSpeakerRequestEvent } from "../utils/events";
+import { useSpeakerRejectionEvent, useSpeakerRequestEvent } from "../utils/events";
 import { ControlCenterDrawer } from "./experimental";
 import Chat from "./Chat";
 import TippingModal from "./TippingModal";
@@ -45,6 +45,23 @@ export default function Footer({ roomId }: { roomId: string }) {
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
 
   const { requestToSpeak } = useSpeakerRequestEvent();
+
+  useSpeakerRejectionEvent((msg) => {
+    console.log("[HMS Event - Conference] Speaker request event received", {
+      peer: msg.peer,
+      timestamp: new Date().toISOString(),
+    });
+    handleRejectRequest({ peerId: msg.peer });
+  });
+
+  const handleRejectRequest = ({ peerId }: { peerId: string }) => {
+    if (localPeer?.id === peerId) {
+      toast.info(`Your speaker request was rejected.`, {
+        autoClose: 3000,
+        toastId: `speaker-reject-${peerId}-${Date.now()}`
+      });
+    }
+  };
 
   useEffect(() => {
     if (typeof window !== 'undefined') {

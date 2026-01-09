@@ -67,6 +67,9 @@ export default function Conference({ roomId }: { roomId: string }) {
   const [flicker, setFlicker] = useState(0.6);
   const [reactions, setReactions] = useState<{ id: string; emoji: string; left: number }[]>([]);
   
+  const {rejectSpeakerRequest} = useSpeakerRejectionEvent();
+
+
   // Speaker request management
   interface SpeakerRequest {
     peerId: string;
