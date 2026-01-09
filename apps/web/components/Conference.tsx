@@ -147,13 +147,8 @@ export default function Conference({ roomId }: { roomId: string }) {
       peer: msg.peer,
       timestamp: new Date().toISOString(),
     });
-    // Convert the message to our expected event format
     handleSpeakerRequest({ peerId: msg.peer });
   });
-
-  // Use the custom hook for sending speaker rejections
-  const { rejectSpeakerRequest } = useSpeakerRejectionEvent();
-
 
   const handRaise = useHMSNotifications(HMSNotificationTypes.HAND_RAISE_CHANGED);
   const peer = handRaise?.data;
@@ -382,21 +377,8 @@ useEffect(() => {
       prevRequests.filter(req => req.peerId !== request.peerId)
     );
     
-    // Send rejection event to the peer
-    rejectSpeakerRequest(request.peerId);
-    
-    // Log rejection
     console.log(`Rejected speaker request for peer: ${request.peerId}`);
   };
-
-  // Use the custom hook for speaker rejections listener (to handle when remote peer is rejected)
-  useSpeakerRejectionEvent((msg) => {
-    console.log("[HMS Event - Conference] Speaker rejection event received", {
-      peer: msg.peer,
-      timestamp: new Date().toISOString(),
-    });
-    handleRejectRequest({peerId: msg.peer});
-  });
 
   const handleAvatarClick = (personId: string) => {
     const peer = allPeers.find(p => p.id === personId);

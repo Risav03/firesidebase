@@ -14,7 +14,7 @@ import { useGlobalContext } from "../utils/providers/globalContext";
 import { useHandRaiseLogic } from "./footer/useHandRaiseLogic";
 import { useEmojiReactionLogic } from "./footer/useEmojiReactionLogic";
 import { useSoundboardLogic } from "./footer/useSoundboardLogic";
-import { useSpeakerRequestEvent, useSpeakerRejectionEvent } from "../utils/events";
+import { useSpeakerRequestEvent } from "../utils/events";
 import { ControlCenterDrawer } from "./experimental";
 import Chat from "./Chat";
 import TippingModal from "./TippingModal";
@@ -40,42 +40,54 @@ export default function Footer({ roomId }: { roomId: string }) {
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const [isSoundboardOpen, setIsSoundboardOpen] = useState(false);
 
-    const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
-  const [speakerRequested, setSpeakerRequested] = useState(false);
+  const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
+  const [cooldownEndTime, setCooldownEndTime] = useState<number>(0);
+  const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
 
   const { requestToSpeak } = useSpeakerRequestEvent();
 
-  // Load speaker request state from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storedRequest = localStorage.getItem(`speakerRequested_${localPeerId || user?.fid}`);
-      if (storedRequest === 'true') {
-        setSpeakerRequested(true);
+      const storedCooldown = localStorage.getItem(`speakerCooldown_${localPeerId || user?.fid}`);
+      if (storedCooldown) {
+        const endTime = parseInt(storedCooldown);
+        if (endTime > Date.now()) {
+          setCooldownEndTime(endTime);
+        } else {
+          localStorage.removeItem(`speakerCooldown_${localPeerId || user?.fid}`);
+        }
       }
     }
   }, [localPeerId, user?.fid]);
 
-  // Handle speaker rejection
-  useSpeakerRejectionEvent((msg) => {
-    console.log("Received speaker rejection event:", msg);
-    if (msg.peer === (localPeerId || user?.fid)) {
-      setSpeakerRequested(false);
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem(`speakerRequested_${localPeerId || user?.fid}`);
-      }
-    }
-  });
-
-  // Clear speaker request when unmute permission is granted
   useEffect(() => {
-    if (canUnmute && speakerRequested) {
-      setSpeakerRequested(false);
+    if (cooldownEndTime > Date.now()) {
+      const interval = setInterval(() => {
+        const remaining = Math.ceil((cooldownEndTime - Date.now()) / 1000);
+        if (remaining <= 0) {
+          setCooldownEndTime(0);
+          setCooldownRemaining(0);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem(`speakerCooldown_${localPeerId || user?.fid}`);
+          }
+        } else {
+          setCooldownRemaining(remaining);
+        }
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [cooldownEndTime, localPeerId, user?.fid]);
+
+  useEffect(() => {
+    if (canUnmute && cooldownEndTime > 0) {
+      setCooldownEndTime(0);
+      setCooldownRemaining(0);
       if (typeof window !== 'undefined') {
-        localStorage.removeItem(`speakerRequested_${localPeerId || user?.fid}`);
+        localStorage.removeItem(`speakerCooldown_${localPeerId || user?.fid}`);
       }
       toast.success("You can now speak!", { autoClose: 3000 });
     }
-  }, [canUnmute, speakerRequested, localPeerId, user?.fid]);
+  }, [canUnmute, cooldownEndTime, localPeerId, user?.fid]);
 
   const { toggleRaiseHand } = useHandRaiseLogic({
     isHandRaised,
@@ -89,10 +101,12 @@ export default function Footer({ roomId }: { roomId: string }) {
   const isListener = localPeer?.roleName?.toLowerCase() === 'listener';
 
   const handleRequestToSpeak = () => {
-    setSpeakerRequested(true);
+    const endTime = Date.now() + 90000;
+    setCooldownEndTime(endTime);
+    setCooldownRemaining(90);
     
     if (typeof window !== 'undefined') {
-      localStorage.setItem(`speakerRequested_${localPeerId || user?.fid}`, 'true');
+      localStorage.setItem(`speakerCooldown_${localPeerId || user?.fid}`, endTime.toString());
     }
     
     requestToSpeak(localPeerId as string);
@@ -115,7 +129,6 @@ export default function Footer({ roomId }: { roomId: string }) {
           muted={isListener ? false : !isLocalAudioEnabled}
           setMuted={(muted) => {
             if (isListener && !canUnmute) {
-              // For listeners without unmute permission, handle speaker request
               handleRequestToSpeak();
             } else if (muted && isLocalAudioEnabled && toggleAudio) {
               toggleAudio();
@@ -138,7 +151,7 @@ export default function Footer({ roomId }: { roomId: string }) {
           }}
           canUnmute={canUnmute}
           isListener={isListener}
-          speakerRequested={speakerRequested}
+          cooldownRemaining={cooldownRemaining}
           hmsActions={hmsActions}
         />
       </div>
