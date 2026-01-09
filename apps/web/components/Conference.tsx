@@ -379,6 +379,13 @@ useEffect(() => {
       prevRequests.filter(req => req.peerId !== request.peerId)
     );
     
+    // Broadcast rejection event
+    hmsActions.sendBroadcastMessage(JSON.stringify({
+      type: 'SPEAKER_REJECTED',
+      peer: request.peerId,
+      timestamp: new Date().toISOString()
+    }));
+    
     // Log rejection
     console.log(`Rejected speaker request for peer: ${request.peerId}`);
   };
@@ -458,7 +465,7 @@ useEffect(() => {
       <div className="relative min-h-screen">
         <FirelightField flicker={flicker} />
 
-        <Card className="bg-fireside-orange/5 gradient-orange-bg m-3 px-2 py-4 rounded-2xl">
+        <Card className="bg-fireside-orange/5 gradient-orange-bg m-3 p-4 rounded-2xl">
           <h1 className="text-lg font-bold gradient-fire-text">{roomDetails?.name}</h1>
           <p className="text-sm text-gray-300">{roomDetails?.description}</p>
         </Card>
