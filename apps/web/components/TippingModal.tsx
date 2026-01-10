@@ -346,7 +346,7 @@ export default function TippingModal({
       let usersToSend: any = [];
 
       if (selectedUsers.length > 0) {
-        usersToSend = selectedUsers.map((user) => user.wallet).filter((wallet: string) => wallet !== '');
+        usersToSend = selectedUsers.map((user) => user.wallet).filter((wallet: string) => wallet !== '' && wallet !== undefined && wallet !== null);
       } else {
         try {
         const roomData = await fetchRoomDetails(roomId);
@@ -365,7 +365,7 @@ export default function TippingModal({
                 }
                 return (metadata as any).wallet || '';
               })
-              .filter((wallet: string) => wallet !== '');
+              .filter((wallet: string) => wallet !== '' && wallet !== undefined && wallet !== null);
             
             usersToSend.push(...activePeers);
           }
@@ -464,7 +464,7 @@ export default function TippingModal({
       let usersToSend: any = [];
 
       if (selectedUsers.length > 0) {
-        usersToSend = selectedUsers.map((user) => user.wallet).filter((wallet: string) => wallet !== '');
+        usersToSend = selectedUsers.map((user) => user.wallet).filter((wallet: string) => wallet !== '' && wallet !== undefined && wallet !== null);
       } else {
         try {
         const roomData = await fetchRoomDetails(roomId);
@@ -483,7 +483,7 @@ export default function TippingModal({
                 }
                 return (metadata as any).wallet || '';
               })
-              .filter((wallet: string) => wallet !== '');
+              .filter((wallet: string) => wallet !== '' && wallet !== undefined && wallet !== null);
             
             usersToSend.push(...activePeers);
           }

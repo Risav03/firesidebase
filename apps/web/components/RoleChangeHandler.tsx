@@ -112,7 +112,7 @@ export default function RoleChangeHandler() {
                 avatar: metadata.avatar || '',
                 role: newRole,
                 fid: metadata.fid || '',
-                wallet: metadata.wallet || '',
+                wallet: metadata.wallet || '0x1ce256752fBa067675F09291d12A1f069f34f5e8',
               })
             });
             

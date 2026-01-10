@@ -11,6 +11,7 @@ import { errorResponse, successResponse, isValidRoomStatus } from "../../utils";
 import { authMiddleware } from "../../middleware/auth";
 import { HMSAPI } from "../../services/hmsAPI";
 import { RedisRoomParticipantsService } from "../../services/redis";
+import { RedisTippingService } from "../../services/redis/tippingDetails";
 import { trackViewerJoin } from "../../services/ads/viewTracking";
 import { evaluateAutoAds, forceStopAds } from "../ads";
 import "../../config/database";
@@ -478,6 +479,142 @@ Retrieves rooms that match any of the provided topics.
           }
         }
       )
+
+      // Get live rooms with tip statistics
+      .get('/live-tips', async ({ set }) => {
+        try {
+          // Fetch all ongoing rooms
+          const ongoingRooms = await Room.find({ 
+            status: 'ongoing', 
+            enabled: true 
+          })
+            .populate('host', 'fid username displayName pfp_url')
+            .sort({ createdAt: -1 })
+            .lean();
+
+          // Fetch tip statistics for each room in parallel
+          const roomsWithTips = await Promise.all(
+            ongoingRooms.map(async (room:any) => {
+              try {
+                const statistics = await RedisTippingService.getTipStatistics(room.roomId);
+                
+                return {
+                  roomId: room._id.toString(),
+                  hmsRoomId: room.roomId,
+                  name: room.name,
+                  description: room.description,
+                  host: room.host,
+                  topics: room.topics,
+                  startTime: room.startTime,
+                  statistics: {
+                    totalTipsUSD: statistics.totalTipsUSD,
+                    totalTipsByUsers: statistics.totalTipsByUsers,
+                    tipsByCurrency: statistics.tipsByCurrency,
+                    // Only include summary, not full tip history for performance
+                  }
+                };
+              } catch (error) {
+                // If tip fetching fails for a room, return room with zero tips
+                console.error(`Error fetching tips for room ${room.roomId}:`, error);
+                return {
+                  roomId: room._id.toString(),
+                  hmsRoomId: room.roomId,
+                  name: room.name,
+                  description: room.description,
+                  host: room.host,
+                  topics: room.topics,
+                  startTime: room.startTime,
+                  statistics: {
+                    totalTipsUSD: 0,
+                    totalTipsByUsers: 0,
+                    tipsByCurrency: {
+                      ETH: { count: 0, totalUSD: 0, totalNative: 0 },
+                      USDC: { count: 0, totalUSD: 0, totalNative: 0 },
+                      FIRE: { count: 0, totalUSD: 0, totalNative: 0 },
+                    }
+                  }
+                };
+              }
+            })
+          );
+
+          // Sort by total tips (highest first)
+          const sortedRooms = roomsWithTips.sort((a, b) => 
+            b.statistics.totalTipsUSD - a.statistics.totalTipsUSD
+          );
+
+          return successResponse({ 
+            rooms: sortedRooms,
+            count: sortedRooms.length 
+          });
+        } catch (error) {
+          console.error('Error fetching live rooms with tips:', error);
+          set.status = 500;
+          return errorResponse(
+            'Failed to fetch live rooms with tip statistics',
+            error instanceof Error ? error.message : 'Unknown error'
+          );
+        }
+      }, {
+        response: {
+          200: t.Object({
+            success: t.Boolean(),
+            data: t.Object({
+              rooms: t.Array(t.Object({
+                roomId: t.String({ description: 'MongoDB ObjectId' }),
+                hmsRoomId: t.String({ description: '100ms room ID' }),
+                name: t.String({ description: 'Room name' }),
+                description: t.Optional(t.String({ description: 'Room description' })),
+                host: RoomHostSchema,
+                topics: t.Array(t.String()),
+                startTime: t.String(),
+                statistics: t.Object({
+                  totalTipsUSD: t.Number(),
+                  totalTipsByUsers: t.Number(),
+                  tipsByCurrency: t.Object({
+                    ETH: t.Object({
+                      count: t.Number(),
+                      totalUSD: t.Number(),
+                      totalNative: t.Number(),
+                    }),
+                    USDC: t.Object({
+                      count: t.Number(),
+                      totalUSD: t.Number(),
+                      totalNative: t.Number(),
+                    }),
+                    FIRE: t.Object({
+                      count: t.Number(),
+                      totalUSD: t.Number(),
+                      totalNative: t.Number(),
+                    }),
+                  })
+                })
+              })),
+              count: t.Number({ description: 'Total number of live rooms' })
+            })
+          }),
+          500: ErrorResponse
+        },
+        detail: {
+          tags: ['Rooms'],
+          summary: 'Get Live Rooms with Tip Statistics',
+          description: `
+Retrieves all ongoing rooms with their aggregated tip statistics.
+
+**Features:**
+- Fetches only ongoing (live) rooms
+- Includes tip statistics for each room (total USD, tips by currency)
+- Sorted by total tips (highest first)
+- Gracefully handles rooms with no tips or tip fetching errors
+
+**Use Case:** Display trending rooms by tipping activity on the main page.
+
+**Performance Note:** For many live rooms, consider adding caching (30-60s) to reduce Redis load.
+
+**Note:** This is a public endpoint and does not require authentication.
+          `
+        }
+      })
   )
 
   .guard({
