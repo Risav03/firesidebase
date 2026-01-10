@@ -62,6 +62,9 @@ const TipStatisticsResponseSchema = t.Object({
  * Tipping routes for managing tip records
  */
 export const tippingRoutes = new Elysia()
+  .guard({
+    beforeHandle: authMiddleware,
+  })
   .group('/protected', (app) =>
     app
       /**

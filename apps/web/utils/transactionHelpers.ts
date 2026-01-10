@@ -41,8 +41,6 @@ export async function executeTransaction({
       const cryptoAccount = await getCryptoKeyAccount();
       const fromAddress = cryptoAccount?.account?.address;
 
-      toast.loading("Submitting transaction...", {toastId: 123});
-
       const callsId: any = await provider.request({
         method: "wallet_sendCalls",
         params: [
@@ -55,7 +53,7 @@ export async function executeTransaction({
         ],
       });
 
-      toast.loading("Transaction submitted, checking status...",  {toastId: 123});
+      toast.loading("Transaction submitted",  {autoClose: 2000});
 
       const result = await checkStatus(callsId);
 
