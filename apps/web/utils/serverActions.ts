@@ -633,3 +633,13 @@ export async function fetchRoomTips(roomId: string, token: string | null = null)
     authToken: token
   });
 }
+
+/**
+ * Fetch all live rooms with their tip statistics
+ */
+export async function fetchLiveRoomsTips() {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/rooms/public/live-tips`, {
+    method: 'GET',
+  });
+}

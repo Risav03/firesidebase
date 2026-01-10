@@ -28,6 +28,7 @@ import AvatarContextMenu from "./AvatarContextMenu";
 import PanelMember from "./PanelMember";
 import ListenerMember from "./ListenerMember";
 import TippingDrawer from "./TippingDrawer";
+import TipsDisplay from "./TipsDisplay";
 import AdsOverlay from "./AdsOverlay";
 import { Card } from "./UI/Card";
 // import AudioRecoveryBanner from "./AudioRecoveryBanner";
@@ -464,6 +465,11 @@ useEffect(() => {
           <h1 className="text-lg font-bold gradient-fire-text">{roomDetails?.name}</h1>
           <p className="text-sm text-gray-300">{roomDetails?.description}</p>
         </Card>
+        
+        {/* Tip Statistics Display */}
+        <div className="px-3">
+          <TipsDisplay roomId={roomId} />
+        </div>
         
         <div className="pb-32 px-3 relative z-10 mt-4">
           {/* Speaker Requests Button */}
