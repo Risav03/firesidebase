@@ -53,18 +53,18 @@ export async function executeTransaction({
         ],
       });
 
-      toast.loading("Transaction submitted",  {autoClose: 2000});
+      toast.loading("Transaction submitted",  {toastId: 2000});
 
       const result = await checkStatus(callsId);
 
       if (result.success === true) {
-        toast.success("Transaction confirmed!");
+        toast.success("Transaction confirmed!", {toastId: 2000});
         if (onSuccess) {
           await onSuccess();
         }
         return { success: true };
       } else {
-        toast.error("Transaction failed or timed out");
+        toast.error("Transaction failed or timed out", {toastId: 2000});
         return { success: false, error: "Transaction failed or timed out" };
       }
     } else {

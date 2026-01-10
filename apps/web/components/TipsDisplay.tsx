@@ -7,7 +7,8 @@ import sdk from '@farcaster/miniapp-sdk';
 import { RiLoader5Fill } from 'react-icons/ri';
 import { CiMoneyBill } from 'react-icons/ci';
 import { IoChevronDown, IoChevronUp } from 'react-icons/io5';
-import { connectorsForWallets } from '@rainbow-me/rainbowkit';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Card } from './UI/Card';
 
 interface TipsDisplayProps {
   roomId: string;
@@ -86,7 +87,7 @@ export default function TipsDisplay({ roomId }: TipsDisplayProps) {
     // Long interval polling as fallback (in case events are missed)
     const interval = setInterval(() => {
       fetchStatistics();
-    }, 300000); // 5 minutes
+    }, 30000);
     
     return () => clearInterval(interval);
   }, [roomId]);
@@ -106,12 +107,12 @@ export default function TipsDisplay({ roomId }: TipsDisplayProps) {
   const { totalTipsUSD, totalTipsByUsers, tipsByCurrency, recentTips } = statistics;
 
   return (
-    <div className="w-full mt-4 mb-4">
-      <div className="gradient-green-bg border border-fireside-green/30 rounded-lg overflow-hidden">
+    <div className="w-full mt-4 mb-4 relative">
+      <Card className="gradient-green-bg bg-neutral-green/5 rounded-2xl overflow-visible">
         {/* Header - Always Visible */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors"
+          className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors rounded-2xl"
         >
           <div className="flex items-center gap-3">
             <CiMoneyBill className="text-fireside-green text-2xl" />
@@ -127,34 +128,42 @@ export default function TipsDisplay({ roomId }: TipsDisplayProps) {
           </div>
         </button>
 
-        {/* Expanded Content */}
-        {isExpanded && (
-          <div className="border-t border-fireside-green/30 p-4 space-y-4">
+        {/* Expanded Content - Floating */}
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="absolute backdrop-blur-xl top-full left-0 right-0 mt-2 z-50 gradient-green-bg border border-fireside-green/30 rounded-2xl shadow-2xl max-h-[500px] bg-neutral-green/5 overflow-y-auto"
+            >
+              <div className="p-4 space-y-4">
             {/* Currency Breakdown */}
             <div>
               <h4 className="text-fireside-green font-semibold mb-2">By Currency</h4>
               <div className="grid grid-cols-3 gap-2">
                 {Object.entries(tipsByCurrency).map(([currency, data]) => {
-                  if (data.count === 0) return null;
+                 
                   return (
-                    <div key={currency} className="bg-white/5 rounded-lg p-3">
-                      <div className="flex items-center gap-1 mb-1">
+                    <div key={currency} className="bg-neutral-green/5 gradient-green-bg border border-neutral-green/10 rounded-xl p-2 relative">
+                      <div className="flex items-center mb-2 gap-1 mb-1 justify-center">
                         {currency === 'ETH' && (
-                          <img src="/ethereum.svg" alt="ETH" className="w-4 h-4" />
+                          <img src="/ethereum.svg" alt="ETH" className="w-8 h-8" />
                         )}
                         {currency === 'USDC' && (
-                          <img src="/usdc.svg" alt="USDC" className="w-4 h-4" />
+                          <img src="/usdc.svg" alt="USDC" className="w-8 h-8" />
                         )}
                         {currency === 'FIRE' && (
-                          <img src="/fireside-logo.svg" alt="FIRE" className="w-4 h-4" />
+                          <img src="/fireside-logo.svg" alt="FIRE" className="w-8 h-8" />
                         )}
-                        <span className="text-white font-semibold text-sm">{currency}</span>
+                        
                       </div>
-                      <p className="text-white/80 text-xs">${data.totalUSD.toFixed(2)}</p>
+                      <p className="text-white font-bold text-xs">${data.totalUSD.toFixed(2)}</p>
                       <p className="text-white/60 text-xs">
                         {data.totalNative.toFixed(currency === 'USDC' ? 2 : 4)} {currency}
                       </p>
-                      <p className="text-white/50 text-xs">{data.count} tip{data.count !== 1 ? 's' : ''}</p>
+                      <p className="text-white absolute bg-fireside-green -top-3 right-0 font-bold rounded-full aspect-square w-4 text-xs text-center mt-2">{data.count}</p>
                     </div>
                   );
                 })}
@@ -165,7 +174,7 @@ export default function TipsDisplay({ roomId }: TipsDisplayProps) {
             {recentTips.length > 0 && (
               <div>
                 <h4 className="text-fireside-green font-semibold mb-2">Recent Tips</h4>
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-32 overflow-y-scroll">
                   {recentTips.map((tip) => {
                     const recipientDisplay = tip.recipients.length > 0
                       ? tip.recipients
@@ -176,7 +185,7 @@ export default function TipsDisplay({ roomId }: TipsDisplayProps) {
                     return (
                       <div
                         key={tip.id}
-                        className="bg-white/5 rounded-lg p-3 flex items-start gap-3"
+                        className="bg-white/5 rounded-xl p-3 flex items-start gap-3"
                       >
                         <img
                           src={tip.tipper.pfp_url || '/default-avatar.png'}
@@ -188,6 +197,7 @@ export default function TipsDisplay({ roomId }: TipsDisplayProps) {
                             <span className="font-semibold">{tip.tipper.username}</span> tipped{' '}
                             <span className="font-semibold">{recipientDisplay}</span>
                           </p>
+                          <div className='flex items-center justify-between'>
                           <div className="flex items-center gap-2 mt-1">
                             <span className="text-fireside-green font-bold text-sm">
                               ${tip.amount.usd.toFixed(2)}
@@ -203,6 +213,8 @@ export default function TipsDisplay({ roomId }: TipsDisplayProps) {
                               minute: '2-digit',
                             })}
                           </p>
+                          </div>
+                          
                         </div>
                       </div>
                     );
@@ -211,8 +223,10 @@ export default function TipsDisplay({ roomId }: TipsDisplayProps) {
               </div>
             )}
           </div>
-        )}
-      </div>
+          </motion.div>
+          )}
+        </AnimatePresence>
+      </Card>
     </div>
   );
 }
