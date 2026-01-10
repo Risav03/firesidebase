@@ -6,6 +6,7 @@ import { useGlobalContext } from '@/utils/providers/globalContext';
 import sdk from '@farcaster/miniapp-sdk';
 import { toast } from 'react-toastify';
 import { useTipEvent } from '@/utils/events';
+import { saveTipRecord } from '@/utils/serverActions';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/UI/drawer';
 import { useMiniKit } from '@coinbase/onchainkit/minikit';
 import { encodeFunctionData } from 'viem';
@@ -109,26 +110,58 @@ export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerPr
     const recipient = peer.name || 'User';
     const recipientId = peer.id || '';
     
-    // Tip notification pending Phase 6 custom events migration
-     sendTipNotification({
-      roomId: roomId,
+    const tipData = {
       tipper: {
+        userId: user?.fid || 'unknown',
         username: tipper,
         pfp_url: user?.pfp_url || '',
       },
       recipients: [{
+        userId: recipientId,
         username: recipient,
         pfp_url: peer.pfp_url || '',
         role: peer.roleName,
-        id: recipientId,
       }],
       amount: {
         usd: tipAmountUSD,
         currency: currency,
         native: parseFloat(tipAmount),
       },
-      timestamp: new Date().toISOString(),
-    });
+    };
+
+    try {
+      // Save to Redis first
+      const env = process.env.NEXT_PUBLIC_ENV;
+      let token: any = '';
+      if (env !== 'DEV') {
+        token = (await sdk.quickAuth.getToken()).token;
+      }
+      await saveTipRecord(roomId, tipData, token);
+
+      // Then emit the event for real-time updates
+      sendTipNotification({
+        roomId: roomId,
+        tipper: {
+          username: tipper,
+          pfp_url: user?.pfp_url || '',
+        },
+        recipients: [{
+          username: recipient,
+          pfp_url: peer.pfp_url || '',
+          role: peer.roleName,
+          id: recipientId,
+        }],
+        amount: {
+          usd: tipAmountUSD,
+          currency: currency,
+          native: parseFloat(tipAmount),
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error('Error saving tip record:', error);
+      // Non-critical error, continue with notification
+    }
     
     const emoji = tipAmountUSD >= 100 ? '💸' : tipAmountUSD >= 25 ? '🎉' : '👍';
     const message = `${emoji} ${tipper} tipped ${recipient} $${tipAmountUSD} in ${currency}!`;
