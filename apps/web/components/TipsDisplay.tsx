@@ -7,6 +7,7 @@ import sdk from '@farcaster/miniapp-sdk';
 import { RiLoader5Fill } from 'react-icons/ri';
 import { CiMoneyBill } from 'react-icons/ci';
 import { IoChevronDown, IoChevronUp } from 'react-icons/io5';
+import { connectorsForWallets } from '@rainbow-me/rainbowkit';
 
 interface TipsDisplayProps {
   roomId: string;
@@ -37,19 +38,29 @@ export default function TipsDisplay({ roomId }: TipsDisplayProps) {
 
   // Listen for tip events to trigger immediate refetch
   useTipEvent((tipData: TipEventMessage) => {
-    console.log('[TipsDisplay] Received tip event:', tipData);
+    console.log('[TipsDisplay] Received tip event:', tipData.roomId);
+    console.log('[TipsDisplay] Current roomId:', roomId);
+    console.log(roomId === tipData.roomId ? 'Room IDs match' : 'Room IDs do not match');
+    console.log(roomId == tipData.roomId ? 'Room IDs match' : 'Room IDs do not match');
     // Only refetch if the tip is for this room
-    if (tipData.roomId === roomId) {
+    if (tipData.roomId == roomId) {
       fetchStatistics();
     }
   });
 
   const fetchStatistics = async () => {
     try {
-      const { token } = await sdk.quickAuth.getToken();
+      let token:any = "";
+      if(process.env.NEXT_PUBLIC_ENV !== 'DEV') {
+        token =( await sdk.quickAuth.getToken()).token;
+      }
+      
       const response = await fetchRoomTips(roomId, token);
+
+      console.log('Fetched tip statistics:', response);
       
       if (response.ok && response.data.success) {
+        console.log('Fetched tip statistics response:', response);
         setStatistics(response.data.data);
         
         // Track the latest tip for notification purposes

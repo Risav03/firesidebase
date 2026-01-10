@@ -9,7 +9,7 @@ import {
   selectHasPeerHandRaised,
   selectIsPeerAudioEnabled,
 } from "@100mslive/react-sdk";
-import { useSpeakerRequestEvent, useSpeakerRejectionEvent } from "@/utils/events";
+import { useSpeakerRequestEvent, useSpeakerRejectionEvent, useTipEvent } from "@/utils/events";
 import PeerWithContextMenu from "./PeerWithContextMenu";
 import { ScreenTile } from "./ScreenTile";
 import { useEffect, useState, useRef, useCallback } from "react";
@@ -58,6 +58,10 @@ export default function Conference({ roomId }: { roomId: string }) {
     })));
     console.groupEnd();
   }, [allPeers]);
+
+  useTipEvent((msg) => {
+    toast.success(`New tip received in this room! 🎉`)
+  })
 
   // Ref to track previous peers for empty room detection
   const previousPeersRef = useRef<any[]>([]);
