@@ -123,7 +123,7 @@ export default function AdsOverlay({ roomId }: { roomId: string }) {
   if (!current) return null;
   
   return (
-    <Card className="pointer-events-none border-0 rounded-none fixed bottom-32 w-screen flex object-cover justify-center bg-fireside-orange/20 border-fireside-orange/20 overflow-hidden">
+    <Card className="pointer-events-none border-0 fixed bottom-32 mx-3 w-[calc(100%-1.5rem)] rounded-2xl flex object-cover justify-center bg-fireside-orange/20 border-fireside-orange/20 overflow-hidden">
       <div className='relative w-full h-full'>
         <div className="aspect-[5/1] w-full object-cover relative">
           <Image width={1500} height={500} src={current.imageUrl} alt={current.title} className="h-full w-full object-cover" />
@@ -136,7 +136,7 @@ export default function AdsOverlay({ roomId }: { roomId: string }) {
         {/* Timer border that disappears as ad progresses - bottom only */}
         <div className="absolute bottom-0 left-0 right-0 h-1 pointer-events-none">
           <div 
-            className="h-full bg-gradient-to-r from-orange-400 via-pink-400 to-yellow-300"
+            className="h-full bg-neutral-orange"
             style={{
               width: `${100 - progress}%`,
               transition: 'width 0.3s ease-out',
