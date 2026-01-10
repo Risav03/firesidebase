@@ -25,7 +25,7 @@ import { contractAdds } from "@/utils/contract/contractAdds";
 import { firebaseTipsAbi } from "@/utils/contract/abis/firebaseTipsAbi";
 import { erc20Abi } from "@/utils/contract/abis/erc20abi";
 import { CiMoneyBill } from "react-icons/ci";
-// Removed: import { useTipEvent } from "@/utils/events"; // Uses 100ms
+import { useTipEvent } from "@/utils/events";
 
 import { base, createBaseAccountSDK, getCryptoKeyAccount } from "@base-org/account";
 import sdk from '@farcaster/miniapp-sdk';
@@ -82,11 +82,7 @@ export default function TippingModal({
   const { address } = useAccount();
   const hmsActions = useHMSActions();
   const { sendCalls, isSuccess, status  } = useSendCalls();
-  
-  // Stub for tip notification (pending Phase 6 custom events migration)
-  const sendTipNotification = (tipData: any) => {
-    console.log('[TippingModal] Tip notification pending migration:', tipData);
-  };
+  const { sendTipNotification } = useTipEvent();
 
   const splitIntoBatches = (array: any[]) => {
     const batches = [];

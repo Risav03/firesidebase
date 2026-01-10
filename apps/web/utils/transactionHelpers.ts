@@ -31,7 +31,6 @@ export async function executeTransaction({
 }: ExecuteTransactionOptions): Promise<{ success: boolean; error?: string }> {
   try {
     if (clientFid === 309857) {
-      toast.loading("Connecting to Base SDK...");
       
       const provider = createBaseAccountSDK({
         appName: "Fireside",
@@ -42,7 +41,7 @@ export async function executeTransaction({
       const cryptoAccount = await getCryptoKeyAccount();
       const fromAddress = cryptoAccount?.account?.address;
 
-      toast.loading("Submitting transaction...");
+      toast.loading("Submitting transaction...", {toastId: 123});
 
       const callsId: any = await provider.request({
         method: "wallet_sendCalls",
@@ -56,7 +55,7 @@ export async function executeTransaction({
         ],
       });
 
-      toast.loading("Transaction submitted, checking status...");
+      toast.loading("Transaction submitted, checking status...",  {toastId: 123});
 
       const result = await checkStatus(callsId);
 

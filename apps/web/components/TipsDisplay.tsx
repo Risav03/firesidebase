@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-// Removed: import { useTipEvent, TipEventMessage } from '@/utils/events'; // Uses 100ms
+import { useTipEvent, TipEventMessage } from '@/utils/events';
 import { fetchRoomTips } from '@/utils/serverActions';
 import sdk from '@farcaster/miniapp-sdk';
 import { RiLoader5Fill } from 'react-icons/ri';
@@ -35,6 +35,15 @@ export default function TipsDisplay({ roomId }: TipsDisplayProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [lastTipId, setLastTipId] = useState<string>('');
 
+  // Listen for tip events to trigger immediate refetch
+  useTipEvent((tipData: TipEventMessage) => {
+    console.log('[TipsDisplay] Received tip event:', tipData);
+    // Only refetch if the tip is for this room
+    if (tipData.roomId === roomId) {
+      fetchStatistics();
+    }
+  });
+
   const fetchStatistics = async () => {
     try {
       const { token } = await sdk.quickAuth.getToken();
@@ -58,15 +67,15 @@ export default function TipsDisplay({ roomId }: TipsDisplayProps) {
     }
   };
 
-  // Poll for new tips every 30 seconds (pending Phase 6 custom events migration)
-  // TODO: Replace with RealtimeKit chat-based tip events when Phase 6 is complete
+  // Initial fetch and fallback polling every 5 minutes for sync
+  // Primary updates happen via TIP_RECEIVED events for instant feedback
   useEffect(() => {
     fetchStatistics();
     
-    // Poll for updates
+    // Long interval polling as fallback (in case events are missed)
     const interval = setInterval(() => {
       fetchStatistics();
-    }, 30000); // 30 seconds
+    }, 300000); // 5 minutes
     
     return () => clearInterval(interval);
   }, [roomId]);
