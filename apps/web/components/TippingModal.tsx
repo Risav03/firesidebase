@@ -799,8 +799,7 @@ export default function TippingModal({
               disabled={isLoading || (!selectedUsers.length && !selectedRoles.length) || (!selectedTip && !customTip)}
               className=" gradient-indigo-bg bg-fireside-indigo/10 border-[1px] border-fireside-indigo/10 flex-1 flex items-center justify-center gap-1 text-lg font-bold"
             >
-              <img src="/ethereum.svg" alt="ETH" className="w-6 h-6" />
-              {isLoading ? 'Processing...' : 'ETH'}
+              {isLoading ? <RiLoader5Fill className="animate-spin w-6 h-6" /> : <><img src="/ethereum.svg" alt="ETH" className="w-6 h-6" /><span>ETH</span></>}
             </Button>
             <Button
             variant="action"
@@ -808,8 +807,7 @@ export default function TippingModal({
               disabled={isLoading || (!selectedUsers.length && !selectedRoles.length) || (!selectedTip && !customTip)}
               className=" flex-1 gradient-blue-bg bg-fireside-blue/30 border-[1px] border-fireside-blue/30 flex items-center justify-center text-lg gap-1 font-bold"
             >
-              <img src="/usdc.svg" alt="USDC" className="w-6 h-6" />
-              {isLoading ? 'Processing...' : 'USDC'}
+              {isLoading ? <RiLoader5Fill className="animate-spin w-6 h-6" /> : <><img src="/usdc.svg" alt="USDC" className="w-6 h-6" /><span>USDC</span></>}
             </Button>
             <Button
             variant="action"
@@ -817,8 +815,7 @@ export default function TippingModal({
               disabled={isLoading || (!selectedUsers.length && !selectedRoles.length) || (!selectedTip && !customTip)}
               className="flex-1 gradient-orange-bg border-[1px] border-fireside-orange/10 bg-fireside-orange/10 text-white flex items-center justify-center text-lg font-bold"
             >
-              <img src="/fireside-logo.svg" alt="FIRE" className="w-6 h-6" />
-              {isLoading ? 'Processing...' : '$FIRE'}
+              {isLoading ? <RiLoader5Fill className="animate-spin w-6 h-6" /> : <><img src="/fireside-logo.svg" alt="FIRE" className="w-6 h-6" /><span>$FIRE</span></>}
             </Button>
           </div>
         </DrawerFooter>
