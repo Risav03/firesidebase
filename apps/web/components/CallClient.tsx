@@ -25,6 +25,7 @@ import {
   removeHMSPeer,
 } from "@/utils/serverActions";
 import { useAccount } from "wagmi";
+import Overlays from "./Overlays";
 
 interface RoomCode {
   id: string;
@@ -427,7 +428,7 @@ export default function CallClient({ roomId }: CallClientProps) {
     <div className="min-h-screen">
       <RoleChangeHandler />
       <Header roomId={roomId} />
-      <AdsOverlay roomId={roomId} />
+      <Overlays roomId={roomId} />
       <Conference roomId={roomId} />
       <Footer roomId={roomId} />
     </div>
