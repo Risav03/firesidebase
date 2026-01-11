@@ -268,8 +268,7 @@ export default function TippingModal({
       ? selectedUsers.map((user) => user.username).join(", ")
       : selectedRoles.map((role) => (role === "host" ? role : `${role}s`)).join(", ");
     
-    await sendTipMessage(tipper, recipients, tipAmountUSD, currency, user?.fid || "unknown");
-
+    
     // Prepare tip data for Redis
     const tipData = {
       tipper: {
@@ -565,11 +564,10 @@ export default function TippingModal({
 
       const sendingCalls: TransactionCall[] = [approveCall, ...distributeCalls];
 
-      const nativeTokenAmount = tokenSymbol === "USDC" 
-        ? tipAmountUSD 
-        : tokenSymbol === "FIRE" && firePrice 
-          ? tipAmountUSD / firePrice 
-          : tipAmountUSD;
+      let nativeTokenAmount = tipAmountUSD;
+      if (tokenSymbol === "FIRE" && firePrice) {
+        nativeTokenAmount = tipAmountUSD / firePrice;
+      }
 
       const result = await executeTransaction({
         calls: sendingCalls,
