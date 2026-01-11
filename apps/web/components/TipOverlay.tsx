@@ -47,7 +47,7 @@ export default function TipOverlay() {
     // Create particles based on currency
     if (data.amount.currency === 'ETH' || data.amount.currency === 'USDC' || data.amount.currency === 'FIRE') {
       // Calculate particle count based on tip amount (min 5 for $0.10, max 100)
-      const particleCount = Math.min(100, Math.max(5, Math.floor(data.amount.usd * 10)));
+      const particleCount = Math.min(50, Math.max(5, Math.floor(data.amount.usd * 20)));
       
       const newParticles: Particle[] = Array.from({ length: particleCount }, (_, i) => ({
         id: Date.now() + i,
