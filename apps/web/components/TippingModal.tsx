@@ -297,7 +297,7 @@ export default function TippingModal({
       await saveTipRecord(roomId, tipData, token);
 
       // Emit tip event
-      sendTipNotification({
+      const tipEventData = {
         roomId,
         tipper: {
           username: tipData.tipper.username,
@@ -306,7 +306,8 @@ export default function TippingModal({
         recipients: tipData.recipients,
         amount: tipData.amount,
         timestamp: new Date().toISOString(),
-      });
+      };
+      sendTipNotification(tipEventData);
     } catch (error) {
       console.error("Error saving tip record:", error);
       // Non-critical error, don't interrupt the flow

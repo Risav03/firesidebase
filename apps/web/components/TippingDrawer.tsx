@@ -139,7 +139,7 @@ export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerPr
       await saveTipRecord(roomId, tipData, token);
 
       // Then emit the event for real-time updates
-      sendTipNotification({
+      const tipEventData = {
         roomId: roomId,
         tipper: {
           username: tipper,
@@ -157,7 +157,8 @@ export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerPr
           native: parseFloat(tipAmount),
         },
         timestamp: new Date().toISOString(),
-      });
+      };
+      sendTipNotification(tipEventData);
     } catch (error) {
       console.error('Error saving tip record:', error);
       // Non-critical error, continue with notification
