@@ -104,7 +104,7 @@ export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerPr
     }
   }, [isOpen]);
 
-  const processSuccess = async (currency: string) => {
+  const processSuccess = async (currency: string, nativeAmount: number = 0) => {
     const tipAmountUSD = parseFloat(tipAmount);
     const tipper = user?.username || 'Someone';
     const recipient = peer.name || 'User';
@@ -125,7 +125,7 @@ export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerPr
       amount: {
         usd: tipAmountUSD,
         currency: currency,
-        native: parseFloat(tipAmount),
+        native: nativeAmount,
       },
     };
 
@@ -139,7 +139,7 @@ export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerPr
       await saveTipRecord(roomId, tipData, token);
 
       // Then emit the event for real-time updates
-      sendTipNotification({
+      const tipEventData = {
         roomId: roomId,
         tipper: {
           username: tipper,
@@ -154,10 +154,11 @@ export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerPr
         amount: {
           usd: tipAmountUSD,
           currency: currency,
-          native: parseFloat(tipAmount),
+          native: nativeAmount,
         },
         timestamp: new Date().toISOString(),
-      });
+      };
+      sendTipNotification(tipEventData);
     } catch (error) {
       console.error('Error saving tip record:', error);
       // Non-critical error, continue with notification
@@ -225,7 +226,7 @@ export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerPr
         clientFid: context?.client.clientFid,
         sendCalls,
         onSuccess: async () => {
-          await processSuccess('ETH');
+          await processSuccess('ETH', tipAmountETH);
         },
       });
       
@@ -299,12 +300,17 @@ export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerPr
       
       const sendingCalls: TransactionCall[] = [approveCall, distributeCall];
       
+      let nativeTokenAmount = tipAmountUSD;
+      if (tokenSymbol === 'FIRE' && firePrice) {
+        nativeTokenAmount = tipAmountUSD / firePrice;
+      }
+      
       const result = await executeTransaction({
         calls: sendingCalls,
         clientFid: context?.client.clientFid,
         sendCalls,
         onSuccess: async () => {
-          await processSuccess(tokenSymbol);
+          await processSuccess(tokenSymbol, nativeTokenAmount);
         },
       });
       
