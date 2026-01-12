@@ -53,7 +53,6 @@ export async function executeTransaction({
         ],
       });
 
-      toast.loading("Transaction submitted",  {toastId: 2000});
 
       const result = await checkStatus(callsId);
 
