@@ -46,14 +46,14 @@ export default function TipOverlay() {
 
     // Create particles based on currency
     if (data.amount.currency === 'ETH' || data.amount.currency === 'USDC' || data.amount.currency === 'FIRE') {
-      // Calculate particle count based on tip amount (min 5 for $0.10, max 100)
-      const particleCount = Math.min(50, Math.max(5, Math.floor(data.amount.usd * 20)));
+      // Calculate particle count based on tip amount (min 10, max 150)
+      const particleCount = Math.min(50, Math.max(5, Math.floor(data.amount.usd * 5)));
       
       const newParticles: Particle[] = Array.from({ length: particleCount }, (_, i) => ({
         id: Date.now() + i,
         x: Math.random() * 100,
         delay: Math.random() * 0.5,
-        duration: 3 + Math.random() * 2,
+        duration: 5 + Math.random() * 3,
       }));
       setParticles((prev) => [...prev, ...newParticles]);
 
@@ -78,7 +78,19 @@ export default function TipOverlay() {
     return 'someone';
   };
 
-  const getCurrencyIcon = (currency: string) => {
+  const getCurrencyIcon = (currency: string, amount: number) => {
+    // Special emojis based on tip amount
+    if (amount > 100) {
+      return '💎'; // Diamond for tips over $100
+    }
+    if (amount > 50) {
+      return '🎆'; // Fireworks for tips over $50
+    }
+    if (amount > 25) {
+      return '🍾'; // Champagne for tips over $25
+    }
+    
+    // Default currency-based emojis
     switch (currency) {
       case 'FIRE':
         return '🔥';
@@ -106,7 +118,8 @@ export default function TipOverlay() {
       <AnimatePresence>
         {particles.map((particle) => {
           const currency = notifications[notifications.length - 1]?.amount.currency || 'ETH';
-          const icon = getCurrencyIcon(currency);
+          const amount = notifications[notifications.length - 1]?.amount.usd || 0;
+          const icon = getCurrencyIcon(currency, amount);
           
           return (
             <motion.div
