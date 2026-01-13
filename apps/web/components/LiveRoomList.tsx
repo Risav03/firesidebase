@@ -138,7 +138,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                 if (env !== "DEV" && !token) {
                   token = ((await sdk.quickAuth.getToken()).token);
                 }
-      const response = await fetchAPI(`${URL}/api/rooms/protected/upcoming`, {
+      const response = await fetchAPI(`${URL}/api/rooms/public/upcoming`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
