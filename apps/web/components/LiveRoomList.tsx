@@ -19,6 +19,7 @@ import {
   fetchAllRooms,
   fetchAPI,
   startRoom,
+  skipRecurringRoom,
 } from "@/utils/serverActions";
 import { useNavigateWithLoader } from "@/utils/useNavigateWithLoader";
 import { MdOutlineSchedule } from "react-icons/md";
@@ -51,6 +52,9 @@ interface Room {
   sponsorshipEnabled?: boolean;
   adsEnabled?: boolean;
   topics: string[];
+  isRecurring?: boolean;
+  recurrenceType?: 'daily' | 'weekly' | null;
+  recurrenceDay?: number | null;
 }
 
 interface LiveRoomListProps {
@@ -197,6 +201,36 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
     }
   };
 
+  const handleSkipRoom = async (roomId: string) => {
+    try {
+      var token: any = "";
+      const env = process.env.NEXT_PUBLIC_ENV;
+
+      if (env !== "DEV") {
+        token = (await sdk.quickAuth.getToken()).token;
+      }
+
+      toast.loading("Skipping to next occurrence...", { toastId: "skipping-room" });
+
+      const response = await skipRecurringRoom(roomId, token);
+
+      if (response.data.success) {
+        toast.dismiss("skipping-room");
+        toast.success("Skipped to next occurrence!");
+        
+        // Refresh the upcoming rooms list
+        await fetchMyUpcomingRooms();
+      } else {
+        toast.dismiss("skipping-room");
+        toast.error(response.data.error || "Failed to skip room");
+      }
+    } catch (error) {
+      console.error("Error skipping room:", error);
+      toast.dismiss("skipping-room");
+      toast.error("Error skipping room. Please try again.");
+    }
+  };
+
 
   // Fetch rooms when user is loaded
   useEffect(() => {
@@ -338,15 +372,33 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                                         <div className="flex items-center gap-1 justify-between">
                                           <h3 className="text-lg text-white font-bold truncate">
                                             {room?.name}
+                                            {room?.isRecurring && (
+                                              <span className="ml-2 text-xs text-orange-400">
+                                                🔁
+                                              </span>
+                                            )}
                                           </h3>
-                                          <DrawerClose asChild>
-                                            <Button
-                                              variant="default"
-                                              onClick={() => handleGoLive(room?._id)}
-                                            >
-                                              Start
-                                            </Button>
-                                          </DrawerClose>
+                                          <div className="flex gap-2">
+                                            {room?.isRecurring && (
+                                              <DrawerClose asChild>
+                                                <Button
+                                                  variant="ghost"
+                                                  onClick={() => handleSkipRoom(room?._id)}
+                                                  className="text-xs"
+                                                >
+                                                  Skip
+                                                </Button>
+                                              </DrawerClose>
+                                            )}
+                                            <DrawerClose asChild>
+                                              <Button
+                                                variant="default"
+                                                onClick={() => handleGoLive(room?._id)}
+                                              >
+                                                Start
+                                              </Button>
+                                            </DrawerClose>
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
@@ -376,16 +428,34 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                                       </div>
                                       
                                       <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-1 justify-between">
-                                          <h3 className="text-lg text-white font-bold truncate">
-                                            {room?.name}
-                                          </h3>
-                                          <div className="bg-black/30 rounded-full px-2 pb-1">
-                                            <Countdown
-                                              targetTime={room?.startTime}
-                                              className="text-yellow-200 text-xs"
-                                            />
+                                        <div className="flex flex-col gap-1">
+                                          <div className="flex items-center gap-2 justify-between">
+                                            <h3 className="text-lg text-white font-bold truncate">
+                                              {room?.name}
+                                              {room?.isRecurring && (
+                                                <span className="ml-2 text-xs text-orange-400">
+                                                  🔁
+                                                </span>
+                                              )}
+                                            </h3>
+                                            <div className="bg-black/30 rounded-full px-2 pb-1">
+                                              <Countdown
+                                                targetTime={room?.startTime}
+                                                className="text-yellow-200 text-xs"
+                                              />
+                                            </div>
                                           </div>
+                                          {room?.isRecurring && (
+                                            <DrawerClose asChild>
+                                              <Button
+                                                variant="ghost"
+                                                onClick={() => handleSkipRoom(room?._id)}
+                                                className="text-xs self-end"
+                                              >
+                                                Skip to next occurrence
+                                              </Button>
+                                            </DrawerClose>
+                                          )}
                                         </div>
                                       </div>
                                     </div>

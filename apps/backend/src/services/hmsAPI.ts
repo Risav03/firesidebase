@@ -191,5 +191,23 @@ export class HMSAPI {
       }
       throw new Error(`Failed to fetch room peers: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  } 
+  }
+
+  async startRecording(roomId: string): Promise<any> {
+    const url = `/recordings/room/${roomId}/start`;
+    const response = await fetch(`${this.baseUrl}${url}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.managementToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Failed to start recording: ${JSON.stringify(error)}`);
+    }
+
+    return response.json();
+  }
 }

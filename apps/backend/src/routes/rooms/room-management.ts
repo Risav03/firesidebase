@@ -53,10 +53,10 @@ const RoomResponseSchema = t.Object({
 });
 
 export const roomManagementRoutes = new Elysia()
-  .group("/public", (app) =>
+  .group("/public", (app: any) =>
     app
       // Get all enabled rooms
-      .get("/", async ({ set }) => {
+      .get("/", async ({ set }: any) => {
         try {
           const rooms = await Room.find({ enabled: true })
             .sort({ createdAt: -1 })
@@ -208,7 +208,7 @@ Retrieves all enabled/active rooms with their current participant counts.
       })
 
       // Get room by ID
-      .get("/:id", async ({ params, set }) => {
+      .get("/:id", async ({ params, set }: any) => {
         try {
           console.log("Fetching room by ID:", params.id);
           const room = await Room.findById(params.id)
@@ -276,7 +276,7 @@ Retrieves a single room by its MongoDB ObjectId.
       // Get multiple rooms by IDs
       .post(
         "/bulk",
-        async ({ body, set }) => {
+        async ({ body, set }: any) => {
           try {
             const { ids } = body;
 
@@ -367,13 +367,18 @@ Retrieves multiple rooms by their MongoDB ObjectIds in a single request.
       )
 
       // Get recordings for a room
-      .get("/:id/recordings", async ({ params, set }) => {
+      .get("/:id/recordings", async ({ params, set }: any) => {
         try {
           const room = await Room.findOne({ roomId: params.id });
 
           if (!room) {
             set.status = 404;
             return errorResponse("Room not found");
+          }
+
+          // Check if recording was enabled for this room
+          if (!room.recordingEnabled) {
+            return successResponse({ recordings: [], message: "Recording was not enabled for this room" });
           }
 
           const hmsAPI = new HMSAPI();
@@ -417,7 +422,7 @@ Retrieves recording assets for a room from 100ms.
       // Get rooms by topics
       .post(
         "/by-topics",
-        async ({ body, set }) => {
+        async ({ body, set }: any) => {
           try {
             const { topics } = body;
             if (!Array.isArray(topics) || topics.length === 0) {
@@ -481,7 +486,7 @@ Retrieves rooms that match any of the provided topics.
       )
 
       // Get live rooms with tip statistics
-      .get('/live-tips', async ({ set }) => {
+      .get('/live-tips', async ({ set }: any) => {
         try {
           // Fetch all ongoing rooms
           const ongoingRooms = await Room.find({ 
@@ -619,7 +624,7 @@ Retrieves all ongoing rooms with their aggregated tip statistics.
 
   .group(
     "/protected",
-    (app) =>
+    (app: any) =>
       app
         .guard({
           beforeHandle: authMiddleware,
@@ -627,13 +632,19 @@ Retrieves all ongoing rooms with their aggregated tip statistics.
         // Non-transactional version for standalone MongoDB
         .post(
           "/",
-          async ({ headers, body, set }) => {
+          async ({ headers, body, set }: any) => {
             let savedRoom: any = null;
             let hmsRoom: any = null;
 
             try {
-              const { name, description, startTime, topics, adsEnabled } = body;
+              const { name, description, startTime, topics, adsEnabled, isRecurring, recurrenceType, recurrenceDay, recordingEnabled } = body;
               const userFid = headers["x-user-fid"] as string;
+
+              // Validate recurring fields
+              if (isRecurring && recurrenceType === 'weekly' && (recurrenceDay === null || recurrenceDay === undefined)) {
+                set.status = 400;
+                return errorResponse("recurrenceDay is required for weekly recurring rooms");
+              }
 
               const hostUser = await User.findOne({ fid: parseInt(userFid) });
               if (!hostUser) {
@@ -687,6 +698,12 @@ Retrieves all ongoing rooms with their aggregated tip statistics.
                 enabled: true,
                 topics,
                 adsEnabled: resolvedAdsEnabled,
+                isRecurring: isRecurring || false,
+                recurrenceType: recurrenceType || null,
+                recurrenceDay: recurrenceDay !== undefined ? recurrenceDay : null,
+                parentRoomId: null,
+                occurrenceNumber: isRecurring ? 1 : null,
+                recordingEnabled: recordingEnabled !== undefined ? recordingEnabled : true,
               });
 
               try {
@@ -773,7 +790,7 @@ Creates a new audio room.
         )
 
         // Start a room - create HMS room and update room info
-        .post("/start/:roomId", async ({ headers, params, set }) => {
+        .post("/start/:roomId", async ({ headers, params, set }: any) => {
           try {
             const userFid = headers["x-user-fid"] as string;
 
@@ -833,6 +850,17 @@ Creates a new audio room.
               console.error("Error generating room codes:", error);
               set.status = 500;
               return errorResponse("Failed to generate room codes");
+            }
+
+            // Start recording if enabled
+            if (room.recordingEnabled) {
+              try {
+                await hmsAPI.startRecording(hmsRoom.id);
+                console.log(`[Recording] Started recording for room ${hmsRoom.id}`);
+              } catch (recordingError) {
+                console.error("Error starting recording:", recordingError);
+                // Don't fail room start if recording fails
+              }
             }
 
             const interested = room.interested || [];
@@ -1146,6 +1174,108 @@ Updates room properties. Different behaviors based on the update type:
 **Ads Behavior:**
 - Toggling \`adsEnabled\` to \`true\` triggers auto-start evaluation
 - Toggling \`adsEnabled\` to \`false\` stops any running ad session
+
+**Authentication Required:** Yes (Farcaster JWT)
+              `,
+              security: [{ bearerAuth: [] }]
+            }
+          }
+        )
+        // Skip recurring room occurrence
+        .put(
+          "/:id/skip",
+          async ({ headers, params, set }: any) => {
+            try {
+              const userFid = headers["x-user-fid"] as string;
+              const roomId = params.id;
+
+              const user = await User.findOne({ fid: parseInt(userFid) });
+              if (!user) {
+                set.status = 404;
+                return errorResponse("User not found");
+              }
+
+              const room = await Room.findById(roomId);
+              if (!room) {
+                set.status = 404;
+                return errorResponse("Room not found");
+              }
+
+              // Authorization check
+              if (room.host.toString() !== user._id.toString()) {
+                set.status = 403;
+                return errorResponse("Only the room host can skip occurrences");
+              }
+
+              // Validate room is recurring
+              if (!room.isRecurring) {
+                set.status = 400;
+                return errorResponse("This is not a recurring room");
+              }
+
+              // Validate room is upcoming
+              if (room.status !== 'upcoming') {
+                set.status = 400;
+                return errorResponse("Only upcoming rooms can be skipped");
+              }
+
+              // Calculate next occurrence from current time
+              const { calculateNextOccurrence } = await import('../../cron/room-cleanup');
+              const nextStartTime = calculateNextOccurrence(
+                new Date(), // Use current time as base
+                room.recurrenceType!,
+                room.recurrenceDay
+              );
+
+              // Update room with new start time and reset interested users
+              room.startTime = nextStartTime;
+              room.interested = [];
+              await room.save();
+
+              await room.populate("host", "fid username displayName pfp_url");
+
+              return successResponse(
+                room,
+                "Room occurrence skipped successfully"
+              );
+            } catch (error) {
+              console.error("Error skipping room:", error);
+              set.status = 500;
+              return errorResponse(
+                "Failed to skip room",
+                error instanceof Error ? error.message : "Unknown error"
+              );
+            }
+          },
+          {
+            params: t.Object({
+              id: t.String({ description: 'MongoDB ObjectId of the room' })
+            }),
+            response: {
+              200: UpdateRoomResponseSchema,
+              400: ErrorResponse,
+              403: ErrorResponse,
+              404: ErrorResponse,
+              500: ErrorResponse
+            },
+            detail: {
+              tags: ['Rooms'],
+              summary: 'Skip Recurring Room Occurrence',
+              description: `
+Skip the next occurrence of a recurring room and reschedule it to the following valid date.
+
+**Behavior:**
+- Calculates next occurrence based on current date/time (not the old start time)
+- For daily rooms: Schedules for tomorrow at the same time
+- For weekly rooms: Schedules for next occurrence of the specified day
+- Resets the \`interested\` array (notification subscribers)
+
+**Validation:**
+- Room must be recurring (\`isRecurring: true\`)
+- Room must be in \`upcoming\` status
+- Only the room host can skip occurrences
+
+**Use Case:** Host realizes they can't make the scheduled time and wants to push it to the next occurrence without manual rescheduling.
 
 **Authentication Required:** Yes (Farcaster JWT)
               `,

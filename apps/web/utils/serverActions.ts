@@ -643,3 +643,14 @@ export async function fetchLiveRoomsTips() {
     method: 'GET',
   });
 }
+
+/**
+ * Skip recurring room occurrence
+ */
+export async function skipRecurringRoom(roomId: string, token: string | null = null) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/rooms/protected/${roomId}/skip`, {
+    method: 'PUT',
+    authToken: token
+  });
+}

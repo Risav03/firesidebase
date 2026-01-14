@@ -62,7 +62,13 @@ export const RoomSchema = t.Object({
   ]),
   roomId: t.String(),
   interested: t.Array(t.String()),
-  topics: t.Optional(t.Array(t.String()))
+  topics: t.Optional(t.Array(t.String())),
+  isRecurring: t.Optional(t.Boolean()),
+  recurrenceType: t.Optional(t.Union([t.Literal('daily'), t.Literal('weekly'), t.Null()])),
+  recurrenceDay: t.Optional(t.Union([t.Number(), t.Null()])),
+  parentRoomId: t.Optional(t.Union([t.String(), t.Null()])),
+  occurrenceNumber: t.Optional(t.Number()),
+  recordingEnabled: t.Optional(t.Boolean())
 });
 
 // HMS API related schemas
