@@ -47,7 +47,6 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
   const [nameError, setNameError] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceType, setRecurrenceType] = useState<'daily' | 'weekly'>('weekly');
-  const [recurrenceDay, setRecurrenceDay] = useState<number>(0);
   const [recordingEnabled, setRecordingEnabled] = useState(true);
   const navigate = useNavigateWithLoader();
   const { user } = useGlobalContext();
@@ -65,7 +64,6 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
       setNameError('');
       setIsRecurring(false);
       setRecurrenceType('weekly');
-      setRecurrenceDay(0);
       setRecordingEnabled(true);
     }
   }, [isOpen, user]);
@@ -108,7 +106,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         sponsorshipEnabled: adsEnabled,
         isRecurring: showSchedule ? isRecurring : false,
         recurrenceType: (showSchedule && isRecurring) ? recurrenceType : null,
-        recurrenceDay: (showSchedule && isRecurring && recurrenceType === 'weekly') ? recurrenceDay : null,
+        recurrenceDay: null,
         recordingEnabled,
       };
 
@@ -123,7 +121,6 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         setAdsEnabled(Boolean(user?.autoAdsEnabled));
         setIsRecurring(false);
         setRecurrenceType('weekly');
-        setRecurrenceDay(0);
         setRecordingEnabled(true);
         onClose();
 
@@ -263,29 +260,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                         </div>
                       </div>
 
-                      {recurrenceType === 'weekly' && (
-                        <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">
-                            Day of the week
-                          </label>
-                          <div className="flex flex-wrap gap-2">
-                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
-                              <button
-                                key={day}
-                                type="button"
-                                onClick={() => setRecurrenceDay(index)}
-                                className={`px-3 py-2 rounded-lg text-sm transition-colors ${
-                                  recurrenceDay === index
-                                    ? 'bg-orange-500 text-white'
-                                    : 'bg-white/10 text-gray-300 hover:bg-white/20'
-                                }`}
-                              >
-                                {day}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+
                     </div>
                   )}
                 </div>
@@ -328,13 +303,13 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                   Enable ads for this room
                 </label>
                 <p className="text-xs text-gray-400">
-                  Ads will play automatically once your audience meets the minimum size.
+                  Suitable ads will play automatically.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setAdsEnabled(!adsEnabled)}
-                className={`w-14 h-7 rounded-full p-1 flex items-center transition-colors ${adsEnabled ? 'bg-fireside-orange' : 'bg-white/20'}`}
+                className={`w-12 h-7 rounded-full p-1 flex items-center transition-colors ${adsEnabled ? 'bg-fireside-orange' : 'bg-white/20'}`}
               >
                 <span
                   className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 ${adsEnabled ? 'translate-x-5' : 'translate-x-0'}`}
@@ -354,7 +329,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
               <button
                 type="button"
                 onClick={() => setRecordingEnabled(!recordingEnabled)}
-                className={`w-14 h-7 rounded-full p-1 flex items-center transition-colors ${recordingEnabled ? 'bg-fireside-orange' : 'bg-white/20'}`}
+                className={`w-12 h-7 rounded-full p-1 flex items-center transition-colors ${recordingEnabled ? 'bg-fireside-orange' : 'bg-white/20'}`}
               >
                 <span
                   className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 ${recordingEnabled ? 'translate-x-5' : 'translate-x-0'}`}
@@ -400,7 +375,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                 <Button
                   disabled={loading}
                   onClick={scheduleRoom}
-                  className="gradient-fire  w-[70%] ml-3 text-white font-medium"
+                  className="gradient-fire rounded-lg w-[70%] ml-3 text-white font-medium"
                 >
                   {loading ? 'Scheduling...' : 'Schedule Room'}
                 </Button>

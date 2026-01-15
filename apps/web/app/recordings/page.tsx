@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 async function fetchRooms(): Promise<Room[]> {
     try {
       const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-      const response = await fetchAPI(`${URL}/api/rooms/public`, {
+      const response = await fetchAPI(`${URL}/api/rooms/public/recorded`, {
         cache: 'no-store',
       });
       

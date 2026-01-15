@@ -485,6 +485,68 @@ Retrieves rooms that match any of the provided topics.
         }
       )
 
+      // Get rooms with recording enabled
+      .get('/recorded', async ({ set }: any) => {
+        try {
+          const rooms = await Room.find({ 
+            status: "ended",
+            $or: [
+              { recordingEnabled: true },
+              { ended_at: { $lt: new Date('2026-01-15') } }
+            ]
+          })
+            .populate('host', 'fid username displayName pfp_url')
+            .sort({ createdAt: -1 })
+            .limit(10)
+            .lean();
+
+          const formattedRooms = rooms.map((room: any) => ({
+            _id: room._id.toString(),
+            name: room.name,
+            description: room.description || "",
+            host: {
+              fid: Number(room.host?.fid),
+              username: room.host?.username || "",
+              displayName: room.host?.displayName || "",
+              pfp_url: room.host?.pfp_url || ""
+            },
+            roomId: room.roomId || "",
+            status: room.status,
+            startTime: room.startTime?.toISOString(),
+            endTime: room.endTime ? room.endTime.toISOString() : undefined,
+            enabled: room.enabled,
+            topics: room.topics || [],
+            adsEnabled: room.adsEnabled
+          }));
+
+          console.log("Fetched recorded rooms:", formattedRooms.length);
+
+          return successResponse({ rooms: formattedRooms });
+        } catch (error) {
+          console.error('Error fetching recorded rooms:', error);
+          set.status = 500;
+          return errorResponse(
+            'Failed to fetch recorded rooms',
+            error instanceof Error ? error.message : 'Unknown error'
+          );
+        }
+      }, {
+        response: {
+          200: t.Object({
+            success: t.Boolean(),
+            data: t.Object({
+              rooms: t.Array(RoomResponseSchema)
+            })
+          }),
+          500: ErrorResponse
+        },
+        detail: {
+          tags: ['Rooms'],
+          summary: 'Get Rooms with Recording Enabled',
+          description: 'Retrieves all enabled rooms that have recording enabled.'
+        }
+      })
+
       // Get live rooms with tip statistics
       .get('/live-tips', async ({ set }: any) => {
         try {
@@ -629,6 +691,71 @@ Retrieves all ongoing rooms with their aggregated tip statistics.
         .guard({
           beforeHandle: authMiddleware,
         })
+
+        .get("/upcoming", async ({ headers, set }:any) => {
+          try {
+            const userFid = headers["x-user-fid"] as string;
+
+            if (!userFid) {
+              set.status = 401;
+              return errorResponse("User authentication required");
+            }
+
+            const user = await User.findOne({ fid: parseInt(userFid) });
+            if (!user) {
+              set.status = 404;
+              return errorResponse("User not found");
+            }
+
+            console.log(
+              `[Upcoming Rooms] Fetching upcoming rooms for user FID: ${userFid}`
+            );
+
+            const upcomingRooms = await Room.find({
+              host: user._id,
+              status: "upcoming",
+              enabled: true,
+            })
+              .sort({ startTime: 1 }) // Sort by start time ascending (earliest first)
+              .populate("host", "fid username displayName pfp_url")
+              .lean();
+
+            console.log(
+              `[Upcoming Rooms] Found ${upcomingRooms.length} upcoming rooms for user FID: ${userFid}`
+            );
+
+            return successResponse({ rooms: upcomingRooms });
+          } catch (error) {
+            console.error("Error fetching upcoming rooms:", error);
+            set.status = 500;
+            return errorResponse(
+              "Failed to fetch upcoming rooms",
+              error instanceof Error ? error.message : "Unknown error"
+            );
+          }
+        }, {
+          response: {
+            200: GetUpcomingRoomsResponseSchema,
+            401: ErrorResponse,
+            404: ErrorResponse,
+            500: ErrorResponse
+          },
+          detail: {
+            tags: ['Rooms'],
+            summary: 'Get My Upcoming Rooms',
+            description: `
+Retrieves all upcoming rooms hosted by the authenticated user.
+
+**Features:**
+- Only returns rooms with \`status: "upcoming"\` and \`enabled: true\`
+- Sorted by start time (earliest first)
+- Useful for dashboard/scheduling views
+
+**Authentication Required:** Yes (Farcaster JWT)
+            `,
+            security: [{ bearerAuth: [] }]
+          }
+        })
         // Non-transactional version for standalone MongoDB
         .post(
           "/",
@@ -637,14 +764,8 @@ Retrieves all ongoing rooms with their aggregated tip statistics.
             let hmsRoom: any = null;
 
             try {
-              const { name, description, startTime, topics, adsEnabled, isRecurring, recurrenceType, recurrenceDay, recordingEnabled } = body;
+              const { name, description, startTime, topics, adsEnabled, isRecurring, recurrenceType, recordingEnabled } = body;
               const userFid = headers["x-user-fid"] as string;
-
-              // Validate recurring fields
-              if (isRecurring && recurrenceType === 'weekly' && (recurrenceDay === null || recurrenceDay === undefined)) {
-                set.status = 400;
-                return errorResponse("recurrenceDay is required for weekly recurring rooms");
-              }
 
               const hostUser = await User.findOne({ fid: parseInt(userFid) });
               if (!hostUser) {
@@ -688,6 +809,10 @@ Retrieves all ongoing rooms with their aggregated tip statistics.
                 }
               }
 
+              const calculatedRecurrenceDay = isRecurring && recurrenceType === 'weekly' 
+                ? roomStartTime.getDay() 
+                : null;
+
               const room = new Room({
                 name,
                 description: description || "",
@@ -700,7 +825,7 @@ Retrieves all ongoing rooms with their aggregated tip statistics.
                 adsEnabled: resolvedAdsEnabled,
                 isRecurring: isRecurring || false,
                 recurrenceType: recurrenceType || null,
-                recurrenceDay: recurrenceDay !== undefined ? recurrenceDay : null,
+                recurrenceDay: calculatedRecurrenceDay,
                 parentRoomId: null,
                 occurrenceNumber: isRecurring ? 1 : null,
                 recordingEnabled: recordingEnabled !== undefined ? recordingEnabled : true,
@@ -788,6 +913,136 @@ Creates a new audio room.
             }
           }
         )
+
+        // Start recording for a room
+        .post("/start-recording/:roomId", async ({ headers, params, set }: any) => {
+          try {
+            const userFid = headers["x-user-fid"] as string;
+
+            if (!userFid) {
+              set.status = 401;
+              return errorResponse("Unauthorized", "Missing user FID");
+            }
+
+            const user = await User.findOne({ fid: parseInt(userFid) });
+            if (!user) {
+              set.status = 404;
+              return errorResponse("User not found");
+            }
+
+            const room = await Room.findById(params.roomId).populate(
+              "host",
+              "fid username displayName pfp_url _id"
+            );
+            if (!room) {
+              set.status = 404;
+              return errorResponse("Room not found");
+            }
+
+            // Check if user is the host or co-host
+            if (room.host._id.toString() !== user._id.toString()) {
+              // Check if user is a co-host
+              const participant = await RoomParticipant.findOne({
+                roomId: room._id,
+                userId: user._id,
+                role: "co-host"
+              });
+
+              if (!participant) {
+                set.status = 403;
+                return errorResponse("Only host or co-host can start recording");
+              }
+            }
+
+            // Check if recording is already enabled
+            if (room.recordingEnabled) {
+              set.status = 400;
+              return errorResponse("Recording is already enabled for this room");
+            }
+
+            // Check if room has an HMS room ID
+            if (!room.roomId) {
+              set.status = 400;
+              return errorResponse("Room must be started before recording can begin");
+            }
+
+            const hmsAPI = new HMSAPI();
+
+            // Start recording using HMS API
+            try {
+              await hmsAPI.startRecording(room.roomId);
+            } catch (error) {
+              console.error("Error starting HMS recording:", error);
+              set.status = 500;
+              return errorResponse(
+                "Failed to start recording in HMS",
+                error instanceof Error ? error.message : "Unknown error"
+              );
+            }
+
+            // Update room to set recordingEnabled to true
+            const updatedRoom = await Room.findByIdAndUpdate(
+              params.roomId,
+              { recordingEnabled: true },
+              { new: true }
+            ).populate("host", "fid username displayName pfp_url")
+            .lean();
+
+            console.log(
+              `[Recording Start] Successfully started recording for room ${params.roomId}`
+            );
+
+            return successResponse(
+              { room: updatedRoom },
+              "Recording started successfully"
+            );
+          } catch (error) {
+            console.error("Error starting recording:", error);
+            set.status = 500;
+            return errorResponse(
+              "Failed to start recording",
+              error instanceof Error ? error.message : "Unknown error"
+            );
+          }
+        }, {
+          params: t.Object({
+            roomId: t.String({ description: 'MongoDB ObjectId of the room' })
+          }),
+          response: {
+            200: t.Object({
+              success: t.Boolean(),
+              data: t.Any(),
+              message: t.String()
+            }),
+            400: ErrorResponse,
+            401: ErrorResponse,
+            403: ErrorResponse,
+            404: ErrorResponse,
+            500: ErrorResponse
+          },
+          detail: {
+            tags: ['Rooms'],
+            summary: 'Start Recording for Room',
+            description: `
+Starts recording for an ongoing room and updates the recordingEnabled flag.
+
+**Prerequisites:**
+- Room must be in "ongoing" status with an active HMS room
+- Recording must not already be enabled
+- User must be the host or a co-host
+
+**Actions Performed:**
+1. Validates user permissions (host or co-host only)
+2. Starts recording via HMS API
+3. Updates room document to set \`recordingEnabled: true\`
+
+**Authorization:** Only the room host or co-hosts can start recording.
+
+**Authentication Required:** Yes (Farcaster JWT)
+            `,
+            security: [{ bearerAuth: [] }]
+          }
+        })
 
         // Start a room - create HMS room and update room info
         .post("/start/:roomId", async ({ headers, params, set }: any) => {

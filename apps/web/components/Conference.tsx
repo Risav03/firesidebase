@@ -27,7 +27,7 @@ import {
 } from "@100mslive/react-sdk";
 import RoomEndScreen from "./RoomEndScreen";
 import { toast } from "react-toastify";
-import { fetchRoomDetails, endRoom } from "@/utils/serverActions";
+import { fetchRoomDetails, endRoom, startRecording } from "@/utils/serverActions";
 
 import { HandRaiseSparks, ScrollingName } from "./experimental";
 import { FirelightField } from "./experimental";
@@ -38,6 +38,8 @@ import TippingDrawer from "./TippingDrawer";
 import TipsDisplay from "./TipsDisplay";
 import AdsOverlay from "./AdsOverlay";
 import { Card } from "./UI/Card";
+import { DotIcon } from "lucide-react";
+import { GoDotFill } from "react-icons/go";
 // import AudioRecoveryBanner from "./AudioRecoveryBanner";
 
 export default function Conference({ roomId }: { roomId: string }) {
@@ -101,7 +103,11 @@ export default function Conference({ roomId }: { roomId: string }) {
   const [roomDetails, setRoomDetails] = useState<{
     name: string;
     description: string;
+    recordingEnabled?: boolean;
   } | null>(null);
+  const [isStartingRecording, setIsStartingRecording] = useState(false);
+  const [showRecordingDropdown, setShowRecordingDropdown] = useState(false);
+  const recordingDropdownRef = useRef<HTMLDivElement>(null);
 
   const { rejectSpeakerRequest } = useSpeakerRejectionEvent();
 
@@ -226,6 +232,7 @@ export default function Conference({ roomId }: { roomId: string }) {
           setRoomDetails({
             name: response.data.data.room.name,
             description: response.data.data.room.description,
+            recordingEnabled: response.data.data.room.recordingEnabled,
           });
         }
       } catch (error) {
@@ -346,12 +353,20 @@ export default function Conference({ roomId }: { roomId: string }) {
       });
     };
 
+    // Handle click outside to close recording dropdown
+    const handleClickOutside = (event: MouseEvent) => {
+      if (recordingDropdownRef.current && !recordingDropdownRef.current.contains(event.target as Node)) {
+        setShowRecordingDropdown(false);
+      }
+    };
+
     // Add event listeners
     window.addEventListener("peerRemoved", handlePeerRemoved as EventListener);
     window.addEventListener(
       "peerRestored",
       handlePeerRestored as EventListener
     );
+    document.addEventListener("mousedown", handleClickOutside);
 
     // Cleanup
     return () => {
@@ -363,6 +378,7 @@ export default function Conference({ roomId }: { roomId: string }) {
         "peerRestored",
         handlePeerRestored as EventListener
       );
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -429,6 +445,45 @@ export default function Conference({ roomId }: { roomId: string }) {
 
   // Sponsorship hooks removed as part of ads migration
 
+  // Handle start recording
+  const handleStartRecording = async () => {
+    if (!localPeer || isStartingRecording) return;
+    
+    // Only host and co-host can start recording
+    if (localPeer.roleName !== "host" && localPeer.roleName !== "co-host") {
+      toast.error("Only hosts and co-hosts can start recording");
+      return;
+    }
+
+    try {
+      setIsStartingRecording(true);
+      
+      let token: string | null = null;
+      const env = process.env.NEXT_PUBLIC_ENV;
+
+      if (env !== "DEV") {
+        const authResult = await sdk.quickAuth.getToken();
+        token = authResult.token;
+      }
+
+      const response = await startRecording(roomId, token);
+      
+      if (!response.ok) {
+        throw new Error(response.data?.message || "Failed to start recording");
+      }
+      
+      // Update local state optimistically
+      setRoomDetails(prev => prev ? { ...prev, recordingEnabled: true } : null);
+      
+      toast.success("Recording started successfully");
+    } catch (error) {
+      console.error("Error starting recording:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to start recording");
+    } finally {
+      setIsStartingRecording(false);
+    }
+  };
+
   if (roomEnded) {
     return <RoomEndScreen onComplete={() => router.push("/")} />;
   } else {
@@ -488,19 +543,84 @@ export default function Conference({ roomId }: { roomId: string }) {
       <div className="relative min-h-screen">
         <FirelightField flicker={flicker} />
 
-        <Card className="bg-fireside-orange/5 gradient-orange-bg m-3 p-3 rounded-2xl flex items-center justify-between">
-          <div className="w-[60%]">
+        <Card className="bg-fireside-orange/5 gradient-orange-bg m-3 p-3 rounded-2xl">
+        <div className="flex items-center justify-between">
+          <div className="min-w-[220px] ">
             <h1 className="text-lg font-bold gradient-fire-text">
               {roomDetails?.name}
             </h1>
             <p className="text-sm text-gray-300">
-              {roomDetails?.description}mlem lme lme lme lm elm lm lm lem lem lem lem lem lem
+              {roomDetails?.description}
             </p>
           </div>
-          <div className="w-[40%]">
+          <div className="">
             <TipsDisplay roomId={roomId} />
           </div>
+        </div>
           
+          <div className="px-2 rounded-lg py-1 mt-2 relative justify-end flex w-full" ref={recordingDropdownRef}>
+{roomDetails?.recordingEnabled === true ? (<div className="flex items-center self-end" >
+            <GoDotFill className="w-4 h-4 text-neutral-red animate-pulse ml-2" />
+            <span className="text-neutral-red text-sm ml-1">Recording</span>
+          </div>) : (
+            <>
+            <div 
+              className="flex items-center cursor-pointer hover:bg-white/5 rounded-lg transition-colors self-end bg-white/5" 
+              onClick={()=>{
+                if (localPeer?.roleName === "host" || localPeer?.roleName === "co-host") {
+                  setShowRecordingDropdown(!showRecordingDropdown);
+                }
+              }}
+            >
+              <GoDotFill className="w-4 h-4 text-gray-500 ml-2" />
+              <span className="text-gray-500 text-sm ml-1">Not Recording</span>
+              {(localPeer?.roleName === "host" || localPeer?.roleName === "co-host") && (
+                <svg 
+                  className={`w-4 h-4 text-gray-500 ml-auto mr-2 transition-transform ${showRecordingDropdown ? 'rotate-180' : ''}`}
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              )}
+            </div>
+
+            {/* Dropdown Menu */}
+            {showRecordingDropdown && (localPeer?.roleName === "host" || localPeer?.roleName === "co-host") && (
+              <div className="absolute top-full left-0 right-0 mt-2 z-50">
+                <div 
+                  className="bg-black/90 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden shadow-xl"
+                >
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowRecordingDropdown(false);
+                      handleStartRecording();
+                    }}
+                    disabled={isStartingRecording}
+                    className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-white/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
+                      <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                        <circle cx="10" cy="10" r="3" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold text-white">
+                        {isStartingRecording ? "Starting..." : "Start Recording"}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        Begin recording this fireside
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+            </>
+          )}
+          </div>
           
         </Card>
 

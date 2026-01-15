@@ -654,3 +654,12 @@ export async function skipRecurringRoom(roomId: string, token: string | null = n
     authToken: token
   });
 }
+
+export async function startRecording(roomId: string, token: string | null = null) {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  
+  return fetchAPI(`${baseUrl}/api/rooms/protected/start-recording/${roomId}`, {
+    method: 'POST',
+    authToken: token
+  });
+}

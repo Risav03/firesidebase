@@ -201,6 +201,10 @@ export class HMSAPI {
         'Authorization': `Bearer ${this.managementToken}`,
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({resolution: {
+        width: 1280,
+        height: 720
+      }}),
     });
 
     if (!response.ok) {
