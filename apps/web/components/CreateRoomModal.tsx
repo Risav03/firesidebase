@@ -45,6 +45,9 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
   const [adsEnabled, setAdsEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState('');
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceType, setRecurrenceType] = useState<'daily' | 'weekly'>('weekly');
+  const [recordingEnabled, setRecordingEnabled] = useState(true);
   const navigate = useNavigateWithLoader();
   const { user } = useGlobalContext();
 
@@ -59,6 +62,9 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
       setSelectedTags([]);
       setAdsEnabled(Boolean(user?.autoAdsEnabled));
       setNameError('');
+      setIsRecurring(false);
+      setRecurrenceType('weekly');
+      setRecordingEnabled(true);
     }
   }, [isOpen, user]);
 
@@ -97,7 +103,11 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         host: user?.fid || '',
         topics: selectedTags,
         adsEnabled,
-        sponsorshipEnabled: adsEnabled
+        sponsorshipEnabled: adsEnabled,
+        isRecurring: showSchedule ? isRecurring : false,
+        recurrenceType: (showSchedule && isRecurring) ? recurrenceType : null,
+        recurrenceDay: null,
+        recordingEnabled,
       };
 
       const response = await createRoom(roomData, token);      
@@ -109,6 +119,9 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
         setShowSchedule(false);
         setSelectedTags([]);
         setAdsEnabled(Boolean(user?.autoAdsEnabled));
+        setIsRecurring(false);
+        setRecurrenceType('weekly');
+        setRecordingEnabled(true);
         onClose();
 
         const now = new Date();
@@ -189,14 +202,69 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
             </div>
 
             {showSchedule && (
-              <DateTimePicker
-                label="Start Time"
-                value={startTime}
-                onChange={setStartTime}
-                placeholder="Select start time"
-                required
-                minDate={new Date()}
-              />
+              <>
+                <DateTimePicker
+                  label="Start Time"
+                  value={startTime}
+                  onChange={setStartTime}
+                  placeholder="Select start time"
+                  required
+                  minDate={new Date()}
+                />
+
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-sm font-medium text-gray-300">
+                      This is a regular show
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setIsRecurring(!isRecurring)}
+                      className={`w-14 h-7 rounded-full p-1 flex items-center transition-colors ${isRecurring ? 'bg-fireside-orange' : 'bg-white/20'}`}
+                    >
+                      <span
+                        className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 ${isRecurring ? 'translate-x-5' : 'translate-x-0'}`}
+                      />
+                    </button>
+                  </div>
+
+                  {isRecurring && (
+                    <div className="space-y-3 pl-2 border-l-2 border-orange-500/30">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Frequency
+                        </label>
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setRecurrenceType('daily')}
+                            className={`flex-1 px-4 py-2 rounded-lg text-sm transition-colors ${
+                              recurrenceType === 'daily'
+                                ? 'bg-orange-500 text-white'
+                                : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                            }`}
+                          >
+                            Daily
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setRecurrenceType('weekly')}
+                            className={`flex-1 px-4 py-2 rounded-lg text-sm transition-colors ${
+                              recurrenceType === 'weekly'
+                                ? 'bg-orange-500 text-white'
+                                : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                            }`}
+                          >
+                            Weekly
+                          </button>
+                        </div>
+                      </div>
+
+
+                    </div>
+                  )}
+                </div>
+              </>
             )}
 
             <div>
@@ -235,16 +303,36 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                   Enable ads for this room
                 </label>
                 <p className="text-xs text-gray-400">
-                  Ads will play automatically once your audience meets the minimum size.
+                  Suitable ads will play automatically.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setAdsEnabled(!adsEnabled)}
-                className={`w-14 h-7 rounded-full p-1 flex items-center transition-colors ${adsEnabled ? 'bg-fireside-orange' : 'bg-white/20'}`}
+                className={`w-12 h-7 rounded-full p-1 flex items-center transition-colors ${adsEnabled ? 'bg-fireside-orange' : 'bg-white/20'}`}
               >
                 <span
                   className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 ${adsEnabled ? 'translate-x-5' : 'translate-x-0'}`}
+                />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="pr-4">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Record this room
+                </label>
+                <p className="text-xs text-gray-400">
+                  Recording will be available after the room ends.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRecordingEnabled(!recordingEnabled)}
+                className={`w-12 h-7 rounded-full p-1 flex items-center transition-colors ${recordingEnabled ? 'bg-fireside-orange' : 'bg-white/20'}`}
+              >
+                <span
+                  className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 ${recordingEnabled ? 'translate-x-5' : 'translate-x-0'}`}
                 />
               </button>
             </div>
@@ -287,7 +375,7 @@ export default function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProp
                 <Button
                   disabled={loading}
                   onClick={scheduleRoom}
-                  className="gradient-fire  w-[70%] ml-3 text-white font-medium"
+                  className="gradient-fire rounded-lg w-[70%] ml-3 text-white font-medium"
                 >
                   {loading ? 'Scheduling...' : 'Schedule Room'}
                 </Button>

@@ -643,3 +643,23 @@ export async function fetchLiveRoomsTips() {
     method: 'GET',
   });
 }
+
+/**
+ * Skip recurring room occurrence
+ */
+export async function skipRecurringRoom(roomId: string, token: string | null = null) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/rooms/protected/${roomId}/skip`, {
+    method: 'PUT',
+    authToken: token
+  });
+}
+
+export async function startRecording(roomId: string, token: string | null = null) {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  
+  return fetchAPI(`${baseUrl}/api/rooms/protected/start-recording/${roomId}`, {
+    method: 'POST',
+    authToken: token
+  });
+}

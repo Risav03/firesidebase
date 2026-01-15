@@ -53,10 +53,10 @@ const RoomResponseSchema = t.Object({
 });
 
 export const roomManagementRoutes = new Elysia()
-  .group("/public", (app) =>
+  .group("/public", (app: any) =>
     app
       // Get all enabled rooms
-      .get("/", async ({ set }) => {
+      .get("/", async ({ set }: any) => {
         try {
           const rooms = await Room.find({ enabled: true })
             .sort({ createdAt: -1 })
@@ -208,7 +208,7 @@ Retrieves all enabled/active rooms with their current participant counts.
       })
 
       // Get room by ID
-      .get("/:id", async ({ params, set }) => {
+      .get("/:id", async ({ params, set }: any) => {
         try {
           console.log("Fetching room by ID:", params.id);
           const room = await Room.findById(params.id)
@@ -276,7 +276,7 @@ Retrieves a single room by its MongoDB ObjectId.
       // Get multiple rooms by IDs
       .post(
         "/bulk",
-        async ({ body, set }) => {
+        async ({ body, set }: any) => {
           try {
             const { ids } = body;
 
@@ -367,13 +367,18 @@ Retrieves multiple rooms by their MongoDB ObjectIds in a single request.
       )
 
       // Get recordings for a room
-      .get("/:id/recordings", async ({ params, set }) => {
+      .get("/:id/recordings", async ({ params, set }: any) => {
         try {
           const room = await Room.findOne({ roomId: params.id });
 
           if (!room) {
             set.status = 404;
             return errorResponse("Room not found");
+          }
+
+          // Check if recording was enabled for this room
+          if (!room.recordingEnabled) {
+            return successResponse({ recordings: [], message: "Recording was not enabled for this room" });
           }
 
           const hmsAPI = new HMSAPI();
@@ -417,7 +422,7 @@ Retrieves recording assets for a room from 100ms.
       // Get rooms by topics
       .post(
         "/by-topics",
-        async ({ body, set }) => {
+        async ({ body, set }: any) => {
           try {
             const { topics } = body;
             if (!Array.isArray(topics) || topics.length === 0) {
@@ -480,8 +485,70 @@ Retrieves rooms that match any of the provided topics.
         }
       )
 
+      // Get rooms with recording enabled
+      .get('/recorded', async ({ set }: any) => {
+        try {
+          const rooms = await Room.find({ 
+            status: "ended",
+            $or: [
+              { recordingEnabled: true },
+              { ended_at: { $lt: new Date('2026-01-15') } }
+            ]
+          })
+            .populate('host', 'fid username displayName pfp_url')
+            .sort({ createdAt: -1 })
+            .limit(10)
+            .lean();
+
+          const formattedRooms = rooms.map((room: any) => ({
+            _id: room._id.toString(),
+            name: room.name,
+            description: room.description || "",
+            host: {
+              fid: Number(room.host?.fid),
+              username: room.host?.username || "",
+              displayName: room.host?.displayName || "",
+              pfp_url: room.host?.pfp_url || ""
+            },
+            roomId: room.roomId || "",
+            status: room.status,
+            startTime: room.startTime?.toISOString(),
+            endTime: room.endTime ? room.endTime.toISOString() : undefined,
+            enabled: room.enabled,
+            topics: room.topics || [],
+            adsEnabled: room.adsEnabled
+          }));
+
+          console.log("Fetched recorded rooms:", formattedRooms.length);
+
+          return successResponse({ rooms: formattedRooms });
+        } catch (error) {
+          console.error('Error fetching recorded rooms:', error);
+          set.status = 500;
+          return errorResponse(
+            'Failed to fetch recorded rooms',
+            error instanceof Error ? error.message : 'Unknown error'
+          );
+        }
+      }, {
+        response: {
+          200: t.Object({
+            success: t.Boolean(),
+            data: t.Object({
+              rooms: t.Array(RoomResponseSchema)
+            })
+          }),
+          500: ErrorResponse
+        },
+        detail: {
+          tags: ['Rooms'],
+          summary: 'Get Rooms with Recording Enabled',
+          description: 'Retrieves all enabled rooms that have recording enabled.'
+        }
+      })
+
       // Get live rooms with tip statistics
-      .get('/live-tips', async ({ set }) => {
+      .get('/live-tips', async ({ set }: any) => {
         try {
           // Fetch all ongoing rooms
           const ongoingRooms = await Room.find({ 
@@ -615,60 +682,68 @@ Retrieves all ongoing rooms with their aggregated tip statistics.
           `
         }
       })
+  )
 
-      // Get upcoming rooms hosted by the current user
-      .get("/upcoming", async ({ headers, set }) => {
-        try {
-          const userFid = headers["x-user-fid"] as string;
+  .group(
+    "/protected",
+    (app: any) =>
+      app
+        .guard({
+          beforeHandle: authMiddleware,
+        })
 
-          if (!userFid) {
-            set.status = 401;
-            return errorResponse("User authentication required");
+        .get("/upcoming", async ({ headers, set }:any) => {
+          try {
+            const userFid = headers["x-user-fid"] as string;
+
+            if (!userFid) {
+              set.status = 401;
+              return errorResponse("User authentication required");
+            }
+
+            const user = await User.findOne({ fid: parseInt(userFid) });
+            if (!user) {
+              set.status = 404;
+              return errorResponse("User not found");
+            }
+
+            console.log(
+              `[Upcoming Rooms] Fetching upcoming rooms for user FID: ${userFid}`
+            );
+
+            const upcomingRooms = await Room.find({
+              host: user._id,
+              status: "upcoming",
+              enabled: true,
+            })
+              .sort({ startTime: 1 }) // Sort by start time ascending (earliest first)
+              .populate("host", "fid username displayName pfp_url")
+              .lean();
+
+            console.log(
+              `[Upcoming Rooms] Found ${upcomingRooms.length} upcoming rooms for user FID: ${userFid}`
+            );
+
+            return successResponse({ rooms: upcomingRooms });
+          } catch (error) {
+            console.error("Error fetching upcoming rooms:", error);
+            set.status = 500;
+            return errorResponse(
+              "Failed to fetch upcoming rooms",
+              error instanceof Error ? error.message : "Unknown error"
+            );
           }
-
-          const user = await User.findOne({ fid: parseInt(userFid) });
-          if (!user) {
-            set.status = 404;
-            return errorResponse("User not found");
-          }
-
-          console.log(
-            `[Upcoming Rooms] Fetching upcoming rooms for user FID: ${userFid}`
-          );
-
-          const upcomingRooms = await Room.find({
-            host: user._id,
-            status: "upcoming",
-            enabled: true,
-          })
-            .sort({ startTime: 1 }) // Sort by start time ascending (earliest first)
-            .populate("host", "fid username displayName pfp_url")
-            .lean();
-
-          console.log(
-            `[Upcoming Rooms] Found ${upcomingRooms.length} upcoming rooms for user FID: ${userFid}`
-          );
-
-          return successResponse({ rooms: upcomingRooms });
-        } catch (error) {
-          console.error("Error fetching upcoming rooms:", error);
-          set.status = 500;
-          return errorResponse(
-            "Failed to fetch upcoming rooms",
-            error instanceof Error ? error.message : "Unknown error"
-          );
-        }
-      }, {
-        response: {
-          200: GetUpcomingRoomsResponseSchema,
-          401: ErrorResponse,
-          404: ErrorResponse,
-          500: ErrorResponse
-        },
-        detail: {
-          tags: ['Rooms'],
-          summary: 'Get My Upcoming Rooms',
-          description: `
+        }, {
+          response: {
+            200: GetUpcomingRoomsResponseSchema,
+            401: ErrorResponse,
+            404: ErrorResponse,
+            500: ErrorResponse
+          },
+          detail: {
+            tags: ['Rooms'],
+            summary: 'Get My Upcoming Rooms',
+            description: `
 Retrieves all upcoming rooms hosted by the authenticated user.
 
 **Features:**
@@ -677,28 +752,19 @@ Retrieves all upcoming rooms hosted by the authenticated user.
 - Useful for dashboard/scheduling views
 
 **Authentication Required:** Yes (Farcaster JWT)
-          `,
-          security: [{ bearerAuth: [] }]
-        }
-      })
-  )
-
-  .group(
-    "/protected",
-    (app) =>
-      app
-        .guard({
-          beforeHandle: authMiddleware,
+            `,
+            security: [{ bearerAuth: [] }]
+          }
         })
         // Non-transactional version for standalone MongoDB
         .post(
           "/",
-          async ({ headers, body, set }) => {
+          async ({ headers, body, set }: any) => {
             let savedRoom: any = null;
             let hmsRoom: any = null;
 
             try {
-              const { name, description, startTime, topics, adsEnabled } = body;
+              const { name, description, startTime, topics, adsEnabled, isRecurring, recurrenceType, recordingEnabled } = body;
               const userFid = headers["x-user-fid"] as string;
 
               const hostUser = await User.findOne({ fid: parseInt(userFid) });
@@ -743,6 +809,10 @@ Retrieves all upcoming rooms hosted by the authenticated user.
                 }
               }
 
+              const calculatedRecurrenceDay = isRecurring && recurrenceType === 'weekly' 
+                ? roomStartTime.getDay() 
+                : null;
+
               const room = new Room({
                 name,
                 description: description || "",
@@ -753,6 +823,12 @@ Retrieves all upcoming rooms hosted by the authenticated user.
                 enabled: true,
                 topics,
                 adsEnabled: resolvedAdsEnabled,
+                isRecurring: isRecurring || false,
+                recurrenceType: recurrenceType || null,
+                recurrenceDay: calculatedRecurrenceDay,
+                parentRoomId: null,
+                occurrenceNumber: isRecurring ? 1 : null,
+                recordingEnabled: recordingEnabled !== undefined ? recordingEnabled : true,
               });
 
               try {
@@ -838,8 +914,138 @@ Creates a new audio room.
           }
         )
 
+        // Start recording for a room
+        .post("/start-recording/:roomId", async ({ headers, params, set }: any) => {
+          try {
+            const userFid = headers["x-user-fid"] as string;
+
+            if (!userFid) {
+              set.status = 401;
+              return errorResponse("Unauthorized", "Missing user FID");
+            }
+
+            const user = await User.findOne({ fid: parseInt(userFid) });
+            if (!user) {
+              set.status = 404;
+              return errorResponse("User not found");
+            }
+
+            const room = await Room.findById(params.roomId).populate(
+              "host",
+              "fid username displayName pfp_url _id"
+            );
+            if (!room) {
+              set.status = 404;
+              return errorResponse("Room not found");
+            }
+
+            // Check if user is the host or co-host
+            if (room.host._id.toString() !== user._id.toString()) {
+              // Check if user is a co-host
+              const participant = await RoomParticipant.findOne({
+                roomId: room._id,
+                userId: user._id,
+                role: "co-host"
+              });
+
+              if (!participant) {
+                set.status = 403;
+                return errorResponse("Only host or co-host can start recording");
+              }
+            }
+
+            // Check if recording is already enabled
+            if (room.recordingEnabled) {
+              set.status = 400;
+              return errorResponse("Recording is already enabled for this room");
+            }
+
+            // Check if room has an HMS room ID
+            if (!room.roomId) {
+              set.status = 400;
+              return errorResponse("Room must be started before recording can begin");
+            }
+
+            const hmsAPI = new HMSAPI();
+
+            // Start recording using HMS API
+            try {
+              await hmsAPI.startRecording(room.roomId);
+            } catch (error) {
+              console.error("Error starting HMS recording:", error);
+              set.status = 500;
+              return errorResponse(
+                "Failed to start recording in HMS",
+                error instanceof Error ? error.message : "Unknown error"
+              );
+            }
+
+            // Update room to set recordingEnabled to true
+            const updatedRoom = await Room.findByIdAndUpdate(
+              params.roomId,
+              { recordingEnabled: true },
+              { new: true }
+            ).populate("host", "fid username displayName pfp_url")
+            .lean();
+
+            console.log(
+              `[Recording Start] Successfully started recording for room ${params.roomId}`
+            );
+
+            return successResponse(
+              { room: updatedRoom },
+              "Recording started successfully"
+            );
+          } catch (error) {
+            console.error("Error starting recording:", error);
+            set.status = 500;
+            return errorResponse(
+              "Failed to start recording",
+              error instanceof Error ? error.message : "Unknown error"
+            );
+          }
+        }, {
+          params: t.Object({
+            roomId: t.String({ description: 'MongoDB ObjectId of the room' })
+          }),
+          response: {
+            200: t.Object({
+              success: t.Boolean(),
+              data: t.Any(),
+              message: t.String()
+            }),
+            400: ErrorResponse,
+            401: ErrorResponse,
+            403: ErrorResponse,
+            404: ErrorResponse,
+            500: ErrorResponse
+          },
+          detail: {
+            tags: ['Rooms'],
+            summary: 'Start Recording for Room',
+            description: `
+Starts recording for an ongoing room and updates the recordingEnabled flag.
+
+**Prerequisites:**
+- Room must be in "ongoing" status with an active HMS room
+- Recording must not already be enabled
+- User must be the host or a co-host
+
+**Actions Performed:**
+1. Validates user permissions (host or co-host only)
+2. Starts recording via HMS API
+3. Updates room document to set \`recordingEnabled: true\`
+
+**Authorization:** Only the room host or co-hosts can start recording.
+
+**Authentication Required:** Yes (Farcaster JWT)
+            `,
+            security: [{ bearerAuth: [] }]
+          }
+        })
+
         // Start a room - create HMS room and update room info
-        .post("/start/:roomId", async ({ headers, params, set }) => {
+        .post("/start/:roomId", async ({ headers, params, set }: any) => {
           try {
             const userFid = headers["x-user-fid"] as string;
 
@@ -899,6 +1105,17 @@ Creates a new audio room.
               console.error("Error generating room codes:", error);
               set.status = 500;
               return errorResponse("Failed to generate room codes");
+            }
+
+            // Start recording if enabled
+            if (room.recordingEnabled) {
+              try {
+                await hmsAPI.startRecording(hmsRoom.id);
+                console.log(`[Recording] Started recording for room ${hmsRoom.id}`);
+              } catch (recordingError) {
+                console.error("Error starting recording:", recordingError);
+                // Don't fail room start if recording fails
+              }
             }
 
             const interested = room.interested || [];
@@ -1212,6 +1429,108 @@ Updates room properties. Different behaviors based on the update type:
 **Ads Behavior:**
 - Toggling \`adsEnabled\` to \`true\` triggers auto-start evaluation
 - Toggling \`adsEnabled\` to \`false\` stops any running ad session
+
+**Authentication Required:** Yes (Farcaster JWT)
+              `,
+              security: [{ bearerAuth: [] }]
+            }
+          }
+        )
+        // Skip recurring room occurrence
+        .put(
+          "/:id/skip",
+          async ({ headers, params, set }: any) => {
+            try {
+              const userFid = headers["x-user-fid"] as string;
+              const roomId = params.id;
+
+              const user = await User.findOne({ fid: parseInt(userFid) });
+              if (!user) {
+                set.status = 404;
+                return errorResponse("User not found");
+              }
+
+              const room = await Room.findById(roomId);
+              if (!room) {
+                set.status = 404;
+                return errorResponse("Room not found");
+              }
+
+              // Authorization check
+              if (room.host.toString() !== user._id.toString()) {
+                set.status = 403;
+                return errorResponse("Only the room host can skip occurrences");
+              }
+
+              // Validate room is recurring
+              if (!room.isRecurring) {
+                set.status = 400;
+                return errorResponse("This is not a recurring room");
+              }
+
+              // Validate room is upcoming
+              if (room.status !== 'upcoming') {
+                set.status = 400;
+                return errorResponse("Only upcoming rooms can be skipped");
+              }
+
+              // Calculate next occurrence from current time
+              const { calculateNextOccurrence } = await import('../../cron/room-cleanup');
+              const nextStartTime = calculateNextOccurrence(
+                new Date(), // Use current time as base
+                room.recurrenceType!,
+                room.recurrenceDay
+              );
+
+              // Update room with new start time and reset interested users
+              room.startTime = nextStartTime;
+              room.interested = [];
+              await room.save();
+
+              await room.populate("host", "fid username displayName pfp_url");
+
+              return successResponse(
+                room,
+                "Room occurrence skipped successfully"
+              );
+            } catch (error) {
+              console.error("Error skipping room:", error);
+              set.status = 500;
+              return errorResponse(
+                "Failed to skip room",
+                error instanceof Error ? error.message : "Unknown error"
+              );
+            }
+          },
+          {
+            params: t.Object({
+              id: t.String({ description: 'MongoDB ObjectId of the room' })
+            }),
+            response: {
+              200: UpdateRoomResponseSchema,
+              400: ErrorResponse,
+              403: ErrorResponse,
+              404: ErrorResponse,
+              500: ErrorResponse
+            },
+            detail: {
+              tags: ['Rooms'],
+              summary: 'Skip Recurring Room Occurrence',
+              description: `
+Skip the next occurrence of a recurring room and reschedule it to the following valid date.
+
+**Behavior:**
+- Calculates next occurrence based on current date/time (not the old start time)
+- For daily rooms: Schedules for tomorrow at the same time
+- For weekly rooms: Schedules for next occurrence of the specified day
+- Resets the \`interested\` array (notification subscribers)
+
+**Validation:**
+- Room must be recurring (\`isRecurring: true\`)
+- Room must be in \`upcoming\` status
+- Only the room host can skip occurrences
+
+**Use Case:** Host realizes they can't make the scheduled time and wants to push it to the next occurrence without manual rescheduling.
 
 **Authentication Required:** Yes (Farcaster JWT)
               `,

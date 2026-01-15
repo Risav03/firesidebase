@@ -721,6 +721,16 @@ Allows an authenticated user to leave a room.
             }
           }
 
+          // Create next occurrence if recurring
+          if (updatedRoom.isRecurring) {
+            try {
+              const { calculateNextOccurrence, createNextOccurrence } = await import('../../cron/room-cleanup');
+              await createNextOccurrence(updatedRoom);
+            } catch (recurError) {
+              console.error('Error creating next occurrence:', recurError);
+            }
+          }
+
           return successResponse({
             room: updatedRoom,
             participantCount: totalParticipants,

@@ -19,6 +19,7 @@ import {
   fetchAllRooms,
   fetchAPI,
   startRoom,
+  skipRecurringRoom,
 } from "@/utils/serverActions";
 import { useNavigateWithLoader } from "@/utils/useNavigateWithLoader";
 import { MdOutlineSchedule } from "react-icons/md";
@@ -51,6 +52,9 @@ interface Room {
   sponsorshipEnabled?: boolean;
   adsEnabled?: boolean;
   topics: string[];
+  isRecurring?: boolean;
+  recurrenceType?: 'daily' | 'weekly' | null;
+  recurrenceDay?: number | null;
 }
 
 interface LiveRoomListProps {
@@ -138,7 +142,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                 if (env !== "DEV" && !token) {
                   token = ((await sdk.quickAuth.getToken()).token);
                 }
-      const response = await fetchAPI(`${URL}/api/rooms/public/upcoming`, {
+      const response = await fetchAPI(`${URL}/api/rooms/protected/upcoming`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -175,7 +179,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
         token = (await sdk.quickAuth.getToken()).token;
       }
 
-      toast.loading("Starting room?...", { toastId: "starting-room" });
+      toast.loading("Starting room...", { toastId: "starting-room" });
 
       const response = await startRoom(roomId, token);
 
@@ -194,6 +198,36 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
       console.error("Error starting room:", error);
       toast.dismiss("starting-room");
       toast.error("Error starting room?. Please try again.");
+    }
+  };
+
+  const handleSkipRoom = async (roomId: string) => {
+    try {
+      var token: any = "";
+      const env = process.env.NEXT_PUBLIC_ENV;
+
+      if (env !== "DEV") {
+        token = (await sdk.quickAuth.getToken()).token;
+      }
+
+      toast.loading("Skipping to next occurrence...", { toastId: "skipping-room" });
+
+      const response = await skipRecurringRoom(roomId, token);
+
+      if (response.data.success) {
+        toast.dismiss("skipping-room");
+        toast.success("Skipped to next occurrence!");
+        
+        // Refresh the upcoming rooms list
+        await fetchMyUpcomingRooms();
+      } else {
+        toast.dismiss("skipping-room");
+        toast.error(response.data.error || "Failed to skip room");
+      }
+    } catch (error) {
+      console.error("Error skipping room:", error);
+      toast.dismiss("skipping-room");
+      toast.error("Error skipping room. Please try again.");
     }
   };
 
@@ -307,95 +341,66 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                       <DrawerTitle className="text-white text-xl font-bold">Your Scheduled Rooms</DrawerTitle>
                     </DrawerHeader>
                     <div className="p-4 space-y-3 overflow-y-auto max-h-[60vh]">
-                      {(() => {
-                        const now = new Date().toISOString();
-                        const readyToStart = myUpcomingRooms.filter((room) => room?.startTime <= now);
-                        const upcoming = myUpcomingRooms.filter((room) => room?.startTime > now);
-                        
-                        return (
-                          <>
-                            {readyToStart.length > 0 && (
-                              <div className="space-y-3">
-                                <h3 className="text-white/70 text-sm font-semibold uppercase">Ready to Start</h3>
-                                {readyToStart.map((room) => (
-                                  <Card
-                                    key={room?._id}
-                                    variant="ghost"
-                                    className="p-4 backdrop-blur-sm text-white border-fireside-orange/50"
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <div className="relative">
-                                        <Image
-                                          width={1080}
-                                          height={1080}
-                                          src={room?.host?.pfp_url}
-                                          alt={room?.host?.displayName}
-                                          className="w-12 h-12 rounded-full border-2 border-white"
-                                        />
-                                      </div>
-                                      
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-1 justify-between">
-                                          <h3 className="text-lg text-white font-bold truncate">
-                                            {room?.name}
-                                          </h3>
-                                          <DrawerClose asChild>
-                                            <Button
-                                              variant="default"
-                                              onClick={() => handleGoLive(room?._id)}
-                                            >
-                                              Start
-                                            </Button>
-                                          </DrawerClose>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </Card>
-                                ))}
-                              </div>
-                            )}
+                      {myUpcomingRooms.map((room) => (
+                        <Card
+                          key={room?._id}
+                          variant="ghost"
+                          className="p-4 backdrop-blur-sm text-white"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="relative">
+                              <Image
+                                width={1080}
+                                height={1080}
+                                src={room?.host?.pfp_url}
+                                alt={room?.host?.displayName}
+                                className="w-12 h-12 rounded-full border-2 border-white"
+                              />
+                            </div>
                             
-                            {upcoming.length > 0 && (
-                              <div className="space-y-3">
-                                <h3 className="text-white/70 text-sm font-semibold uppercase">Upcoming</h3>
-                                {upcoming.map((room) => (
-                                  <Card
-                                    key={room?._id}
-                                    variant="ghost"
-                                    className="p-4 backdrop-blur-sm text-white"
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <div className="relative">
-                                        <Image
-                                          width={1080}
-                                          height={1080}
-                                          src={room?.host?.pfp_url}
-                                          alt={room?.host?.displayName}
-                                          className="w-12 h-12 rounded-full border-2 border-white"
-                                        />
-                                      </div>
-                                      
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-1 justify-between">
-                                          <h3 className="text-lg text-white font-bold truncate">
-                                            {room?.name}
-                                          </h3>
-                                          <div className="bg-black/30 rounded-full px-2 pb-1">
-                                            <Countdown
-                                              targetTime={room?.startTime}
-                                              className="text-yellow-200 text-xs"
-                                            />
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </Card>
-                                ))}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 justify-between">
+                                <h3 className="text-lg text-white font-bold truncate">
+                                  {room?.name}
+                                  {room?.isRecurring && (
+                                    <span className="ml-2 text-xs text-orange-400">
+                                      🔁
+                                    </span>
+                                  )}
+                                </h3>
+                                <div className="bg-black/30 rounded-full px-2 pb-1">
+                                  <Countdown
+                                    targetTime={room?.startTime}
+                                    className="text-yellow-200 text-xs"
+                                  />
+                                </div>
                               </div>
-                            )}
-                          </>
-                        );
-                      })()}
+                              <div className="flex gap-2 mt-2">
+                                {room?.isRecurring && (
+                                  <DrawerClose asChild>
+                                    <Button
+                                      variant="ghost"
+                                      onClick={() => handleSkipRoom(room?._id)}
+                                      className="text-sm rounded-lg "
+                                    >
+                                      Skip
+                                    </Button>
+                                  </DrawerClose>
+                                )}
+                                <DrawerClose asChild>
+                                  <Button
+                                    variant="default"
+                                    onClick={() => handleGoLive(room?._id)}
+                                    className="text-sm rounded-lg w-full"
+                                  >
+                                    Start
+                                  </Button>
+                                </DrawerClose>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
                     </div>
                   </DrawerContent>
                 </Drawer>

@@ -1,8 +1,99 @@
 import Room from "../models/Room";
+import User from "../models/User";
 import { RedisRoomParticipantsService } from "../services/redis/room-participants";
 import { HMSAPI } from "../services/hmsAPI";
 import { adRevDistribute } from "../services/ads/adRevDistribute";
 import { flushRoomReservationViews } from "../services/ads/viewTracking";
+
+/**
+ * Calculate next occurrence date for recurring rooms
+ */
+export const calculateNextOccurrence = (
+  lastStartTime: Date,
+  recurrenceType: string,
+  recurrenceDay?: number
+): Date => {
+  const now = new Date();
+  const next = new Date(lastStartTime);
+
+  if (recurrenceType === "daily") {
+    // Add one day
+    next.setDate(next.getDate() + 1);
+    // If calculated date is in the past, move to tomorrow from now
+    if (next < now) {
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(next.getHours(), next.getMinutes(), next.getSeconds(), next.getMilliseconds());
+      return tomorrow;
+    }
+  } else if (recurrenceType === "weekly" && recurrenceDay !== undefined) {
+    // Find next occurrence of the specified day
+    const targetDay = recurrenceDay;
+    const daysToAdd = ((targetDay - next.getDay() + 7) % 7) || 7;
+    next.setDate(next.getDate() + daysToAdd);
+    
+    // If calculated date is in the past, find next week's occurrence
+    if (next < now) {
+      const currentDay = now.getDay();
+      let daysUntilTarget = (targetDay - currentDay + 7) % 7;
+      if (daysUntilTarget === 0) daysUntilTarget = 7; // Next week if today is target day
+      
+      const nextOccurrence = new Date(now);
+      nextOccurrence.setDate(now.getDate() + daysUntilTarget);
+      nextOccurrence.setHours(next.getHours(), next.getMinutes(), next.getSeconds(), next.getMilliseconds());
+      return nextOccurrence;
+    }
+  }
+
+  return next;
+};
+
+/**
+ * Create next occurrence for recurring room
+ */
+export const createNextOccurrence = async (endedRoom: any): Promise<void> => {
+  try {
+    if (!endedRoom.isRecurring || !endedRoom.recurrenceType) {
+      return;
+    }
+
+    const nextStartTime = calculateNextOccurrence(
+      endedRoom.startTime,
+      endedRoom.recurrenceType,
+      endedRoom.recurrenceDay
+    );
+
+    const nextOccurrenceNumber = (endedRoom.occurrenceNumber || 0) + 1;
+    const parentId = endedRoom.parentRoomId || endedRoom._id;
+
+    const nextRoom = new Room({
+      name: endedRoom.name,
+      description: endedRoom.description,
+      host: endedRoom.host,
+      startTime: nextStartTime,
+      roomId: "", // Will be created when room starts
+      status: "upcoming",
+      enabled: true,
+      topics: endedRoom.topics,
+      adsEnabled: endedRoom.adsEnabled,
+      isRecurring: true,
+      recurrenceType: endedRoom.recurrenceType,
+      recurrenceDay: endedRoom.recurrenceDay,
+      parentRoomId: parentId,
+      occurrenceNumber: nextOccurrenceNumber,
+      interested: [], // Reset interested users for new occurrence
+      participants: [],
+      recordingEnabled: endedRoom.recordingEnabled,
+    });
+
+    await nextRoom.save();
+    console.log(
+      `📅 Created next occurrence #${nextOccurrenceNumber} for recurring room: ${endedRoom.name} at ${nextStartTime.toISOString()}`
+    );
+  } catch (error) {
+    console.error("❌ Error creating next occurrence:", error);
+  }
+};
 
 /**
  * Room Cleanup Cron Service
@@ -126,6 +217,11 @@ export class RoomCleanupService {
             }
 
             console.log(`✅ Successfully cleaned up room: ${roomId}`);
+            
+            // Create next occurrence if recurring
+            if (updatedRoom && updatedRoom.isRecurring) {
+              await createNextOccurrence(updatedRoom);
+            }
           } catch (error) {
             console.error(`❌ Error deleting room from db ${roomId}:`, error);
           }
