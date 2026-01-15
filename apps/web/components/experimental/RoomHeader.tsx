@@ -78,7 +78,7 @@ export function RoomHeader({
   async function composeCast() {
     try {
       await sdk.actions.composeCast({
-        text: `Come join the conversation on Farcaster https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/call/${roomId}`,
+        text: `I'm listening to this conversation on Fireside, join me! https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/call/${roomId}`,
         embeds: [`https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/call/${roomId}`],
       });
     } catch (e) {
