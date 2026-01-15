@@ -69,7 +69,7 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
 
   const handleShareOnTwitter = () => {
     const roomURL = `https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/call/${roomId}`;
-    const text = "I've just sparked up a Fireside! Come join the conversation";
+    const text = "Come join the conversation on Farcaster!";
     const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(roomURL)}`;
     window.open(intentUrl, '_blank', 'noopener,noreferrer');
   };
