@@ -116,7 +116,7 @@ export default function UpcomingRoomPage() {
   async function composeCast() {
     try {
       await sdk.actions.composeCast({
-        text: `I've just sparked up a Fireside! Come join the conversation https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/room/${roomId}`,
+        text: `I'm listening to this conversation on Fireside, join me! https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/room/${roomId}`,
         embeds: [`https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/room/${roomId}`],
       });
     } catch (e) {
