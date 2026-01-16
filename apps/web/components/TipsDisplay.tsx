@@ -117,9 +117,9 @@ export default function TipsDisplay({ roomId }: TipsDisplayProps) {
           <div className="flex items-center gap-3">
             {/* <CiMoneyBill className="text-fireside-orange text-2xl" /> */}
             <div className="text-left">
-              <h3 className="text-fireside-orange font-bold text-lg">Tips</h3>
+              <h3 className="text-fireside-orange font-bold text-md">Tips ({totalTipsByUsers})</h3>
               <p className="text-white/70 text-sm">
-                ${totalTipsUSD.toFixed(2)} • {totalTipsByUsers} tip{totalTipsByUsers !== 1 ? 's' : ''}
+                ${totalTipsUSD.toFixed(2)}
               </p>
             </div>
           </div>
