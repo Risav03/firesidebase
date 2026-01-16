@@ -6,7 +6,7 @@ import { base } from "wagmi/chains";
 import { ReactNode, useEffect } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Rainbow from "./rainbow";
+import WagmiQueryProvider from "./wagmiQueryProvider";
 import { GlobalProvider } from "./globalContext";
 import { initViewportFix } from "../viewport";
 
@@ -31,9 +31,9 @@ export default function Providers({ children }: ProvidersProps) {
         chain={base}
       >
         <GlobalProvider>
-        <Rainbow>
+        <WagmiQueryProvider>
           <HMSRoomProvider>{children}</HMSRoomProvider>
-        </Rainbow>
+        </WagmiQueryProvider>
         </GlobalProvider>
       </MiniKitProvider>
       <ToastContainer

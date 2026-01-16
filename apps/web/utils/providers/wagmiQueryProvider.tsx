@@ -21,26 +21,26 @@ import {
 } from "@tanstack/react-query";
 import { ReactNode } from 'react';
 
-const config = getDefaultConfig({
-  appName: 'My RainbowKit App',
-  projectId: '5d10af3027c340310f3a3da64cbcedac',
+export const config = createConfig({
   chains: [base],
-  ssr: true, // If your dApp uses server side rendering (SSR)
-});
+  transports: {
+    [base.id]: http(),
+  },
+})
 const queryClient = new QueryClient();
 
 
-const Rainbow = ({ children }:{children:ReactNode}) => {
+const WagmiQueryProvider = ({ children }:{children:ReactNode}) => {
   
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>
+        
           {children}
-        </RainbowKitProvider>
+       
       </QueryClientProvider>
     </WagmiProvider>
   );
 };
 
-export default Rainbow;
+export default WagmiQueryProvider;
