@@ -78,7 +78,7 @@ export function RoomHeader({
   async function composeCast() {
     try {
       await sdk.actions.composeCast({
-        text: `I'm listening to this conversation on Fireside, join me! https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/call/${roomId}`,
+        text: `Come join the conversation on Fireside! https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/call/${roomId}`,
         embeds: [`https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/call/${roomId}`],
       });
     } catch (e) {
@@ -98,7 +98,7 @@ export function RoomHeader({
 
   const handleShareOnTwitter = () => {
     const roomURL = `https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside/call/${roomId}`;
-    const text = "I've just sparked up a Fireside! Come join the conversation";
+    const text = "Come join the conversation on Fireside!";
     const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(roomURL)}`;
     window.open(intentUrl, '_blank', 'noopener,noreferrer');
   };
