@@ -26,6 +26,7 @@ import { firebaseTipsAbi } from "@/utils/contract/abis/firebaseTipsAbi";
 import { erc20Abi } from "@/utils/contract/abis/erc20abi";
 import { CiMoneyBill } from "react-icons/ci";
 import { useTipEvent } from "@/utils/events";
+import { useTipNotificationContext } from "@/contexts/TipNotificationContext";
 
 import { base, createBaseAccountSDK, getCryptoKeyAccount } from "@base-org/account";
 import sdk from '@farcaster/miniapp-sdk';
@@ -83,6 +84,7 @@ export default function TippingModal({
   const hmsActions = useHMSActions();
   const { sendCalls, isSuccess, status  } = useSendCalls();
   const { sendTipNotification } = useTipEvent();
+  const { addTipNotification } = useTipNotificationContext();
 
   const splitIntoBatches = (array: any[]) => {
     const batches = [];
@@ -307,6 +309,9 @@ export default function TippingModal({
         timestamp: new Date().toISOString(),
       };
       sendTipNotification(tipEventData);
+      
+      // Add to local context so the tipper sees the animation
+      addTipNotification(tipEventData);
     } catch (error) {
       console.error("Error saving tip record:", error);
       // Non-critical error, don't interrupt the flow

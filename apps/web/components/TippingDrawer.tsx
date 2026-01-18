@@ -6,6 +6,7 @@ import { useGlobalContext } from '@/utils/providers/globalContext';
 import sdk from '@farcaster/miniapp-sdk';
 import { toast } from 'react-toastify';
 import { useTipEvent } from '@/utils/events';
+import { useTipNotificationContext } from '@/contexts/TipNotificationContext';
 import { saveTipRecord } from '@/utils/serverActions';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/UI/drawer';
 import { useMiniKit } from '@coinbase/onchainkit/minikit';
@@ -45,6 +46,7 @@ export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerPr
   const lastCurrencyRef = useRef<string>('ETH');
   
   const { sendTipNotification } = useTipEvent();
+  const { addTipNotification } = useTipNotificationContext();
   const roomId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() || '' : '';
 
   const fetchTokenPrices = async () => {
@@ -159,6 +161,9 @@ export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerPr
         timestamp: new Date().toISOString(),
       };
       sendTipNotification(tipEventData);
+      
+      // Add to local context so the tipper sees the animation
+      addTipNotification(tipEventData);
     } catch (error) {
       console.error('Error saving tip record:', error);
       // Non-critical error, continue with notification

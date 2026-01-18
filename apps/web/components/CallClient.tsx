@@ -7,6 +7,7 @@ import {
   selectIsConnectedToRoom,
 } from "@100mslive/react-sdk";
 import { useGlobalContext } from "@/utils/providers/globalContext";
+import { TipNotificationProvider } from "@/contexts/TipNotificationContext";
 import Conference from "@/components/Conference";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -425,12 +426,14 @@ export default function CallClient({ roomId }: CallClientProps) {
   }
 
   return (
-    <div className="min-h-screen">
-      <RoleChangeHandler />
-      <Header roomId={roomId} />
-      <Overlays roomId={roomId} />
-      <Conference roomId={roomId} />
-      <Footer roomId={roomId} />
-    </div>
+    <TipNotificationProvider>
+      <div className="min-h-screen">
+        <RoleChangeHandler />
+        <Header roomId={roomId} />
+        <Overlays roomId={roomId} />
+        <Conference roomId={roomId} />
+        <Footer roomId={roomId} />
+      </div>
+    </TipNotificationProvider>
   );
 }

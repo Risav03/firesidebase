@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTipEvent } from '@/utils/events';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTipNotificationContext } from '@/contexts/TipNotificationContext';
 
 interface TipNotification {
   id: string;
@@ -32,7 +33,42 @@ interface Particle {
 export default function TipOverlay() {
   const [notifications, setNotifications] = useState<TipNotification[]>([]);
   const [particles, setParticles] = useState<Particle[]>([]);
+  const { notifications: contextNotifications } = useTipNotificationContext();
 
+  // Handle notifications from context (local tips from tipper)
+  useEffect(() => {
+    contextNotifications.forEach((contextNotif) => {
+      // Check if we already have this notification to avoid duplicates
+      setNotifications((prev) => {
+        const exists = prev.some((n) => n.id === contextNotif.id);
+        if (exists) return prev;
+        
+        // Add the notification
+        const newNotifications = [...prev, contextNotif];
+
+        // Create particles for the tip
+        if (contextNotif.amount.currency === 'ETH' || contextNotif.amount.currency === 'USDC' || contextNotif.amount.currency === 'FIRE') {
+          const particleCount = Math.min(50, Math.max(5, Math.floor(contextNotif.amount.usd * 5)));
+          
+          const newParticles: Particle[] = Array.from({ length: particleCount }, (_, i) => ({
+            id: Date.now() + i,
+            x: Math.random() * 100,
+            delay: Math.random() * 0.5,
+            duration: 5 + Math.random() * 3,
+          }));
+          setParticles((prevParticles) => [...prevParticles, ...newParticles]);
+
+          setTimeout(() => {
+            setParticles((prevParticles) => prevParticles.filter((p) => !newParticles.find((np) => np.id === p.id)));
+          }, 5000);
+        }
+
+        return newNotifications;
+      });
+    });
+  }, [contextNotifications]);
+
+  // Handle notifications from HMS events (tips from others)
   useTipEvent((data: any) => {
     const notification: TipNotification = {
       id: `${Date.now()}-${Math.random()}`,
