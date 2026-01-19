@@ -40,6 +40,12 @@ interface Config {
 
   // Ads/Webhooks
   adsWebhookSecret: string;
+
+  // X (Twitter) Bot
+  xConsumerKey?: string;
+  xConsumerSecret?: string;
+  xAccessToken?: string;
+  xAccessTokenSecret?: string;
 }
 
 const getEnvVar = (key: string, defaultValue?: string): string => {
@@ -101,6 +107,12 @@ export const config = {
   // Ads/Webhooks
   adsWebhookSecret: getEnvVar('ADS_WEBHOOK_SECRET'),
 
+  // X (Twitter) Bot - Optional, bot disabled if not configured
+  xConsumerKey: getOptionalEnvVar('X_CONSUMER_KEY'),
+  xConsumerSecret: getOptionalEnvVar('X_CONSUMER_SECRET'),
+  xAccessToken: getOptionalEnvVar('X_ACCESS_TOKEN'),
+  xAccessTokenSecret: getOptionalEnvVar('X_ACCESS_TOKEN_SECRET'),
+
   // Dynamic Methods
   getHostname: (request?: any) => {
     // In development, use explicit dev domain if configured
@@ -160,8 +172,16 @@ const validateConfig = () => {
     'AWS_SECRET_ACCESS_KEY'
   ];
 
+  const xBotRequired = [
+    'X_CONSUMER_KEY',
+    'X_CONSUMER_SECRET',
+    'X_ACCESS_TOKEN',
+    'X_ACCESS_TOKEN_SECRET'
+  ];
+
   const missingOptional = optional.filter(key => !process.env[key]);
   const missingAws = awsRequired.filter(key => !process.env[key]);
+  const missingXBot = xBotRequired.filter(key => !process.env[key]);
   
   if (missingOptional.length > 0) {
     console.warn(`⚠️  Missing optional environment variables: ${missingOptional.join(', ')}`);
@@ -171,6 +191,11 @@ const validateConfig = () => {
   if (missingAws.length > 0) {
     console.warn(`⚠️  Missing AWS environment variables: ${missingAws.join(', ')}`);
     console.warn('S3 uploads will not work.');
+  }
+
+  if (missingXBot.length > 0) {
+    console.warn(`⚠️  Missing X Bot environment variables: ${missingXBot.join(', ')}`);
+    console.warn('X Bot announcements will be disabled.');
   }
 };
 

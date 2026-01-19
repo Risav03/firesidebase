@@ -14,6 +14,7 @@ import { RedisRoomParticipantsService } from "../../services/redis";
 import { RedisTippingService } from "../../services/redis/tippingDetails";
 import { trackViewerJoin } from "../../services/ads/viewTracking";
 import { evaluateAutoAds, forceStopAds } from "../ads";
+import { announceFiresideLive } from "../../services/xBot";
 import "../../config/database";
 import { 
   GetRoomsResponseSchema, 
@@ -869,6 +870,18 @@ Retrieves all upcoming rooms hosted by the authenticated user.
                 console.error("Failed to add host to Redis:", redisError);
               }
 
+              // Announce on X if room is going live immediately (not scheduled)
+              if (savedRoom && savedRoom.status === "ongoing") {
+                announceFiresideLive({
+                  id: savedRoom._id.toString(),
+                  name: savedRoom.name,
+                  description: savedRoom.description,
+                  hostDisplayName: savedRoom.host?.displayName || hostUser.displayName,
+                  hostUsername: savedRoom.host?.username || hostUser.username,
+                  topics: savedRoom.topics
+                }).catch(err => console.error("[X Bot] Announcement failed:", err));
+              }
+
               return successResponse(savedRoom, "Room created successfully");
             } catch (error) {
               console.error("Error creating room:", error);
@@ -1186,6 +1199,18 @@ Starts recording for an ongoing room and updates the recordingEnabled flag.
             });
 
             console.log("FCast notification response:", res1, res2);
+
+            // Announce on X
+            if (updatedRoom) {
+              announceFiresideLive({
+                id: updatedRoom._id.toString(),
+                name: updatedRoom.name,
+                description: updatedRoom.description,
+                hostDisplayName: (updatedRoom.host as any)?.displayName || '',
+                hostUsername: (updatedRoom.host as any)?.username || '',
+                topics: updatedRoom.topics
+              }).catch(err => console.error("[X Bot] Announcement failed:", err));
+            }
 
             return successResponse(updatedRoom, "Room started successfully");
           } catch (error) {

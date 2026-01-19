@@ -1,0 +1,208 @@
+/**
+ * X (Twitter) Bot Service
+ * 
+ * Posts to X automatically when a new fireside goes live.
+ * Uses OAuth 1.0a for authentication as required by X API v2.
+ * 
+ * Ref: https://developer.x.com/en/docs/tutorials/how-to-create-a-twitter-bot-with-twitter-api-v2
+ */
+
+import crypto from 'crypto';
+
+interface XBotConfig {
+  consumerKey: string;
+  consumerSecret: string;
+  accessToken: string;
+  accessTokenSecret: string;
+}
+
+interface RoomInfo {
+  id: string;
+  name: string;
+  description?: string;
+  hostDisplayName: string;
+  hostUsername: string;
+  topics?: string[];
+}
+
+// Get config from environment
+const getConfig = (): XBotConfig | null => {
+  const consumerKey = process.env.X_CONSUMER_KEY;
+  const consumerSecret = process.env.X_CONSUMER_SECRET;
+  const accessToken = process.env.X_ACCESS_TOKEN;
+  const accessTokenSecret = process.env.X_ACCESS_TOKEN_SECRET;
+
+  if (!consumerKey || !consumerSecret || !accessToken || !accessTokenSecret) {
+    return null;
+  }
+
+  return { consumerKey, consumerSecret, accessToken, accessTokenSecret };
+};
+
+/**
+ * Generate OAuth 1.0a signature for X API
+ */
+const generateOAuthSignature = (
+  method: string,
+  url: string,
+  params: Record<string, string>,
+  consumerSecret: string,
+  tokenSecret: string
+): string => {
+  // Sort params and create parameter string
+  const sortedParams = Object.keys(params)
+    .sort()
+    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+    .join('&');
+
+  // Create signature base string
+  const signatureBaseString = [
+    method.toUpperCase(),
+    encodeURIComponent(url),
+    encodeURIComponent(sortedParams)
+  ].join('&');
+
+  // Create signing key
+  const signingKey = `${encodeURIComponent(consumerSecret)}&${encodeURIComponent(tokenSecret)}`;
+
+  // Generate HMAC-SHA1 signature
+  const hmac = crypto.createHmac('sha1', signingKey);
+  hmac.update(signatureBaseString);
+  return hmac.digest('base64');
+};
+
+/**
+ * Generate OAuth 1.0a Authorization header
+ */
+const generateOAuthHeader = (
+  method: string,
+  url: string,
+  config: XBotConfig
+): string => {
+  const oauthParams: Record<string, string> = {
+    oauth_consumer_key: config.consumerKey,
+    oauth_nonce: crypto.randomBytes(16).toString('hex'),
+    oauth_signature_method: 'HMAC-SHA1',
+    oauth_timestamp: Math.floor(Date.now() / 1000).toString(),
+    oauth_token: config.accessToken,
+    oauth_version: '1.0'
+  };
+
+  // Generate signature
+  const signature = generateOAuthSignature(
+    method,
+    url,
+    oauthParams,
+    config.consumerSecret,
+    config.accessTokenSecret
+  );
+
+  oauthParams.oauth_signature = signature;
+
+  // Build Authorization header
+  const authHeader = 'OAuth ' + Object.keys(oauthParams)
+    .sort()
+    .map(key => `${encodeURIComponent(key)}="${encodeURIComponent(oauthParams[key])}"`)
+    .join(', ');
+
+  return authHeader;
+};
+
+/**
+ * Format room info into a tweet
+ */
+const formatTweet = (room: RoomInfo): string => {
+  const baseUrl = process.env.FRONTEND_URL || 'https://fireside.live';
+  const roomUrl = `${baseUrl}/call/${room.id}`;
+  
+  // Build tweet text
+  let tweet = `🔥 New Fireside is LIVE!\n\n`;
+  tweet += `"${room.name}"\n`;
+  tweet += `Hosted by ${room.hostDisplayName}\n\n`;
+  
+  // Add topics as hashtags (limit to 3)
+  if (room.topics && room.topics.length > 0) {
+    const hashtags = room.topics
+      .slice(0, 3)
+      .map(t => `#${t.replace(/\s+/g, '')}`)
+      .join(' ');
+    tweet += `${hashtags}\n\n`;
+  }
+  
+  tweet += `Join now: ${roomUrl}`;
+  
+  // Ensure we don't exceed 280 characters
+  if (tweet.length > 280) {
+    const excess = tweet.length - 280 + 3; // +3 for "..."
+    const nameLimit = room.name.length - excess;
+    if (nameLimit > 10) {
+      tweet = tweet.replace(room.name, room.name.substring(0, nameLimit) + '...');
+    }
+  }
+  
+  return tweet.substring(0, 280);
+};
+
+/**
+ * Post a tweet to X
+ */
+export const postTweet = async (text: string): Promise<{ success: boolean; tweetId?: string; error?: string }> => {
+  const config = getConfig();
+  
+  if (!config) {
+    console.log('[X Bot] Skipping tweet - X API credentials not configured');
+    return { success: false, error: 'X API credentials not configured' };
+  }
+
+  const url = 'https://api.x.com/2/tweets';
+  
+  try {
+    const authHeader = generateOAuthHeader('POST', url, config);
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ text })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('[X Bot] Failed to post tweet:', data);
+      return { success: false, error: data.detail || data.title || 'Failed to post tweet' };
+    }
+
+    console.log('[X Bot] Tweet posted successfully:', data.data?.id);
+    return { success: true, tweetId: data.data?.id };
+  } catch (error) {
+    console.error('[X Bot] Error posting tweet:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+};
+
+/**
+ * Post announcement when a fireside goes live
+ */
+export const announceFiresideLive = async (room: RoomInfo): Promise<void> => {
+  const tweet = formatTweet(room);
+  
+  console.log('[X Bot] Announcing fireside:', room.name);
+  
+  const result = await postTweet(tweet);
+  
+  if (result.success) {
+    console.log(`[X Bot] Successfully announced fireside "${room.name}" - Tweet ID: ${result.tweetId}`);
+  } else {
+    console.warn(`[X Bot] Failed to announce fireside "${room.name}": ${result.error}`);
+  }
+};
+
+export default {
+  postTweet,
+  announceFiresideLive
+};
+
+
