@@ -227,6 +227,13 @@ Handles all Redis operations for room participants:
 - End rooms
 - Manage video room lifecycle
 
+### X Bot (xBot.ts)
+Automatically posts to X (Twitter) when a fireside goes live:
+- Triggered on immediate room creation (status: "ongoing")
+- Triggered when a scheduled room is started
+- Posts room name, host, topics (as hashtags), and join link
+- Gracefully skips if X API credentials are not configured
+
 ## Development
 
 - **Watch mode:** `bun run dev`
@@ -245,6 +252,10 @@ Handles all Redis operations for room participants:
 | `PORT` | Server port | `3001` |
 | `NODE_ENV` | Environment | `development` |
 | `FRONTEND_URL` | Frontend URL for CORS | `http://localhost:3000` |
+| `X_CONSUMER_KEY` | X API Consumer Key (API Key) | Optional |
+| `X_CONSUMER_SECRET` | X API Consumer Secret | Optional |
+| `X_ACCESS_TOKEN` | X Bot Access Token | Optional |
+| `X_ACCESS_TOKEN_SECRET` | X Bot Access Token Secret | Optional |
 
 ## Migration from Next.js
 
