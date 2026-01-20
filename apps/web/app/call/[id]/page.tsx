@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     other: {
       "fc:frame": JSON.stringify({
         version: "next",
-        imageUrl: "https://firesidebase.vercel.app/fireside_banner.png",
+        imageUrl: `${process.env.NEXT_PUBLIC_URL}/api/og/room/${params.id}`,
         button: {
           title: "Tune in!",
           action: {

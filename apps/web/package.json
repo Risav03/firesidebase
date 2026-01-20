@@ -19,6 +19,7 @@
     "@radix-ui/react-dialog": "^1.1.15",
     "@rainbow-me/rainbowkit": "^2.2.8",
     "@types/ioredis": "^4.28.10",
+    "@vercel/og": "^0.8.6",
     "agora-rtc-react": "^2.5.0",
     "agora-rtc-sdk-ng": "^4.24.0",
     "boring-avatars": "^1.5.8",
