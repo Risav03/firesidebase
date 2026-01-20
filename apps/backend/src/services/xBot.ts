@@ -22,8 +22,22 @@ interface RoomInfo {
   description?: string;
   hostDisplayName: string;
   hostUsername: string;
+  hostFid: number;
   topics?: string[];
 }
+
+interface NeynarUser {
+  fid: number;
+  username: string;
+  display_name: string;
+  verified_accounts?: Array<{
+    platform: string;
+    username: string;
+  }>;
+}
+
+// Farcaster mini app base URL
+const MINIAPP_BASE_URL = 'https://farcaster.xyz/miniapps/mMg32-HGwt1Y/fireside';
 
 // Get config from environment
 const getConfig = (): XBotConfig | null => {
@@ -37,6 +51,61 @@ const getConfig = (): XBotConfig | null => {
   }
 
   return { consumerKey, consumerSecret, accessToken, accessTokenSecret };
+};
+
+/**
+ * Fetch user info from Neynar API by FID
+ * Ref: https://docs.neynar.com/reference/fetch-bulk-users
+ */
+const fetchNeynarUser = async (fid: number): Promise<NeynarUser | null> => {
+  const neynarApiKey = process.env.NEYNAR_API_KEY;
+  
+  if (!neynarApiKey) {
+    console.warn('[X Bot] NEYNAR_API_KEY not configured, cannot lookup user X account');
+    return null;
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.neynar.com/v2/farcaster/user/bulk?fids=${fid}`,
+      {
+        headers: {
+          'x-api-key': neynarApiKey,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.error('[X Bot] Neynar API error:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    
+    if (data.users && data.users.length > 0) {
+      return data.users[0];
+    }
+
+    return null;
+  } catch (error) {
+    console.error('[X Bot] Error fetching user from Neynar:', error);
+    return null;
+  }
+};
+
+/**
+ * Get X username from Neynar user if they have a verified X account
+ */
+const getXUsername = (user: NeynarUser): string | null => {
+  if (!user.verified_accounts || user.verified_accounts.length === 0) {
+    return null;
+  }
+
+  const xAccount = user.verified_accounts.find(
+    (account) => account.platform === 'x' || account.platform === 'twitter'
+  );
+
+  return xAccount?.username || null;
 };
 
 /**
@@ -111,14 +180,17 @@ const generateOAuthHeader = (
 /**
  * Format room info into a tweet
  */
-const formatTweet = (room: RoomInfo): string => {
-  const baseUrl = process.env.FRONTEND_URL || 'https://fireside.live';
-  const roomUrl = `${baseUrl}/call/${room.id}`;
+const formatTweet = (room: RoomInfo, xUsername: string | null): string => {
+  // Use Farcaster mini app link
+  const roomUrl = `${MINIAPP_BASE_URL}/call/${room.id}`;
+  
+  // Format host - tag if they have X account, otherwise just name
+  const hostMention = xUsername ? `@${xUsername}` : room.hostDisplayName;
   
   // Build tweet text
   let tweet = `🔥 New Fireside is LIVE!\n\n`;
   tweet += `"${room.name}"\n`;
-  tweet += `Hosted by ${room.hostDisplayName}\n\n`;
+  tweet += `Hosted by ${hostMention}\n\n`;
   
   // Add topics as hashtags (limit to 3)
   if (room.topics && room.topics.length > 0) {
@@ -187,9 +259,24 @@ export const postTweet = async (text: string): Promise<{ success: boolean; tweet
  * Post announcement when a fireside goes live
  */
 export const announceFiresideLive = async (room: RoomInfo): Promise<void> => {
-  const tweet = formatTweet(room);
-  
   console.log('[X Bot] Announcing fireside:', room.name);
+  
+  // Lookup host's X account via Neynar
+  let xUsername: string | null = null;
+  
+  if (room.hostFid) {
+    const neynarUser = await fetchNeynarUser(room.hostFid);
+    if (neynarUser) {
+      xUsername = getXUsername(neynarUser);
+      if (xUsername) {
+        console.log(`[X Bot] Found X account for host: @${xUsername}`);
+      } else {
+        console.log('[X Bot] Host does not have a verified X account');
+      }
+    }
+  }
+  
+  const tweet = formatTweet(room, xUsername);
   
   const result = await postTweet(tweet);
   
@@ -204,5 +291,3 @@ export default {
   postTweet,
   announceFiresideLive
 };
-
-

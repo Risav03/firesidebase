@@ -878,6 +878,7 @@ Retrieves all upcoming rooms hosted by the authenticated user.
                   description: savedRoom.description,
                   hostDisplayName: savedRoom.host?.displayName || hostUser.displayName,
                   hostUsername: savedRoom.host?.username || hostUser.username,
+                  hostFid: hostUser.fid,
                   topics: savedRoom.topics
                 }).catch(err => console.error("[X Bot] Announcement failed:", err));
               }
@@ -1208,6 +1209,7 @@ Starts recording for an ongoing room and updates the recordingEnabled flag.
                 description: updatedRoom.description,
                 hostDisplayName: (updatedRoom.host as any)?.displayName || '',
                 hostUsername: (updatedRoom.host as any)?.username || '',
+                hostFid: (updatedRoom.host as any)?.fid || 0,
                 topics: updatedRoom.topics
               }).catch(err => console.error("[X Bot] Announcement failed:", err));
             }
