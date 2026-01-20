@@ -178,8 +178,6 @@ export async function GET(
             <div
               style={{
                 display: 'flex',
-                background: 'rgba(160, 160, 160, 0.9)',
-                borderRadius: '32px',
                 padding: '48px 64px',
                 maxWidth: '90%',
                 textAlign: 'center',
@@ -233,15 +231,14 @@ export async function GET(
               {/* Host Username */}
               <div
                 style={{
+                  alignContent: 'flex-start',
                   display: 'flex',
-                  background: 'white',
-                  borderRadius: '24px',
-                  padding: '16px 40px',
+                  color: 'white'
                 }}
               >
                 <span
                   style={{
-                    color: 'black',
+                    color: 'white',
                     fontSize: 32,
                     fontWeight: 600,
                   }}
@@ -252,7 +249,7 @@ export async function GET(
             </div>
 
             {/* Fireside Logo (bottom right) */}
-            <div
+            {/* <div
               style={{
                 display: 'flex',
                 position: 'absolute',
@@ -280,7 +277,7 @@ export async function GET(
               >
                 FIRESIDE
               </span>
-            </div>
+            </div> */}
           </div>
         </div>
       ),
