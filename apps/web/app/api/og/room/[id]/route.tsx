@@ -178,10 +178,10 @@ export async function GET(
             <div
               style={{
                 display: 'flex',
-                padding: '48px 64px',
+                padding: '20px 48px',
                 maxWidth: '90%',
                 textAlign: 'center',
-                marginBottom: '40px',
+                marginBottom: '10px',
               }}
             >
               <p
@@ -202,13 +202,15 @@ export async function GET(
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '24px',
+                gap: '16px',
+                borderTop: '2px solid rgba(255, 255, 255, 0.5)',
+                paddingTop: '16px',
               }}
             >
               <span
                 style={{
                   color: 'white',
-                  fontSize: 32,
+                  fontSize: 24,
                   fontWeight: 600,
                 }}
               >
@@ -220,9 +222,9 @@ export async function GET(
                 src={hostPfp}
                 alt="host"
                 style={{
-                  width: '80px',
-                  height: '80px',
-                  borderRadius: '12px',
+                  width: '50px',
+                  height: '50px',
+                  borderRadius: '10px',
                   objectFit: 'cover',
                   background: 'white',
                 }}
@@ -238,9 +240,9 @@ export async function GET(
               >
                 <span
                   style={{
-                    color: 'white',
-                    fontSize: 32,
-                    fontWeight: 600,
+                    color: '#f78635',
+                    fontSize: 24,
+                    fontWeight: 900,
                   }}
                 >
                   {hostUsername}
