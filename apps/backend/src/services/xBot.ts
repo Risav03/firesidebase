@@ -24,6 +24,7 @@ interface RoomInfo {
   hostUsername: string;
   hostFid: number;
   topics?: string[];
+  startTime?: Date | string;
 }
 
 interface NeynarUser {
@@ -178,9 +179,28 @@ const generateOAuthHeader = (
 };
 
 /**
- * Format room info into a tweet
+ * Format a date for display in tweet
  */
-const formatTweet = (room: RoomInfo, xUsername: string | null): string => {
+const formatScheduledTime = (startTime: Date | string): string => {
+  const date = new Date(startTime);
+  
+  // Format: "Jan 20 at 3:00 PM UTC"
+  const options: Intl.DateTimeFormatOptions = {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'UTC',
+    timeZoneName: 'short'
+  };
+  
+  return date.toLocaleString('en-US', options);
+};
+
+/**
+ * Format room info into a tweet for LIVE announcement
+ */
+const formatLiveTweet = (room: RoomInfo, xUsername: string | null): string => {
   // Use Farcaster mini app link
   const roomUrl = `${MINIAPP_BASE_URL}/call/${room.id}`;
   
@@ -202,6 +222,48 @@ const formatTweet = (room: RoomInfo, xUsername: string | null): string => {
   }
   
   tweet += `Join now: ${roomUrl}`;
+  
+  // Ensure we don't exceed 280 characters
+  if (tweet.length > 280) {
+    const excess = tweet.length - 280 + 3; // +3 for "..."
+    const nameLimit = room.name.length - excess;
+    if (nameLimit > 10) {
+      tweet = tweet.replace(room.name, room.name.substring(0, nameLimit) + '...');
+    }
+  }
+  
+  return tweet.substring(0, 280);
+};
+
+/**
+ * Format room info into a tweet for SCHEDULED announcement
+ */
+const formatScheduledTweet = (room: RoomInfo, xUsername: string | null): string => {
+  // Use Farcaster mini app link
+  const roomUrl = `${MINIAPP_BASE_URL}/call/${room.id}`;
+  
+  // Format host - tag if they have X account, otherwise just name
+  const hostMention = xUsername ? `@${xUsername}` : room.hostDisplayName;
+  
+  // Format the scheduled time
+  const scheduledTime = room.startTime ? formatScheduledTime(room.startTime) : 'soon';
+  
+  // Build tweet text
+  let tweet = `📅 New Fireside Scheduled!\n\n`;
+  tweet += `"${room.name}"\n`;
+  tweet += `Hosted by ${hostMention}\n`;
+  tweet += `🕐 ${scheduledTime}\n\n`;
+  
+  // Add topics as hashtags (limit to 3)
+  if (room.topics && room.topics.length > 0) {
+    const hashtags = room.topics
+      .slice(0, 3)
+      .map(t => `#${t.replace(/\s+/g, '')}`)
+      .join(' ');
+    tweet += `${hashtags}\n\n`;
+  }
+  
+  tweet += `Set a reminder: ${roomUrl}`;
   
   // Ensure we don't exceed 280 characters
   if (tweet.length > 280) {
@@ -256,38 +318,62 @@ export const postTweet = async (text: string): Promise<{ success: boolean; tweet
 };
 
 /**
+ * Lookup host X account helper
+ */
+const lookupHostXAccount = async (hostFid: number): Promise<string | null> => {
+  if (!hostFid) return null;
+  
+  const neynarUser = await fetchNeynarUser(hostFid);
+  if (neynarUser) {
+    const xUsername = getXUsername(neynarUser);
+    if (xUsername) {
+      console.log(`[X Bot] Found X account for host: @${xUsername}`);
+      return xUsername;
+    } else {
+      console.log('[X Bot] Host does not have a verified X account');
+    }
+  }
+  return null;
+};
+
+/**
  * Post announcement when a fireside goes live
  */
 export const announceFiresideLive = async (room: RoomInfo): Promise<void> => {
-  console.log('[X Bot] Announcing fireside:', room.name);
+  console.log('[X Bot] Announcing live fireside:', room.name);
   
-  // Lookup host's X account via Neynar
-  let xUsername: string | null = null;
-  
-  if (room.hostFid) {
-    const neynarUser = await fetchNeynarUser(room.hostFid);
-    if (neynarUser) {
-      xUsername = getXUsername(neynarUser);
-      if (xUsername) {
-        console.log(`[X Bot] Found X account for host: @${xUsername}`);
-      } else {
-        console.log('[X Bot] Host does not have a verified X account');
-      }
-    }
-  }
-  
-  const tweet = formatTweet(room, xUsername);
+  const xUsername = await lookupHostXAccount(room.hostFid);
+  const tweet = formatLiveTweet(room, xUsername);
   
   const result = await postTweet(tweet);
   
   if (result.success) {
-    console.log(`[X Bot] Successfully announced fireside "${room.name}" - Tweet ID: ${result.tweetId}`);
+    console.log(`[X Bot] Successfully announced live fireside "${room.name}" - Tweet ID: ${result.tweetId}`);
   } else {
-    console.warn(`[X Bot] Failed to announce fireside "${room.name}": ${result.error}`);
+    console.warn(`[X Bot] Failed to announce live fireside "${room.name}": ${result.error}`);
+  }
+};
+
+/**
+ * Post announcement when a fireside is scheduled
+ */
+export const announceFiresideScheduled = async (room: RoomInfo): Promise<void> => {
+  console.log('[X Bot] Announcing scheduled fireside:', room.name);
+  
+  const xUsername = await lookupHostXAccount(room.hostFid);
+  const tweet = formatScheduledTweet(room, xUsername);
+  
+  const result = await postTweet(tweet);
+  
+  if (result.success) {
+    console.log(`[X Bot] Successfully announced scheduled fireside "${room.name}" - Tweet ID: ${result.tweetId}`);
+  } else {
+    console.warn(`[X Bot] Failed to announce scheduled fireside "${room.name}": ${result.error}`);
   }
 };
 
 export default {
   postTweet,
-  announceFiresideLive
+  announceFiresideLive,
+  announceFiresideScheduled
 };

@@ -14,7 +14,7 @@ import { RedisRoomParticipantsService } from "../../services/redis";
 import { RedisTippingService } from "../../services/redis/tippingDetails";
 import { trackViewerJoin } from "../../services/ads/viewTracking";
 import { evaluateAutoAds, forceStopAds } from "../ads";
-import { announceFiresideLive } from "../../services/xBot";
+import { announceFiresideLive, announceFiresideScheduled } from "../../services/xBot";
 import "../../config/database";
 import { 
   GetRoomsResponseSchema, 
@@ -870,8 +870,9 @@ Retrieves all upcoming rooms hosted by the authenticated user.
                 console.error("Failed to add host to Redis:", redisError);
               }
 
-              // Announce on X if room is going live immediately (not scheduled)
+              // Announce on X
               if (savedRoom && savedRoom.status === "ongoing") {
+                // Room is going live immediately
                 announceFiresideLive({
                   id: savedRoom._id.toString(),
                   name: savedRoom.name,
@@ -880,7 +881,19 @@ Retrieves all upcoming rooms hosted by the authenticated user.
                   hostUsername: savedRoom.host?.username || hostUser.username,
                   hostFid: hostUser.fid,
                   topics: savedRoom.topics
-                }).catch(err => console.error("[X Bot] Announcement failed:", err));
+                }).catch(err => console.error("[X Bot] Live announcement failed:", err));
+              } else if (savedRoom && savedRoom.status === "upcoming") {
+                // Room is scheduled for later
+                announceFiresideScheduled({
+                  id: savedRoom._id.toString(),
+                  name: savedRoom.name,
+                  description: savedRoom.description,
+                  hostDisplayName: savedRoom.host?.displayName || hostUser.displayName,
+                  hostUsername: savedRoom.host?.username || hostUser.username,
+                  hostFid: hostUser.fid,
+                  topics: savedRoom.topics,
+                  startTime: savedRoom.startTime
+                }).catch(err => console.error("[X Bot] Scheduled announcement failed:", err));
               }
 
               return successResponse(savedRoom, "Room created successfully");
