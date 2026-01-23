@@ -63,6 +63,11 @@ export default function TipOverlay() {
           }, 5000);
         }
 
+        // Remove the notification after 5 seconds
+        setTimeout(() => {
+          setNotifications((prev) => prev.filter((n) => n.id !== contextNotif.id));
+        }, 5000);
+
         return newNotifications;
       });
     });
