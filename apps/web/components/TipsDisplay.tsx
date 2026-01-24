@@ -124,7 +124,7 @@ export default function TipsDisplay({ roomId }: TipsDisplayProps) {
             </div>
           </div>
           <div className="text-fireside-orange">
-            {isExpanded ? <IoChevronUp size={24} /> : <IoChevronDown size={24} />}
+            {isExpanded ? <IoChevronUp size={12} /> : <IoChevronDown size={12} />}
           </div>
         </button>
 
