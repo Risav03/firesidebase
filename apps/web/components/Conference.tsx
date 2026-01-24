@@ -555,8 +555,8 @@ export default function Conference({ roomId }: { roomId: string }) {
         <FirelightField flicker={flicker} />
 
         <Card className="bg-fireside-orange/5 gradient-orange-bg m-3 p-3 rounded-2xl">
-          <div className="flex items-start justify-between">
-            <div className="min-w-[220px] ">
+          <div className="flex items-start justify-between gap-1">
+            <div className="min-w-[200px] ">
               <h1 className="text-lg font-bold gradient-fire-text">
                 {roomDetails?.name}
               </h1>
