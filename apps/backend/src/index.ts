@@ -9,6 +9,7 @@ import { userRoutes } from './routes/users';
 import { searchRoutes } from './routes/search';
 import { adminRoutes } from './routes/admin';
 import { profileRoutes } from './routes/profile';
+import { rewardRoutes } from './routes/rewards';
 // import { authRoutes } from './routes/auth';
 // import { sponsorshipWorker } from './queues/sponsorshipQueue';
 import { roomCleanupCron, adPayoutCron } from './cron';
@@ -85,6 +86,7 @@ All responses follow a standard format:
       { name: 'Profile', description: 'User profile and preferences' },
       { name: 'Search', description: 'Search for rooms and users' },
       { name: 'Ads', description: 'Advertisement management and session control' },
+      { name: 'Rewards', description: 'Reward system - daily login, hosting, and milestone rewards' },
       { name: 'Admin', description: 'Administrative operations (requires admin auth)' }
     ],
     components: {
@@ -162,6 +164,7 @@ app.group('/api', (app) =>
     .use(searchRoutes)
     .use(adminRoutes)
     .use(profileRoutes)
+    .use(rewardRoutes)
     // .use(authRoutes)
 );
 

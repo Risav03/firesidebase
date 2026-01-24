@@ -46,6 +46,12 @@ interface Config {
   xConsumerSecret?: string;
   xAccessToken?: string;
   xAccessTokenSecret?: string;
+
+  // Reward System
+  rewardWalletPrivateKey: string;
+  dailyLoginRewardAmount: number;
+  hostRoomBaseRewardAmount: number;
+  participantMilestones: { threshold: number; reward: number }[];
 }
 
 const getEnvVar = (key: string, defaultValue?: string): string => {
@@ -112,6 +118,17 @@ export const config = {
   xConsumerSecret: getOptionalEnvVar('X_CONSUMER_SECRET'),
   xAccessToken: getOptionalEnvVar('X_ACCESS_TOKEN'),
   xAccessTokenSecret: getOptionalEnvVar('X_ACCESS_TOKEN_SECRET'),
+
+  // Reward System
+  rewardWalletPrivateKey: getEnvVar('REWARD_WALLET_PRIVATE_KEY'),
+  dailyLoginRewardAmount: getEnvNumber('DAILY_LOGIN_REWARD_AMOUNT', 10),
+  hostRoomBaseRewardAmount: getEnvNumber('HOST_ROOM_BASE_REWARD_AMOUNT', 50),
+  participantMilestones: [
+    { threshold: 10, reward: 25 },
+    { threshold: 50, reward: 100 },
+    { threshold: 100, reward: 250 },
+    { threshold: 250, reward: 500 },
+  ],
 
   // Dynamic Methods
   getHostname: (request?: any) => {

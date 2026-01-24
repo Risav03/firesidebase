@@ -5,6 +5,7 @@ import RoomParticipant from '../../models/RoomParticipant';
 import { RedisRoomParticipantsService } from '../../services/redis';
 import { evaluateAutoAds, forceStopAds } from '../ads';
 import { trackViewerJoin, trackViewerLeave } from '../../services/ads/viewTracking';
+import { RewardService } from '../../services/rewards/RewardService';
 import {
   AddParticipantRequestSchema,
   UpdateParticipantRoleRequestSchema,
@@ -731,10 +732,24 @@ Allows an authenticated user to leave a room.
             }
           }
 
+          // Distribute hosting rewards
+          let rewardDistribution = null;
+          try {
+            const rewardResult = await RewardService.distributeHostingRewards(roomId);
+            if (rewardResult.success) {
+              rewardDistribution = rewardResult.reward;
+              console.log('✅ Hosting rewards distributed successfully');
+            }
+          } catch (rewardError) {
+            console.error('⚠️ Error distributing hosting rewards:', rewardError);
+            // Don't fail the entire endpoint if rewards fail
+          }
+
           return successResponse({
             room: updatedRoom,
             participantCount: totalParticipants,
-            roleBreakdown
+            roleBreakdown,
+            rewards: rewardDistribution
           }, 'Room ended successfully');
         } catch (error) {
           console.error('Error ending room:', error);
