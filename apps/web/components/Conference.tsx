@@ -13,6 +13,7 @@ import {
   useSpeakerRequestEvent,
   useSpeakerRejectionEvent,
   useTipEvent,
+  useRoomEndedEvent,
 } from "@/utils/events";
 import PeerWithContextMenu from "./PeerWithContextMenu";
 import { ScreenTile } from "./ScreenTile";
@@ -102,6 +103,7 @@ export default function Conference({ roomId }: { roomId: string }) {
   const [selectedPeer, setSelectedPeer] = useState<any>(null);
   const [showAvatarContextMenu, setShowAvatarContextMenu] = useState(false);
   const [showTippingDrawer, setShowTippingDrawer] = useState(false);
+  const [endRoomRewards, setEndRoomRewards] = useState<any>(null);
 
   //function to fetch room details and save name and description in a useState. Call the function in useEffect
   const [roomDetails, setRoomDetails] = useState<{
@@ -198,6 +200,23 @@ export default function Conference({ roomId }: { roomId: string }) {
       timestamp: new Date().toISOString(),
     });
     handleSpeakerRequest({ peerId: msg.peerId, fid: msg.peer });
+  });
+
+  // Listen for room ended events with reward data
+  useRoomEndedEvent((msg) => {
+    console.log('[Conference] ROOM_ENDED event received:', msg);
+    try {
+      // Try to parse reward data from message
+      const rewardData = JSON.parse(msg.message);
+      console.log('[Conference] Parsed reward data:', rewardData);
+      if (rewardData && rewardData.totalReward !== undefined) {
+        console.log('[Conference] Setting endRoomRewards:', rewardData);
+        setEndRoomRewards(rewardData);
+      }
+    } catch (e) {
+      console.log('[Conference] Failed to parse reward data:', e);
+      // Message is not reward data, ignore
+    }
   });
 
   const handRaise = useHMSNotifications(
@@ -496,7 +515,7 @@ export default function Conference({ roomId }: { roomId: string }) {
   };
 
   if (roomEnded) {
-    return <RoomEndScreen onComplete={() => router.push("/")} />;
+    return <RoomEndScreen onComplete={() => router.push("/")} rewardData={endRoomRewards} />;
   } else {
     // Only show speaker requests button for hosts and co-hosts
     const canManageSpeakers =

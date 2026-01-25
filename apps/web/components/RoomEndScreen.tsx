@@ -5,9 +5,17 @@ import FiresideLogo from "./UI/firesideLogo";
 
 interface RoomEndScreenProps {
   onComplete: () => void;
+  rewardData?: {
+    totalReward: number;
+    baseReward: number;
+    milestoneReward: number;
+    milestone?: number;
+    participantCount: number;
+  };
 }
 
-export default function RoomEndScreen({onComplete}: RoomEndScreenProps) {
+export default function RoomEndScreen({onComplete, rewardData}: RoomEndScreenProps) {
+  console.log('[RoomEndScreen] Received rewardData:', rewardData);
   const navigate = useNavigateWithLoader();
   const [timeLeft, setTimeLeft] = useState(10);
 
@@ -45,6 +53,33 @@ export default function RoomEndScreen({onComplete}: RoomEndScreenProps) {
           <h1 className="text-2xl font-bold text-white mb-4">
             Host Ended the Space
           </h1>
+          
+          {/* Reward Display for Host */}
+          {rewardData && rewardData.totalReward > 0 && (
+            <div className="mb-6 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-lg p-4">
+              <p className="text-yellow-400 font-bold text-3xl mb-2">
+                +{rewardData.totalReward} FIRE
+              </p>
+              <p className="text-sm text-gray-300 mb-3">🎉 Hosting Reward Earned!</p>
+              <div className="text-xs text-gray-400 space-y-1">
+                <div className="flex justify-between">
+                  <span>Base Reward:</span>
+                  <span className="text-white">{rewardData.baseReward} FIRE</span>
+                </div>
+                {rewardData.milestoneReward > 0 && (
+                  <div className="flex justify-between">
+                    <span>Milestone Bonus ({rewardData.milestone}+ participants):</span>
+                    <span className="text-yellow-400">+{rewardData.milestoneReward} FIRE</span>
+                  </div>
+                )}
+                <div className="flex justify-between pt-2 border-t border-gray-600">
+                  <span>Total Participants:</span>
+                  <span className="text-white">{rewardData.participantCount}</span>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <p className="text-gray-400 text-sm">
             Thanks for joining! You will be redirected to home page in{" "}
             <span className="text-fireside-orange font-bold">{timeLeft}</span>{" "}

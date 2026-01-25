@@ -110,6 +110,14 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
       if (!response.ok) {
         throw new Error(response.data.error || 'Failed to end room');
       }
+      
+      console.log('[RoomEndModal] Full response:', response);
+      console.log('[RoomEndModal] Response data:', response.data);
+      console.log('[RoomEndModal] Rewards:', response.data?.data?.rewards);
+      
+      // Extract reward data if available
+      const rewardData = response.data?.data?.rewards?.breakdown;
+      
       try {
         await fetch(`/api/ads/controls/room-ended/${roomId}`, {
           method: 'POST',
@@ -120,7 +128,9 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
       } catch (e) {
         console.warn('Failed to notify ads room-ended', e);
       }
-      endRoom("Room has been ended by the host?.");
+      
+      // Send room ended event with reward data
+      endRoom(rewardData ? JSON.stringify(rewardData) : "Room has been ended by the host?.");
 
     } catch (error) {
       console.error('Error ending room:', error);

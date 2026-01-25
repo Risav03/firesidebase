@@ -124,10 +124,10 @@ export const config = {
   dailyLoginRewardAmount: getEnvNumber('DAILY_LOGIN_REWARD_AMOUNT', 10),
   hostRoomBaseRewardAmount: getEnvNumber('HOST_ROOM_BASE_REWARD_AMOUNT', 50),
   participantMilestones: [
-    { threshold: 10, reward: 25 },
-    { threshold: 50, reward: 100 },
-    { threshold: 100, reward: 250 },
-    { threshold: 250, reward: 500 },
+    { threshold: 1, reward: 25 },
+    { threshold: 5, reward: 100 },
+    { threshold: 10, reward: 250 },
+    { threshold: 25, reward: 500 },
   ],
 
   // Dynamic Methods
