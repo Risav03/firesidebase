@@ -15,14 +15,12 @@ export const authMiddleware = async ({ set, headers, request }: { set: any, head
       // In development mode, use DEV_HEADER if available
       if (config.isDevelopment && config.devHeader) {
         authorization = `Bearer ${config.devHeader}`;
-        console.log("🛠️  Using development header for authentication");
+       
       } else {
         // Get authorization from request headers
         authorization = headers.authorization || null;
-        console.log("📤 Using authorization from request headers");
       }
 
-      console.log("🔑 Authorization header present:", !!authorization);
 
       if (!authorization) {
         console.log("❌ No authorization header found");
@@ -33,6 +31,7 @@ export const authMiddleware = async ({ set, headers, request }: { set: any, head
         };
       }
 
+
       // Extract token from Bearer authorization header
       const token = authorization.split(" ")[1];
       if (!token) {
@@ -42,14 +41,10 @@ export const authMiddleware = async ({ set, headers, request }: { set: any, head
           success: false,
           error: "Unauthorized - Invalid authorization header format"
         };
-      }
-
-      console.log("🔍 Verifying JWT token...");
+      };
       
       const verificationDomain = process.env.DEV_JWT_DOMAIN as string;
       
-      console.log("🌐 Using verification domain:", verificationDomain);
-
       console.log("Token: ", token)
       
       // Verify JWT directly using Farcaster quick-auth
@@ -57,8 +52,6 @@ export const authMiddleware = async ({ set, headers, request }: { set: any, head
         token: token,
         domain: verificationDomain,
       });
-
-      console.log("📦 JWT payload:", payload);
 
       const fidParam = payload.sub;
       if (!fidParam) {
@@ -81,8 +74,6 @@ export const authMiddleware = async ({ set, headers, request }: { set: any, head
       }
 
       const userFid = fid.toString();
-      console.log(`✅ User authenticated: FID ${userFid}`);
-      console.log('🏁 AUTH MIDDLEWARE COMPLETED SUCCESSFULLY');
 
       // Set the x-user-fid header for downstream use (compatible with existing routes)
       headers['x-user-fid'] = userFid;
