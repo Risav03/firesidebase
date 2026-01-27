@@ -100,6 +100,7 @@ export const config = {
   devHeader: getOptionalEnvVar('DEV_HEADER'),
   devJwtDomain: getOptionalEnvVar('DEV_JWT_DOMAIN'),
   adminToken: getOptionalEnvVar('ADMIN_TOKEN'),
+  localFid: getEnvNumber('LOCAL_FID', 12345678),
 
   // AWS/S3 Configuration
   awsRegion: getEnvVar('AWS_REGION', 'us-east-1'),

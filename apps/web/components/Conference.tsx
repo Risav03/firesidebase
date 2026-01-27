@@ -45,6 +45,7 @@ import AdsOverlay from "./AdsOverlay";
 import { Card } from "./UI/Card";
 import { DotIcon } from "lucide-react";
 import { GoDotFill } from "react-icons/go";
+import { useRewardContext } from "@/contexts/RewardContext";
 // import AudioRecoveryBanner from "./AudioRecoveryBanner";
 
 export default function Conference({ roomId }: { roomId: string }) {
@@ -54,6 +55,7 @@ export default function Conference({ roomId }: { roomId: string }) {
   const hmsActions = useHMSActions();
   const router = useRouter();
   const { user } = useGlobalContext();
+  const { rewardData, clearRewardData } = useRewardContext();
   const notification = useHMSNotifications();
 
   // Audio debugging: Track all peer state changes
@@ -103,7 +105,6 @@ export default function Conference({ roomId }: { roomId: string }) {
   const [selectedPeer, setSelectedPeer] = useState<any>(null);
   const [showAvatarContextMenu, setShowAvatarContextMenu] = useState(false);
   const [showTippingDrawer, setShowTippingDrawer] = useState(false);
-  const [endRoomRewards, setEndRoomRewards] = useState<any>(null);
 
   //function to fetch room details and save name and description in a useState. Call the function in useEffect
   const [roomDetails, setRoomDetails] = useState<{
@@ -202,22 +203,6 @@ export default function Conference({ roomId }: { roomId: string }) {
     handleSpeakerRequest({ peerId: msg.peerId, fid: msg.peer });
   });
 
-  // Listen for room ended events with reward data
-  useRoomEndedEvent((msg) => {
-    console.log('[Conference] ROOM_ENDED event received:', msg);
-    try {
-      // Try to parse reward data from message
-      const rewardData = JSON.parse(msg.message);
-      console.log('[Conference] Parsed reward data:', rewardData);
-      if (rewardData && rewardData.totalReward !== undefined) {
-        console.log('[Conference] Setting endRoomRewards:', rewardData);
-        setEndRoomRewards(rewardData);
-      }
-    } catch (e) {
-      console.log('[Conference] Failed to parse reward data:', e);
-      // Message is not reward data, ignore
-    }
-  });
 
   const handRaise = useHMSNotifications(
     HMSNotificationTypes.HAND_RAISE_CHANGED
@@ -515,7 +500,7 @@ export default function Conference({ roomId }: { roomId: string }) {
   };
 
   if (roomEnded) {
-    return <RoomEndScreen onComplete={() => router.push("/")} rewardData={endRoomRewards} />;
+    return <RoomEndScreen roomId={roomId} onComplete={() => { clearRewardData(); router.push("/"); }} />;
   } else {
     // Only show speaker requests button for hosts and co-hosts
     const canManageSpeakers =

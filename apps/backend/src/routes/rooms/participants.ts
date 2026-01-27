@@ -2,7 +2,7 @@ import { Elysia, t } from 'elysia';
 import User from '../../models/User';
 import Room from '../../models/Room';
 import RoomParticipant from '../../models/RoomParticipant';
-import { RedisRoomParticipantsService } from '../../services/redis';
+import { RedisRoomParticipantsService, RedisRoomStatisticsService } from '../../services/redis';
 import { evaluateAutoAds, forceStopAds } from '../ads';
 import { trackViewerJoin, trackViewerLeave } from '../../services/ads/viewTracking';
 import { RewardService } from '../../services/rewards/RewardService';
@@ -241,6 +241,10 @@ Retrieves the current live participants directly from 100ms API.
           }
 
           await RedisRoomParticipantsService.addParticipant(params.id, user.toObject(), role);
+          
+          // Update peak participant counts
+          await RedisRoomStatisticsService.updatePeakCounts(params.id);
+          
           return successResponse(undefined, 'Participant added successfully');
         } catch (error) {
           set.status = 500;
@@ -311,6 +315,10 @@ Adds a user as a participant to the room.
           }
 
           await RedisRoomParticipantsService.updateParticipantRole(params.id, userFid, newRole);
+          
+          // Update peak participant counts after role change
+          await RedisRoomStatisticsService.updatePeakCounts(params.id);
+          
           return successResponse(undefined, 'Participant role updated successfully');
         } catch (error) {
           set.status = 500;
@@ -464,6 +472,9 @@ Removes a participant from the room (kick functionality).
           await RedisRoomParticipantsService.addParticipant(params.id, user.toObject(), role);
           await trackViewerJoin(params.id, user.fid.toString());
           evaluateAutoAds(params.id).catch((err) => console.error('[ads:auto] join evaluation failed', err));
+          
+          // Update peak participant counts
+          await RedisRoomStatisticsService.updatePeakCounts(params.id);
 
           const participant = {
             userId: user.fid,
@@ -738,7 +749,7 @@ Allows an authenticated user to leave a room.
             const rewardResult = await RewardService.distributeHostingRewards(roomId);
             if (rewardResult.success) {
               rewardDistribution = rewardResult.reward;
-              console.log('✅ Hosting rewards distributed successfully');
+              console.log('✅ Hosting rewards distributed successfully', rewardDistribution);
             }
           } catch (rewardError) {
             console.error('⚠️ Error distributing hosting rewards:', rewardError);

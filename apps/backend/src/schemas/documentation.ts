@@ -389,7 +389,8 @@ export const EndRoomResponseSchema = t.Object({
   data: t.Object({
     room: t.Any(),
     participantCount: t.Any({ description: 'Total participants' }),
-    roleBreakdown: t.Any()
+    roleBreakdown: t.Any(),
+    rewards: t.Optional(t.Any())
   }),
   message: t.Optional(t.Any())
 });

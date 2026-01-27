@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import {
   Drawer,
   DrawerClose,
@@ -30,6 +31,7 @@ interface RewardData {
 }
 
 export function RewardClaimDrawer() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [eligibility, setEligibility] = useState<EligibilityData | null>(null);
   const [isClaiming, setIsClaiming] = useState(false);
@@ -81,13 +83,19 @@ export function RewardClaimDrawer() {
   };
 
   useEffect(() => {
+    // Only check eligibility if on home page
+    if (pathname !== '/') {
+      setIsOpen(false);
+      return;
+    }
+
     // Check eligibility when component mounts
     checkEligibility();
 
     // Optionally check periodically (every 5 minutes)
     const interval = setInterval(checkEligibility, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [pathname]);
 
   const handleClaim = async () => {
     setIsClaiming(true);
@@ -138,7 +146,7 @@ export function RewardClaimDrawer() {
   // Render the drawer (will show when isOpen is true)
   return (
     <Drawer open={isOpen} onOpenChange={setIsOpen}>
-      <DrawerContent className="max-w-md mx-auto gradient-blue-bg bg-black/95">
+      <DrawerContent className="max-w-md mx-auto gradient-yellow-bg bg-black/95">
         <DrawerHeader>
           <DrawerTitle className="text-2xl font-bold text-center text-white">
             {claimSuccess ? '🎉 Reward Claimed!' : '🎁 Daily Login Reward'}

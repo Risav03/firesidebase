@@ -5,6 +5,7 @@ import { useHMSActions, useHMSStore, selectLocalPeer } from '@100mslive/react-sd
 import { useRoomEndedEvent } from '@/utils/events';
 import { useRouter } from 'next/navigation';
 import { useGlobalContext } from '@/utils/providers/globalContext';
+import { useRewardContext } from '@/contexts/RewardContext';
 import sdk from "@farcaster/miniapp-sdk";
 import Modal from '@/components/UI/Modal';
 import { endProtectedRoom } from '@/utils/serverActions';
@@ -26,9 +27,10 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
   const router = useRouter();
   const { user } = useGlobalContext();
   const localPeer = useHMSStore(selectLocalPeer);
+  const { setRewardData } = useRewardContext();
 
    // Use the utility function for room ended events
-   const { endRoom } = useRoomEndedEvent();
+   const { endRoomReward } = useRoomEndedEvent();
 
   // Check if local user is host or co-host
   const isHostOrCoHost = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
@@ -111,13 +113,14 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
         throw new Error(response.data.error || 'Failed to end room');
       }
       
-      console.log('[RoomEndModal] Full response:', response);
-      console.log('[RoomEndModal] Response data:', response.data);
-      console.log('[RoomEndModal] Rewards:', response.data?.data?.rewards);
-      
       // Extract reward data if available
       const rewardData = response.data?.data?.rewards?.breakdown;
+
+      console.log("ROOM ENDED REWARDS", JSON.stringify( response.data.data.rewards))
       
+      // Send room ended event with reward data
+      setRewardData(rewardData);
+      onClose();
       try {
         await fetch(`/api/ads/controls/room-ended/${roomId}`, {
           method: 'POST',
@@ -129,9 +132,6 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
         console.warn('Failed to notify ads room-ended', e);
       }
       
-      // Send room ended event with reward data
-      endRoom(rewardData ? JSON.stringify(rewardData) : "Room has been ended by the host?.");
-
     } catch (error) {
       console.error('Error ending room:', error);
       setError(error instanceof Error ? error.message : 'Failed to end room. Please try again.');

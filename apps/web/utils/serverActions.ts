@@ -645,6 +645,16 @@ export async function fetchLiveRoomsTips() {
 }
 
 /**
+ * Fetch room summary (room details, host info, peak statistics, and tips)
+ */
+export async function fetchRoomSummary(roomId: string) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/rooms/public/${roomId}/summary`, {
+    method: 'GET',
+  });
+}
+
+/**
  * Skip recurring room occurrence
  */
 export async function skipRecurringRoom(roomId: string, token: string | null = null) {
