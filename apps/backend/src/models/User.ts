@@ -21,6 +21,7 @@ const User: Schema = new Schema({
     lastPayoutRef: { type: mongoose.Schema.Types.ObjectId, ref: 'AdPayout' }
   },
   lastLoginRewardClaimDate: { type: Date },
+  lastHostingRewardDate: { type: Date },
   rewards: {
     totalEarned: { type: Number, default: 0 },
     pendingBalance: { type: Number, default: 0 },

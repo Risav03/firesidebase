@@ -52,6 +52,10 @@ interface Config {
   dailyLoginRewardAmount: number;
   hostRoomBaseRewardAmount: number;
   participantMilestones: { threshold: number; reward: number }[];
+  // USD-based reward amounts
+  dailyLoginRewardUSD: number;
+  hostRoomBaseRewardUSD: number;
+  participantMilestonesUSD: { threshold: number; rewardUSD: number }[];
 }
 
 const getEnvVar = (key: string, defaultValue?: string): string => {
@@ -125,10 +129,18 @@ export const config = {
   dailyLoginRewardAmount: getEnvNumber('DAILY_LOGIN_REWARD_AMOUNT', 10),
   hostRoomBaseRewardAmount: getEnvNumber('HOST_ROOM_BASE_REWARD_AMOUNT', 50),
   participantMilestones: [
-    { threshold: 1, reward: 25 },
-    { threshold: 5, reward: 100 },
-    { threshold: 10, reward: 250 },
-    { threshold: 25, reward: 500 },
+    { threshold: 10, reward: 25 },
+    { threshold: 25, reward: 100 },
+    { threshold: 50, reward: 250 },
+    { threshold: 100, reward: 500 },
+  ],
+  // USD-based reward amounts (used for dynamic pricing)
+  dailyLoginRewardUSD: 0.01,
+  hostRoomBaseRewardUSD: 0.08,
+  participantMilestonesUSD: [
+    { threshold: 10, rewardUSD: 0.10 },
+    { threshold: 50, rewardUSD: 0.50 },
+    { threshold: 100, rewardUSD: 1.00 },
   ],
 
   // Dynamic Methods

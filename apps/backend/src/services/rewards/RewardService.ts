@@ -7,10 +7,9 @@ import User from "../../models/User";
 import Room from "../../models/Room";
 import RoomParticipant from "../../models/RoomParticipant";
 import { erc20Abi } from "../../utils/contracts/erc20abi";
+import { contractAdds, BASE_CHAIN_ID } from "../../utils/contracts/contractAdds";
+import { getCachedTokenPrice, calculateTokenAmount } from "../../utils/token-price";
 import { RedisUtils } from "../redis/redis-utils";
-
-const FIRE_TOKEN = "0x9e68E029cBDe7513620Fcb537A44abff88a56186";
-const BASE_CHAIN_ID = "8453";
 
 export interface DailyLoginEligibility {
   eligible: boolean;
@@ -117,11 +116,22 @@ export class RewardService {
         throw new Error('User not found');
       }
 
+      // Calculate token amount based on USD value
+      let rewardAmount: number;
+      try {
+        const tokenPrice = await getCachedTokenPrice(contractAdds.fireToken);
+        rewardAmount = calculateTokenAmount(config.dailyLoginRewardUSD, tokenPrice);
+        console.log(`💰 Daily login reward: $${config.dailyLoginRewardUSD} = ${rewardAmount} FIRE (price: $${tokenPrice})`);
+      } catch (priceError) {
+        console.warn('⚠️ Failed to fetch token price, using fallback amount:', priceError);
+        rewardAmount = config.dailyLoginRewardAmount;
+      }
+
       // Create pending reward record
       const reward = await Reward.create({
         userId: user._id,
         type: 'daily_login',
-        amount: config.dailyLoginRewardAmount,
+        amount: rewardAmount,
         currency: 'FIRE',
         status: 'pending',
         metadata: {},
@@ -130,7 +140,7 @@ export class RewardService {
       // Distribute tokens
       const txHash = await this.transferTokens(
         user.wallet,
-        config.dailyLoginRewardAmount
+        rewardAmount
       );
 
       // Update reward record
@@ -143,11 +153,11 @@ export class RewardService {
       // Update user record
       user.lastLoginRewardClaimDate = new Date();
       user.rewards = user.rewards || {};
-      user.rewards.totalEarned = (user.rewards.totalEarned || 0) + config.dailyLoginRewardAmount;
+      user.rewards.totalEarned = (user.rewards.totalEarned || 0) + rewardAmount;
       user.rewards.lastRewardAt = new Date();
       await user.save();
 
-      console.log(`✅ Daily login reward distributed to ${user.username}: ${config.dailyLoginRewardAmount} FIRE (tx: ${txHash})`);
+      console.log(`✅ Daily login reward distributed to ${user.username}: ${rewardAmount} FIRE (tx: ${txHash})`);
 
       return {
         success: true,
@@ -172,24 +182,54 @@ export class RewardService {
   /**
    * Calculate hosting rewards based on participant count and room duration
    */
-  static calculateHostingRewards(participantCount: number, durationMinutes: number): HostingReward {
-    const baseReward = config.hostRoomBaseRewardAmount;
+  static async calculateHostingRewards(participantCount: number, durationMinutes: number): Promise<HostingReward> {
+    let baseReward: number;
+    let milestoneReward: number;
     
-    // Find highest milestone achieved
-    const achievedMilestone = config.participantMilestones
-      .filter(m => participantCount >= m.threshold)
-      .sort((a, b) => b.threshold - a.threshold)[0];
+    try {
+      const tokenPrice = await getCachedTokenPrice(contractAdds.fireToken);
+      
+      // Calculate base reward from USD value
+      baseReward = calculateTokenAmount(config.hostRoomBaseRewardUSD, tokenPrice);
+      
+      // Find highest milestone achieved from USD-based milestones
+      const achievedMilestone = config.participantMilestonesUSD
+        .filter(m => participantCount >= m.threshold)
+        .sort((a, b) => b.threshold - a.threshold)[0];
 
-    const milestoneReward = achievedMilestone?.reward || 0;
-    const totalReward = baseReward + milestoneReward;
+      milestoneReward = achievedMilestone 
+        ? calculateTokenAmount(achievedMilestone.rewardUSD, tokenPrice)
+        : 0;
+        
+      console.log(`💰 Hosting rewards calculated: Base $${config.hostRoomBaseRewardUSD} = ${baseReward} FIRE, Milestone $${achievedMilestone?.rewardUSD || 0} = ${milestoneReward} FIRE (price: $${tokenPrice})`);
+      
+      return {
+        baseReward,
+        milestoneReward,
+        totalReward: baseReward + milestoneReward,
+        milestone: achievedMilestone?.threshold,
+        participantCount,
+      };
+    } catch (priceError) {
+      console.warn('⚠️ Failed to fetch token price, using fallback amounts:', priceError);
+      
+      // Fallback to old token-based calculation
+      baseReward = config.hostRoomBaseRewardAmount;
+      
+      const achievedMilestone = config.participantMilestones
+        .filter(m => participantCount >= m.threshold)
+        .sort((a, b) => b.threshold - a.threshold)[0];
 
-    return {
-      baseReward,
-      milestoneReward,
-      totalReward,
-      milestone: achievedMilestone?.threshold,
-      participantCount,
-    };
+      milestoneReward = achievedMilestone?.reward || 0;
+      
+      return {
+        baseReward,
+        milestoneReward,
+        totalReward: baseReward + milestoneReward,
+        milestone: achievedMilestone?.threshold,
+        participantCount,
+      };
+    }
   }
 
   /**
@@ -214,24 +254,58 @@ export class RewardService {
       const endTime = room.ended_at || new Date();
       const durationMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
 
-      // Calculate rewards
-      const rewardCalc = this.calculateHostingRewards(participantCount, durationMinutes);
-
-      if (rewardCalc.totalReward === 0) {
-        console.log(`ℹ️ No hosting rewards for room ${roomId} (base reward only, no milestones)`);
-        return { success: true, message: 'No milestones achieved', rewardCalc };
-      }
-
       const host = room.host as any;
       if (!host || !host.wallet) {
         throw new Error('Host wallet not found');
       }
 
+      // Check if host already received base hosting reward today
+      const now = new Date();
+      const lastHostingRewardDate = host.lastHostingRewardDate;
+      let eligibleForBaseReward = true;
+      
+      if (lastHostingRewardDate) {
+        const hoursSinceLastReward = (now.getTime() - lastHostingRewardDate.getTime()) / (1000 * 60 * 60);
+        eligibleForBaseReward = hoursSinceLastReward >= 24;
+      }
+
+      // Calculate rewards based on eligibility
+      const rewardCalc = await this.calculateHostingRewards(participantCount, durationMinutes);
+      
+      // Determine actual reward amount
+      let actualRewardAmount: number;
+      let rewardType: 'host_room' | 'participant_milestone';
+      
+      if (eligibleForBaseReward) {
+        // First room of the day: give base + milestone rewards
+        actualRewardAmount = rewardCalc.totalReward;
+        rewardType = 'host_room';
+        console.log(`✅ Host eligible for full hosting reward (first room today): ${actualRewardAmount} FIRE`);
+      } else {
+        // Additional room today: only milestone rewards
+        actualRewardAmount = rewardCalc.milestoneReward;
+        rewardType = 'participant_milestone';
+        console.log(`ℹ️ Host already claimed base reward today, only milestone reward: ${actualRewardAmount} FIRE`);
+      }
+
+      if (actualRewardAmount === 0) {
+        console.log(`ℹ️ No rewards for room ${roomId} (no milestones or already claimed today)`);
+        return { 
+          success: true, 
+          message: eligibleForBaseReward ? 'No milestones achieved' : 'Only milestone rewards available, none achieved',
+          rewardCalc: {
+            ...rewardCalc,
+            actualReward: 0,
+            eligibleForBaseReward
+          }
+        };
+      }
+
       // Create reward record
       const reward = await Reward.create({
         userId: host._id,
-        type: 'host_room',
-        amount: rewardCalc.totalReward,
+        type: rewardType,
+        amount: actualRewardAmount,
         currency: 'FIRE',
         status: 'pending',
         metadata: {
@@ -243,7 +317,7 @@ export class RewardService {
       });
 
       // Distribute tokens
-      const txHash = await this.transferTokens(host.wallet, rewardCalc.totalReward);
+      const txHash = await this.transferTokens(host.wallet, actualRewardAmount);
 
       // Update reward record
       reward.status = 'completed';
@@ -258,12 +332,19 @@ export class RewardService {
       host.hostingStats.lastRoomId = room._id;
       
       host.rewards = host.rewards || {};
-      host.rewards.totalEarned = (host.rewards.totalEarned || 0) + rewardCalc.totalReward;
+      host.rewards.totalEarned = (host.rewards.totalEarned || 0) + actualRewardAmount;
       host.rewards.lastRewardAt = new Date();
+      
+      // Only update lastHostingRewardDate if base reward was given
+      if (eligibleForBaseReward) {
+        host.lastHostingRewardDate = new Date();
+      }
+      
       await host.save();
 
-      console.log(`✅ Hosting rewards distributed to ${host.username}: ${rewardCalc.totalReward} FIRE (tx: ${txHash})`);
-      console.log(`   Base: ${rewardCalc.baseReward}, Milestone: ${rewardCalc.milestoneReward}, Participants: ${participantCount}`);
+      console.log(`✅ Hosting rewards distributed to ${host.username}: ${actualRewardAmount} FIRE (tx: ${txHash})`);
+      console.log(`   Base: ${eligibleForBaseReward ? rewardCalc.baseReward : 0}, Milestone: ${rewardCalc.milestoneReward}, Participants: ${participantCount}`);
+      console.log(`   Reward Type: ${rewardType}, Eligible for base: ${eligibleForBaseReward}`);
 
       return {
         success: true,
@@ -273,7 +354,12 @@ export class RewardService {
           currency: reward.currency,
           txHash: reward.txHash,
           distributedAt: reward.distributedAt,
-          breakdown: rewardCalc,
+          breakdown: {
+            ...rewardCalc,
+            actualReward: actualRewardAmount,
+            eligibleForBaseReward,
+            rewardType
+          },
         }
       };
     } catch (error) {
@@ -329,7 +415,7 @@ export class RewardService {
       this.initializeWeb3();
 
       const tokenContract = new ethers.Contract(
-        FIRE_TOKEN,
+        contractAdds.fireToken,
         erc20Abi,
         this.wallet
       );
@@ -362,7 +448,7 @@ export class RewardService {
       this.initializeWeb3();
 
       const tokenContract = new ethers.Contract(
-        FIRE_TOKEN,
+        contractAdds.fireToken,
         erc20Abi,
         this.provider
       );
