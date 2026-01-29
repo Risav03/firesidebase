@@ -57,7 +57,7 @@ export const useRoomEndedEvent = (
   onEvent?: (msg: { message: string }) => void
 ) => {
   const { sendEvent } = useCustomEvent({
-    type: "ROOM_ENDED",
+    type: "ENDED_REWARD",
     onEvent: onEvent || ((msg: { message: string }) => {}),
   });
 
@@ -65,11 +65,11 @@ export const useRoomEndedEvent = (
    * Send a room ended event
    * @param message Optional message to include with the event
    */
-  const endRoom = (message: string = "Room has been ended by the host?.") => {
+  const endRoomReward = (message: string = "Room has been ended by the host.") => {
     sendEvent({ message });
   };
 
-  return { endRoom, sendEvent };
+  return { endRoomReward, sendEvent };
 };
 
 /**

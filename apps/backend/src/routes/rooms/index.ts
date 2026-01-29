@@ -4,6 +4,7 @@ import { participantRoutes } from './participants';
 import { chatRoutes } from './chat';
 import { integrationRoutes } from './integrations';
 import { tippingRoutes } from './tipping';
+import { summaryRoutes } from './summary';
 
 /**
  * Main room routes aggregator
@@ -14,10 +15,12 @@ import { tippingRoutes } from './tipping';
  * - Chat: Message handling and chat history
  * - Integrations: HMS API and external service interactions
  * - Tipping: Tip tracking and statistics
+ * - Summary: Aggregated room statistics and summary
  */
 export const roomRoutes = new Elysia({ prefix: '/rooms' })
   .use(roomManagementRoutes)
   .use(participantRoutes)
   .use(chatRoutes)
   .use(integrationRoutes)
-  .use(tippingRoutes);
+  .use(tippingRoutes)
+  .use(summaryRoutes);

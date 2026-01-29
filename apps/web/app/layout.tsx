@@ -4,6 +4,7 @@ import { Metadata } from "next";
 import Providers from "@/utils/providers/providers";
 import Background from "@/components/UI/Background";
 import { DebugLoggerProvider, DebugLoggerDisplay } from "@/components/DebugLogger";
+import RewardClaimDrawer from "@/components/RewardClaimDrawer";
 
 interface RootLayoutProps {
   children: ReactNode;
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           <div className="relative z-10 h-full">
             <Providers>{children}</Providers>
           </div>
+          <RewardClaimDrawer />
           {/* <DebugLoggerDisplay /> */}
         </DebugLoggerProvider>
       </body>

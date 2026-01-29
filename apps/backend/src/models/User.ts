@@ -19,6 +19,18 @@ const User: Schema = new Schema({
     lastPayoutAt: { type: Date },
     lastRoomId: { type: String },
     lastPayoutRef: { type: mongoose.Schema.Types.ObjectId, ref: 'AdPayout' }
+  },
+  lastLoginRewardClaimDate: { type: Date },
+  lastHostingRewardDate: { type: Date },
+  rewards: {
+    totalEarned: { type: Number, default: 0 },
+    pendingBalance: { type: Number, default: 0 },
+    lastRewardAt: { type: Date }
+  },
+  hostingStats: {
+    totalRoomsHosted: { type: Number, default: 0 },
+    totalParticipantsEngaged: { type: Number, default: 0 },
+    lastRoomId: { type: mongoose.Schema.Types.ObjectId, ref: 'Room' }
   }
 },{
   timestamps: true

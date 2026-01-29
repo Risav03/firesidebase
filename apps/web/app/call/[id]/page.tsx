@@ -1,6 +1,7 @@
 import CallClient from '@/components/CallClient';
 import { fetchAPI } from '@/utils/serverActions';
 import { Metadata } from 'next';
+import { RewardProvider } from '@/contexts/RewardContext';
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
@@ -62,5 +63,9 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 }
 
 export default function CallPage({ params }: { params: { id: string } }) {
-  return <CallClient roomId={params.id} />;
+  return (
+    <RewardProvider>
+      <CallClient roomId={params.id} />
+    </RewardProvider>
+  );
 }

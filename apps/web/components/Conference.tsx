@@ -13,6 +13,7 @@ import {
   useSpeakerRequestEvent,
   useSpeakerRejectionEvent,
   useTipEvent,
+  useRoomEndedEvent,
 } from "@/utils/events";
 import PeerWithContextMenu from "./PeerWithContextMenu";
 import { ScreenTile } from "./ScreenTile";
@@ -44,6 +45,7 @@ import AdsOverlay from "./AdsOverlay";
 import { Card } from "./UI/Card";
 import { DotIcon } from "lucide-react";
 import { GoDotFill } from "react-icons/go";
+import { useRewardContext } from "@/contexts/RewardContext";
 // import AudioRecoveryBanner from "./AudioRecoveryBanner";
 
 export default function Conference({ roomId }: { roomId: string }) {
@@ -53,6 +55,7 @@ export default function Conference({ roomId }: { roomId: string }) {
   const hmsActions = useHMSActions();
   const router = useRouter();
   const { user } = useGlobalContext();
+  const { rewardData, clearRewardData } = useRewardContext();
   const notification = useHMSNotifications();
 
   // Audio debugging: Track all peer state changes
@@ -199,6 +202,7 @@ export default function Conference({ roomId }: { roomId: string }) {
     });
     handleSpeakerRequest({ peerId: msg.peerId, fid: msg.peer });
   });
+
 
   const handRaise = useHMSNotifications(
     HMSNotificationTypes.HAND_RAISE_CHANGED
@@ -496,7 +500,7 @@ export default function Conference({ roomId }: { roomId: string }) {
   };
 
   if (roomEnded) {
-    return <RoomEndScreen onComplete={() => router.push("/")} />;
+    return <RoomEndScreen roomId={roomId} onComplete={() => { clearRewardData(); router.push("/"); }} />;
   } else {
     // Only show speaker requests button for hosts and co-hosts
     const canManageSpeakers =
