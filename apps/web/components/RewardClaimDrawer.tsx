@@ -14,6 +14,35 @@ import {
 } from './UI/drawer';
 import Button from './UI/Button';
 import { checkLoginEligibility, claimLoginReward } from '@/utils/serverActions';
+import { contractAdds } from '@/utils/contract/contractAdds';
+
+const fetchTokenPrice = async (contractAddress: string): Promise<number> => {
+  try {
+    const apiUrl = `https://api.dexscreener.com/tokens/v1/base/${contractAddress}`;
+    const response = await fetch(apiUrl);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const usableResponse = await response.json();
+    
+    if (!usableResponse || !Array.isArray(usableResponse) || usableResponse.length === 0) {
+      throw new Error('No price data available for this token');
+    }
+
+    const priceUsd = Number(usableResponse[0].priceUsd);
+    
+    if (isNaN(priceUsd)) {
+      throw new Error('Invalid price data received');
+    }
+
+    return priceUsd;
+  } catch (error) {
+    console.error("Error fetching token price:", error);
+    throw error;
+  }
+};
 
 interface EligibilityData {
   eligible: boolean;
@@ -39,6 +68,7 @@ export function RewardClaimDrawer() {
   const [rewardData, setRewardData] = useState<RewardData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isChecking, setIsChecking] = useState(true);
+  const [calculatedFireAmount, setCalculatedFireAmount] = useState<number | null>(null);
 
   const checkEligibility = async () => {
     try {
@@ -65,6 +95,18 @@ export function RewardClaimDrawer() {
       if (result.success && result.data) {
         setEligibility(result.data);
         console.log('[RewardClaimDrawer] Eligibility data:', result.data);
+        
+        // Fetch FIRE token price and calculate actual amount for $0.01
+        if (result.data.eligible) {
+          try {
+            const firePrice = await fetchTokenPrice(contractAdds.fireToken);
+            const fireAmount = 0.01 / firePrice; // $0.01 worth of FIRE
+            setCalculatedFireAmount(fireAmount);
+            console.log('[RewardClaimDrawer] FIRE price:', firePrice, 'Amount:', fireAmount);
+          } catch (priceError) {
+            console.error('[RewardClaimDrawer] Error fetching FIRE price:', priceError);
+          }
+        }
         
         // Auto-open drawer if eligible
         if (result.data.eligible) {
@@ -153,7 +195,7 @@ export function RewardClaimDrawer() {
             {claimSuccess 
               ? `You've earned ${rewardData?.amount} ${rewardData?.currency} tokens!`
               : eligibility?.eligible 
-                ? `Claim your daily reward of ${eligibility.rewardAmount} FIRE tokens`
+                ? `Claim your daily reward of ${calculatedFireAmount ? calculatedFireAmount.toFixed(2) : '...'} FIRE tokens ($0.01)`
                 : eligibility?.message || 'Check back later for your next reward'
             }
           </DrawerDescription>
@@ -185,9 +227,9 @@ export function RewardClaimDrawer() {
             <div className="space-y-4">
               <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-lg p-6 text-center">
                 <p className="text-4xl font-bold text-yellow-400">
-                  {eligibility.rewardAmount}
+                  {calculatedFireAmount ? calculatedFireAmount.toFixed(2) : '...'}
                 </p>
-                <p className="text-sm text-gray-300 mt-1">FIRE Tokens</p>
+                <p className="text-sm text-gray-300 mt-1">FIRE Tokens ($0.01)</p>
               </div>
 
               {error && (
