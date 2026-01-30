@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import sdk from "@farcaster/miniapp-sdk";
 import {
   Drawer,
   DrawerClose,
@@ -12,8 +13,7 @@ import {
   DrawerTitle,
 } from './UI/drawer';
 import Button from './UI/Button';
-
-const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+import { checkLoginEligibility, claimLoginReward } from '@/utils/serverActions';
 
 interface EligibilityData {
   eligible: boolean;
@@ -44,23 +44,22 @@ export function RewardClaimDrawer() {
     try {
       console.log('[RewardClaimDrawer] Checking eligibility...');
       setIsChecking(true);
-      const response = await fetch(`${URL}/api/rewards/protected/check-login-eligibility`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
+      const env = process.env.NEXT_PUBLIC_ENV;
+      let token: any;
+      if (env !== "DEV") {
+        token = (await sdk.quickAuth.getToken()).token;
+      }
+      const response = await checkLoginEligibility(token);
 
       console.log('[RewardClaimDrawer] Response status:', response.status);
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[RewardClaimDrawer] Failed to check eligibility:', response.status, errorText);
+        console.error('[RewardClaimDrawer] Failed to check eligibility:', response.status);
         setIsChecking(false);
         return;
       }
 
-      const result = await response.json();
+      const result = response.data;
       console.log('[RewardClaimDrawer] Eligibility result:', result);
       
       if (result.success && result.data) {
@@ -102,15 +101,14 @@ export function RewardClaimDrawer() {
     setError(null);
 
     try {
-      const response = await fetch(`${URL}/api/rewards/protected/claim-login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
+      const env = process.env.NEXT_PUBLIC_ENV;
+      let token: any;
+      if (env !== "DEV") {
+        token = (await sdk.quickAuth.getToken()).token;
+      }
+      const response = await claimLoginReward(token);
 
-      const result = await response.json();
+      const result = response.data;
 
       if (!response.ok || !result.success) {
         throw new Error(result.error || 'Failed to claim reward');
