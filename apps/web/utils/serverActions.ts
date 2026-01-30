@@ -673,3 +673,25 @@ export async function startRecording(roomId: string, token: string | null = null
     authToken: token
   });
 }
+
+/**
+ * Check login reward eligibility
+ */
+export async function checkLoginEligibility(token: string | null = null) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/rewards/protected/check-login-eligibility`, {
+    method: 'GET',
+    authToken: token
+  });
+}
+
+/**
+ * Claim login reward
+ */
+export async function claimLoginReward(token: string | null = null) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/rewards/protected/claim-login`, {
+    method: 'POST',
+    authToken: token
+  });
+}
