@@ -1,12 +1,11 @@
 'use client'
 
-import { HMSMessage } from "@100mslive/react-sdk";
 import { formatDistanceToNow } from "./utils/timeUtils";
 import { ReplyPreview } from "./ReplyPreview";
 import { useRef, useState } from "react";
 
 interface ChatMessageProps {
-  message: HMSMessage | RedisChatMessage;
+  message: RedisChatMessage;
   isOwnMessage: boolean;
   onSelectForReply?: (message: RedisChatMessage) => void;
   onScrollToMessage?: (messageId: string) => void;
@@ -17,41 +16,10 @@ export function ChatMessage({ message, isOwnMessage, onSelectForReply, onScrollT
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isLongPressing, setIsLongPressing] = useState(false);
   
-  const isRedisMessage = 'userId' in message;
-
-  // Get sender name based on message type
-  const getSenderName = () => {
-    if (isRedisMessage) {
-      const redisMsg = message as RedisChatMessage;
-      return redisMsg.displayName || 'Anonymous';
-    } else {
-      const hmsMsg = message as HMSMessage;
-      return hmsMsg.senderName || 
-             hmsMsg.sender || 
-             (hmsMsg as any).senderUserId ||
-             'Anonymous';
-    }
-  };
-  
-  const senderName = getSenderName();
-  
-  // Get message text
-  const getMessageText = () => {
-    if (isRedisMessage) {
-      return (message as RedisChatMessage).message;
-    } else {
-      return (message as HMSMessage).message;
-    }
-  };
-  
-  // Get timestamp
-  const getTimestamp = () => {
-    if (isRedisMessage) {
-      return new Date((message as RedisChatMessage).timestamp);
-    } else {
-      return (message as HMSMessage).time;
-    }
-  };
+  const senderName = message.displayName || message.username || 'Anonymous';
+  const messageText = message.message;
+  const timestamp = new Date(message.timestamp);
+  const pfpUrl = message.pfp_url || '';
   
   const getInitials = (name: string) => {
     return name
@@ -79,66 +47,12 @@ export function ChatMessage({ message, isOwnMessage, onSelectForReply, onScrollT
     return colors[Math.abs(hash) % colors.length];
   };
 
-  // Get profile picture URL
-  const getPfpUrl = () => {
-    if (isRedisMessage) {
-      return (message as RedisChatMessage).pfp_url || '';
-    } else {
-      // For HMS messages, try to extract pfp_url from parsed metadata
-      const hmsMsg = message as HMSMessage;
-      try {
-        const parsedMsg = JSON.parse(hmsMsg.message);
-        return parsedMsg.pfp_url || '';
-      } catch (e) {
-        return '';
-      }
-    }
-  };
-
-  const pfpUrl = getPfpUrl();
-
-  // Convert HMS message to RedisChatMessage format for selection
-  const convertToRedisFormat = (): RedisChatMessage => {
-    if (isRedisMessage) {
-      return message as RedisChatMessage;
-    }
-    
-    const hmsMsg = message as HMSMessage;
-    let messageText = hmsMsg.message;
-    let messageFid = '';
-    let messagePfpUrl = '';
-    let messageUsername = '';
-    let messageDisplayName = '';
-    
-    try {
-      const parsedMsg = JSON.parse(hmsMsg.message);
-      messageText = parsedMsg.text;
-      messageFid = parsedMsg.userFid || '';
-      messagePfpUrl = parsedMsg.pfp_url || '';
-      messageUsername = parsedMsg.username || '';
-      messageDisplayName = parsedMsg.displayName || '';
-    } catch (e) {
-      messageText = hmsMsg.message;
-    }
-    
-    return {
-      id: `hms_${hmsMsg.id}`,
-      roomId: '',
-      userId: messageFid,
-      username: messageUsername || hmsMsg.senderName || 'Unknown',
-      displayName: messageDisplayName || hmsMsg.senderName || 'Unknown',
-      pfp_url: messagePfpUrl,
-      message: messageText,
-      timestamp: hmsMsg.time.toISOString()
-    };
-  };
-
   // Long press handlers
   const handleTouchStart = () => {
     setIsLongPressing(true);
     longPressTimerRef.current = setTimeout(() => {
       if (onSelectForReply) {
-        onSelectForReply(convertToRedisFormat());
+        onSelectForReply(message);
         // Haptic feedback on mobile
         if (navigator.vibrate) {
           navigator.vibrate(50);
@@ -160,24 +74,14 @@ export function ChatMessage({ message, isOwnMessage, onSelectForReply, onScrollT
   const handleClick = (e: React.MouseEvent) => {
     // Only handle if Ctrl/Cmd key is pressed (desktop pattern)
     if ((e.ctrlKey || e.metaKey) && onSelectForReply) {
-      onSelectForReply(convertToRedisFormat());
+      onSelectForReply(message);
     }
   };
-
-  // Get replyTo data if it exists
-  const getReplyTo = () => {
-    if (isRedisMessage) {
-      return (message as RedisChatMessage).replyTo;
-    }
-    return undefined;
-  };
-
-  const replyTo = getReplyTo();
 
   return (
     <div 
       className={`chat-message p-2 ${isOwnMessage ? 'own-message' : 'other-message'} ${isSelected ? 'bg-white/5 rounded-lg' : ''} ${isLongPressing ? 'opacity-70' : ''}`}
-      id={`message-${isRedisMessage ? (message as RedisChatMessage).id : `hms_${(message as HMSMessage).id}`}`}
+      id={`message-${message.id}`}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
@@ -219,23 +123,23 @@ export function ChatMessage({ message, isOwnMessage, onSelectForReply, onScrollT
         )}
         
         <div className={`chat-message-bubble ${isOwnMessage ? 'own-bubble' : 'other-bubble'}`}>
-          {replyTo && (
+          {message.replyTo && (
             <ReplyPreview
-              replyTo={replyTo}
+              replyTo={message.replyTo}
               variant="inline"
               onClick={() => {
                 if (onScrollToMessage) {
-                  onScrollToMessage(replyTo.messageId);
+                  onScrollToMessage(message.replyTo!.messageId);
                 }
               }}
             />
           )}
           <p className="text-sm text-left leading-relaxed whitespace-pre-wrap break-words">
-            {getMessageText()}
+            {messageText}
           </p>
           {(
             <div className={`text-xs mt-1 text-white/40 text-right`}>
-              {formatDistanceToNow(getTimestamp())}
+              {formatDistanceToNow(timestamp)}
             </div>
           )}
         </div>
