@@ -14,6 +14,8 @@ type RedisChatMessage = {
         username: string;
         pfp_url: string;
     };
+    isBot?: boolean;
+    status?: 'pending' | 'completed' | 'failed';
 }
 
 type RoomParticipant = {

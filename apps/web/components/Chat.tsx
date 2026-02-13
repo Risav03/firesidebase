@@ -168,8 +168,37 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       );
 
       if (response.ok && response.data.success) {
-        // Add the new message to our local state
-        setRedisMessages(prev => [...prev, response.data.data.message]);
+        const responseData = response.data.data;
+        
+        // Check if response includes bot message (Bankr AI trigger)
+        if (responseData.userMessage && responseData.botMessage) {
+          // Add user message to local state
+          setRedisMessages(prev => [...prev, responseData.userMessage]);
+          
+          // Broadcast bot placeholder message via HMS for real-time display
+          const botMessageWithMetadata = JSON.stringify({
+            text: responseData.botMessage.message,
+            userFid: responseData.botMessage.userId,
+            pfp_url: responseData.botMessage.pfp_url || '',
+            username: responseData.botMessage.username || '',
+            displayName: responseData.botMessage.displayName || '',
+            type: 'chat',
+            isBot: true,
+            status: responseData.botMessage.status,
+            replyTo: responseData.botMessage.replyTo
+          });
+          hmsActions.sendBroadcastMessage(botMessageWithMetadata);
+          
+          // Add bot message to local state
+          setRedisMessages(prev => [...prev, responseData.botMessage]);
+          
+          // Start polling for bot message completion
+          pollForBotMessageUpdate(responseData.botMessage.id);
+        } else {
+          // Regular message (no bot trigger)
+          setRedisMessages(prev => [...prev, responseData.message || responseData]);
+        }
+        
         setTimeout(scrollToBottom, 100);
       } else {
         console.error('Failed to store message:', response.data.error);
@@ -179,6 +208,48 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       console.error('Error sending message:', error);
       // toast.error('Error sending message. Please try again.');
       // Could show a retry option here
+    }
+  };
+
+  // Poll for bot message updates (when AI response is ready)
+  const pollForBotMessageUpdate = async (botMessageId: string, maxAttempts = 30, interval = 2000) => {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, interval));
+      
+      // Refresh messages from Redis
+      try {
+        const response = await fetchChatMessages(roomId, 50);
+        if (response.ok && response.data.success) {
+          const messages = response.data.data.messages;
+          const updatedBotMessage = messages.find((m: RedisChatMessage) => m.id === botMessageId);
+          
+          if (updatedBotMessage && updatedBotMessage.status !== 'pending') {
+            // Bot message has been updated, refresh local state
+            setRedisMessages(messages);
+            
+            // Broadcast updated bot message via HMS
+            if (updatedBotMessage.status === 'completed' || updatedBotMessage.status === 'failed') {
+              const updatedBotMsgWithMetadata = JSON.stringify({
+                text: updatedBotMessage.message,
+                userFid: updatedBotMessage.userId,
+                pfp_url: updatedBotMessage.pfp_url || '',
+                username: updatedBotMessage.username || '',
+                displayName: updatedBotMessage.displayName || '',
+                type: 'bot-update',
+                isBot: true,
+                status: updatedBotMessage.status,
+                originalMessageId: botMessageId
+              });
+              hmsActions.sendBroadcastMessage(updatedBotMsgWithMetadata);
+            }
+            
+            setTimeout(scrollToBottom, 100);
+            break;
+          }
+        }
+      } catch (error) {
+        console.error('Error polling for bot message:', error);
+      }
     }
   };
 
@@ -272,6 +343,8 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       let messageUsername = '';
       let messageDisplayName = '';
       let messageReplyTo = undefined;
+      let messageIsBot = false;
+      let messageStatus: 'pending' | 'completed' | 'failed' | undefined = undefined;
       
       try {
         const parsedMsg = JSON.parse(hmsMsg.message);
@@ -281,6 +354,8 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         messageUsername = parsedMsg.username || '';
         messageDisplayName = parsedMsg.displayName || '';
         messageReplyTo = parsedMsg.replyTo;
+        messageIsBot = parsedMsg.isBot || false;
+        messageStatus = parsedMsg.status;
       } catch (e) {
         // If parsing fails, use the message as is
         messageText = hmsMsg.message;
@@ -296,7 +371,9 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         message: messageText,
         timestamp: hmsMsg.time.toISOString(),
         type: 'text' as const,
-        replyTo: messageReplyTo
+        replyTo: messageReplyTo,
+        isBot: messageIsBot,
+        status: messageStatus
       };
     });
 
