@@ -16,6 +16,7 @@ type RedisChatMessage = {
     };
     isBot?: boolean;
     status?: 'pending' | 'completed' | 'failed';
+    threadId?: string; // Bankr AI conversation thread ID
 }
 
 type RoomParticipant = {

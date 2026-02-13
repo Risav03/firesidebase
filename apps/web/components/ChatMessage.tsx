@@ -3,7 +3,70 @@
 import { HMSMessage } from "@100mslive/react-sdk";
 import { formatDistanceToNow } from "./utils/timeUtils";
 import { ReplyPreview } from "./ReplyPreview";
-import { useRef, useState } from "react";
+import { useRef, useState, ReactNode } from "react";
+
+// Role mentions and their styling
+const ROLE_MENTIONS: Record<string, { color: string; bgColor: string }> = {
+  host: { color: 'text-fireside-orange', bgColor: 'bg-fireside-orange/20' },
+  'co-host': { color: 'text-purple-400', bgColor: 'bg-purple-500/20' },
+  speaker: { color: 'text-green-400', bgColor: 'bg-green-500/20' },
+  speakers: { color: 'text-green-400', bgColor: 'bg-green-500/20' },
+  listener: { color: 'text-gray-400', bgColor: 'bg-gray-500/20' },
+  listeners: { color: 'text-gray-400', bgColor: 'bg-gray-500/20' },
+};
+
+// Helper function to parse and highlight mentions in message text
+function renderMessageWithMentions(text: string): ReactNode[] {
+  // Match @username patterns (alphanumeric, underscores, dashes)
+  const mentionRegex = /@([\w-]+)/g;
+  const parts: ReactNode[] = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = mentionRegex.exec(text)) !== null) {
+    // Add text before the mention
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    
+    const mentionText = match[1];
+    const roleStyle = ROLE_MENTIONS[mentionText.toLowerCase()];
+    
+    // Add the highlighted mention with role-specific or default styling
+    if (roleStyle) {
+      // Role mention
+      parts.push(
+        <span 
+          key={`mention-${match.index}`} 
+          className={`${roleStyle.color} ${roleStyle.bgColor} font-medium px-1 rounded`}
+          title={`Mention all ${mentionText}`}
+        >
+          @{mentionText}
+        </span>
+      );
+    } else {
+      // User mention
+      parts.push(
+        <span 
+          key={`mention-${match.index}`} 
+          className="text-fireside-orange font-medium hover:underline cursor-pointer"
+          title={`@${mentionText}`}
+        >
+          @{mentionText}
+        </span>
+      );
+    }
+    
+    lastIndex = mentionRegex.lastIndex;
+  }
+
+  // Add remaining text after last mention
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : [text];
+}
 
 interface ChatMessageProps {
   message: HMSMessage | RedisChatMessage;
@@ -294,7 +357,7 @@ export function ChatMessage({ message, isOwnMessage, onSelectForReply, onScrollT
             </div>
           ) : (
             <p className={`text-sm text-left leading-relaxed whitespace-pre-wrap break-words ${botStatus === 'failed' ? 'text-red-300' : ''}`}>
-              {getMessageText()}
+              {renderMessageWithMentions(getMessageText())}
             </p>
           )}
           

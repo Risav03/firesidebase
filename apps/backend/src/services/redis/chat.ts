@@ -218,7 +218,8 @@ export class RedisChatService {
         botUser: { fid: string; username: string; displayName: string; pfp_url: string },
         message: string,
         status: 'pending' | 'completed' | 'failed' = 'completed',
-        replyToId?: string
+        replyToId?: string,
+        threadId?: string
     ): Promise<ChatMessage> {
         const messageId = `${Date.now()}_${botUser.fid}`;
         const timestamp = new Date().toISOString();
@@ -233,7 +234,8 @@ export class RedisChatService {
             message: message.trim(),
             timestamp,
             isBot: true,
-            status
+            status,
+            threadId
         };
 
         // If replying to a message, fetch and attach reply metadata
@@ -275,7 +277,7 @@ export class RedisChatService {
      */
     static async updateMessage(
         messageId: string, 
-        updates: { message?: string; status?: 'pending' | 'completed' | 'failed' }
+        updates: { message?: string; status?: 'pending' | 'completed' | 'failed'; threadId?: string }
     ): Promise<boolean> {
         const client = await RedisUtils.getClient();
         
@@ -292,6 +294,9 @@ export class RedisChatService {
         }
         if (updates.status !== undefined) {
             updateData.status = updates.status;
+        }
+        if (updates.threadId !== undefined) {
+            updateData.threadId = updates.threadId;
         }
 
         if (Object.keys(updateData).length === 0) {

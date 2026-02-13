@@ -49,7 +49,8 @@ export const ChatMessageSchema = t.Object({
     t.Literal('pending'),
     t.Literal('completed'),
     t.Literal('failed')
-  ]))
+  ])),
+  threadId: t.Optional(t.String()) // Bankr AI conversation thread ID
 });
 
 export const RoomSchema = t.Object({

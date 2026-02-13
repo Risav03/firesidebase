@@ -21,6 +21,7 @@ interface BankrPromptResponse {
 interface BankrJobResponse {
   success: boolean;
   jobId: string;
+  threadId?: string;
   status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
   prompt: string;
   response?: string;
@@ -38,8 +39,9 @@ export const BANKR_BOT_USER = {
   pfp_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/055091fa-db1a-4f35-dee4-1fcd13734500/rectcrop3'
 };
 
-// Regex pattern to detect @Bankr or /bankr commands (case-insensitive)
-export const BANKR_TRIGGER_PATTERN = /(?:@bankr|\/bankr)\s+(.+)/i;
+// Regex pattern to detect /bankr commands (case-insensitive)
+// Note: @bankr is reserved for user mentions
+export const BANKR_TRIGGER_PATTERN = /\/bankr\s+(.+)/i;
 
 export class BankrAgentService {
   private static readonly BASE_URL = 'https://api.bankr.bot';
@@ -68,10 +70,17 @@ export class BankrAgentService {
 
   /**
    * Submit a prompt to the Bankr AI agent
+   * @param prompt - The natural language command
+   * @param threadId - Optional thread ID to continue a conversation
    */
-  static async submitPrompt(prompt: string): Promise<BankrPromptResponse> {
+  static async submitPrompt(prompt: string, threadId?: string): Promise<BankrPromptResponse> {
     if (!this.isConfigured()) {
       throw new Error('Bankr API key is not configured');
+    }
+
+    const body: { prompt: string; threadId?: string } = { prompt };
+    if (threadId) {
+      body.threadId = threadId;
     }
 
     const response = await fetch(`${this.BASE_URL}/agent/prompt`, {
@@ -80,7 +89,7 @@ export class BankrAgentService {
         'Content-Type': 'application/json',
         'X-API-Key': config.bankrApiKey
       },
-      body: JSON.stringify({ prompt })
+      body: JSON.stringify(body)
     });
 
     if (!response.ok) {
@@ -117,21 +126,25 @@ export class BankrAgentService {
   /**
    * Execute a prompt and poll for completion
    * Returns the final response or error
+   * @param prompt - The natural language command
+   * @param threadId - Optional thread ID to continue a conversation
    */
   static async executePromptWithPolling(
     prompt: string,
+    threadId?: string,
     maxAttempts: number = 30,
     intervalMs: number = 2000
-  ): Promise<{ success: boolean; response?: string; error?: string }> {
+  ): Promise<{ success: boolean; response?: string; error?: string; threadId?: string }> {
     try {
-      // Submit the prompt
-      const submitResult = await this.submitPrompt(prompt);
+      // Submit the prompt (with optional threadId for conversation continuation)
+      const submitResult = await this.submitPrompt(prompt, threadId);
       
       if (!submitResult.success) {
         return { success: false, error: 'Failed to submit prompt to Bankr AI' };
       }
 
       const jobId = submitResult.jobId;
+      const newThreadId = submitResult.threadId;
       
       // Poll for completion
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -143,19 +156,22 @@ export class BankrAgentService {
           case 'completed':
             return { 
               success: true, 
-              response: jobStatus.response || 'No response received'
+              response: jobStatus.response || 'No response received',
+              threadId: jobStatus.threadId || newThreadId
             };
           
           case 'failed':
             return { 
               success: false, 
-              error: jobStatus.error || 'Bankr AI encountered an error'
+              error: jobStatus.error || 'Bankr AI encountered an error',
+              threadId: newThreadId
             };
           
           case 'cancelled':
             return { 
               success: false, 
-              error: 'Request was cancelled'
+              error: 'Request was cancelled',
+              threadId: newThreadId
             };
           
           case 'pending':
@@ -167,7 +183,8 @@ export class BankrAgentService {
 
       return { 
         success: false, 
-        error: 'Request timed out. Please try again.'
+        error: 'Request timed out. Please try again.',
+        threadId: newThreadId
       };
       
     } catch (error) {

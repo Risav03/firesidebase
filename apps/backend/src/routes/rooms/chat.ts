@@ -145,9 +145,25 @@ Retrieves chat messages for a room with pagination support.
             replyToId
           );
 
-          // Check if message contains a Bankr AI trigger (@bankr or /bankr)
-          if (BankrAgentService.isConfigured() && BankrAgentService.hasTrigger(message)) {
-            const prompt = BankrAgentService.extractPrompt(message);
+          // Check if replying to a bot message (for conversation continuation)
+          let isBotReply = false;
+          let existingThreadId: string | undefined;
+          
+          if (replyToId) {
+            const replyToMessage = await RedisChatService.getMessage(replyToId);
+            if (replyToMessage && replyToMessage.isBot === true) {
+              isBotReply = true;
+              existingThreadId = replyToMessage.threadId;
+            }
+          }
+
+          // Check if message contains a Bankr AI trigger (/bankr) OR is a reply to a bot message
+          const hasBankrTrigger = BankrAgentService.isConfigured() && BankrAgentService.hasTrigger(message);
+          const shouldProcessAsBankr = BankrAgentService.isConfigured() && (hasBankrTrigger || isBotReply);
+          
+          if (shouldProcessAsBankr) {
+            // Extract prompt - either from /bankr command or use the entire message for bot replies
+            const prompt = hasBankrTrigger ? BankrAgentService.extractPrompt(message) : message.trim();
             
             if (prompt) {
               // Store placeholder bot message immediately
@@ -162,17 +178,18 @@ Retrieves chat messages for a room with pagination support.
               // Process Bankr AI request asynchronously (don't block the response)
               (async () => {
                 try {
-                  console.log(`[Bankr AI] Processing prompt: "${prompt}" for room ${params.id}`);
+                  console.log(`[Bankr AI] Processing prompt: "${prompt}" for room ${params.id}${existingThreadId ? ` (continuing thread ${existingThreadId})` : ''}`);
                   
-                  const result = await BankrAgentService.executePromptWithPolling(prompt);
+                  const result = await BankrAgentService.executePromptWithPolling(prompt, existingThreadId);
                   
                   if (result.success && result.response) {
-                    // Update bot message with actual response
+                    // Update bot message with actual response and threadId for future continuations
                     await RedisChatService.updateMessage(botMessage.id, {
                       message: result.response,
-                      status: 'completed'
+                      status: 'completed',
+                      threadId: result.threadId
                     });
-                    console.log(`[Bankr AI] Response stored for message ${botMessage.id}`);
+                    console.log(`[Bankr AI] Response stored for message ${botMessage.id}${result.threadId ? ` (threadId: ${result.threadId})` : ''}`);
                   } else {
                     // Update with error message
                     await RedisChatService.updateMessage(botMessage.id, {
