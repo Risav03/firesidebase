@@ -270,6 +270,23 @@ export async function sendChatMessage(
 }
 
 /**
+ * Confirm a Bankr AI transaction execution
+ */
+export async function confirmBankrTransaction(
+  roomId: string,
+  messageId: string,
+  data: { txHash?: string; status: 'confirmed' | 'failed' },
+  token: string | null = null
+) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/rooms/protected/${roomId}/messages/${messageId}/confirm-transaction`, {
+    method: 'POST',
+    body: data,
+    authToken: token
+  });
+}
+
+/**
  * Fetch room details by room ID
  */
 export async function fetchRoomDetails(roomId: string) {

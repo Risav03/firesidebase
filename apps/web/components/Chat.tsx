@@ -476,6 +476,8 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
                     onSelectForReply={handleSelectForReply}
                     onScrollToMessage={handleScrollToMessage}
                     isSelected={isSelected}
+                    currentUserFid={user?.fid?.toString()}
+                    roomId={roomId}
                   />
                 );
               })}

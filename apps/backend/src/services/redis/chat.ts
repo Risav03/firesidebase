@@ -160,6 +160,14 @@ export class RedisChatService {
                     } else if (parsedMessage.isBot === 'false') {
                         parsedMessage.isBot = false;
                     }
+                    // Parse transactions if present (stored as JSON string)
+                    if (messageData.transactions && typeof messageData.transactions === 'string') {
+                        try {
+                            parsedMessage.transactions = JSON.parse(messageData.transactions);
+                        } catch (e) {
+                            delete parsedMessage.transactions;
+                        }
+                    }
                     messages.push(parsedMessage as ChatMessage);
                 }
             }
@@ -277,7 +285,13 @@ export class RedisChatService {
      */
     static async updateMessage(
         messageId: string, 
-        updates: { message?: string; status?: 'pending' | 'completed' | 'failed'; threadId?: string }
+        updates: { 
+            message?: string; 
+            status?: 'pending' | 'completed' | 'failed'; 
+            threadId?: string;
+            transactions?: any[];
+            prompterFid?: string;
+        }
     ): Promise<boolean> {
         const client = await RedisUtils.getClient();
         
@@ -297,6 +311,12 @@ export class RedisChatService {
         }
         if (updates.threadId !== undefined) {
             updateData.threadId = updates.threadId;
+        }
+        if (updates.transactions !== undefined) {
+            updateData.transactions = JSON.stringify(updates.transactions);
+        }
+        if (updates.prompterFid !== undefined) {
+            updateData.prompterFid = updates.prompterFid;
         }
 
         if (Object.keys(updateData).length === 0) {
@@ -332,6 +352,15 @@ export class RedisChatService {
             parsedMessage.isBot = true;
         } else if (parsedMessage.isBot === 'false') {
             parsedMessage.isBot = false;
+        }
+        
+        // Parse transactions if present (stored as JSON string)
+        if (messageData.transactions && typeof messageData.transactions === 'string') {
+            try {
+                parsedMessage.transactions = JSON.parse(messageData.transactions);
+            } catch (e) {
+                delete parsedMessage.transactions;
+            }
         }
 
         return parsedMessage as ChatMessage;
