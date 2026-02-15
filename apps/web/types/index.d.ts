@@ -14,6 +14,9 @@ type RedisChatMessage = {
         username: string;
         pfp_url: string;
     };
+    isBot?: boolean;
+    status?: 'pending' | 'completed' | 'failed';
+    threadId?: string; // Bankr AI conversation thread ID
 }
 
 type RoomParticipant = {

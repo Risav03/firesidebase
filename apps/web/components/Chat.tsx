@@ -4,12 +4,15 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import {
   selectHMSMessages,
   selectLocalPeer,
+  selectPeers,
   useHMSActions,
   useHMSStore,
   HMSMessage,
+  HMSPeer,
 } from "@100mslive/react-sdk";
 import { ChatMessage } from "./ChatMessage";
 import { ReplyPreview } from "./ReplyPreview";
+import { MentionPopup } from "./MentionPopup";
 import { useGlobalContext } from "@/utils/providers/globalContext";
 import { toast } from "react-toastify";
 import sdk from "@farcaster/miniapp-sdk";
@@ -37,7 +40,14 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Mention popup state
+  const [showMentionPopup, setShowMentionPopup] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [mentionStartIndex, setMentionStartIndex] = useState(0);
+  const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
+
   const messages = useHMSStore(selectHMSMessages);
+  const peers = useHMSStore(selectPeers);
   const hmsActions = useHMSActions();
   const { user } = useGlobalContext();
 
@@ -168,8 +178,23 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       );
 
       if (response.ok && response.data.success) {
-        // Add the new message to our local state
-        setRedisMessages(prev => [...prev, response.data.data.message]);
+        const responseData = response.data.data;
+        
+        // Check if response includes bot message (Bankr AI trigger)
+        if (responseData.userMessage && responseData.botMessage) {
+          // Add user message to local state
+          setRedisMessages(prev => [...prev, responseData.userMessage]);
+          
+          // Add bot message to local state (no HMS broadcast needed - Redis is source of truth)
+          setRedisMessages(prev => [...prev, responseData.botMessage]);
+          
+          // Start polling for bot message completion
+          pollForBotMessageUpdate(responseData.botMessage.id);
+        } else {
+          // Regular message (no bot trigger)
+          setRedisMessages(prev => [...prev, responseData.message || responseData]);
+        }
+        
         setTimeout(scrollToBottom, 100);
       } else {
         console.error('Failed to store message:', response.data.error);
@@ -182,11 +207,92 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
     }
   };
 
+  // Poll for bot message updates (when AI response is ready)
+  const pollForBotMessageUpdate = async (botMessageId: string, maxAttempts = 30, interval = 2000) => {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, interval));
+      
+      // Refresh messages from Redis
+      try {
+        const response = await fetchChatMessages(roomId, 50);
+        if (response.ok && response.data.success) {
+          const messages = response.data.data.messages;
+          const updatedBotMessage = messages.find((m: RedisChatMessage) => m.id === botMessageId);
+          
+          if (updatedBotMessage && updatedBotMessage.status !== 'pending') {
+            // Bot message has been updated, update local state by replacing the pending message
+            setRedisMessages(prev => 
+              prev.map(msg => msg.id === botMessageId ? updatedBotMessage : msg)
+            );
+            
+            setTimeout(scrollToBottom, 100);
+            break;
+          }
+        }
+      } catch (error) {
+        console.error('Error polling for bot message:', error);
+      }
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
+    // Don't submit if mention popup is open (let it handle navigation)
+    if (showMentionPopup && ['ArrowUp', 'ArrowDown', 'Enter', 'Tab', 'Escape'].includes(e.key)) {
+      return; // MentionPopup handles these keys
+    }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  // Handle message input change with mention detection
+  const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    const cursorPos = e.target.selectionStart || 0;
+    setMessage(value);
+
+    // Detect @ mentions
+    const textBeforeCursor = value.substring(0, cursorPos);
+    const atMatch = textBeforeCursor.match(/@(\w*)$/);
+
+    if (atMatch) {
+      const query = atMatch[1];
+      const startIndex = cursorPos - query.length - 1; // -1 for @
+      setMentionQuery(query);
+      setMentionStartIndex(startIndex);
+      setShowMentionPopup(true);
+      setSelectedMentionIndex(0);
+    } else {
+      setShowMentionPopup(false);
+      setMentionQuery("");
+    }
+  };
+
+  // Handle mention selection
+  const handleMentionSelect = (peer: HMSPeer | null, displayText: string) => {
+    const beforeMention = message.substring(0, mentionStartIndex);
+    const afterMention = message.substring(mentionStartIndex + mentionQuery.length + 1); // +1 for @
+    const newMessage = `${beforeMention}@${displayText} ${afterMention}`;
+    
+    setMessage(newMessage);
+    setShowMentionPopup(false);
+    setMentionQuery("");
+    
+    // Focus back on textarea and set cursor position
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        const newCursorPos = mentionStartIndex + displayText.length + 2; // @ + name + space
+        textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+      }
+    }, 0);
+  };
+
+  // Close mention popup
+  const handleMentionClose = () => {
+    setShowMentionPopup(false);
+    setMentionQuery("");
   };
 
   // Handler for selecting a message to reply to
@@ -252,12 +358,17 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       // Check if this message already exists in Redis
       // For HMS messages that contain JSON, we need to extract the text part
       let messageText;
+      let isBot = false;
       try {
         const parsedMsg = JSON.parse(msg.message);
         messageText = parsedMsg.text;
+        isBot = parsedMsg.isBot === true;
       } catch (e) {
         messageText = msg.message;
       }
+
+      // Exclude bot messages from HMS - they're handled via Redis polling
+      if (isBot) return false;
 
       return !validRedisMessages.some(redisMsg =>
         redisMsg.message === messageText &&
@@ -272,6 +383,8 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       let messageUsername = '';
       let messageDisplayName = '';
       let messageReplyTo = undefined;
+      let messageIsBot = false;
+      let messageStatus: 'pending' | 'completed' | 'failed' | undefined = undefined;
       
       try {
         const parsedMsg = JSON.parse(hmsMsg.message);
@@ -281,6 +394,8 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         messageUsername = parsedMsg.username || '';
         messageDisplayName = parsedMsg.displayName || '';
         messageReplyTo = parsedMsg.replyTo;
+        messageIsBot = parsedMsg.isBot || false;
+        messageStatus = parsedMsg.status;
       } catch (e) {
         // If parsing fails, use the message as is
         messageText = hmsMsg.message;
@@ -296,7 +411,9 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         message: messageText,
         timestamp: hmsMsg.time.toISOString(),
         type: 'text' as const,
-        replyTo: messageReplyTo
+        replyTo: messageReplyTo,
+        isBot: messageIsBot,
+        status: messageStatus
       };
     });
 
@@ -315,8 +432,10 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
               <div className="w-3 h-3 bg-fireside-orange rounded-full animate-pulse"></div>
               <DrawerTitle className="text-xl font-semibold text-white">Room Chat</DrawerTitle>
             </div>
-            
           </div>
+          <p className="text-xs text-white/50 mt-2">
+            💡 Type <span className="text-fireside-orange font-mono">/bankr</span> followed by a question to ask Bankr AI. Reply to Bankr to continue the conversation.
+          </p>
         </DrawerHeader>
 
         <div className="flex-1 overflow-y-auto px-4 py-6 max-h-[90vh] ">
@@ -379,14 +498,31 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
               onClick={() => handleScrollToMessage(selectedReplyMessage.id)}
             />
           )}
-          <div className="flex items-start space-x-3">
+          <div className="relative flex items-start space-x-3">
+            {/* Mention Popup */}
+            {showMentionPopup && (
+              <MentionPopup
+                peers={peers}
+                query={mentionQuery}
+                onSelect={handleMentionSelect}
+                onClose={handleMentionClose}
+                selectedIndex={selectedMentionIndex}
+                onSelectedIndexChange={setSelectedMentionIndex}
+              />
+            )}
             
               <textarea
                 ref={textareaRef}
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={handleMessageChange}
+                onKeyDown={(e) => {
+                  // Prevent default for keys handled by mention popup
+                  if (showMentionPopup && ['ArrowUp', 'ArrowDown', 'Enter', 'Tab', 'Escape'].includes(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
                 onKeyPress={handleKeyPress}
-                placeholder="Type a message..."
+                placeholder="Type a message... Use @ to mention"
                 className="w-full px-4 py-3 bg-white/5 text-white rounded-lg border border-fireside-lightWhite focus:border-fireside-darkWhite focus:ring-2 focus:ring-fireside-orange transition-colors duration-200 outline-none resize-none min-h-[48px] text-base"
                 maxLength={500}
                 rows={1}

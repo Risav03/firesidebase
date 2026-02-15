@@ -20,6 +20,7 @@ interface Config {
   neynarApiKey: string;
   hundredMsManagementToken: string;
   hundredMsTemplateId: string;
+  bankrApiKey: string;
 
   // Authentication
   devHeader?: string;
@@ -99,6 +100,7 @@ export const config = {
   neynarApiKey: getOptionalEnvVar('NEYNAR_API_KEY', ''),
   hundredMsManagementToken: getOptionalEnvVar('HUNDRED_MS_MANAGEMENT_TOKEN', ''),
   hundredMsTemplateId: getOptionalEnvVar('HUNDRED_MS_TEMPLATE_ID', ''),
+  bankrApiKey: getOptionalEnvVar('BANKR_API_KEY', ''),
 
   // Authentication
   devHeader: getOptionalEnvVar('DEV_HEADER'),
@@ -194,7 +196,8 @@ const validateConfig = () => {
   const optional = [
     'NEYNAR_API_KEY',
     'HUNDRED_MS_MANAGEMENT_TOKEN', 
-    'HUNDRED_MS_TEMPLATE_ID'
+    'HUNDRED_MS_TEMPLATE_ID',
+    'BANKR_API_KEY'
   ];
 
   const awsRequired = [
