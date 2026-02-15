@@ -2,6 +2,7 @@ import { Elysia, t } from 'elysia';
 import User from '../../models/User';
 import Room from '../../models/Room';
 import { RedisChatService, RedisRoomParticipantsService } from '../../services/redis';
+import { BankrAgentService, BANKR_BOT_USER } from '../../services/agent';
 import { errorResponse, successResponse } from '../../utils';
 import { authMiddleware } from '../../middleware/auth';
 import { 
@@ -143,6 +144,76 @@ Retrieves chat messages for a room with pagination support.
             message,
             replyToId
           );
+
+          // Check if replying to a bot message (for conversation continuation)
+          let isBotReply = false;
+          let existingThreadId: string | undefined;
+          
+          if (replyToId) {
+            const replyToMessage = await RedisChatService.getMessage(replyToId);
+            if (replyToMessage && replyToMessage.isBot === true) {
+              isBotReply = true;
+              existingThreadId = replyToMessage.threadId;
+            }
+          }
+
+          // Check if message contains a Bankr AI trigger (/bankr) OR is a reply to a bot message
+          const hasBankrTrigger = BankrAgentService.isConfigured() && BankrAgentService.hasTrigger(message);
+          const shouldProcessAsBankr = BankrAgentService.isConfigured() && (hasBankrTrigger || isBotReply);
+          
+          if (shouldProcessAsBankr) {
+            // Extract prompt - either from /bankr command or use the entire message for bot replies
+            const prompt = hasBankrTrigger ? BankrAgentService.extractPrompt(message) : message.trim();
+            
+            if (prompt) {
+              // Store placeholder bot message immediately
+              const botMessage = await RedisChatService.storeBotMessage(
+                params.id,
+                BANKR_BOT_USER,
+                '🤔 Thinking...',
+                'pending',
+                chatMessage.id  // Reply to the user's message
+              );
+
+              // Process Bankr AI request asynchronously (don't block the response)
+              (async () => {
+                try {
+                  console.log(`[Bankr AI] Processing prompt: "${prompt}" for room ${params.id}${existingThreadId ? ` (continuing thread ${existingThreadId})` : ''}`);
+                  
+                  const result = await BankrAgentService.executePromptWithPolling(prompt, existingThreadId);
+                  
+                  if (result.success && result.response) {
+                    // Update bot message with actual response and threadId for future continuations
+                    await RedisChatService.updateMessage(botMessage.id, {
+                      message: result.response,
+                      status: 'completed',
+                      threadId: result.threadId
+                    });
+                    console.log(`[Bankr AI] Response stored for message ${botMessage.id}${result.threadId ? ` (threadId: ${result.threadId})` : ''}`);
+                  } else {
+                    // Update with error message
+                    await RedisChatService.updateMessage(botMessage.id, {
+                      message: `❌ ${result.error || 'Sorry, I encountered an error processing your request.'}`,
+                      status: 'failed'
+                    });
+                    console.error(`[Bankr AI] Error: ${result.error}`);
+                  }
+                } catch (error) {
+                  console.error('[Bankr AI] Async processing error:', error);
+                  await RedisChatService.updateMessage(botMessage.id, {
+                    message: '❌ Sorry, something went wrong. Please try again.',
+                    status: 'failed'
+                  });
+                }
+              })();
+
+              // Return both messages (user message + pending bot message)
+              return successResponse({
+                userMessage: chatMessage,
+                botMessage: botMessage
+              }, 'Message sent successfully, AI response pending');
+            }
+          }
           
           return successResponse(chatMessage, 'Message sent successfully');
         } catch (error) {

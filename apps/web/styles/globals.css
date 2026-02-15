@@ -482,6 +482,23 @@
   .chat-message.own-message .chat-message-content {
     @apply text-right;
   }
+
+  /* Bot message styles */
+  .chat-message.bot-message {
+    @apply flex space-x-3;
+  }
+
+  .chat-message-bubble.bot-bubble {
+    @apply px-3 py-2 rounded-xl max-w-xs break-words bg-neutral-blue/10 border border-neutral-blue/30 text-white rounded-tl-none max-w-[90%];
+  }
+
+  .chat-message-bubble.bot-bubble.bot-pending {
+    @apply border-blue-400/50;
+  }
+
+  .chat-message-bubble.bot-bubble.bot-failed {
+    @apply bg-neutral-red/20 border-red-400/30;
+  }
   
   @media (max-width: 768px) {
     .chat-container {

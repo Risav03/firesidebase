@@ -127,7 +127,9 @@ export const ChatMessageSchema = t.Object({
   displayName: t.Any({ description: 'Display name of the sender' }),
   pfp_url: t.Any({ description: 'Profile picture URL of the sender' }),
   message: t.Any({ description: 'Message content' }),
-  timestamp: t.Any({ description: 'Timestamp of when the message was sent' })
+  timestamp: t.Any({ description: 'Timestamp of when the message was sent' }),
+  isBot: t.Optional(t.Any({ description: 'Whether this message is from a bot' })),
+  status: t.Optional(t.Any({ description: 'Message status: pending, completed, or failed (for bot messages)' }))
 });
 
 // ============================================

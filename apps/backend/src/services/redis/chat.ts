@@ -154,6 +154,12 @@ export class RedisChatService {
                             delete parsedMessage.replyTo;
                         }
                     }
+                    // Convert isBot string to boolean
+                    if (parsedMessage.isBot === 'true') {
+                        parsedMessage.isBot = true;
+                    } else if (parsedMessage.isBot === 'false') {
+                        parsedMessage.isBot = false;
+                    }
                     messages.push(parsedMessage as ChatMessage);
                 }
             }
@@ -202,5 +208,132 @@ export class RedisChatService {
                 await client.del(RedisUtils.roomKeys.messages(roomId));
             }
         }
+    }
+
+    /**
+     * Store a bot message (e.g., from Bankr AI)
+     */
+    static async storeBotMessage(
+        roomId: string, 
+        botUser: { fid: string; username: string; displayName: string; pfp_url: string },
+        message: string,
+        status: 'pending' | 'completed' | 'failed' = 'completed',
+        replyToId?: string,
+        threadId?: string
+    ): Promise<ChatMessage> {
+        const messageId = `${Date.now()}_${botUser.fid}`;
+        const timestamp = new Date().toISOString();
+        
+        const chatMessage: ChatMessage = {
+            id: messageId,
+            roomId,
+            userId: botUser.fid,
+            username: botUser.username,
+            displayName: botUser.displayName,
+            pfp_url: botUser.pfp_url,
+            message: message.trim(),
+            timestamp,
+            isBot: true,
+            status,
+            threadId
+        };
+
+        // If replying to a message, fetch and attach reply metadata
+        if (replyToId) {
+            const client = await RedisUtils.getClient();
+            const replyToMessage = await client.hgetall(RedisUtils.messageKeys.message(replyToId));
+            
+            if (replyToMessage && replyToMessage.id) {
+                chatMessage.replyTo = {
+                    messageId: replyToMessage.id,
+                    message: replyToMessage.message.substring(0, 100),
+                    username: replyToMessage.username || 'Unknown',
+                    pfp_url: replyToMessage.pfp_url || ''
+                };
+            }
+        }
+
+        const client = await RedisUtils.getClient();
+        const pipeline = client.pipeline();
+        
+        // Prepare message data for Redis hash storage
+        const messageDataForRedis: any = { ...chatMessage };
+        if (chatMessage.replyTo) {
+            messageDataForRedis.replyTo = JSON.stringify(chatMessage.replyTo);
+        }
+        
+        // Store message data and add to sorted set
+        pipeline.hmset(RedisUtils.messageKeys.message(messageId), messageDataForRedis);
+        pipeline.zadd(RedisUtils.roomKeys.messages(roomId), Date.now(), messageId);
+        pipeline.expire(RedisUtils.messageKeys.message(messageId), RedisUtils.TTL);
+        pipeline.expire(RedisUtils.roomKeys.messages(roomId), RedisUtils.TTL);
+        
+        await RedisUtils.executePipeline(pipeline);
+        return chatMessage;
+    }
+
+    /**
+     * Update an existing message (e.g., update placeholder bot message with actual response)
+     */
+    static async updateMessage(
+        messageId: string, 
+        updates: { message?: string; status?: 'pending' | 'completed' | 'failed'; threadId?: string }
+    ): Promise<boolean> {
+        const client = await RedisUtils.getClient();
+        
+        // Check if message exists
+        const exists = await client.exists(RedisUtils.messageKeys.message(messageId));
+        if (!exists) {
+            return false;
+        }
+
+        // Update the specified fields
+        const updateData: Record<string, string> = {};
+        if (updates.message !== undefined) {
+            updateData.message = updates.message;
+        }
+        if (updates.status !== undefined) {
+            updateData.status = updates.status;
+        }
+        if (updates.threadId !== undefined) {
+            updateData.threadId = updates.threadId;
+        }
+
+        if (Object.keys(updateData).length === 0) {
+            return true; // Nothing to update
+        }
+
+        await client.hmset(RedisUtils.messageKeys.message(messageId), updateData);
+        return true;
+    }
+
+    /**
+     * Get a single message by ID
+     */
+    static async getMessage(messageId: string): Promise<ChatMessage | null> {
+        const client = await RedisUtils.getClient();
+        const messageData = await client.hgetall(RedisUtils.messageKeys.message(messageId));
+        
+        if (!messageData || !messageData.id) {
+            return null;
+        }
+
+        const parsedMessage: any = { ...messageData };
+        if (messageData.replyTo && typeof messageData.replyTo === 'string') {
+            try {
+                parsedMessage.replyTo = JSON.parse(messageData.replyTo);
+            } catch (e) {
+                delete parsedMessage.replyTo;
+            }
+        }
+        
+        // Convert isBot string to boolean
+        if (parsedMessage.isBot === 'true') {
+            parsedMessage.isBot = true;
+        } else if (parsedMessage.isBot === 'false') {
+            parsedMessage.isBot = false;
+        }
+
+        return parsedMessage as ChatMessage;
     }
 }

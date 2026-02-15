@@ -43,7 +43,14 @@ export const ChatMessageSchema = t.Object({
     message: t.String(),
     username: t.String(),
     pfp_url: t.String()
-  }))
+  })),
+  isBot: t.Optional(t.Boolean()),
+  status: t.Optional(t.Union([
+    t.Literal('pending'),
+    t.Literal('completed'),
+    t.Literal('failed')
+  ])),
+  threadId: t.Optional(t.String()) // Bankr AI conversation thread ID
 });
 
 export const RoomSchema = t.Object({

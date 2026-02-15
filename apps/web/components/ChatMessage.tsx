@@ -3,7 +3,70 @@
 import { HMSMessage } from "@100mslive/react-sdk";
 import { formatDistanceToNow } from "./utils/timeUtils";
 import { ReplyPreview } from "./ReplyPreview";
-import { useRef, useState } from "react";
+import { useRef, useState, ReactNode } from "react";
+
+// Role mentions and their styling
+const ROLE_MENTIONS: Record<string, { color: string; bgColor: string }> = {
+  host: { color: 'text-fireside-orange', bgColor: 'bg-fireside-orange/20' },
+  'co-host': { color: 'text-purple-400', bgColor: 'bg-purple-500/20' },
+  speaker: { color: 'text-green-400', bgColor: 'bg-green-500/20' },
+  speakers: { color: 'text-green-400', bgColor: 'bg-green-500/20' },
+  listener: { color: 'text-gray-400', bgColor: 'bg-gray-500/20' },
+  listeners: { color: 'text-gray-400', bgColor: 'bg-gray-500/20' },
+};
+
+// Helper function to parse and highlight mentions in message text
+function renderMessageWithMentions(text: string): ReactNode[] {
+  // Match @username patterns (alphanumeric, underscores, dashes)
+  const mentionRegex = /@([\w-]+)/g;
+  const parts: ReactNode[] = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = mentionRegex.exec(text)) !== null) {
+    // Add text before the mention
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    
+    const mentionText = match[1];
+    const roleStyle = ROLE_MENTIONS[mentionText.toLowerCase()];
+    
+    // Add the highlighted mention with role-specific or default styling
+    if (roleStyle) {
+      // Role mention
+      parts.push(
+        <span 
+          key={`mention-${match.index}`} 
+          className={`${roleStyle.color} ${roleStyle.bgColor} font-medium px-1 rounded`}
+          title={`Mention all ${mentionText}`}
+        >
+          @{mentionText}
+        </span>
+      );
+    } else {
+      // User mention
+      parts.push(
+        <span 
+          key={`mention-${match.index}`} 
+          className="text-fireside-orange font-medium hover:underline cursor-pointer"
+          title={`@${mentionText}`}
+        >
+          @{mentionText}
+        </span>
+      );
+    }
+    
+    lastIndex = mentionRegex.lastIndex;
+  }
+
+  // Add remaining text after last mention
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : [text];
+}
 
 interface ChatMessageProps {
   message: HMSMessage | RedisChatMessage;
@@ -13,11 +76,18 @@ interface ChatMessageProps {
   isSelected?: boolean;
 }
 
+// Bankr AI bot avatar URL
+const BANKR_BOT_AVATAR = '/assets/bankr.png';
+
 export function ChatMessage({ message, isOwnMessage, onSelectForReply, onScrollToMessage, isSelected = false }: ChatMessageProps) {
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isLongPressing, setIsLongPressing] = useState(false);
   
   const isRedisMessage = 'userId' in message;
+  
+  // Check if this is a bot message
+  const isBotMessage = isRedisMessage && (message as RedisChatMessage).isBot === true;
+  const botStatus = isRedisMessage ? (message as RedisChatMessage).status : undefined;
 
   // Get sender name based on message type
   const getSenderName = () => {
@@ -174,16 +244,45 @@ export function ChatMessage({ message, isOwnMessage, onSelectForReply, onScrollT
 
   const replyTo = getReplyTo();
 
+  // Bot message styling
+  const getBotBubbleClass = () => {
+    if (!isBotMessage) return '';
+    if (botStatus === 'pending') return 'bot-bubble bot-pending';
+    if (botStatus === 'failed') return 'bot-bubble bot-failed';
+    return 'bot-bubble';
+  };
+
   return (
     <div 
-      className={`chat-message p-2 ${isOwnMessage ? 'own-message' : 'other-message'} ${isSelected ? 'bg-white/5 rounded-lg' : ''} ${isLongPressing ? 'opacity-70' : ''}`}
+      className={`chat-message p-2 ${isBotMessage ? 'bot-message' : isOwnMessage ? 'own-message' : 'other-message'} ${isSelected ? 'bg-white/5 rounded-lg' : ''} ${isLongPressing ? 'opacity-70' : ''}`}
       id={`message-${isRedisMessage ? (message as RedisChatMessage).id : `hms_${(message as HMSMessage).id}`}`}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
       onClick={handleClick}
     >
-      {!isOwnMessage && (
+      {/* Bot Avatar */}
+      {isBotMessage && (
+        <div className="chat-avatar flex-shrink-0">
+          <div className="relative">
+            <img 
+              src={BANKR_BOT_AVATAR} 
+              alt="Bankr AI"
+              className="w-8 h-8 rounded-full object-cover ring-2 ring-blue-500"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                const fallback = e.currentTarget.nextElementSibling;
+                if (fallback) (fallback as HTMLElement).classList.remove('hidden');
+              }}
+            />
+            
+           
+          </div>
+        </div>
+      )}
+      
+      {/* Regular user avatar */}
+      {!isOwnMessage && !isBotMessage && (
         <div className="chat-avatar flex-shrink-0">
           {pfpUrl ? (
             <>
@@ -210,7 +309,20 @@ export function ChatMessage({ message, isOwnMessage, onSelectForReply, onScrollT
       )}
       
       <div className="chat-message-content">
-        {!isOwnMessage && (
+        {/* Bot header with badge */}
+        {isBotMessage && (
+          <div className="chat-message-header flex items-center gap-2">
+            <span className="font-medium text-blue-400 text-sm">
+              Bankr
+            </span>
+            <span className="text-[10px] px-1.5 py-0.5 bg-blue-500/20 text-blue-300 rounded-full font-medium">
+              BOT
+            </span>
+          </div>
+        )}
+        
+        {/* Regular user header */}
+        {!isOwnMessage && !isBotMessage && (
           <div className="chat-message-header">
             <span className="font-medium text-fireside-green text-sm">
               {senderName}
@@ -218,7 +330,7 @@ export function ChatMessage({ message, isOwnMessage, onSelectForReply, onScrollT
           </div>
         )}
         
-        <div className={`chat-message-bubble ${isOwnMessage ? 'own-bubble' : 'other-bubble'}`}>
+        <div className={`chat-message-bubble ${isBotMessage ? getBotBubbleClass() : isOwnMessage ? 'own-bubble' : 'other-bubble'}`}>
           {replyTo && (
             <ReplyPreview
               replyTo={replyTo}
@@ -230,11 +342,27 @@ export function ChatMessage({ message, isOwnMessage, onSelectForReply, onScrollT
               }}
             />
           )}
-          <p className="text-sm text-left leading-relaxed whitespace-pre-wrap break-words">
-            {getMessageText()}
-          </p>
+          
+          {/* Bot message with status indicator */}
+          {isBotMessage && botStatus === 'pending' ? (
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1">
+                <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+              </div>
+              <p className="text-sm text-left leading-relaxed text-blue-300 animate-pulse">
+                {getMessageText()}
+              </p>
+            </div>
+          ) : (
+            <p className={`text-sm text-left leading-relaxed whitespace-pre-wrap break-words ${botStatus === 'failed' ? 'text-red-300' : ''}`}>
+              {renderMessageWithMentions(getMessageText())}
+            </p>
+          )}
+          
           {(
-            <div className={`text-xs mt-1 text-white/40 text-right`}>
+            <div className={`text-xs mt-1 ${isBotMessage ? 'text-blue-300/50' : 'text-white/40'} text-right`}>
               {formatDistanceToNow(getTimestamp())}
             </div>
           )}
