@@ -10,4 +10,5 @@
 
 export { RedisUtils } from './redis-utils';
 export { RedisRoomParticipantsService } from './room-participants';
+export { RedisChatService } from './chat';
 export { RedisRoomStatisticsService } from './roomStatistics';

@@ -21,7 +21,6 @@ import TippingModal from "./TippingModal";
 import EmojiPickerDrawer from "./footer/EmojiPickerDrawer";
 import FloatingEmojis from "./footer/FloatingEmojis";
 import SoundboardDrawer from "./SoundboardDrawer";
-import { ParticipantSync } from "./ParticipantSync";
 import { toast } from "react-toastify";
 
 export default function Footer({ roomId }: { roomId: string }) {
@@ -139,12 +138,6 @@ export default function Footer({ roomId }: { roomId: string }) {
 
   return (
     <>
-      {/* XMTP Participant Synchronization - only for hosts */}
-      <ParticipantSync
-        roomId={roomId}
-        isHost={localPeer?.roleName?.toLowerCase() === 'host'}
-      />
-      
       <div className="fixed bottom-0 left-0 right-0 z-50">
         <ControlCenterDrawer
           open={controlsOpen}
@@ -186,8 +179,6 @@ export default function Footer({ roomId }: { roomId: string }) {
         isOpen={isChatOpen}
         setIsChatOpen={() => setIsChatOpen(!isChatOpen)}
         roomId={roomId}
-        roomName={`Room ${roomId.substring(0, 8)}`} // TODO: Pass actual room name from room data
-        isHost={localPeer?.roleName?.toLowerCase() === 'host'}
       />
       
       <TippingModal

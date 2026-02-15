@@ -172,37 +172,101 @@ export async function removeParticipantFromRoom(roomId: string, userData: any, t
 
 /**
  * Fetch chat messages for a room
- * @deprecated This function is deprecated. Chat is now handled via XMTP.
  */
 export async function fetchChatMessages(roomId: string, limit: number = 50) {
-  console.warn('fetchChatMessages is deprecated. Chat is now handled via XMTP.');
-  return {
-    ok: false,
-    data: {
-      success: false,
-      error: 'Chat API has been removed. Use XMTP for messaging.',
-      data: { messages: [] }
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  const response = await fetchAPI(`${URL}/api/rooms/public/${roomId}/messages?limit=${limit}`);
+  
+  if (!response.ok || !response.data.success) {
+    return response;
+  }
+  
+  const messages = response.data.data.messages;
+  
+  // Extract unique fids from messages
+  const uniqueFids = Array.from(new Set(messages.map((msg: any) => msg.userId).filter(Boolean)));
+  
+  if (uniqueFids.length === 0) {
+    return response;
+  }
+  
+  // Fetch user data from Neynar
+  try {
+    const neynarApiKey = process.env.NEYNAR_API_KEY;
+    if (!neynarApiKey) {
+      console.error('NEYNAR_API_KEY not set');
+      return response;
     }
-  };
+    
+    const neynarResponse = await fetch(
+      `https://api.neynar.com/v2/farcaster/user/bulk?fids=${uniqueFids.join(',')}`,
+      {
+        headers: {
+          "x-api-key": neynarApiKey,
+        }
+      }
+    );
+    
+    if (!neynarResponse.ok) {
+      console.error(`Neynar API request failed: ${neynarResponse.status}`);
+      return response;
+    }
+    
+    const neynarData = await neynarResponse.json();
+    const userMap = new Map();
+    
+    for (const user of neynarData.users || []) {
+      userMap.set(user.fid.toString(), {
+        pfp_url: user.pfp_url,
+        username: user.username,
+        displayName: user.display_name || user.username
+      });
+    }
+    
+    // Enrich messages with fresh user data
+    const enrichedMessages = messages.map((msg: any) => {
+      const userData = userMap.get(msg.userId.toString());
+      if (userData) {
+        return {
+          ...msg,
+          pfp_url: userData.pfp_url,
+          username: userData.username,
+          displayName: userData.displayName
+        };
+      }
+      return msg;
+    });
+    
+    return {
+      ...response,
+      data: {
+        ...response.data,
+        data: {
+          ...response.data.data,
+          messages: enrichedMessages
+        }
+      }
+    };
+  } catch (error) {
+    console.error('Error enriching messages with Neynar data:', error);
+    return response;
+  }
 }
 
 /**
  * Send a chat message to a room
- * @deprecated This function is deprecated. Use XMTP for sending messages.
  */
 export async function sendChatMessage(
   roomId: string, 
   messageData: { message: string; replyToId?: string; userFid?: string }, 
   token: string | null = null
 ) {
-  console.warn('sendChatMessage is deprecated. Use XMTP for sending messages.');
-  return {
-    ok: false,
-    data: {
-      success: false,
-      error: 'Chat API has been removed. Use XMTP for messaging.'
-    }
-  };
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/rooms/protected/${roomId}/messages`, {
+    method: 'POST',
+    body: messageData,
+    authToken: token
+  });
 }
 
 /**
