@@ -29,6 +29,24 @@ export const RoomParticipantSchema = t.Object({
   joinedAt: t.String()
 });
 
+// Bankr transaction schema for chat messages
+export const BankrChatTransactionSchema = t.Object({
+  type: t.String(), // 'transfer_erc20', 'transfer_eth', 'swap', etc.
+  chainId: t.Number(),
+  to: t.String(),
+  data: t.Optional(t.String()),
+  value: t.Optional(t.String()),
+  gas: t.Optional(t.String()),
+  description: t.Optional(t.String()),
+  status: t.Optional(t.Union([
+    t.Literal('pending'),
+    t.Literal('executed'),
+    t.Literal('confirmed'),
+    t.Literal('failed')
+  ])),
+  txHash: t.Optional(t.String())
+});
+
 export const ChatMessageSchema = t.Object({
   id: t.String(),
   roomId: t.String(),
@@ -50,7 +68,9 @@ export const ChatMessageSchema = t.Object({
     t.Literal('completed'),
     t.Literal('failed')
   ])),
-  threadId: t.Optional(t.String()) // Bankr AI conversation thread ID
+  threadId: t.Optional(t.String()), // Bankr AI conversation thread ID
+  transactions: t.Optional(t.Array(BankrChatTransactionSchema)), // Bankr transactions to execute
+  prompterFid: t.Optional(t.String()) // FID of user who triggered the transaction
 });
 
 export const RoomSchema = t.Object({
@@ -102,6 +122,7 @@ export const HMSRoomCodeResponseSchema = t.Object({
 export type User = typeof UserSchema.static;
 export type RoomParticipant = typeof RoomParticipantSchema.static;
 export type ChatMessage = typeof ChatMessageSchema.static;
+export type BankrChatTransaction = typeof BankrChatTransactionSchema.static;
 export type Room = typeof RoomSchema.static;
 export type HMSCreateRoomResponse = typeof HMSCreateRoomResponseSchema.static;
 export type HMSRoomCodeResponse = typeof HMSRoomCodeResponseSchema.static;

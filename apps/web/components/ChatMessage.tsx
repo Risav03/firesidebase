@@ -4,6 +4,7 @@ import { HMSMessage } from "@100mslive/react-sdk";
 import { formatDistanceToNow } from "./utils/timeUtils";
 import { ReplyPreview } from "./ReplyPreview";
 import { useRef, useState, ReactNode } from "react";
+import { BankrTransactionButton } from "./BankrTransactionButton";
 
 // Role mentions and their styling
 const ROLE_MENTIONS: Record<string, { color: string; bgColor: string }> = {
@@ -74,12 +75,15 @@ interface ChatMessageProps {
   onSelectForReply?: (message: RedisChatMessage) => void;
   onScrollToMessage?: (messageId: string) => void;
   isSelected?: boolean;
+  currentUserFid?: string;
+  roomId?: string;
+  onTransactionComplete?: (messageId: string, txHash: string, status: 'confirmed' | 'failed') => void;
 }
 
 // Bankr AI bot avatar URL
 const BANKR_BOT_AVATAR = '/assets/bankr.png';
 
-export function ChatMessage({ message, isOwnMessage, onSelectForReply, onScrollToMessage, isSelected = false }: ChatMessageProps) {
+export function ChatMessage({ message, isOwnMessage, onSelectForReply, onScrollToMessage, isSelected = false, currentUserFid, roomId, onTransactionComplete }: ChatMessageProps) {
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isLongPressing, setIsLongPressing] = useState(false);
   
@@ -88,6 +92,11 @@ export function ChatMessage({ message, isOwnMessage, onSelectForReply, onScrollT
   // Check if this is a bot message
   const isBotMessage = isRedisMessage && (message as RedisChatMessage).isBot === true;
   const botStatus = isRedisMessage ? (message as RedisChatMessage).status : undefined;
+  
+  // Get transactions if present (only for bot messages)
+  const transactions = isRedisMessage ? (message as RedisChatMessage).transactions : undefined;
+  const prompterFid = isRedisMessage ? (message as RedisChatMessage).prompterFid : undefined;
+  const isPrompter = !!(currentUserFid && prompterFid && currentUserFid === prompterFid);
 
   // Get sender name based on message type
   const getSenderName = () => {
@@ -365,6 +374,17 @@ export function ChatMessage({ message, isOwnMessage, onSelectForReply, onScrollT
             <div className={`text-xs mt-1 ${isBotMessage ? 'text-blue-300/50' : 'text-white/40'} text-right`}>
               {formatDistanceToNow(getTimestamp())}
             </div>
+          )}
+          
+          {/* Transaction button for bot messages with transactions */}
+          {isBotMessage && transactions && transactions.length > 0 && roomId && (
+            <BankrTransactionButton
+              transactions={transactions}
+              messageId={isRedisMessage ? (message as RedisChatMessage).id : ''}
+              roomId={roomId}
+              isPrompter={isPrompter}
+              onTransactionComplete={onTransactionComplete}
+            />
           )}
         </div>
       </div>

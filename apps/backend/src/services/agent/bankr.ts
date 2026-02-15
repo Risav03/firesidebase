@@ -18,6 +18,41 @@ interface BankrPromptResponse {
   message: string;
 }
 
+// Transaction metadata from Bankr API response
+export interface BankrTransactionMetadata {
+  chainId: number;
+  to: string;
+  data?: string;
+  value?: string;
+  gas?: string;
+  gasPrice?: string;
+  description?: string;
+  __ORIGINAL_TX_DATA__?: {
+    chain?: string;
+    humanReadableMessage?: string;
+    inputTokenAddress?: string;
+    inputTokenAmount?: string;
+    inputTokenTicker?: string;
+    outputTokenAddress?: string;
+    outputTokenTicker?: string;
+    receiver?: string;
+  };
+  transaction?: {
+    chainId: number;
+    to: string;
+    data?: string;
+    gas?: string;
+    gasPrice?: string;
+    value?: string;
+  };
+}
+
+// Transaction structure from Bankr API
+export interface BankrTransaction {
+  type: string; // 'transfer_erc20', 'transfer_eth', 'swap', 'approval', etc.
+  metadata: BankrTransactionMetadata;
+}
+
 interface BankrJobResponse {
   success: boolean;
   jobId: string;
@@ -25,6 +60,7 @@ interface BankrJobResponse {
   status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
   prompt: string;
   response?: string;
+  transactions?: BankrTransaction[]; // Transaction data when applicable
   error?: string;
   createdAt: string;
   completedAt?: string;
@@ -134,7 +170,7 @@ export class BankrAgentService {
     threadId?: string,
     maxAttempts: number = 30,
     intervalMs: number = 2000
-  ): Promise<{ success: boolean; response?: string; error?: string; threadId?: string }> {
+  ): Promise<{ success: boolean; response?: string; error?: string; threadId?: string; transactions?: BankrTransaction[] }> {
     try {
       // Submit the prompt (with optional threadId for conversation continuation)
       const submitResult = await this.submitPrompt(prompt, threadId);
@@ -157,7 +193,8 @@ export class BankrAgentService {
             return { 
               success: true, 
               response: jobStatus.response || 'No response received',
-              threadId: jobStatus.threadId || newThreadId
+              threadId: jobStatus.threadId || newThreadId,
+              transactions: jobStatus.transactions
             };
           
           case 'failed':

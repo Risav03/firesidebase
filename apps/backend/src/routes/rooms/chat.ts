@@ -2,7 +2,7 @@ import { Elysia, t } from 'elysia';
 import User from '../../models/User';
 import Room from '../../models/Room';
 import { RedisChatService, RedisRoomParticipantsService } from '../../services/redis';
-import { BankrAgentService, BANKR_BOT_USER } from '../../services/agent';
+import { BankrAgentService, BANKR_BOT_USER, MentionResolverService } from '../../services/agent';
 import { errorResponse, successResponse } from '../../utils';
 import { authMiddleware } from '../../middleware/auth';
 import { 
@@ -175,20 +175,62 @@ Retrieves chat messages for a room with pagination support.
                 chatMessage.id  // Reply to the user's message
               );
 
+              // Get room to access HMS roomId for mention resolution
+              const room = await Room.findById(params.id);
+              const hmsRoomId = room?.roomId;
+
               // Process Bankr AI request asynchronously (don't block the response)
               (async () => {
                 try {
-                  console.log(`[Bankr AI] Processing prompt: "${prompt}" for room ${params.id}${existingThreadId ? ` (continuing thread ${existingThreadId})` : ''}`);
+                  // Resolve @mentions to wallet addresses if HMS room is active
+                  let enrichedPrompt = prompt;
+                  if (hmsRoomId && MentionResolverService.hasMentions(prompt)) {
+                    try {
+                      const mentionResult = await MentionResolverService.resolveMentions(prompt, hmsRoomId);
+                      if (mentionResult.mentions.length > 0) {
+                        enrichedPrompt = mentionResult.enrichedPrompt;
+                        console.log(`[Bankr AI] Resolved ${mentionResult.mentions.length} mentions with wallet context`);
+                      }
+                    } catch (mentionError) {
+                      console.warn('[Bankr AI] Failed to resolve mentions:', mentionError);
+                      // Continue with original prompt if mention resolution fails
+                    }
+                  }
+
+                  console.log(`[Bankr AI] Processing prompt: "${enrichedPrompt}" for room ${params.id}${existingThreadId ? ` (continuing thread ${existingThreadId})` : ''}`);
                   
-                  const result = await BankrAgentService.executePromptWithPolling(prompt, existingThreadId);
+                  const result = await BankrAgentService.executePromptWithPolling(enrichedPrompt, existingThreadId);
                   
                   if (result.success && result.response) {
-                    // Update bot message with actual response and threadId for future continuations
-                    await RedisChatService.updateMessage(botMessage.id, {
+                    // Update bot message with actual response, threadId, and transactions if present
+                    const updateData: { message: string; status: 'completed'; threadId?: string; transactions?: any[]; prompterFid?: string } = {
                       message: result.response,
                       status: 'completed',
                       threadId: result.threadId
-                    });
+                    };
+                    
+                    // Include transactions if Bankr returned any, transformed to our schema
+                    if (result.transactions && result.transactions.length > 0) {
+                      updateData.transactions = result.transactions.map(tx => {
+                        // Extract transaction details from metadata
+                        const txData = tx.metadata?.transaction || tx.metadata;
+                        const originalData = tx.metadata?.__ORIGINAL_TX_DATA__;
+                        return {
+                          type: tx.type,
+                          chainId: txData?.chainId || tx.metadata?.chainId || 8453, // Default to Base
+                          to: txData?.to || tx.metadata?.to || '',
+                          data: txData?.data || tx.metadata?.data,
+                          value: txData?.value || tx.metadata?.value || '0',
+                          gas: txData?.gas || tx.metadata?.gas,
+                          description: originalData?.humanReadableMessage || tx.metadata?.description,
+                          status: 'pending' // Transaction is pending user execution
+                        };
+                      });
+                      updateData.prompterFid = userFid; // Store who triggered the transaction
+                      console.log(`[Bankr AI] Response includes ${result.transactions.length} transaction(s)`);
+                    }
+                    
+                    await RedisChatService.updateMessage(botMessage.id, updateData);
                     console.log(`[Bankr AI] Response stored for message ${botMessage.id}${result.threadId ? ` (threadId: ${result.threadId})` : ''}`);
                   } else {
                     // Update with error message
@@ -330,6 +372,121 @@ Deletes all chat messages for a room.
 - Privacy compliance
 
 **Warning:** This action is irreversible. All messages for the room will be permanently deleted.
+
+**Authentication Required:** Yes (Farcaster JWT)
+          `,
+          security: [{ bearerAuth: [] }]
+        }
+      })
+
+      // Confirm Bankr transaction execution
+      .post('/:id/messages/:messageId/confirm-transaction', async ({ headers, params, body, set }) => {
+        try {
+          const userFid = headers['x-user-fid'] as string;
+          const { txHash, status } = body;
+
+          if (!userFid) {
+            set.status = 401;
+            return errorResponse('Authentication required');
+          }
+
+          // Get the message to verify it exists and has transactions
+          const message = await RedisChatService.getMessage(params.messageId);
+          if (!message) {
+            set.status = 404;
+            return errorResponse('Message not found');
+          }
+
+          // Verify this is a bot message with transactions
+          if (!message.isBot || !message.transactions || message.transactions.length === 0) {
+            set.status = 400;
+            return errorResponse('Message does not contain transactions');
+          }
+
+          // Verify the user is the prompter
+          if (message.prompterFid !== userFid) {
+            set.status = 403;
+            return errorResponse('Only the transaction prompter can confirm execution');
+          }
+
+          // Update the transaction status
+          const updatedTransactions = message.transactions.map((tx: any) => ({
+            ...tx,
+            status: status,
+            txHash: txHash || tx.txHash
+          }));
+
+          await RedisChatService.updateMessage(params.messageId, {
+            transactions: updatedTransactions
+          });
+
+          // If transaction confirmed, optionally post a follow-up from Bankr
+          if (status === 'confirmed' && txHash) {
+            await RedisChatService.storeBotMessage(
+              params.id,
+              BANKR_BOT_USER,
+              `✅ Transaction confirmed! [View on BaseScan](https://basescan.org/tx/${txHash})`,
+              'completed',
+              params.messageId
+            );
+          } else if (status === 'failed') {
+            await RedisChatService.storeBotMessage(
+              params.id,
+              BANKR_BOT_USER,
+              '❌ Transaction failed. Please try again or check your wallet balance.',
+              'completed',
+              params.messageId
+            );
+          }
+
+          return successResponse({ 
+            messageId: params.messageId,
+            status: status,
+            txHash: txHash
+          }, 'Transaction status updated');
+        } catch (error) {
+          console.error('Error confirming transaction:', error);
+          set.status = 500;
+          return errorResponse('Failed to confirm transaction');
+        }
+      }, {
+        body: t.Object({
+          txHash: t.Optional(t.String({ description: 'Transaction hash from blockchain' })),
+          status: t.Union([
+            t.Literal('confirmed'),
+            t.Literal('failed')
+          ], { description: 'Transaction execution status' })
+        }),
+        params: t.Object({
+          id: t.String({ description: 'MongoDB ObjectId of the room' }),
+          messageId: t.String({ description: 'Message ID containing the transaction' })
+        }),
+        response: {
+          200: SimpleSuccessResponseSchema,
+          400: ErrorResponse,
+          401: ErrorResponse,
+          403: ErrorResponse,
+          404: ErrorResponse,
+          500: ErrorResponse
+        },
+        detail: {
+          tags: ['Chat'],
+          summary: 'Confirm Bankr Transaction',
+          description: `
+Confirms or reports failure of a Bankr AI transaction execution.
+
+**Purpose:**
+- Update transaction status after user executes it
+- Post follow-up message from Bankr AI with confirmation/failure
+
+**Authorization:** Only the user who triggered the transaction (prompter) can confirm it.
+
+**Workflow:**
+1. User clicks "Execute" button on Bankr transaction message
+2. User signs transaction in their wallet
+3. Frontend calls this endpoint with txHash and status
+4. Message transaction status is updated
+5. Bankr posts a follow-up confirmation/failure message
 
 **Authentication Required:** Yes (Farcaster JWT)
           `,

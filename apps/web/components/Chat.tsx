@@ -225,6 +225,22 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
               prev.map(msg => msg.id === botMessageId ? updatedBotMessage : msg)
             );
             
+            // Broadcast bot message via HMS so all users see it in real-time
+            const botMessageWithMetadata = JSON.stringify({
+              text: updatedBotMessage.message,
+              userFid: updatedBotMessage.userId,
+              pfp_url: updatedBotMessage.pfp_url || '/assets/bankr.png',
+              username: updatedBotMessage.username || 'Bankr',
+              displayName: updatedBotMessage.displayName || 'Bankr',
+              type: 'chat',
+              isBot: true,
+              status: updatedBotMessage.status,
+              transactions: updatedBotMessage.transactions,
+              prompterFid: updatedBotMessage.prompterFid,
+              replyTo: updatedBotMessage.replyTo
+            });
+            hmsActions.sendBroadcastMessage(botMessageWithMetadata);
+            
             setTimeout(scrollToBottom, 100);
             break;
           }
@@ -367,9 +383,8 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         messageText = msg.message;
       }
 
-      // Exclude bot messages from HMS - they're handled via Redis polling
-      if (isBot) return false;
-
+      // For bot messages, check if already in Redis to avoid duplicates
+      // Bot messages are broadcast via HMS for real-time visibility to all users
       return !validRedisMessages.some(redisMsg =>
         redisMsg.message === messageText &&
         Math.abs(new Date(redisMsg.timestamp).getTime() - msg.time.getTime()) < 5000
@@ -385,6 +400,8 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       let messageReplyTo = undefined;
       let messageIsBot = false;
       let messageStatus: 'pending' | 'completed' | 'failed' | undefined = undefined;
+      let messageTransactions = undefined;
+      let messagePrompterFid = undefined;
       
       try {
         const parsedMsg = JSON.parse(hmsMsg.message);
@@ -396,6 +413,8 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         messageReplyTo = parsedMsg.replyTo;
         messageIsBot = parsedMsg.isBot || false;
         messageStatus = parsedMsg.status;
+        messageTransactions = parsedMsg.transactions;
+        messagePrompterFid = parsedMsg.prompterFid;
       } catch (e) {
         // If parsing fails, use the message as is
         messageText = hmsMsg.message;
@@ -413,7 +432,9 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         type: 'text' as const,
         replyTo: messageReplyTo,
         isBot: messageIsBot,
-        status: messageStatus
+        status: messageStatus,
+        transactions: messageTransactions,
+        prompterFid: messagePrompterFid
       };
     });
 
@@ -476,6 +497,8 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
                     onSelectForReply={handleSelectForReply}
                     onScrollToMessage={handleScrollToMessage}
                     isSelected={isSelected}
+                    currentUserFid={user?.fid?.toString()}
+                    roomId={roomId}
                   />
                 );
               })}
