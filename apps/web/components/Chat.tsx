@@ -239,7 +239,11 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
               prompterFid: updatedBotMessage.prompterFid,
               replyTo: updatedBotMessage.replyTo
             });
+
+            console.log('Broadcasting updated bot message:', botMessageWithMetadata);
             hmsActions.sendBroadcastMessage(botMessageWithMetadata);
+
+            console.log('Bot message updated:', updatedBotMessage);
             
             setTimeout(scrollToBottom, 100);
             break;
@@ -375,12 +379,19 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       // For HMS messages that contain JSON, we need to extract the text part
       let messageText;
       let isBot = false;
+      let prompterFid = '';
       try {
         const parsedMsg = JSON.parse(msg.message);
         messageText = parsedMsg.text;
         isBot = parsedMsg.isBot === true;
+        prompterFid = parsedMsg.prompterFid || '';
       } catch (e) {
         messageText = msg.message;
+      }
+
+      // Skip bot messages that the current user prompted - they already have it from Redis polling
+      if (isBot && prompterFid && String(prompterFid) === String(user?.fid)) {
+        return false;
       }
 
       // For bot messages, check if already in Redis to avoid duplicates
@@ -459,7 +470,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
           </p>
         </DrawerHeader>
 
-        <div className="flex-1 overflow-y-auto px-4 py-6 max-h-[90vh] ">
+        <div className="flex-1 overflow-y-auto px-2 py-6 max-h-[90vh] ">
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-white text-sm">Loading messages...</div>
