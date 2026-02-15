@@ -51,6 +51,7 @@ export default function Providers({ children }: ProvidersProps) {
           background: '#000000',
           color: '#fff',
           border: '1px solid #141414',
+          zIndex: 9999,
         }}
       />
     </>

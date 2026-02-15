@@ -5,6 +5,7 @@ import { formatDistanceToNow } from "./utils/timeUtils";
 import { ReplyPreview } from "./ReplyPreview";
 import { useRef, useState, ReactNode } from "react";
 import { BankrTransactionButton } from "./BankrTransactionButton";
+import { toast } from "react-toastify";
 
 // Role mentions and their styling
 const ROLE_MENTIONS: Record<string, { color: string; bgColor: string }> = {
@@ -16,8 +17,58 @@ const ROLE_MENTIONS: Record<string, { color: string; bgColor: string }> = {
   listeners: { color: 'text-gray-400', bgColor: 'bg-gray-500/20' },
 };
 
+// Helper function to copy text to clipboard and show toast
+const copyToClipboard = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast.success('Copied to clipboard!', { autoClose: 2000 });
+  } catch (err) {
+    toast.error('Failed to copy');
+  }
+};
+
+// Helper function to render 0x addresses as clickable elements (for bot messages)
+function render0xAddresses(text: string, keyPrefix: string = ''): ReactNode[] {
+  // Match 0x followed by hexadecimal characters (addresses/hashes are typically 40 or 64 chars)
+  const addressRegex = /(0x[a-fA-F0-9]+)/g;
+  const parts: ReactNode[] = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = addressRegex.exec(text)) !== null) {
+    // Add text before the address
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    
+    const address = match[1];
+    parts.push(
+      <span
+        key={`${keyPrefix}addr-${match.index}`}
+        className="font-bold text-fireside-orange cursor-pointer hover:underline"
+        onClick={(e) => {
+          e.stopPropagation();
+          copyToClipboard(address);
+        }}
+        title="Click to copy"
+      >
+        {address}
+      </span>
+    );
+    
+    lastIndex = addressRegex.lastIndex;
+  }
+
+  // Add remaining text
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : [text];
+}
+
 // Helper function to parse and highlight mentions in message text
-function renderMessageWithMentions(text: string): ReactNode[] {
+function renderMessageWithMentions(text: string, isBot: boolean = false): ReactNode[] {
   // Match @username patterns (alphanumeric, underscores, dashes)
   const mentionRegex = /@([\w-]+)/g;
   const parts: ReactNode[] = [];
@@ -27,7 +78,12 @@ function renderMessageWithMentions(text: string): ReactNode[] {
   while ((match = mentionRegex.exec(text)) !== null) {
     // Add text before the mention
     if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index));
+      const textSegment = text.slice(lastIndex, match.index);
+      if (isBot) {
+        parts.push(...render0xAddresses(textSegment, `pre-${match.index}-`));
+      } else {
+        parts.push(textSegment);
+      }
     }
     
     const mentionText = match[1];
@@ -63,7 +119,17 @@ function renderMessageWithMentions(text: string): ReactNode[] {
 
   // Add remaining text after last mention
   if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex));
+    const remainingText = text.slice(lastIndex);
+    if (isBot) {
+      parts.push(...render0xAddresses(remainingText, `post-${lastIndex}-`));
+    } else {
+      parts.push(remainingText);
+    }
+  }
+
+  // If no mentions found but is bot, still process for 0x addresses
+  if (parts.length === 0 && isBot) {
+    return render0xAddresses(text, 'full-');
   }
 
   return parts.length > 0 ? parts : [text];
@@ -366,7 +432,7 @@ export function ChatMessage({ message, isOwnMessage, onSelectForReply, onScrollT
             </div>
           ) : (
             <p className={`text-sm text-left leading-relaxed whitespace-pre-wrap break-words ${botStatus === 'failed' ? 'text-red-300' : ''}`}>
-              {renderMessageWithMentions(getMessageText())}
+              {renderMessageWithMentions(getMessageText(), isBotMessage)}
             </p>
           )}
           
