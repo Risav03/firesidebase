@@ -14,6 +14,7 @@ import { rewardRoutes } from './routes/rewards';
 // import { sponsorshipWorker } from './queues/sponsorshipQueue';
 import { roomCleanupCron, adPayoutCron } from './cron';
 import { startWebhookRetryWorker } from './workers/webhookRetryWorker';
+import { websocketRoutes } from './routes/websocket';
 
 const app = new Elysia();
 
@@ -126,6 +127,9 @@ app.use(cors({
 // Add cron jobs
 app.use(roomCleanupCron);
 app.use(adPayoutCron);
+
+// WebSocket routes (at root level, not under /api)
+app.use(websocketRoutes);
 
 app.get('/health', () => ({
   status: 'ok',

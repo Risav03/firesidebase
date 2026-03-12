@@ -9,7 +9,8 @@ import { useGlobalContext } from "@/utils/providers/globalContext";
 import { toast } from "react-toastify";
 import sdk from "@farcaster/miniapp-sdk";
 import { MdClose, MdSend } from 'react-icons/md';
-import { fetchChatMessages, sendChatMessage } from "@/utils/serverActions";
+import { fetchChatMessages } from "@/utils/serverActions";
+import { useChatWebSocket } from "@/hooks/useChatWebSocket";
 import {
   Drawer,
   DrawerContent,
@@ -56,6 +57,38 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
       });
     }
   }, []);
+
+  // WebSocket callbacks for real-time chat
+  const onNewMessage = useCallback((msg: RedisChatMessage) => {
+    setRedisMessages(prev => {
+      // Deduplicate by message ID
+      if (prev.some(m => m.id === msg.id)) return prev;
+      return [...prev, msg];
+    });
+    setTimeout(scrollToBottom, 100);
+  }, [scrollToBottom]);
+
+  const onMessageUpdated = useCallback((msg: RedisChatMessage) => {
+    setRedisMessages(prev =>
+      prev.map(m => m.id === msg.id ? msg : m)
+    );
+    setTimeout(scrollToBottom, 100);
+  }, [scrollToBottom]);
+
+  const onMessagesDeleted = useCallback((_roomId: string) => {
+    setRedisMessages([]);
+  }, []);
+
+  const onWsError = useCallback((error: string) => {
+    console.error('[Chat WS Error]:', error);
+  }, []);
+
+  const { isConnected, sendMessage: wsSendMessage } = useChatWebSocket(roomId, {
+    onNewMessage,
+    onMessageUpdated,
+    onMessagesDeleted,
+    onError: onWsError,
+  });
 
   useEffect(() => {
     const loadMessages = async () => {
@@ -122,7 +155,6 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   }, [message]);
 
   const handleSendMessage = async () => {
-    const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
     if (!message.trim() || !user?.fid) return;
 
     const messageText = message.trim();
@@ -145,73 +177,11 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         token = (await sdk.quickAuth.getToken()).token;
       };
 
-      // Store in Redis for persistence (Redis is now the single source of truth)
-      const response = await sendChatMessage(
-        roomId,
-        {
-          message: messageText,
-          replyToId: replyToId
-        },
-        token
-      );
-
-      if (response.ok && response.data.success) {
-        const responseData = response.data.data;
-        
-        // Check if response includes bot message (Bankr AI trigger)
-        if (responseData.userMessage && responseData.botMessage) {
-          // Add user message to local state
-          setRedisMessages(prev => [...prev, responseData.userMessage]);
-          
-          // Add bot message to local state (no HMS broadcast needed - Redis is source of truth)
-          setRedisMessages(prev => [...prev, responseData.botMessage]);
-          
-          // Start polling for bot message completion
-          pollForBotMessageUpdate(responseData.botMessage.id);
-        } else {
-          // Regular message (no bot trigger)
-          setRedisMessages(prev => [...prev, responseData.message || responseData]);
-        }
-        
-        setTimeout(scrollToBottom, 100);
-      } else {
-        console.error('Failed to store message:', response.data.error);
-        toast.error('Failed to send message. Please try again.');
-      }
+      // Send via WebSocket for real-time delivery
+      wsSendMessage(messageText, replyToId, token);
     } catch (error) {
       console.error('Error sending message:', error);
-      // toast.error('Error sending message. Please try again.');
-      // Could show a retry option here
-    }
-  };
-
-  // Poll for bot message updates (when AI response is ready)
-  const pollForBotMessageUpdate = async (botMessageId: string, maxAttempts = 30, interval = 2000) => {
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      await new Promise(resolve => setTimeout(resolve, interval));
-      
-      // Refresh messages from Redis
-      try {
-        const response = await fetchChatMessages(roomId, 50);
-        if (response.ok && response.data.success) {
-          const messages = response.data.data.messages;
-          const updatedBotMessage = messages.find((m: RedisChatMessage) => m.id === botMessageId);
-          
-          if (updatedBotMessage && updatedBotMessage.status !== 'pending') {
-            // Bot message has been updated, update local state by replacing the pending message
-            setRedisMessages(prev => 
-              prev.map(msg => msg.id === botMessageId ? updatedBotMessage : msg)
-            );
-
-            console.log('Bot message updated:', updatedBotMessage);
-            
-            setTimeout(scrollToBottom, 100);
-            break;
-          }
-        }
-      } catch (error) {
-        console.error('Error polling for bot message:', error);
-      }
+      toast.error('Error sending message. Please try again.');
     }
   };
 
