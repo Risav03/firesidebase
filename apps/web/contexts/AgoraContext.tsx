@@ -63,6 +63,8 @@ interface AgoraContextValue {
   toggleAudio: () => Promise<void>;
   setLocalAudioEnabled: (enabled: boolean) => Promise<void>;
   setClientRole: (role: "host" | "audience") => Promise<void>;
+  renewToken: (token: string) => Promise<void>;
+  changeRole: (newRole: string, newToken: string, metadata?: string) => Promise<void>;
   publishAudio: () => Promise<void>;
   unpublishAudio: () => Promise<void>;
   updateLocalMetadata: (metadata: string) => void;
@@ -239,6 +241,17 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
       clientRef.current.on("connection-state-change", (curState) => {
         setIsConnected(curState === "CONNECTED");
       });
+
+      // Event: token expiring — request a new token before it expires
+      clientRef.current.on("token-privilege-will-expire", async () => {
+        console.log("[Agora] Token privilege will expire, requesting renewal...");
+        const handlers = eventHandlersRef.current.get("TOKEN_EXPIRING");
+        if (handlers) {
+          for (const handler of Array.from(handlers)) {
+            handler({});
+          }
+        }
+      });
     }
     return clientRef.current;
   }, []);
@@ -255,6 +268,13 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
       metadata?: string
     ) => {
       const client = await getClient();
+
+      // Prevent joining if already connected or connecting
+      if (client.connectionState === "CONNECTED" || client.connectionState === "CONNECTING") {
+        console.warn("[Agora] Already connected/connecting, skipping join");
+        return;
+      }
+
       // Set client role based on app role
       const agoraRole =
         role === "listener" ? "audience" : "host";
@@ -272,13 +292,17 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
 
       // Create and publish local audio track if not listener
       if (agoraRole === "host") {
-        const AgoraRTC = await getAgoraRTC();
-        const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-        localAudioTrackRef.current = audioTrack;
-        setLocalAudioTrack(audioTrack);
-        await audioTrack.setEnabled(false); // Start muted
-        await client.publish([audioTrack]);
-        setIsLocalAudioEnabledState(false);
+        try {
+          const AgoraRTC = await getAgoraRTC();
+          const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+          localAudioTrackRef.current = audioTrack;
+          setLocalAudioTrack(audioTrack);
+          await audioTrack.setEnabled(false); // Start muted
+          await client.publish([audioTrack]);
+          setIsLocalAudioEnabledState(false);
+        } catch (err) {
+          console.warn("[Agora] No microphone found, joining without audio track:", err);
+        }
       }
 
       // Set local peer info
@@ -318,6 +342,62 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
     localUidRef.current = null;
   }, []);
 
+  // ── Token Renewal ─────────────────────────────────────────────────────────────
+
+  const renewToken = useCallback(async (token: string) => {
+    if (clientRef.current) {
+      await clientRef.current.renewToken(token);
+    }
+  }, []);
+
+  // ── Change Role (Agora-native, no disconnect) ────────────────────────────────
+
+  const changeRole = useCallback(
+    async (newRole: string, newToken: string, metadata?: string) => {
+      const client = await getClient();
+      const agoraRole = newRole === "listener" ? "audience" : "host";
+
+      // Renew token first (new role may need different privileges)
+      await client.renewToken(newToken);
+
+      // Switch Agora client role
+      await client.setClientRole(agoraRole);
+
+      // Handle audio track lifecycle
+      if (agoraRole === "host" && !localAudioTrackRef.current) {
+        try {
+          const AgoraRTC = await getAgoraRTC();
+          const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+          localAudioTrackRef.current = audioTrack;
+          setLocalAudioTrack(audioTrack);
+          await audioTrack.setEnabled(false); // Start muted
+          await client.publish([audioTrack]);
+          setIsLocalAudioEnabledState(false);
+        } catch (err) {
+          console.warn("[Agora] No microphone found during role change:", err);
+        }
+      } else if (agoraRole === "audience" && localAudioTrackRef.current) {
+        await client.unpublish([localAudioTrackRef.current]);
+        localAudioTrackRef.current.close();
+        localAudioTrackRef.current = null;
+        setLocalAudioTrack(null);
+        setIsLocalAudioEnabledState(false);
+      }
+
+      // Update local peer info
+      setLocalPeer((prev) =>
+        prev
+          ? {
+              ...prev,
+              roleName: newRole,
+              metadata: metadata || prev.metadata,
+            }
+          : null
+      );
+    },
+    [getClient]
+  );
+
   // ── Audio Controls ────────────────────────────────────────────────────────────
 
   const toggleAudio = useCallback(async () => {
@@ -343,13 +423,17 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
       await client.setClientRole(role);
 
       if (role === "host" && !localAudioTrackRef.current) {
-        const AgoraRTC = await getAgoraRTC();
-        const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-        localAudioTrackRef.current = audioTrack;
-        setLocalAudioTrack(audioTrack);
-        await audioTrack.setEnabled(false);
-        await client.publish([audioTrack]);
-        setIsLocalAudioEnabledState(false);
+        try {
+          const AgoraRTC = await getAgoraRTC();
+          const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+          localAudioTrackRef.current = audioTrack;
+          setLocalAudioTrack(audioTrack);
+          await audioTrack.setEnabled(false);
+          await client.publish([audioTrack]);
+          setIsLocalAudioEnabledState(false);
+        } catch (err) {
+          console.warn("[Agora] No microphone found during setClientRole:", err);
+        }
       } else if (role === "audience" && localAudioTrackRef.current) {
         await client.unpublish([localAudioTrackRef.current]);
         localAudioTrackRef.current.close();
@@ -369,7 +453,9 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
       localAudioTrackRef.current = audioTrack;
       setLocalAudioTrack(audioTrack);
     }
-    await client.publish([localAudioTrackRef.current]);
+    if (localAudioTrackRef.current) {
+      await client.publish([localAudioTrackRef.current]);
+    }
   }, [getClient]);
 
   const unpublishAudio = useCallback(async () => {
@@ -556,6 +642,8 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
     isLocalAudioEnabled,
     join,
     leave,
+    renewToken,
+    changeRole,
     toggleAudio,
     setLocalAudioEnabled,
     setClientRole,

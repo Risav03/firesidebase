@@ -9,13 +9,39 @@ import sdk from '@farcaster/miniapp-sdk';
 export default function RoleChangeHandler() {
   const params = useParams();
   const roomId = params.id as string;
-  const { localPeer, leave, join, onCustomEvent } = useAgoraContext();
-  const isRejoining = useRef(false);
+  const { localPeer, changeRole, renewToken, onCustomEvent } = useAgoraContext();
+  const isChangingRole = useRef(false);
   const lastRole = useRef<string | null>(null);
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
+  // Handle token expiry — fetch a fresh token and renew without disconnecting
   useEffect(() => {
-    // Listen for role change custom events
+    const unsubscribe = onCustomEvent('TOKEN_EXPIRING', async () => {
+      const env = process.env.NEXT_PUBLIC_ENV;
+      let authToken = "";
+      if (env !== "DEV") {
+        authToken = (await sdk.quickAuth.getToken()).token;
+      }
+
+      try {
+        const response = await fetchAPI(
+          `${URL}/api/rooms/protected/${roomId}/my-code`,
+          { authToken }
+        );
+
+        if (response.ok && response.data.success) {
+          await renewToken(response.data.data.token);
+        }
+      } catch (error) {
+        console.error('[RoleChangeHandler] Failed to renew token:', error);
+      }
+    });
+
+    return unsubscribe;
+  }, [renewToken, onCustomEvent, roomId, URL]);
+
+  // Handle role change — use Agora-native role switching (no leave/rejoin needed)
+  useEffect(() => {
     const unsubscribe = onCustomEvent('ROLE_UPDATED', async (data: { targetFid: string; newRole: string }) => {
       if (!localPeer?.metadata) return;
       
@@ -27,58 +53,48 @@ export default function RoleChangeHandler() {
         
         const newRole = data.newRole;
 
-        // Prevent infinite loops and invalid role changes
-        if (isRejoining.current || lastRole.current === newRole || !newRole) {
+        // Prevent concurrent role changes and duplicate processing
+        if (isChangingRole.current || lastRole.current === newRole || !newRole) {
           return;
         }
 
-        // Validate that the new role is one we expect
+        // Validate role
         const validRoles = ['host', 'co-host', 'speaker', 'listener'];
         if (!validRoles.includes(newRole)) {
-          console.warn(`[RoleChangeHandler] Unknown role: ${newRole}, skipping re-join`);
+          console.warn(`[RoleChangeHandler] Unknown role: ${newRole}, skipping`);
           return;
         }
 
         lastRole.current = newRole;
-        isRejoining.current = true;
+        isChangingRole.current = true;
 
         try {
-          // Dispatch event to show re-joining state
           window.dispatchEvent(new CustomEvent('role_change_event', {
             detail: { type: 'role_change_start', newRole }
           }));
           
           const env = process.env.NEXT_PUBLIC_ENV;
-          let token: any = "";
+          let authToken = "";
           if (env !== "DEV") {
-            token = (await sdk.quickAuth.getToken()).token;
+            authToken = (await sdk.quickAuth.getToken()).token;
           }
 
-          // Fetch new Agora token for the updated role
+          // Fetch a new token with privileges matching the new role
           const response = await fetchAPI(
             `${URL}/api/rooms/protected/${roomId}/my-code`,
-            { authToken: token }
+            { authToken }
           );
 
           if (!response.ok || !response.data.success) {
             throw new Error(response.data.error || 'Failed to fetch new token');
           }
 
-          const { role, token: agoraToken, channelName, uid, appId } = response.data.data;
+          const { role, token: agoraToken } = response.data.data;
 
-          // Leave current channel
-          await leave();
-          
-          // Small delay to ensure clean disconnect
-          await new Promise(resolve => setTimeout(resolve, 1000));
-
-          // Re-join with new role
-          await join(
-            appId,
-            channelName,
-            agoraToken,
-            uid,
+          // Switch role in-channel: renewToken + setClientRole + audio track management
+          await changeRole(
             role,
+            agoraToken,
             JSON.stringify({
               avatar: metadata.avatar || '',
               role: role,
@@ -87,19 +103,17 @@ export default function RoleChangeHandler() {
             })
           );
           
-          // Dispatch event to show role change complete
           window.dispatchEvent(new CustomEvent('role_change_event', {
             detail: { type: 'role_change_complete', newRole: role }
           }));
         } catch (error) {
-          console.error('[RoleChangeHandler] Error re-joining with new role:', error);
+          console.error('[RoleChangeHandler] Error changing role:', error);
           
-          // Dispatch event to show role change failed
           window.dispatchEvent(new CustomEvent('role_change_event', {
             detail: { type: 'role_change_failed', error: error instanceof Error ? error.message : 'Unknown error' }
           }));
         } finally {
-          isRejoining.current = false;
+          isChangingRole.current = false;
         }
       } catch (e) {
         console.error('[RoleChangeHandler] Error parsing metadata:', e);
@@ -107,8 +121,7 @@ export default function RoleChangeHandler() {
     });
 
     return unsubscribe;
-  }, [localPeer, leave, join, onCustomEvent, roomId, URL]);
+  }, [localPeer, changeRole, onCustomEvent, roomId, URL]);
 
-  // This component doesn't render anything
   return null;
 }

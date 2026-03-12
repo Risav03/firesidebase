@@ -370,8 +370,10 @@ export const GetMyCodeResponseSchema = t.Object({
   success: t.Boolean(),
   data: t.Object({
     role: t.Any({ description: 'User role in the room' }),
-    code: t.Any({ description: 'Room code string' }),
-    roomCode: t.Any()
+    token: t.Any({ description: 'Agora RTC token' }),
+    channelName: t.Any({ description: 'Agora channel name' }),
+    uid: t.Any({ description: 'Agora user ID (FID)' }),
+    appId: t.Any({ description: 'Agora App ID' })
   })
 });
 

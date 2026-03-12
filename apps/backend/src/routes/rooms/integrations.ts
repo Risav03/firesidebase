@@ -121,6 +121,8 @@ Generates Agora RTC tokens for all roles in a room.
           const uid = parseInt(userFid);
           const token = agoraAPI.generateToken(room.roomId, uid, role);
 
+          console.log(`[Agora Token Generation] User FID: ${userFid}, Role: ${role}, Room ID: ${roomId}, token: ${token}`);
+
           return successResponse({
             role,
             token,

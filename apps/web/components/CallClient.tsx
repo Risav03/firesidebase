@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAgoraContext } from "@/contexts/AgoraContext";
 import { useGlobalContext } from "@/utils/providers/globalContext";
 import { TipNotificationProvider } from "@/contexts/TipNotificationContext";
@@ -14,7 +14,6 @@ import sdk from "@farcaster/miniapp-sdk";
 import { useNavigateWithLoader } from "@/utils/useNavigateWithLoader";
 import {
   fetchAPI,
-  fetchRoomCodes,
   addParticipantToRoom,
   removeParticipantFromRoom,
 } from "@/utils/serverActions";
@@ -35,6 +34,7 @@ export default function CallClient({ roomId }: CallClientProps) {
 
   const [isJoining, setIsJoining] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasJoinStarted = useRef(false);
 
   useEffect(() => {
     // Request wake lock to keep screen active
@@ -58,26 +58,32 @@ export default function CallClient({ roomId }: CallClientProps) {
   }, []);
 
   useEffect(() => {
+    if (hasJoinStarted.current) return;
+
     const attemptJoin = async (): Promise<void> => {
+      if (hasJoinStarted.current) return;
+      hasJoinStarted.current = true;
+
       const env = process.env.NEXT_PUBLIC_ENV;
 
-      var token: any = "";
+      let authToken = "";
       if (env !== "DEV") {
-        token = (await sdk.quickAuth.getToken()).token;
+        authToken = (await sdk.quickAuth.getToken()).token;
       }
 
       if (!user) {
         setError("User not authenticated");
         setIsJoining(false);
+        hasJoinStarted.current = false;
         return;
       }
 
       try {
-        // Fetch Agora token from backend
+        // Fetch Agora token and channel info from backend
         const response = await fetchAPI(
           `${URL}/api/rooms/protected/${roomId}/my-code`,
           {
-            authToken: token,
+            authToken,
           }
         );
 
@@ -87,7 +93,9 @@ export default function CallClient({ roomId }: CallClientProps) {
 
         const { role, token: agoraToken, channelName, uid, appId } = response.data.data;
 
-        // Join Agora channel
+        console.log("[Agora - CallClient] Received token and channel info:", response.data.data);
+
+        // Join Agora channel with the user's role-based token
         await join(
           appId,
           channelName,
@@ -119,7 +127,8 @@ export default function CallClient({ roomId }: CallClientProps) {
     if (user && roomId) {
       attemptJoin();
     }
-  }, [roomId, user, join]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomId, user]);
 
   const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
 
@@ -136,9 +145,9 @@ export default function CallClient({ roomId }: CallClientProps) {
       const addParticipantToRedis = async () => {
         const env = process.env.NEXT_PUBLIC_ENV;
 
-        var token: any = "";
+        let authToken = "";
         if (env !== "DEV") {
-          token = (await sdk.quickAuth.getToken()).token;
+          authToken = (await sdk.quickAuth.getToken()).token;
         }
 
         try {
@@ -148,7 +157,7 @@ export default function CallClient({ roomId }: CallClientProps) {
               userFid: user.fid,
               role: role || "listener",
             },
-            token
+            authToken
           );
 
           if (response.ok && response.data.success) {
@@ -174,9 +183,9 @@ export default function CallClient({ roomId }: CallClientProps) {
     const removeParticipantFromRedis = async () => {
       const env = process.env.NEXT_PUBLIC_ENV;
 
-      var token: any = "";
+      let authToken = "";
       if (env !== "DEV") {
-        token = (await sdk.quickAuth.getToken()).token;
+        authToken = (await sdk.quickAuth.getToken()).token;
       }
 
       if (user?.fid) {
@@ -186,7 +195,7 @@ export default function CallClient({ roomId }: CallClientProps) {
             {
               userFid: user.fid,
             },
-            token
+            authToken
           );
         } catch (error) {
           console.error("Error removing participant from Redis:", error);
