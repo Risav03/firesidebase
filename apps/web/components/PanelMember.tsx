@@ -74,7 +74,7 @@ export default function PanelMember({ id, name, img, role, onClick, isHandRaised
       onClick={() => onClick(id)}
     >
       <div
-        className={`relative rounded-xl overflow-hidden transition-all duration-200 border-b-4 ${getBorderClass()} ${getRingClass()}`}
+        className={`relative rounded-xl transition-all duration-200 border-b-4 ${getBorderClass()} ${getRingClass()}`}
         style={{
           width: '80px',
           height: '80px'
@@ -83,7 +83,7 @@ export default function PanelMember({ id, name, img, role, onClick, isHandRaised
         <img
           src={img || `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`}
           alt={name}
-          className={`w-full h-full object-cover transition-all duration-300 ease-in-out ${!isPeerAudioEnabled ? "opacity-70" : ""}`}
+          className={`w-full h-full rounded-xl object-cover transition-all duration-300 ease-in-out ${!isPeerAudioEnabled ? "opacity-70" : ""}`}
         />
         {!isPeerAudioEnabled && (
           <div className="absolute inset-0 flex items-center justify-center">
