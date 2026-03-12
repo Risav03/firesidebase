@@ -5,6 +5,7 @@ import { chatRoutes } from './chat';
 import { integrationRoutes } from './integrations';
 import { tippingRoutes } from './tipping';
 import { summaryRoutes } from './summary';
+import { eventRoutes } from './events';
 
 /**
  * Main room routes aggregator
@@ -23,4 +24,5 @@ export const roomRoutes = new Elysia({ prefix: '/rooms' })
   .use(chatRoutes)
   .use(integrationRoutes)
   .use(tippingRoutes)
-  .use(summaryRoutes);
+  .use(summaryRoutes)
+  .use(eventRoutes);

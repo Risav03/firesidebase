@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react';
-import { useHMSActions, useHMSStore, selectLocalPeer } from '@100mslive/react-sdk';
+import { useAgoraContext } from '@/contexts/AgoraContext';
 import { useGlobalContext } from '@/utils/providers/globalContext';
 import sdk from '@farcaster/miniapp-sdk';
 import { toast } from 'react-toastify';
@@ -27,8 +27,7 @@ interface TippingDrawerProps {
 }
 
 export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerProps) {
-  const hmsActions = useHMSActions();
-  const localPeer = useHMSStore(selectLocalPeer);
+  const { localPeer } = useAgoraContext();
   
   const [tipAmount, setTipAmount] = useState<string>('');
   const [isTipping, setIsTipping] = useState(false);
@@ -169,9 +168,7 @@ export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerPr
       // Non-critical error, continue with notification
     }
     
-    const emoji = tipAmountUSD >= 100 ? '💸' : tipAmountUSD >= 25 ? '🎉' : '👍';
-    const message = `${emoji} ${tipper} tipped ${recipient} $${tipAmountUSD} in ${currency}!`;
-    hmsActions.sendBroadcastMessage(message);
+    // No longer broadcasting via HMS — tip notifications are handled via custom events
     
     toast.success('Tip sent successfully!');
     setTipAmount('');

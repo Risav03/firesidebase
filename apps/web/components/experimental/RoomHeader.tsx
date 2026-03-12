@@ -1,19 +1,14 @@
 'use client'
 import { TOKENS, LiveBadge, AdsToggle, StarRings } from ".";
 import { useState, useEffect } from 'react';
-import { ExitIcon } from "@100mslive/react-icons";
+import { LogOut } from "lucide-react";
 import { TbShare3 } from "react-icons/tb";
 import { MdCopyAll, MdOutlineIosShare } from "react-icons/md";
 import { FaXTwitter } from "react-icons/fa6";
 import { sdk } from "@farcaster/miniapp-sdk";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-import {
-  useHMSActions,
-  useHMSStore,
-  selectLocalPeer,
-  selectIsConnectedToRoom,
-} from "@100mslive/react-sdk";
+import { useAgoraContext } from "@/contexts/AgoraContext";
 import RoomEndModal from "../RoomEndModal";
 import { fetchRoomDetails } from "@/utils/serverActions";
 
@@ -38,9 +33,7 @@ export function RoomHeader({
   const [showRoomEndModal, setShowRoomEndModal] = useState(false);
   const [roomDetails, setRoomDetails] = useState<{ name: string; description: string } | null>(null);
   const router = useRouter();
-  const hmsActions = useHMSActions();
-  const localPeer = useHMSStore(selectLocalPeer);
-  const isConnected = useHMSStore(selectIsConnectedToRoom);
+  const { localPeer, isConnected, leave } = useAgoraContext();
 
   const isHost = localPeer?.roleName === 'host';
 
@@ -70,7 +63,7 @@ export function RoomHeader({
     if (isHost) {
       setShowRoomEndModal(true);
     } else {
-      hmsActions.leave();
+      leave();
       router.push('/');
     }
   };
@@ -155,7 +148,7 @@ export function RoomHeader({
                 title="Leave"
                 onClick={handleLeaveClick}
               >
-                <ExitIcon
+                <LogOut
                   className="h-[18px] w-[18px]"
                   style={{ color: "rgba(239,68,68,1)" }}
                 />

@@ -10,7 +10,7 @@ import {
   AddParticipantRequestSchema,
   UpdateParticipantRoleRequestSchema,
 } from '../../schemas';
-import { HMSAPI } from '../../services/hmsAPI';
+import { AgoraAPI } from '../../services/agoraAPI';
 import { errorResponse, successResponse, VALID_ROLES, isValidRole } from '../../utils';
 import { authMiddleware } from '../../middleware/auth';
 import { 
@@ -164,8 +164,8 @@ Retrieves participants for a room with flexible filtering options.
             set.status = 404;
             return errorResponse('Room not found');
           }
-          const hmsAPI = new HMSAPI();
-          const liveParticipants = await hmsAPI.listRoomPeers(room.roomId);
+          const agoraAPI = new AgoraAPI();
+          const liveParticipants = await agoraAPI.listChannelUsers(room.roomId);
           return successResponse(liveParticipants);
         } catch (error) {
           console.error('Error fetching live participants:', error);
@@ -183,18 +183,18 @@ Retrieves participants for a room with flexible filtering options.
         },
         detail: {
           tags: ['Participants'],
-          summary: 'Get Live Participants from 100ms',
+          summary: 'Get Live Participants from Agora',
           description: `
-Retrieves the current live participants directly from 100ms API.
+Retrieves the current live participants directly from Agora API.
 
 **Use Case:** Real-time verification of who is actually connected to the audio room.
 
-**Data Source:** 100ms API (authoritative for actual connections)
+**Data Source:** Agora API (authoritative for actual connections)
 
 **Difference from /participants:**
-- This endpoint queries 100ms directly
+- This endpoint queries Agora directly
 - /participants queries Redis (our cached state)
-- 100ms data may differ slightly due to connection state transitions
+- Agora data may differ slightly due to connection state transitions
 
 **Note:** This is a public endpoint and does not require authentication.
           `
@@ -605,13 +605,13 @@ Allows an authenticated user to leave a room.
             return errorResponse('Only the host can end the room');
           }
 
-          // End room in HMS
+          // End room in Agora
           try {
-            const hmsAPI = new HMSAPI();
-            await hmsAPI.endRoom(room.roomId);
-            console.log('Room successfully ended in HMS');
-          } catch (hmsError) {
-            console.error('Error ending room in HMS:', hmsError);
+            const agoraAPI = new AgoraAPI();
+            await agoraAPI.endChannel(room.roomId);
+            console.log('Room successfully ended in Agora');
+          } catch (agoraError) {
+            console.error('Error ending room in Agora:', agoraError);
           }
 
           const roles = ['host', 'co-host', 'speaker', 'listener'];
@@ -787,7 +787,7 @@ Ends a room session completely.
 **Authorization:** Only the room host can end the room.
 
 **Actions Performed:**
-1. Ends the room in 100ms (disconnects all participants)
+1. Ends the room in Agora (disconnects all participants)
 2. Persists all participant records to MongoDB
 3. Updates room status to "ended" and \`enabled: false\`
 4. Stops any running ad session

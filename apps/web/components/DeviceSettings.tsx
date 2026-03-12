@@ -1,7 +1,6 @@
 // 'use client'
 
-// import { useDevices, DeviceType, HMSMediaDevice } from "@100mslive/react-sdk";
-// import { ChangeEvent } from "react";
+// Device settings component - unused (Agora handles device selection internally)
 
 // interface SelectProps {
 //   list?: HMSMediaDevice[];

@@ -1,20 +1,20 @@
 'use client';
 
 import { useEffect, useRef, useMemo } from 'react';
-import { HMSPeer } from '@100mslive/react-sdk';
+import { AgoraPeer } from '@/contexts/AgoraContext';
 
 // Type for role mention items
 type RoleMentionItem = { type: 'role'; role: string; label: string; color: string; icon: string };
 
 // Type for mentionable items (either a peer or a role)
 type MentionItem = 
-  | { type: 'peer'; peer: HMSPeer }
+  | { type: 'peer'; peer: AgoraPeer }
   | RoleMentionItem;
 
 interface MentionPopupProps {
-  peers: HMSPeer[];
+  peers: AgoraPeer[];
   query: string;
-  onSelect: (peer: HMSPeer | null, displayText: string) => void;
+  onSelect: (peer: AgoraPeer | null, displayText: string) => void;
   onClose: () => void;
   selectedIndex: number;
   onSelectedIndexChange: (index: number) => void;
@@ -48,7 +48,7 @@ export function MentionPopup({
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   // Parse peer metadata to get avatar and other info
-  const getPeerMeta = (peer: HMSPeer) => {
+  const getPeerMeta = (peer: AgoraPeer) => {
     try {
       const meta = peer.metadata ? JSON.parse(peer.metadata) : {};
       return {

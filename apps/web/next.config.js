@@ -52,7 +52,7 @@ const nextConfig = {
     return config;
   },
   // Handle dynamic imports better
-  transpilePackages: ['@coinbase/onchainkit', '@100mslive/react-sdk', 'agora-rtc-react', 'agora-rtc-sdk-ng'],
+  transpilePackages: ['@coinbase/onchainkit', 'agora-rtc-react'],
 }
 
 module.exports = nextConfig

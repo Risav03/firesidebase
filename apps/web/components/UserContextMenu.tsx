@@ -2,10 +2,10 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useHMSActions, useHMSStore, selectLocalPeer, selectPermissions, selectIsPeerAudioEnabled } from '@100mslive/react-sdk';
-import { ChevronDownIcon, MicOnIcon, MicOffIcon } from '@100mslive/react-icons';
+import { useAgoraContext } from '@/contexts/AgoraContext';
+import { ChevronDown, Mic, MicOff } from 'lucide-react';
 import sdk from "@farcaster/miniapp-sdk";
-import { updateParticipantRole, transferHostRole } from '@/utils/serverActions';
+import { updateParticipantRole, transferHostRole, fetchAPI } from '@/utils/serverActions';
 import { Card } from './UI/Card';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from './UI/drawer';
 import { toast } from 'react-toastify';
@@ -29,8 +29,7 @@ interface UserContextMenuProps {
 }
 
 export default function UserContextMenu({ peer, isVisible, onClose, onViewProfile }: UserContextMenuProps) {
-  const hmsActions = useHMSActions();
-  const localPeer = useHMSStore(selectLocalPeer);
+  const { localPeer, sendCustomEvent } = useAgoraContext();
   const menuRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -53,17 +52,13 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
   const lastCurrencyRef = useRef<string>('ETH');
   const roomId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() || '' : '';
 
-  // Add this hook to get peer audio state
-  const permissions = useHMSStore(selectPermissions);
-  const isPeerAudioEnabled = useHMSStore(selectIsPeerAudioEnabled(peer.id));
-  const canRemoteMute = Boolean(permissions?.mute);          // depends on your template perms
-  const canRemovePeer = Boolean(permissions?.removeOthers);  // depends on your template perms
-
-  // Check if local user is host or co-host
+  // Role-based permissions
   const isHostOrCoHost = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
+  const canRemoteMute = isHostOrCoHost;
+  const canRemovePeer = localPeer?.roleName === 'host';
   
   // Check if this is the local user
-  const isLocalUser = peer.id === localPeer?.id;
+  const isLocalUser = peer.uid === localPeer?.uid;
   
   // Check if target peer is a host (to prevent co-hosts from accessing host's context menu)
   const isTargetPeerHost = peer.roleName === 'host';
@@ -75,9 +70,9 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
 
   // Listen for incoming tips
   useTipEvent((msg) => {
-    // Check if the local peer is one of the recipients by peer ID
+    // Check if the local peer is one of the recipients by uid
     const isRecipient = msg.recipients.some(
-      recipient => recipient.id === localPeer?.id
+      recipient => String(recipient.id) === String(localPeer?.uid)
     );
     if (isRecipient) {
       toast.success(`${msg.tipper.username} tipped you $${msg.amount.usd} in ${msg.amount.currency}! 🎉`);
@@ -196,24 +191,22 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
     try {
       setIsLoading(true);
       
-      // Change role in HMS
-      await hmsActions.changeRoleOfPeer(peer.id, newRole, true);
+      const metadata = peer.metadata ? JSON.parse(peer.metadata) : null;
+      const userFid = metadata?.fid;
       
-      // Sync role change with Redis if we have user metadata
-      try {
-        const metadata = peer.metadata ? JSON.parse(peer.metadata) : null;
-        const userFid = metadata?.fid;
-        
-        if (userFid) {
-          // Get room ID from URL or context
-          const pathParts = window.location.pathname.split('/');
-          const roomId = pathParts[pathParts.length - 1];
+      if (userFid) {
+        const pathParts = window.location.pathname.split('/');
+        const roomId = pathParts[pathParts.length - 1];
 
-          await updateParticipantRole(roomId, userFid, newRole, token);
-        }
-      } catch (redisError) {
-        console.error('Error syncing role with Redis:', redisError);
-        // Don't fail the main operation if Redis sync fails
+        // Update role via backend API (updates Redis)
+        await updateParticipantRole(roomId, userFid, newRole, token);
+        
+        // Notify the peer to rejoin with new role
+        sendCustomEvent('ROLE_UPDATED', {
+          peerId: userFid,
+          newRole,
+          roomId,
+        });
       }
       
       onClose();
@@ -232,11 +225,9 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
     
     try {
       setIsLoading(true);
-      // Get room ID from URL
       const pathParts = window.location.pathname.split('/');
       const roomId = pathParts[pathParts.length - 1];
       
-      // Extract FIDs from metadata
       const peerMetadata = peer.metadata ? JSON.parse(peer.metadata) : null;
       const peerFid = peerMetadata?.fid;
       
@@ -251,37 +242,29 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
         return;
       }
       
-      // First promote the co-host to host using API
+      // Promote the co-host to host using API
       const promoteResponse = await transferHostRole(roomId, peerFid, 'host');
-      
       if (!promoteResponse.ok) {
-        console.error('Failed to promote user to host');
         throw new Error('Failed to promote user to host');
       }
       
-      // Then demote the current host to co-host
+      // Demote the current host to co-host
       const demoteResponse = await transferHostRole(roomId, localFid, 'co-host');
-      
       if (!demoteResponse.ok) {
         console.error('Failed to demote current host to co-host');
-        // Even if this fails, the other user is now host
       }
       
-      // For HMS SDK, we still need to update the local state
-      // This should trigger when the webhook comes back, but we do it here for immediate UI feedback
-      await hmsActions.changeRole(peer.id, 'host', true);
-      await hmsActions.changeRole(localPeer.id, 'co-host', true);
-      
-      // Force a reconnection for the promoted user by sending a message
-      try {
-        await hmsActions.sendDirectMessage(
-          'HOST_TRANSFER_RECONNECT', 
-          peer.id
-        );
-        
-      } catch (msgError) {
-        console.error('Failed to send reconnect message:', msgError);
-      }
+      // Notify both peers to rejoin with new roles
+      sendCustomEvent('ROLE_UPDATED', {
+        peerId: peerFid,
+        newRole: 'host',
+        roomId,
+      });
+      sendCustomEvent('ROLE_UPDATED', {
+        peerId: localFid,
+        newRole: 'co-host',
+        roomId,
+      });
       
       onClose();
     } catch (error) {
@@ -292,9 +275,13 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
   };
 
   const handleMuteToggle = async () => {
-    if (!peer.audioTrack || !canRemoteMute) return;
+    if (!canRemoteMute) return;
     try {
-      await hmsActions.setRemoteTrackEnabled(peer.audioTrack, !isPeerAudioEnabled);
+      const metadata = peer.metadata ? JSON.parse(peer.metadata) : null;
+      const peerFid = metadata?.fid;
+      if (peerFid) {
+        sendCustomEvent('REMOTE_MUTE', { peerId: peerFid });
+      }
       onClose();
     } catch (err) {
       console.error('Remote mute failed:', err);
@@ -304,7 +291,18 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
   const handleRemoveUser = async () => {
     if (!canRemovePeer) return;
     try {
-      await hmsActions.removePeer(peer.id, 'Host removed you from the room!');
+      const metadata = peer.metadata ? JSON.parse(peer.metadata) : null;
+      const peerFid = metadata?.fid;
+      if (peerFid) {
+        const pathParts = window.location.pathname.split('/');
+        const roomId = pathParts[pathParts.length - 1];
+        // Remove via backend API
+        await fetchAPI(`/rooms/${roomId}/leave`, {
+          method: 'POST',
+          body: JSON.stringify({ participantId: peerFid, kicked: true }),
+        });
+        sendCustomEvent('PEER_REMOVED', { peerId: peerFid, reason: 'Host removed you from the room!' });
+      }
       onClose();
     } catch (err) {
       console.error('Remove peer failed:', err);
@@ -333,7 +331,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
     const tipAmountUSD = parseFloat(tipAmount);
     const tipper = user?.username || 'Someone';
     const recipient = peer.name || 'User';
-    const recipientId = peer.id || '';
+    const recipientId = String(peer.uid) || '';
     
     // Send tip notification to recipient
     sendTipNotification({
@@ -356,10 +354,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
       timestamp: new Date().toISOString(),
     });
     
-    // Broadcast message to room
-    const emoji = tipAmountUSD >= 100 ? '💸' : tipAmountUSD >= 25 ? '🎉' : '👍';
-    const message = `${emoji} ${tipper} tipped ${recipient} $${tipAmountUSD} in ${currency}!`;
-    hmsActions.sendBroadcastMessage(message);
+    // No longer broadcasting via HMS — tip notifications are handled via custom events
     
     toast.success('Tip sent successfully!');
     setIsTipDrawerOpen(false);
@@ -518,7 +513,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
   }
 
   const currentRole = peer.roleName;
-  const isMuted = !isPeerAudioEnabled;
+  const isMuted = !peer.audioTrack;
 
   // Check if user has role management permissions
   const canManageRoles = isHostOrCoHost && !isCoHostTryingToAccessHost;
@@ -594,7 +589,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
                 disabled={isLoading}
                 className="w-full px-6 py-3 text-left text-sm text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-3 transition-colors"
               >
-                <MicOnIcon className="w-5 h-5" />
+                <Mic className="w-5 h-5" />
                 <span className="font-medium">{isLoading ? 'Changing...' : 'Make Speaker'}</span>
               </button>
             )}
@@ -606,7 +601,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
                 disabled={isLoading}
                 className="w-full px-6 py-3 text-left text-sm text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-3 transition-colors"
               >
-                <ChevronDownIcon className="w-5 h-5" />
+                <ChevronDown className="w-5 h-5" />
                 <span className="font-medium">{isLoading ? 'Changing...' : 'Make Co-host'}</span>
               </button>
             )}
@@ -618,7 +613,7 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
                 disabled={isLoading}
                 className="w-full px-6 py-3 text-left text-sm text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-3 transition-colors"
               >
-                <ChevronDownIcon className="w-5 h-5" />
+                <ChevronDown className="w-5 h-5" />
                 <span className="font-medium">{isLoading ? 'Transferring...' : 'Make Host'}</span>
               </button>
             )}
@@ -630,24 +625,24 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
                 disabled={isLoading}
                 className="w-full px-6 py-3 text-left text-sm text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-3 transition-colors"
               >
-                <MicOnIcon className="w-5 h-5" />
+                <Mic className="w-5 h-5" />
                 <span className="font-medium">{isLoading ? 'Changing...' : 'Make Listener'}</span>
               </button>
             )}
 
             {/* Mute - only show for speakers and co-hosts who are NOT muted */}
-            {(currentRole === 'speaker' || currentRole === 'co-host') && canRemoteMute && peer.audioTrack && !isMuted && (
+            {(currentRole === 'speaker' || currentRole === 'co-host') && canRemoteMute && !isMuted && (
               <button
                 onClick={handleMuteToggle}
                 className="w-full px-6 py-3 text-left text-sm text-white hover:bg-gray-700 flex items-center space-x-3 transition-colors"
               >
-                <MicOffIcon className="w-5 h-5" />
+                <MicOff className="w-5 h-5" />
                 <span className="font-medium">Mute</span>
               </button>
             )}
 
               {/* Remove User (only for host) */}
-              {localPeer?.roleName === 'host' && canRemovePeer && (
+              {canRemovePeer && (
                 <div className="border-t border-gray-600 mt-2 pt-2">
                   <button
                     onClick={handleRemoveUser}

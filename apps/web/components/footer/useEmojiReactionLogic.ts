@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useHMSActions, useHMSStore, selectLocalPeer, HMSPeer } from "@100mslive/react-sdk";
+import { useState } from "react";
 import { useEmojiReactionEvent } from "@/utils/events";
 
 interface FloatingEmoji {
@@ -17,7 +16,6 @@ interface EmojiReactionLogicProps {
 }
 
 export function useEmojiReactionLogic({ user }: EmojiReactionLogicProps) {
-  const hmsActions = useHMSActions();
   const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
   const [isDisabled, setIsDisabled] = useState(false);
   
@@ -35,10 +33,6 @@ export function useEmojiReactionLogic({ user }: EmojiReactionLogicProps) {
       setFloatingEmojis((prev) => prev.filter((e) => e.id !== uniqueMsg.id));
     }, 5000);
   });
-
-  useEffect(() => {
-    hmsActions.ignoreMessageTypes(['EMOJI_REACTION']);
-  }, [hmsActions]);
 
   const handleEmojiSelect = (emoji: { emoji: string }) => {
     if (isDisabled) return;

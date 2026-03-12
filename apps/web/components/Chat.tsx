@@ -1,15 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import {
-  selectHMSMessages,
-  selectLocalPeer,
-  selectPeers,
-  useHMSActions,
-  useHMSStore,
-  HMSMessage,
-  HMSPeer,
-} from "@100mslive/react-sdk";
+import { useAgoraContext, AgoraPeer } from "@/contexts/AgoraContext";
 import { ChatMessage } from "./ChatMessage";
 import { ReplyPreview } from "./ReplyPreview";
 import { MentionPopup } from "./MentionPopup";
@@ -46,9 +38,13 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   const [mentionStartIndex, setMentionStartIndex] = useState(0);
   const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
 
-  const messages = useHMSStore(selectHMSMessages);
-  const peers = useHMSStore(selectPeers);
-  const hmsActions = useHMSActions();
+  const { localPeer, remotePeers } = useAgoraContext();
+  const peers = (() => {
+    const allPeers: AgoraPeer[] = [];
+    if (localPeer) allPeers.push(localPeer);
+    remotePeers.forEach((p) => allPeers.push(p));
+    return allPeers;
+  })();
   const { user } = useGlobalContext();
 
   // Scroll to bottom function
@@ -97,7 +93,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
     if (isOpen) {
       setTimeout(scrollToBottom, 300);
     }
-  }, [isOpen, messages, redisMessages, scrollToBottom]);
+  }, [isOpen, redisMessages, scrollToBottom]);
 
 
 
@@ -142,24 +138,6 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
     }, 0);
 
     try {
-      // Send to HMS for real-time broadcast
-      // Format the message to include user fid and reply metadata for identification
-      const messageWithMetadata = JSON.stringify({
-        text: messageText,
-        userFid: user.fid,
-        pfp_url: user.pfp_url || '',
-        username: user.username || '',
-        displayName: user.displayName || user.username || '',
-        type: 'chat',
-        replyTo: selectedReplyMessage ? {
-          messageId: selectedReplyMessage.id,
-          message: selectedReplyMessage.message.substring(0, 100),
-          username: selectedReplyMessage.username,
-          pfp_url: selectedReplyMessage.pfp_url
-        } : undefined
-      });
-      hmsActions.sendBroadcastMessage(messageWithMetadata);
-
       const env = process.env.NEXT_PUBLIC_ENV;
         
       var token: any = "";
@@ -167,7 +145,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
         token = (await sdk.quickAuth.getToken()).token;
       };
 
-      // Store in Redis for persistence
+      // Store in Redis for persistence (Redis is now the single source of truth)
       const response = await sendChatMessage(
         roomId,
         {
@@ -224,24 +202,6 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
             setRedisMessages(prev => 
               prev.map(msg => msg.id === botMessageId ? updatedBotMessage : msg)
             );
-            
-            // Broadcast bot message via HMS so all users see it in real-time
-            const botMessageWithMetadata = JSON.stringify({
-              text: updatedBotMessage.message,
-              userFid: updatedBotMessage.userId,
-              pfp_url: updatedBotMessage.pfp_url || '/assets/bankr.png',
-              username: updatedBotMessage.username || 'Bankr',
-              displayName: updatedBotMessage.displayName || 'Bankr',
-              type: 'chat',
-              isBot: true,
-              status: updatedBotMessage.status,
-              transactions: updatedBotMessage.transactions,
-              prompterFid: updatedBotMessage.prompterFid,
-              replyTo: updatedBotMessage.replyTo
-            });
-
-            console.log('Broadcasting updated bot message:', botMessageWithMetadata);
-            hmsActions.sendBroadcastMessage(botMessageWithMetadata);
 
             console.log('Bot message updated:', updatedBotMessage);
             
@@ -290,7 +250,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
   };
 
   // Handle mention selection
-  const handleMentionSelect = (peer: HMSPeer | null, displayText: string) => {
+  const handleMentionSelect = (peer: AgoraPeer | null, displayText: string) => {
     const beforeMention = message.substring(0, mentionStartIndex);
     const afterMention = message.substring(mentionStartIndex + mentionQuery.length + 1); // +1 for @
     const newMessage = `${beforeMention}@${displayText} ${afterMention}`;
@@ -354,102 +314,13 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
     // For Redis messages
     if ('timestamp' in msg && 'message' in msg && typeof msg.message === 'string') return true;
     
-    // For HMS messages
-    if ('time' in msg && 'message' in msg) {
-      // Check if the message is a JSON string containing our metadata
-      try {
-        const parsedMessage = JSON.parse(msg.message);
-        return typeof parsedMessage === 'object' && 'text' in parsedMessage;
-      } catch (e) {
-        // If it's not parseable as JSON, check if it's a plain string message
-        return typeof msg.message === 'string';
-      }
-    }
-    
     return false;
   };
 
-  // Filter and combine messages
+  // Use Redis messages as single source of truth
   const validRedisMessages = redisMessages.filter(isValidMessageStructure);
-  const validHMSMessages = messages
-    .filter(msg => {
-      if (!isValidMessageStructure(msg)) return false;
-      
-      // Check if this message already exists in Redis
-      // For HMS messages that contain JSON, we need to extract the text part
-      let messageText;
-      let isBot = false;
-      let prompterFid = '';
-      try {
-        const parsedMsg = JSON.parse(msg.message);
-        messageText = parsedMsg.text;
-        isBot = parsedMsg.isBot === true;
-        prompterFid = parsedMsg.prompterFid || '';
-      } catch (e) {
-        messageText = msg.message;
-      }
 
-      // Skip bot messages that the current user prompted - they already have it from Redis polling
-      if (isBot && prompterFid && String(prompterFid) === String(user?.fid)) {
-        return false;
-      }
-
-      // For bot messages, check if already in Redis to avoid duplicates
-      // Bot messages are broadcast via HMS for real-time visibility to all users
-      return !validRedisMessages.some(redisMsg =>
-        redisMsg.message === messageText &&
-        Math.abs(new Date(redisMsg.timestamp).getTime() - msg.time.getTime()) < 5000
-      );
-    })
-    .map(hmsMsg => {
-      // Try to parse the message as JSON to extract user fid
-      let messageText = hmsMsg.message;
-      let messageFid = '';
-      let messagePfpUrl = '';
-      let messageUsername = '';
-      let messageDisplayName = '';
-      let messageReplyTo = undefined;
-      let messageIsBot = false;
-      let messageStatus: 'pending' | 'completed' | 'failed' | undefined = undefined;
-      let messageTransactions = undefined;
-      let messagePrompterFid = undefined;
-      
-      try {
-        const parsedMsg = JSON.parse(hmsMsg.message);
-        messageText = parsedMsg.text;
-        messageFid = parsedMsg.userFid || '';
-        messagePfpUrl = parsedMsg.pfp_url || '';
-        messageUsername = parsedMsg.username || '';
-        messageDisplayName = parsedMsg.displayName || '';
-        messageReplyTo = parsedMsg.replyTo;
-        messageIsBot = parsedMsg.isBot || false;
-        messageStatus = parsedMsg.status;
-        messageTransactions = parsedMsg.transactions;
-        messagePrompterFid = parsedMsg.prompterFid;
-      } catch (e) {
-        // If parsing fails, use the message as is
-        messageText = hmsMsg.message;
-      }
-      
-      return {
-        id: `hms_${hmsMsg.id}`,
-        roomId: roomId,
-        userId: messageFid || user.fid || hmsMsg.sender || 'unknown',
-        username: messageUsername || hmsMsg.senderName || hmsMsg.sender || 'Unknown',
-        displayName: messageDisplayName || hmsMsg.senderName || hmsMsg.sender || 'Unknown',
-        pfp_url: messagePfpUrl,
-        message: messageText,
-        timestamp: hmsMsg.time.toISOString(),
-        type: 'text' as const,
-        replyTo: messageReplyTo,
-        isBot: messageIsBot,
-        status: messageStatus,
-        transactions: messageTransactions,
-        prompterFid: messagePrompterFid
-      };
-    });
-
-  const combinedMessages = [...validRedisMessages, ...validHMSMessages]
+  const combinedMessages = [...validRedisMessages]
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
   // Always render, but control visibility through CSS classes

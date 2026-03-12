@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react';
-import { useHMSActions, useHMSStore, selectLocalPeer, selectPermissions, selectIsPeerAudioEnabled } from '@100mslive/react-sdk';
+import { useAgoraContext } from '@/contexts/AgoraContext';
 import sdk from '@farcaster/miniapp-sdk';
 import { toast } from 'react-toastify';
 import Modal from '@/components/UI/Modal';
-import { transferHostRole } from '@/utils/serverActions';
+import { transferHostRole, fetchAPI } from '@/utils/serverActions';
 import { useTipEvent } from '@/utils/events';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
@@ -18,18 +18,17 @@ interface AvatarContextMenuProps {
 }
 
 export default function AvatarContextMenu({ peer, isVisible, onClose, onOpenTipDrawer }: AvatarContextMenuProps) {
-  const hmsActions = useHMSActions();
-  const localPeer = useHMSStore(selectLocalPeer);
+  const { localPeer, sendCustomEvent } = useAgoraContext();
   const menuRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const permissions = useHMSStore(selectPermissions);
-  const isPeerAudioEnabled = useHMSStore(selectIsPeerAudioEnabled(peer?.id));
-  const canRemoteMute = Boolean(permissions?.mute);
-  const canRemovePeer = Boolean(permissions?.removeOthers);
-
+  // Role-based permissions (no HMS permissions store)
   const isHostOrCoHost = localPeer?.roleName === 'host' || localPeer?.roleName === 'co-host';
+  const canRemoteMute = isHostOrCoHost;
+  const canRemovePeer = localPeer?.roleName === 'host';
+  const isPeerAudioEnabled = !!peer?.audioTrack;
+
   const isLocalUser = peer?.id === localPeer?.id;
   const isTargetPeerHost = peer?.roleName === 'host';
   const isCoHostTryingToAccessHost = localPeer?.roleName === 'co-host' && isTargetPeerHost;
@@ -86,24 +85,25 @@ export default function AvatarContextMenu({ peer, isVisible, onClose, onOpenTipD
     try {
       setIsLoading(true);
       
-      await hmsActions.changeRoleOfPeer(peer.id, newRole, true);
+      const metadata = peer.metadata ? JSON.parse(peer.metadata) : null;
+      const userFid = metadata?.fid;
       
-      try {
-        const metadata = peer.metadata ? JSON.parse(peer.metadata) : null;
-        const userFid = metadata?.fid;
-        
-        if (userFid) {
-          const response = await fetch(`${URL}/api/rooms/role`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ fid: userFid, role: newRole })
-          });
-        }
-      } catch (redisError) {
-        console.error('Error syncing role with Redis:', redisError);
+      if (userFid) {
+        const pathParts = window.location.pathname.split('/');
+        const roomId = pathParts[pathParts.length - 1];
+
+        // Update role via backend API
+        await fetchAPI(
+          `${URL}/api/rooms/protected/${roomId}/participants/${userFid}/role`,
+          {
+            method: "PUT",
+            body: { role: newRole },
+            authToken: token,
+          }
+        );
+
+        // Send ROLE_UPDATED custom event so the target peer re-joins with the new role
+        sendCustomEvent('ROLE_UPDATED', { targetFid: String(userFid), newRole });
       }
       
       onClose();
@@ -152,17 +152,9 @@ export default function AvatarContextMenu({ peer, isVisible, onClose, onOpenTipD
         console.error('Failed to demote current host to co-host');
       }
       
-      await hmsActions.changeRole(peer.id, 'host', true);
-      await hmsActions.changeRole(localPeer.id, 'co-host', true);
-      
-      try {
-        await hmsActions.sendDirectMessage(
-          'HOST_TRANSFER_RECONNECT', 
-          peer.id
-        );
-      } catch (msgError) {
-        console.error('Failed to send reconnect message:', msgError);
-      }
+      // Send role change events via Agora custom events
+      sendCustomEvent('ROLE_UPDATED', { targetFid: String(peerFid), newRole: 'host' });
+      sendCustomEvent('ROLE_UPDATED', { targetFid: String(localFid), newRole: 'co-host' });
       
       onClose();
     } catch (error) {
@@ -173,13 +165,14 @@ export default function AvatarContextMenu({ peer, isVisible, onClose, onOpenTipD
   };
 
   const handleMuteToggle = async () => {
-    if (!peer.audioTrack || !canRemoteMute) return;
-    try {
-      await hmsActions.setRemoteTrackEnabled(peer.audioTrack, !isPeerAudioEnabled);
-      onClose();
-    } catch (err) {
-      console.error('Remote mute failed:', err);
+    if (!canRemoteMute) return;
+    // Remote mute via custom event - target peer will handle locally
+    const metadata = peer.metadata ? JSON.parse(peer.metadata) : null;
+    const peerFid = metadata?.fid;
+    if (peerFid) {
+      sendCustomEvent('REMOTE_MUTE', { targetFid: String(peerFid), mute: isPeerAudioEnabled });
     }
+    onClose();
   };
 
   const handleRemoveUser = async () => {
@@ -189,8 +182,30 @@ export default function AvatarContextMenu({ peer, isVisible, onClose, onOpenTipD
       return;
     }
     try {
-      console.log('Removing peer:', peer.id);
-      await hmsActions.removePeer(peer.id, 'Host removed you from the room!');
+      const env = process.env.NEXT_PUBLIC_ENV;
+      let token: any = "";
+      if (env !== "DEV") {
+        token = (await sdk.quickAuth.getToken()).token;
+      }
+      
+      const pathParts = window.location.pathname.split('/');
+      const roomId = pathParts[pathParts.length - 1];
+      const metadata = peer.metadata ? JSON.parse(peer.metadata) : null;
+      const peerFid = metadata?.fid;
+      
+      if (peerFid) {
+        await fetchAPI(
+          `${URL}/api/rooms/protected/${roomId}/leave`,
+          {
+            method: "POST",
+            body: { userFid: peerFid, kicked: true },
+            authToken: token,
+          }
+        );
+        // Notify the peer to leave
+        sendCustomEvent('PEER_REMOVED', { targetFid: String(peerFid), reason: 'Host removed you from the room!' });
+      }
+      
       toast.success(`${peer.name} has been removed from the room`);
       onClose();
     } catch (err) {

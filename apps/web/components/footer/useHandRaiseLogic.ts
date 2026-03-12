@@ -1,21 +1,20 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useHMSActions, HMSActions } from "@100mslive/react-sdk";
+import { useState, useCallback } from "react";
 
 interface HandRaiseLogicProps {
   isHandRaised: boolean;
+  setIsHandRaised: (value: boolean) => void;
   localPeerId: string;
 }
 
-export function useHandRaiseLogic({ isHandRaised, localPeerId }: HandRaiseLogicProps) {
-  const hmsActions = useHMSActions();
+export function useHandRaiseLogic({ isHandRaised, setIsHandRaised, localPeerId }: HandRaiseLogicProps) {
   const [handRaiseDisabled, setHandRaiseDisabled] = useState(false);
   const [handRaiseCountdown, setHandRaiseCountdown] = useState(10);
   
   const toggleRaiseHand = useCallback(async () => {
     try {
-      console.log("[HMS Action] Hand raise toggle initiated", {
+      console.log("[Agora Action] Hand raise toggle initiated", {
         currentState: isHandRaised,
         targetState: !isHandRaised,
         peerId: localPeerId,
@@ -23,11 +22,11 @@ export function useHandRaiseLogic({ isHandRaised, localPeerId }: HandRaiseLogicP
       });
       
       if (isHandRaised) {
-        await hmsActions.lowerLocalPeerHand();
-        console.log("[HMS Action] Hand lowered successfully");
+        setIsHandRaised(false);
+        console.log("[Agora Action] Hand lowered successfully");
       } else if(!isHandRaised && !handRaiseDisabled) {
-        await hmsActions.raiseLocalPeerHand();
-        console.log("[HMS Action] Hand raised successfully");
+        setIsHandRaised(true);
+        console.log("[Agora Action] Hand raised successfully");
         setHandRaiseDisabled(true);
         setHandRaiseCountdown(10);
         
@@ -49,9 +48,9 @@ export function useHandRaiseLogic({ isHandRaised, localPeerId }: HandRaiseLogicP
         }, 10000);
       }
     } catch (error) {
-      console.error("[HMS Action] Error toggling hand raise:", error);
+      console.error("[Agora Action] Error toggling hand raise:", error);
     }
-  }, [hmsActions, isHandRaised, handRaiseDisabled, localPeerId]);
+  }, [isHandRaised, setIsHandRaised, handRaiseDisabled, localPeerId]);
 
   return {
     toggleRaiseHand,

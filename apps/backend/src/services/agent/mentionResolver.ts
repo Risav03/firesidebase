@@ -1,4 +1,5 @@
-import { HMSAPI } from '../hmsAPI';
+import { AgoraAPI } from '../agoraAPI';
+import { RedisRoomParticipantsService } from '../redis';
 
 /**
  * Mention Resolver Service
@@ -78,24 +79,36 @@ export class MentionResolverService {
   /**
    * Resolve all mentions in a prompt to wallet addresses
    * @param prompt - The user's prompt containing @mentions
-   * @param hmsRoomId - The HMS room ID to fetch peers from
+   * @param channelName - The Agora channel name (also used as roomId for Redis lookup)
    */
-  static async resolveMentions(prompt: string, hmsRoomId: string): Promise<MentionResolutionResult> {
+  static async resolveMentions(prompt: string, channelName: string): Promise<MentionResolutionResult> {
     const mentionTexts = this.parseMentions(prompt);
     
     if (mentionTexts.length === 0) {
       return { mentions: [], enrichedPrompt: prompt };
     }
 
-    // Fetch active peers from HMS
-    const hmsApi = new HMSAPI();
-    const peersResponse = await hmsApi.listRoomPeers(hmsRoomId);
+    // Fetch participants from Redis (which has name, role, wallet data)
+    // We need to find the MongoDB room ID from the channelName
+    // channelName is stored as room.roomId in the DB
+    const groupedParticipants = await RedisRoomParticipantsService.getParticipants(channelName, 'grouped', true) as Record<string, any[]>;
     
-    if (!peersResponse.success || peersResponse.peers.length === 0) {
+    // Flatten grouped participants into a peers-like array
+    const peers: Array<{ name: string; role: string; wallet: string }> = [];
+    for (const [role, participants] of Object.entries(groupedParticipants)) {
+      for (const p of participants) {
+        peers.push({
+          name: p.username || p.displayName || 'Unknown',
+          role,
+          wallet: p.wallet || ''
+        });
+      }
+    }
+    
+    if (peers.length === 0) {
       return { mentions: [], enrichedPrompt: prompt };
     }
 
-    const peers = peersResponse.peers;
     const resolvedMentions: ResolvedMention[] = [];
 
     for (const mentionText of mentionTexts) {
@@ -112,9 +125,8 @@ export class MentionResolverService {
         const usernames: string[] = [];
 
         for (const peer of matchingPeers) {
-          const metadata = this.parsePeerMetadata(peer.metadata);
-          if (metadata.wallet) {
-            wallets.push(metadata.wallet);
+          if (peer.wallet) {
+            wallets.push(peer.wallet);
             usernames.push(peer.name || 'Unknown');
           }
         }
@@ -134,12 +146,11 @@ export class MentionResolverService {
         );
 
         if (matchingPeer) {
-          const metadata = this.parsePeerMetadata(matchingPeer.metadata);
-          if (metadata.wallet) {
+          if (matchingPeer.wallet) {
             resolvedMentions.push({
               mention: mentionText,
               type: 'user',
-              wallets: [metadata.wallet],
+              wallets: [matchingPeer.wallet],
               usernames: [matchingPeer.name || mentionText]
             });
           }

@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from "motion/react";
 import { ChevronDown, MessageCircle, Gift, Mic, MicOff, Hand, Sparkles, Volume2, Coins, SmilePlus } from "lucide-react";
 import { TOKENS } from "../utils";
 import { IconButton } from "../ui";
-import { HMSActions } from "@100mslive/react-sdk";
 import { GiMicrophone } from "react-icons/gi";
 
 export function ControlCenterDrawer(props: {
@@ -20,7 +19,6 @@ export function ControlCenterDrawer(props: {
   onVisibleHeightChange?: (h: number) => void;
   canUnmute: boolean;
   isListener: boolean;
-  hmsActions: HMSActions;
   canRequestToSpeak: boolean;
 }) {
   const collapsedH = 118;

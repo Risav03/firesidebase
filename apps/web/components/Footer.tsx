@@ -1,15 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  selectIsAllowedToPublish,
-  useAVToggle,
-  useHMSStore,
-  selectLocalPeerID,
-  selectHasPeerHandRaised,
-  selectLocalPeer,
-  useHMSActions,
-} from "@100mslive/react-sdk";
+import { useAgoraContext } from "@/contexts/AgoraContext";
 import { useGlobalContext } from "../utils/providers/globalContext";
 import { useHandRaiseLogic } from "./footer/useHandRaiseLogic";
 import { useEmojiReactionLogic } from "./footer/useEmojiReactionLogic";
@@ -24,16 +16,12 @@ import SoundboardDrawer from "./SoundboardDrawer";
 import { toast } from "react-toastify";
 
 export default function Footer({ roomId }: { roomId: string }) {
-  const { isLocalAudioEnabled, toggleAudio } = useAVToggle((err) => {
-    console.error("[HMS] useAVToggle error:", err);
-  });
-  const localPeer = useHMSStore(selectLocalPeer);
-  const publishPermissions = useHMSStore(selectIsAllowedToPublish);
-  const localPeerId = useHMSStore(selectLocalPeerID);
-  const isHandRaised = useHMSStore(selectHasPeerHandRaised(localPeerId));
+  const { isLocalAudioEnabled, toggleAudio, localPeer } = useAgoraContext();
+
+  const isListener = localPeer?.roleName?.toLowerCase() === 'listener';
+  const canUnmute = !isListener;
 
   const { user } = useGlobalContext();
-  const hmsActions = useHMSActions();
   const [controlsOpen, setControlsOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isTippingOpen, setIsTippingOpen] = useState(false);
@@ -41,7 +29,7 @@ export default function Footer({ roomId }: { roomId: string }) {
   const [isSoundboardOpen, setIsSoundboardOpen] = useState(false);
   const [canRequestToSpeak, setCanRequestToSpeak] = useState(false);
   const [requestTimeoutId, setRequestTimeoutId] = useState<NodeJS.Timeout | null>(null);
-  const canUnmute = Boolean(publishPermissions?.audio && toggleAudio);
+  const [isHandRaised, setIsHandRaised] = useState(false);
   
   const { requestToSpeak } = useSpeakerRequestEvent();
 
@@ -79,19 +67,18 @@ export default function Footer({ roomId }: { roomId: string }) {
     } else {
       setCanRequestToSpeak(true);
     }
-  },[localStorage])
+  },[])
 
 
   const { toggleRaiseHand } = useHandRaiseLogic({
     isHandRaised,
-    localPeerId,
+    setIsHandRaised,
+    localPeerId: localPeer?.id || '',
   });
 
   const { handleEmojiSelect, floatingEmojis, isDisabled } = useEmojiReactionLogic({ user });
 
   const soundboardLogic = useSoundboardLogic(user);
-
-  const isListener = localPeer?.roleName?.toLowerCase() === 'listener';
   
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -146,9 +133,9 @@ export default function Footer({ roomId }: { roomId: string }) {
           setMuted={(muted) => {
             if (isListener && !canUnmute) {
               handleRequestToSpeak();
-            } else if (muted && isLocalAudioEnabled && toggleAudio) {
+            } else if (muted && isLocalAudioEnabled) {
               toggleAudio();
-            } else if (!muted && !isLocalAudioEnabled && canUnmute && toggleAudio) {
+            } else if (!muted && !isLocalAudioEnabled && canUnmute) {
               toggleAudio();
             }
           }}
@@ -167,8 +154,6 @@ export default function Footer({ roomId }: { roomId: string }) {
           }}
           canUnmute={canUnmute}
           isListener={isListener}
-          // cooldownRemaining={cooldownRemaining}
-          hmsActions={hmsActions}
           canRequestToSpeak={canRequestToSpeak}
         />
       </div>

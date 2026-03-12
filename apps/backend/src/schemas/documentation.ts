@@ -69,7 +69,7 @@ export const RoomSchema = t.Object({
   name: t.Any({ description: 'Room name' }),
   description: t.Optional(t.Any({ description: 'Room description' })),
   host: t.Any({ description: 'Host user object' }),
-  roomId: t.Any({ description: '100ms room ID' }),
+  roomId: t.Any({ description: 'Agora channel name' }),
   status: t.Any({ description: 'Room status: upcoming, ongoing, or ended' }),
   startTime: t.Any({ description: 'Room start time (Date or ISO string)' }),
   endTime: t.Optional(t.Any({ description: 'Room end time (Date, ISO string, or null)' })),
@@ -84,7 +84,7 @@ export const RoomWithParticipantsSchema = t.Object({
   name: t.Any({ description: 'Room name' }),
   description: t.Optional(t.Any({ description: 'Room description' })),
   host: t.Any({ description: 'Host user object' }),
-  roomId: t.Any({ description: '100ms room ID' }),
+  roomId: t.Any({ description: 'Agora channel name' }),
   status: t.Any({ description: 'Room status' }),
   startTime: t.Any({ description: 'Room start time' }),
   endTime: t.Optional(t.Any({ description: 'Room end time' })),
@@ -208,12 +208,10 @@ export const SearchRoomResultSchema = t.Object({
 // ============================================
 
 export const RoomCodeSchema = t.Object({
-  id: t.Any({ description: 'Room code ID' }),
-  code: t.Any({ description: 'The room code for joining' }),
-  role: t.Any({ description: 'Role this code grants' }),
-  room_id: t.Any({ description: '100ms room ID' }),
-  created_at: t.Any({ description: 'Timestamp of code creation' }),
-  updated_at: t.Any({ description: 'Timestamp of last update' })
+  token: t.Any({ description: 'Agora RTC token' }),
+  channelName: t.Any({ description: 'Agora channel name' }),
+  role: t.Any({ description: 'Role this token grants' }),
+  appId: t.Any({ description: 'Agora App ID' })
 });
 
 // ============================================
@@ -464,7 +462,7 @@ export const UpdateRoomResponseSchema = t.Object({
   message: t.Optional(t.Any())
 });
 
-// Live Participants from 100ms
+// Live Participants from Agora
 export const LiveParticipantsResponseSchema = t.Object({
   success: t.Boolean(),
   data: t.Object({

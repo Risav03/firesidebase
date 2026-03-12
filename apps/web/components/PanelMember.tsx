@@ -1,10 +1,5 @@
 import { ScrollingName } from "./experimental";
-import {
-  selectIsPeerAudioEnabled,
-  selectPeerAudioByID,
-  useHMSStore,
-  selectHasPeerHandRaised,
-} from "@100mslive/react-sdk";
+import { useAgoraContext } from "@/contexts/AgoraContext";
 import { useEffect, useState } from "react";
 
 interface PanelMemberProps {
@@ -18,13 +13,16 @@ interface PanelMemberProps {
 }
 
 export default function PanelMember({ id, name, img, role, onClick }: PanelMemberProps) {
-  const isPeerAudioEnabled = useHMSStore(selectIsPeerAudioEnabled(id));
-  const isHandRaised = useHMSStore(selectHasPeerHandRaised(id));
-  const peerAudioLevel = useHMSStore(selectPeerAudioByID(id));
+  const { audioLevels, remotePeers, localPeer } = useAgoraContext();
+  
+  // Find peer by id to get audio state
+  const peer = id === localPeer?.id ? localPeer : remotePeers.get(parseInt(id));
+  const isPeerAudioEnabled = !!peer?.audioTrack;
+  const peerAudioLevel = audioLevels.get(parseInt(id)) || 0;
   const [showSpeakingRing, setShowSpeakingRing] = useState(false);
 
   // Check if this peer is currently speaking
-  const isSpeaking = isPeerAudioEnabled && peerAudioLevel > 0;
+  const isSpeaking = isPeerAudioEnabled && peerAudioLevel > 5;
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
@@ -96,11 +94,7 @@ export default function PanelMember({ id, name, img, role, onClick }: PanelMembe
             </div>
           </div>
         )}
-        {isHandRaised && (
-          <div className="absolute z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11 rounded-full flex items-center justify-center bg-fireside-orange border-[1px] border-white">
-            <span className="text-white text-sm">✋</span>
-          </div>
-        )}
+        {/* Hand raise is now tracked via speaker request events in Conference */}
       </div>
       <div className="w-full">
         <ScrollingName 

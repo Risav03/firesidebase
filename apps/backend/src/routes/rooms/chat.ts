@@ -177,16 +177,16 @@ Retrieves chat messages for a room with pagination support.
 
               // Get room to access HMS roomId for mention resolution
               const room = await Room.findById(params.id);
-              const hmsRoomId = room?.roomId;
+              const channelName = room?.roomId;
 
               // Process Bankr AI request asynchronously (don't block the response)
               (async () => {
                 try {
-                  // Resolve @mentions to wallet addresses if HMS room is active
+                  // Resolve @mentions to wallet addresses if Agora channel is active
                   let enrichedPrompt = prompt;
-                  if (hmsRoomId && MentionResolverService.hasMentions(prompt)) {
+                  if (channelName && MentionResolverService.hasMentions(prompt)) {
                     try {
-                      const mentionResult = await MentionResolverService.resolveMentions(prompt, hmsRoomId);
+                      const mentionResult = await MentionResolverService.resolveMentions(prompt, channelName);
                       if (mentionResult.mentions.length > 0) {
                         enrichedPrompt = mentionResult.enrichedPrompt;
                         console.log(`[Bankr AI] Resolved ${mentionResult.mentions.length} mentions with wallet context`);
