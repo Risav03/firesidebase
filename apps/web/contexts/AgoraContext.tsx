@@ -123,6 +123,7 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
   const participantPollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastEventTsRef = useRef<number>(Date.now());
   const localUidRef = useRef<number | null>(null);
+  const isAudioPublishedRef = useRef(false);
 
   const BACKEND_URL =
     typeof window !== "undefined"
@@ -145,11 +146,20 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
       clientRef.current.on(
         "user-published",
         async (user: IAgoraRTCRemoteUser, mediaType: string) => {
-          if (clientRef.current) {
-            await clientRef.current.subscribe(user, mediaType as any);
+          try {
+            if (clientRef.current) {
+              await clientRef.current.subscribe(user, mediaType as any);
+            }
+          } catch (err) {
+            console.error("[Agora] Failed to subscribe to remote user:", err);
+            return; // Don't try to play if subscribe failed
           }
           if (mediaType === "audio" && user.audioTrack) {
-            user.audioTrack.play();
+            try {
+              user.audioTrack.play();
+            } catch (err) {
+              console.error("[Agora] Failed to play remote audio track:", err);
+            }
           }
           setRemoteUsers((prev) => {
             const exists = prev.find((u) => u.uid === user.uid);
@@ -303,16 +313,17 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
         setRoomId(pathParts[pathParts.length - 1] || null);
       }
 
-      // Create and publish local audio track if not listener
+      // Create local audio track if not listener (but don't publish yet — user starts muted).
+      // The track will be published when the user explicitly unmutes via toggleAudio.
       if (agoraRole === "host") {
         try {
           const AgoraRTC = await getAgoraRTC();
           const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
           localAudioTrackRef.current = audioTrack;
           setLocalAudioTrack(audioTrack);
-          await client.publish([audioTrack]); // Publish while track is enabled
-          await audioTrack.setMuted(true); // Then mute (sends silence, keeps track published)
+          isAudioPublishedRef.current = false;
           setIsLocalAudioEnabledState(false);
+          console.log("[Agora] Mic track created, waiting for user to unmute before publishing");
         } catch (err) {
           console.warn("[Agora] No microphone found, joining without audio track:", err);
         }
@@ -353,6 +364,7 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
     setIsLocalAudioEnabledState(false);
     setRoomId(null);
     localUidRef.current = null;
+    isAudioPublishedRef.current = false;
   }, []);
 
   // ── Token Renewal ─────────────────────────────────────────────────────────────
@@ -383,14 +395,17 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
           const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
           localAudioTrackRef.current = audioTrack;
           setLocalAudioTrack(audioTrack);
-          await client.publish([audioTrack]); // Publish while track is enabled
-          await audioTrack.setMuted(true); // Then mute (sends silence, keeps track published)
+          isAudioPublishedRef.current = false;
           setIsLocalAudioEnabledState(false);
+          console.log("[Agora] Mic track created during role change, waiting for unmute");
         } catch (err) {
           console.warn("[Agora] No microphone found during role change:", err);
         }
       } else if (agoraRole === "audience" && localAudioTrackRef.current) {
-        await client.unpublish([localAudioTrackRef.current]);
+        if (isAudioPublishedRef.current) {
+          await client.unpublish([localAudioTrackRef.current]);
+          isAudioPublishedRef.current = false;
+        }
         localAudioTrackRef.current.close();
         localAudioTrackRef.current = null;
         setLocalAudioTrack(null);
@@ -414,7 +429,7 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
   // ── Audio Controls ────────────────────────────────────────────────────────────
 
   /**
-   * Lazily create a microphone audio track, publish it, and return it.
+   * Lazily create a microphone audio track (without publishing).
    * This covers cases where the initial track creation during join failed
    * (e.g. mic permission denied, no device, WebView restrictions).
    */
@@ -423,7 +438,6 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
 
     const client = await getClient();
 
-    // Only hosts (non-audience) can publish audio
     if (client.connectionState !== "CONNECTED") {
       console.warn("[Agora] Cannot create audio track: not connected");
       return null;
@@ -434,9 +448,8 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
       const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
       localAudioTrackRef.current = audioTrack;
       setLocalAudioTrack(audioTrack);
-      await client.publish([audioTrack]); // Publish while track is enabled
-      await audioTrack.setMuted(true); // Then mute (sends silence, keeps track published)
-      console.log("[Agora] Audio track created and published on demand");
+      isAudioPublishedRef.current = false;
+      console.log("[Agora] Audio track created on demand (not yet published)");
       return audioTrack;
     } catch (err) {
       console.error("[Agora] Failed to create microphone track:", err);
@@ -445,6 +458,7 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
   }, [getClient]);
 
   const toggleAudio = useCallback(async () => {
+    const client = await getClient();
     let track = localAudioTrackRef.current;
 
     if (!track) {
@@ -452,17 +466,36 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
       track = await ensureAudioTrack();
     }
 
-    if (track) {
-      const newMuted = !track.muted; // toggle: if muted → unmute, if unmuted → mute
-      await track.setMuted(newMuted);
-      setIsLocalAudioEnabledState(!newMuted); // enabled is the inverse of muted
-      console.log(`[Agora] Audio ${newMuted ? "muted" : "unmuted"}`);
-    } else {
+    if (!track) {
       console.warn("[Agora] toggleAudio: could not obtain an audio track");
+      return;
     }
-  }, [ensureAudioTrack]);
+
+    if (isAudioPublishedRef.current) {
+      // Currently live → mute by unpublishing
+      try {
+        await client.unpublish([track]);
+        isAudioPublishedRef.current = false;
+        setIsLocalAudioEnabledState(false);
+        console.log("[Agora] Audio muted (unpublished)");
+      } catch (err) {
+        console.error("[Agora] Failed to unpublish audio:", err);
+      }
+    } else {
+      // Currently muted → unmute by publishing
+      try {
+        await client.publish([track]);
+        isAudioPublishedRef.current = true;
+        setIsLocalAudioEnabledState(true);
+        console.log("[Agora] Audio unmuted (published)");
+      } catch (err) {
+        console.error("[Agora] Failed to publish audio:", err);
+      }
+    }
+  }, [getClient, ensureAudioTrack]);
 
   const setLocalAudioEnabled = useCallback(async (enabled: boolean) => {
+    const client = await getClient();
     let track = localAudioTrackRef.current;
 
     if (!track && enabled) {
@@ -470,11 +503,31 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
       track = await ensureAudioTrack();
     }
 
-    if (track) {
-      await track.setMuted(!enabled); // muted is the inverse of enabled
+    if (!track) return;
+
+    if (enabled && !isAudioPublishedRef.current) {
+      try {
+        await client.publish([track]);
+        isAudioPublishedRef.current = true;
+        setIsLocalAudioEnabledState(true);
+        console.log("[Agora] Audio enabled (published)");
+      } catch (err) {
+        console.error("[Agora] Failed to publish audio:", err);
+      }
+    } else if (!enabled && isAudioPublishedRef.current) {
+      try {
+        await client.unpublish([track]);
+        isAudioPublishedRef.current = false;
+        setIsLocalAudioEnabledState(false);
+        console.log("[Agora] Audio disabled (unpublished)");
+      } catch (err) {
+        console.error("[Agora] Failed to unpublish audio:", err);
+      }
+    } else {
+      // State already matches, just sync the UI
       setIsLocalAudioEnabledState(enabled);
     }
-  }, [ensureAudioTrack]);
+  }, [getClient, ensureAudioTrack]);
 
   // ── Role Management ───────────────────────────────────────────────────────────
 
@@ -489,14 +542,16 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
           const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
           localAudioTrackRef.current = audioTrack;
           setLocalAudioTrack(audioTrack);
-          await client.publish([audioTrack]); // Publish while track is enabled
-          await audioTrack.setMuted(true); // Then mute
+          isAudioPublishedRef.current = false;
           setIsLocalAudioEnabledState(false);
         } catch (err) {
           console.warn("[Agora] No microphone found during setClientRole:", err);
         }
       } else if (role === "audience" && localAudioTrackRef.current) {
-        await client.unpublish([localAudioTrackRef.current]);
+        if (isAudioPublishedRef.current) {
+          await client.unpublish([localAudioTrackRef.current]);
+          isAudioPublishedRef.current = false;
+        }
         localAudioTrackRef.current.close();
         localAudioTrackRef.current = null;
         setLocalAudioTrack(null);
@@ -516,13 +571,17 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
     }
     if (localAudioTrackRef.current) {
       await client.publish([localAudioTrackRef.current]);
+      isAudioPublishedRef.current = true;
     }
   }, [getClient]);
 
   const unpublishAudio = useCallback(async () => {
     const client = await getClient();
     if (localAudioTrackRef.current) {
-      await client.unpublish([localAudioTrackRef.current]);
+      if (isAudioPublishedRef.current) {
+        await client.unpublish([localAudioTrackRef.current]);
+        isAudioPublishedRef.current = false;
+      }
       localAudioTrackRef.current.close();
       localAudioTrackRef.current = null;
       setLocalAudioTrack(null);
