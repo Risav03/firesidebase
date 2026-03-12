@@ -187,6 +187,18 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
             setRemoteUsers((prev) =>
               prev.map((u) => (u.uid === user.uid ? user : u))
             );
+            // Clear audioTrack so components show the muted indicator
+            setRemotePeers((prev) => {
+              const next = new Map(prev);
+              const existing = next.get(user.uid as number);
+              if (existing) {
+                next.set(user.uid as number, {
+                  ...existing,
+                  audioTrack: undefined,
+                });
+              }
+              return next;
+            });
           }
         }
       );
@@ -401,20 +413,67 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
 
   // ── Audio Controls ────────────────────────────────────────────────────────────
 
-  const toggleAudio = useCallback(async () => {
-    if (localAudioTrackRef.current) {
-      const newState = !localAudioTrackRef.current.enabled;
-      await localAudioTrackRef.current.setEnabled(newState);
-      setIsLocalAudioEnabledState(newState);
+  /**
+   * Lazily create a microphone audio track, publish it, and return it.
+   * This covers cases where the initial track creation during join failed
+   * (e.g. mic permission denied, no device, WebView restrictions).
+   */
+  const ensureAudioTrack = useCallback(async () => {
+    if (localAudioTrackRef.current) return localAudioTrackRef.current;
+
+    const client = await getClient();
+
+    // Only hosts (non-audience) can publish audio
+    if (client.connectionState !== "CONNECTED") {
+      console.warn("[Agora] Cannot create audio track: not connected");
+      return null;
     }
-  }, []);
+
+    try {
+      const AgoraRTC = await getAgoraRTC();
+      const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      localAudioTrackRef.current = audioTrack;
+      setLocalAudioTrack(audioTrack);
+      await audioTrack.setEnabled(false); // Start muted; caller will enable
+      await client.publish([audioTrack]);
+      console.log("[Agora] Audio track created and published on demand");
+      return audioTrack;
+    } catch (err) {
+      console.error("[Agora] Failed to create microphone track:", err);
+      return null;
+    }
+  }, [getClient]);
+
+  const toggleAudio = useCallback(async () => {
+    let track = localAudioTrackRef.current;
+
+    if (!track) {
+      console.log("[Agora] No audio track found, attempting to create one...");
+      track = await ensureAudioTrack();
+    }
+
+    if (track) {
+      const newState = !track.enabled;
+      await track.setEnabled(newState);
+      setIsLocalAudioEnabledState(newState);
+    } else {
+      console.warn("[Agora] toggleAudio: could not obtain an audio track");
+    }
+  }, [ensureAudioTrack]);
 
   const setLocalAudioEnabled = useCallback(async (enabled: boolean) => {
-    if (localAudioTrackRef.current) {
-      await localAudioTrackRef.current.setEnabled(enabled);
+    let track = localAudioTrackRef.current;
+
+    if (!track && enabled) {
+      console.log("[Agora] No audio track found, attempting to create one...");
+      track = await ensureAudioTrack();
+    }
+
+    if (track) {
+      await track.setEnabled(enabled);
       setIsLocalAudioEnabledState(enabled);
     }
-  }, []);
+  }, [ensureAudioTrack]);
 
   // ── Role Management ───────────────────────────────────────────────────────────
 
@@ -724,6 +783,18 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
       }
     };
   }, [isConnected, roomId, BACKEND_URL]);
+
+  // Keep localPeer.audioTrack in sync with the actual audio enabled state.
+  // PanelMember (and other components) derive the muted indicator from
+  // peer.audioTrack, so this must be updated whenever audio is toggled.
+  useEffect(() => {
+    setLocalPeer((prev) => {
+      if (!prev) return prev;
+      const newAudioTrack = isLocalAudioEnabled ? localAudioTrack : undefined;
+      if (prev.audioTrack === newAudioTrack) return prev;
+      return { ...prev, audioTrack: newAudioTrack };
+    });
+  }, [isLocalAudioEnabled, localAudioTrack]);
 
   // Cleanup on unmount
   useEffect(() => {
