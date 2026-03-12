@@ -5,7 +5,7 @@ import { useAgoraContext } from '@/contexts/AgoraContext';
 import sdk from '@farcaster/miniapp-sdk';
 import { toast } from 'react-toastify';
 import Modal from '@/components/UI/Modal';
-import { transferHostRole, fetchAPI } from '@/utils/serverActions';
+import { transferHostRole, fetchAPI, updateParticipantRole } from '@/utils/serverActions';
 import { useTipEvent } from '@/utils/events';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
@@ -93,14 +93,7 @@ export default function AvatarContextMenu({ peer, isVisible, onClose, onOpenTipD
         const roomId = pathParts[pathParts.length - 1];
 
         // Update role via backend API
-        await fetchAPI(
-          `${URL}/api/rooms/protected/${roomId}/participants/${userFid}/role`,
-          {
-            method: "PUT",
-            body: { role: newRole },
-            authToken: token,
-          }
-        );
+        await updateParticipantRole(roomId, String(userFid), newRole, token);
 
         // Send ROLE_UPDATED custom event so the target peer re-joins with the new role
         sendCustomEvent('ROLE_UPDATED', { targetFid: String(userFid), newRole });

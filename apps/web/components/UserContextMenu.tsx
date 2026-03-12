@@ -203,9 +203,8 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
         
         // Notify the peer to rejoin with new role
         sendCustomEvent('ROLE_UPDATED', {
-          peerId: userFid,
+          targetFid: String(userFid),
           newRole,
-          roomId,
         });
       }
       
@@ -256,14 +255,12 @@ export default function UserContextMenu({ peer, isVisible, onClose, onViewProfil
       
       // Notify both peers to rejoin with new roles
       sendCustomEvent('ROLE_UPDATED', {
-        peerId: peerFid,
+        targetFid: String(peerFid),
         newRole: 'host',
-        roomId,
       });
       sendCustomEvent('ROLE_UPDATED', {
-        peerId: localFid,
+        targetFid: String(localFid),
         newRole: 'co-host',
-        roomId,
       });
       
       onClose();

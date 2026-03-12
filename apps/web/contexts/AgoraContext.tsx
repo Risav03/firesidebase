@@ -120,6 +120,7 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
     useState<IMicrophoneAudioTrack | null>(null);
   const [roomId, setRoomId] = useState<string | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const participantPollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastEventTsRef = useRef<number>(Date.now());
   const localUidRef = useRef<number | null>(null);
 
@@ -614,6 +615,112 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
       if (pollTimerRef.current) {
         clearInterval(pollTimerRef.current);
         pollTimerRef.current = null;
+      }
+    };
+  }, [isConnected, roomId, BACKEND_URL]);
+
+  // Poll backend for participant list to discover audience peers and sync metadata
+  useEffect(() => {
+    if (!isConnected || !roomId || !BACKEND_URL) {
+      if (participantPollTimerRef.current) {
+        clearInterval(participantPollTimerRef.current);
+        participantPollTimerRef.current = null;
+      }
+      return;
+    }
+
+    const pollParticipants = async () => {
+      try {
+        const res = await fetch(
+          `${BACKEND_URL}/api/rooms/public/${roomId}/participants?activeOnly=true`
+        );
+        if (!res.ok) return;
+        const json = await res.json();
+        const participants: Array<{
+          userId: string;
+          username: string;
+          displayName: string;
+          pfp_url: string;
+          role: string;
+        }> = json?.data?.participants ?? [];
+
+        setRemotePeers((prev) => {
+          const next = new Map(prev);
+          let changed = false;
+
+          for (const p of participants) {
+            const uid = parseInt(p.userId);
+            // Skip local user
+            if (uid === localUidRef.current) continue;
+
+            const existing = next.get(uid);
+            const name = p.displayName || p.username || `User ${uid}`;
+            const roleName = p.role || "listener";
+            const metadata = JSON.stringify({
+              avatar: p.pfp_url || "",
+              fid: p.userId,
+              role: roleName,
+              wallet: "",
+            });
+
+            if (existing) {
+              // Only update if data actually changed (preserve audioTrack)
+              if (
+                existing.name !== name ||
+                existing.roleName !== roleName ||
+                existing.metadata !== metadata
+              ) {
+                next.set(uid, {
+                  ...existing,
+                  name,
+                  roleName,
+                  metadata,
+                });
+                changed = true;
+              }
+            } else {
+              // New peer discovered (likely audience member not visible via Agora events)
+              next.set(uid, {
+                uid,
+                name,
+                roleName,
+                id: String(uid),
+                metadata,
+              });
+              changed = true;
+            }
+          }
+
+          return changed ? next : prev;
+        });
+
+        // Also update localPeer name if not set
+        setLocalPeer((prev) => {
+          if (!prev || prev.name) return prev;
+          const localData = participants.find(
+            (p) => parseInt(p.userId) === localUidRef.current
+          );
+          if (localData) {
+            return {
+              ...prev,
+              name: localData.displayName || localData.username || prev.name,
+            };
+          }
+          return prev;
+        });
+      } catch {
+        // Network hiccup — will retry on next tick
+      }
+    };
+
+    // Poll immediately on first connect, then every 3 seconds
+    pollParticipants();
+    participantPollTimerRef.current = setInterval(pollParticipants, 3000);
+
+    return () => {
+      if (participantPollTimerRef.current) {
+        clearInterval(participantPollTimerRef.current);
+        participantPollTimerRef.current = null;
       }
     };
   }, [isConnected, roomId, BACKEND_URL]);

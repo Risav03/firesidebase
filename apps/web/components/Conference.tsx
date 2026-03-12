@@ -20,6 +20,7 @@ import {
   endRoom,
   startRecording,
   fetchAPI,
+  updateParticipantRole,
 } from "@/utils/serverActions";
 
 import { HandRaiseSparks, ScrollingName } from "./experimental";
@@ -37,7 +38,7 @@ import { useRewardContext } from "@/contexts/RewardContext";
 // import AudioRecoveryBanner from "./AudioRecoveryBanner";
 
 export default function Conference({ roomId }: { roomId: string }) {
-  const { localPeer, remotePeers, leave, isConnected, audioLevels } = useAgoraContext();
+  const { localPeer, remotePeers, leave, isConnected, audioLevels, sendCustomEvent } = useAgoraContext();
   const allPeers = (() => {
     const peers: AgoraPeer[] = [];
     if (localPeer) peers.push(localPeer);
@@ -407,15 +408,10 @@ export default function Conference({ roomId }: { roomId: string }) {
         token = (await sdk.quickAuth.getToken()).token;
       }
 
-      const URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
-      await fetchAPI(
-        `${URL}/api/rooms/protected/${roomId}/participants/${request.fid}/role`,
-        {
-          method: "PUT",
-          body: { role: "speaker" },
-          authToken: token,
-        }
-      );
+      await updateParticipantRole(roomId, request.fid, "speaker", token);
+
+      // Notify the peer to switch to speaker role
+      sendCustomEvent('ROLE_UPDATED', { targetFid: String(request.fid), newRole: 'speaker' });
 
       console.log(`Approved speaker request for peer: ${request.peerId}`);
     } catch (error) {
