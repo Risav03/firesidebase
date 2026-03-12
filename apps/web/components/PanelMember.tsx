@@ -13,11 +13,14 @@ interface PanelMemberProps {
 }
 
 export default function PanelMember({ id, name, img, role, onClick }: PanelMemberProps) {
-  const { audioLevels, remotePeers, localPeer } = useAgoraContext();
+  const { audioLevels, remotePeers, localPeer, isLocalAudioEnabled } = useAgoraContext();
   
   // Find peer by id to get audio state
-  const peer = id === localPeer?.id ? localPeer : remotePeers.get(parseInt(id));
-  const isPeerAudioEnabled = !!peer?.audioTrack;
+  const isLocalUser = id === localPeer?.id;
+  const peer = isLocalUser ? localPeer : remotePeers.get(parseInt(id));
+  // For local peer, use the authoritative isLocalAudioEnabled state.
+  // For remote peers, use the audioTrack presence (set/cleared by Agora events).
+  const isPeerAudioEnabled = isLocalUser ? isLocalAudioEnabled : !!peer?.audioTrack;
   const peerAudioLevel = audioLevels.get(parseInt(id)) || 0;
   const [showSpeakingRing, setShowSpeakingRing] = useState(false);
 

@@ -310,8 +310,8 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
           const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
           localAudioTrackRef.current = audioTrack;
           setLocalAudioTrack(audioTrack);
-          await audioTrack.setEnabled(false); // Start muted
-          await client.publish([audioTrack]);
+          await client.publish([audioTrack]); // Publish while track is enabled
+          await audioTrack.setMuted(true); // Then mute (sends silence, keeps track published)
           setIsLocalAudioEnabledState(false);
         } catch (err) {
           console.warn("[Agora] No microphone found, joining without audio track:", err);
@@ -383,8 +383,8 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
           const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
           localAudioTrackRef.current = audioTrack;
           setLocalAudioTrack(audioTrack);
-          await audioTrack.setEnabled(false); // Start muted
-          await client.publish([audioTrack]);
+          await client.publish([audioTrack]); // Publish while track is enabled
+          await audioTrack.setMuted(true); // Then mute (sends silence, keeps track published)
           setIsLocalAudioEnabledState(false);
         } catch (err) {
           console.warn("[Agora] No microphone found during role change:", err);
@@ -434,8 +434,8 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
       const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
       localAudioTrackRef.current = audioTrack;
       setLocalAudioTrack(audioTrack);
-      await audioTrack.setEnabled(false); // Start muted; caller will enable
-      await client.publish([audioTrack]);
+      await client.publish([audioTrack]); // Publish while track is enabled
+      await audioTrack.setMuted(true); // Then mute (sends silence, keeps track published)
       console.log("[Agora] Audio track created and published on demand");
       return audioTrack;
     } catch (err) {
@@ -453,9 +453,10 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
     }
 
     if (track) {
-      const newState = !track.enabled;
-      await track.setEnabled(newState);
-      setIsLocalAudioEnabledState(newState);
+      const newMuted = !track.muted; // toggle: if muted → unmute, if unmuted → mute
+      await track.setMuted(newMuted);
+      setIsLocalAudioEnabledState(!newMuted); // enabled is the inverse of muted
+      console.log(`[Agora] Audio ${newMuted ? "muted" : "unmuted"}`);
     } else {
       console.warn("[Agora] toggleAudio: could not obtain an audio track");
     }
@@ -470,7 +471,7 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
     }
 
     if (track) {
-      await track.setEnabled(enabled);
+      await track.setMuted(!enabled); // muted is the inverse of enabled
       setIsLocalAudioEnabledState(enabled);
     }
   }, [ensureAudioTrack]);
@@ -488,8 +489,8 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
           const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
           localAudioTrackRef.current = audioTrack;
           setLocalAudioTrack(audioTrack);
-          await audioTrack.setEnabled(false);
-          await client.publish([audioTrack]);
+          await client.publish([audioTrack]); // Publish while track is enabled
+          await audioTrack.setMuted(true); // Then mute
           setIsLocalAudioEnabledState(false);
         } catch (err) {
           console.warn("[Agora] No microphone found during setClientRole:", err);
