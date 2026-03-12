@@ -136,7 +136,6 @@ export class AgoraAPI {
       {
         appid: this.appId,
         cname: channelName,
-        uid: 0, // 0 = all users
         time: 0, // 0 = permanent ban (effectively ends the channel)
         privileges: ['join_channel']
       }
