@@ -6,9 +6,11 @@ interface HandRaiseLogicProps {
   isHandRaised: boolean;
   setIsHandRaised: (value: boolean) => void;
   localPeerId: string;
+  onRaise?: () => void;
+  onLower?: () => void;
 }
 
-export function useHandRaiseLogic({ isHandRaised, setIsHandRaised, localPeerId }: HandRaiseLogicProps) {
+export function useHandRaiseLogic({ isHandRaised, setIsHandRaised, localPeerId, onRaise, onLower }: HandRaiseLogicProps) {
   const [handRaiseDisabled, setHandRaiseDisabled] = useState(false);
   const [handRaiseCountdown, setHandRaiseCountdown] = useState(10);
   
@@ -24,9 +26,11 @@ export function useHandRaiseLogic({ isHandRaised, setIsHandRaised, localPeerId }
       if (isHandRaised) {
         setIsHandRaised(false);
         console.log("[Agora Action] Hand lowered successfully");
+        onLower?.();
       } else if(!isHandRaised && !handRaiseDisabled) {
         setIsHandRaised(true);
         console.log("[Agora Action] Hand raised successfully");
+        onRaise?.();
         setHandRaiseDisabled(true);
         setHandRaiseCountdown(10);
         
@@ -50,7 +54,7 @@ export function useHandRaiseLogic({ isHandRaised, setIsHandRaised, localPeerId }
     } catch (error) {
       console.error("[Agora Action] Error toggling hand raise:", error);
     }
-  }, [isHandRaised, setIsHandRaised, handRaiseDisabled, localPeerId]);
+  }, [isHandRaised, setIsHandRaised, handRaiseDisabled, localPeerId, onRaise, onLower]);
 
   return {
     toggleRaiseHand,

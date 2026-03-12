@@ -10,9 +10,10 @@ interface PanelMemberProps {
   speaking: boolean;
   muted: boolean;
   onClick: (id: string) => void;
+  isHandRaised?: boolean;
 }
 
-export default function PanelMember({ id, name, img, role, onClick }: PanelMemberProps) {
+export default function PanelMember({ id, name, img, role, onClick, isHandRaised }: PanelMemberProps) {
   const { audioLevels, remotePeers, localPeer, isLocalAudioEnabled } = useAgoraContext();
   
   // Find peer by id to get audio state
@@ -97,7 +98,12 @@ export default function PanelMember({ id, name, img, role, onClick }: PanelMembe
             </div>
           </div>
         )}
-        {/* Hand raise is now tracked via speaker request events in Conference */}
+        {/* Hand raise indicator */}
+        {isHandRaised && (
+          <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-yellow-500 flex items-center justify-center text-sm z-10 animate-bounce shadow-lg">
+            ✋
+          </div>
+        )}
       </div>
       <div className="w-full">
         <ScrollingName 

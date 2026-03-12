@@ -6,6 +6,7 @@ import {
   useSpeakerRejectionEvent,
   useTipEvent,
   useRoomEndedEvent,
+  useHandRaiseEvent,
 } from "@/utils/events";
 import PeerWithContextMenu from "./PeerWithContextMenu";
 import { useEffect, useState, useRef, useCallback } from "react";
@@ -96,6 +97,7 @@ export default function Conference({ roomId }: { roomId: string }) {
   const [selectedPeer, setSelectedPeer] = useState<any>(null);
   const [showAvatarContextMenu, setShowAvatarContextMenu] = useState(false);
   const [showTippingDrawer, setShowTippingDrawer] = useState(false);
+  const [handRaisedPeers, setHandRaisedPeers] = useState<Set<string>>(new Set());
 
   //function to fetch room details and save name and description in a useState. Call the function in useEffect
   const [roomDetails, setRoomDetails] = useState<{
@@ -194,6 +196,38 @@ export default function Conference({ roomId }: { roomId: string }) {
     handleSpeakerRequest({ peerId: msg.peerId, fid: msg.peer });
   });
 
+
+  // Hand raise event listener
+  useHandRaiseEvent((msg) => {
+    console.log("[Agora Event - Conference] Hand raise event received", {
+      peerId: msg.peerId,
+      peerName: msg.peerName,
+      raised: msg.raised,
+      timestamp: new Date().toISOString(),
+    });
+
+    if (msg.raised) {
+      setHandRaisedPeers((prev) => {
+        const next = new Set(prev);
+        next.add(msg.peerId);
+        return next;
+      });
+
+      // Show toast notification for hosts and co-hosts
+      if (localPeer?.roleName === "host" || localPeer?.roleName === "co-host") {
+        toast.info(`✋ ${msg.peerName} raised their hand`, {
+          autoClose: 3000,
+          toastId: `hand-raise-${msg.peerId}-${Date.now()}`,
+        });
+      }
+    } else {
+      setHandRaisedPeers((prev) => {
+        const next = new Set(prev);
+        next.delete(msg.peerId);
+        return next;
+      });
+    }
+  });
 
   // Hand raise is now handled via custom events (useSpeakerRequestEvent above)
   // Room ended is handled via useRoomEndedEvent
@@ -409,6 +443,13 @@ export default function Conference({ roomId }: { roomId: string }) {
       }
 
       await updateParticipantRole(roomId, request.fid, "speaker", token);
+
+      // Clear hand-raised state for this peer
+      setHandRaisedPeers((prev) => {
+        const next = new Set(prev);
+        next.delete(request.fid);
+        return next;
+      });
 
       // Notify the peer to switch to speaker role
       sendCustomEvent('ROLE_UPDATED', { targetFid: String(request.fid), newRole: 'speaker' });
@@ -688,6 +729,9 @@ export default function Conference({ roomId }: { roomId: string }) {
                       speaking={p.speaking}
                       muted={p.muted}
                       onClick={handleAvatarClick}
+                      isHandRaised={handRaisedPeers.has(
+                        p.peer?.metadata ? JSON.parse(p.peer.metadata as string).fid : ''
+                      )}
                     />
                   </motion.div>
                 ))}

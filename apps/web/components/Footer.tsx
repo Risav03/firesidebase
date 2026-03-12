@@ -6,7 +6,7 @@ import { useGlobalContext } from "../utils/providers/globalContext";
 import { useHandRaiseLogic } from "./footer/useHandRaiseLogic";
 import { useEmojiReactionLogic } from "./footer/useEmojiReactionLogic";
 import { useSoundboardLogic } from "./footer/useSoundboardLogic";
-import { useSpeakerRejectionEvent, useSpeakerRequestEvent } from "../utils/events";
+import { useSpeakerRejectionEvent, useSpeakerRequestEvent, useHandRaiseEvent } from "../utils/events";
 import { ControlCenterDrawer } from "./experimental";
 import Chat from "./Chat";
 import TippingModal from "./TippingModal";
@@ -70,10 +70,27 @@ export default function Footer({ roomId }: { roomId: string }) {
   },[])
 
 
+  const { notifyHandRaise } = useHandRaiseEvent();
+
+  const localMetadata = localPeer?.metadata ? JSON.parse(localPeer.metadata as string) : null;
+  const localPeerName = localPeer?.name || 'Unknown';
+  const localPeerAvatar = localMetadata?.avatar;
+  const localPeerFid = localMetadata?.fid;
+
   const { toggleRaiseHand } = useHandRaiseLogic({
     isHandRaised,
     setIsHandRaised,
     localPeerId: localPeer?.id || '',
+    onRaise: () => {
+      if (localPeerFid) {
+        notifyHandRaise(localPeerFid, localPeerName, true, localPeerAvatar);
+      }
+    },
+    onLower: () => {
+      if (localPeerFid) {
+        notifyHandRaise(localPeerFid, localPeerName, false, localPeerAvatar);
+      }
+    },
   });
 
   const { handleEmojiSelect, floatingEmojis, isDisabled } = useEmojiReactionLogic({ user });

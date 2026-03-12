@@ -287,3 +287,36 @@ export const useSoundStoppedEvent = (
 
   return { notifySoundStopped, sendEvent };
 };
+
+/**
+ * Hand raise event message interface
+ */
+export interface HandRaiseMessage {
+  peerId: string;
+  peerName: string;
+  peerAvatar?: string;
+  raised: boolean;
+}
+
+/**
+ * Custom hook for handling hand raise events
+ */
+export const useHandRaiseEvent = (
+  onEvent?: (msg: HandRaiseMessage) => void
+) => {
+  const { sendEvent } = useCustomEvent<HandRaiseMessage>(
+    "HAND_RAISED",
+    onEvent
+  );
+
+  const notifyHandRaise = (
+    peerId: string,
+    peerName: string,
+    raised: boolean,
+    peerAvatar?: string
+  ) => {
+    sendEvent({ peerId, peerName, peerAvatar, raised });
+  };
+
+  return { notifyHandRaise, sendEvent };
+};
