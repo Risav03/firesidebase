@@ -241,7 +241,7 @@ export function ChatMessage({ message, isOwnMessage, onSelectForReply, onScrollT
   const handleClick = (e: React.MouseEvent) => {
     // Only handle if Ctrl/Cmd key is pressed (desktop pattern)
     if ((e.ctrlKey || e.metaKey) && onSelectForReply) {
-      onSelectForReply(convertToRedisFormat());
+      onSelectForReply(getRedisMessage());
     }
   };
 
@@ -266,7 +266,7 @@ export function ChatMessage({ message, isOwnMessage, onSelectForReply, onScrollT
   return (
     <div 
       className={`chat-message p-2 ${isBotMessage ? 'bot-message' : isOwnMessage ? 'own-message' : 'other-message'} ${isSelected ? 'bg-white/5 rounded-lg' : ''} ${isLongPressing ? 'opacity-70' : ''}`}
-      id={`message-${isRedisMessage ? (message as RedisChatMessage).id : `hms_${(message as HMSMessage).id}`}`}
+      id={`message-${(message as RedisChatMessage).id}`}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
