@@ -94,6 +94,7 @@ export default function Conference({ roomId }: { roomId: string }) {
     useState(false);
 
   const [roomEnded, setRoomEnded] = useState(false);
+  const wasConnectedRef = useRef(false);
   const [selectedPeer, setSelectedPeer] = useState<any>(null);
   const [showAvatarContextMenu, setShowAvatarContextMenu] = useState(false);
   const [showTippingDrawer, setShowTippingDrawer] = useState(false);
@@ -235,6 +236,38 @@ export default function Conference({ roomId }: { roomId: string }) {
     console.log("[Agora Event - Conference] Room ended, showing end screen");
     setRoomEnded(true);
   });
+
+  // Fallback: detect Agora disconnect and check if room has ended.
+  // Covers the race condition where the ENDED_REWARD event is missed because
+  // the backend killed the Agora channel before the event could be polled.
+  useEffect(() => {
+    if (isConnected) {
+      wasConnectedRef.current = true;
+      return;
+    }
+
+    // Only act on a true->false transition (not on initial mount)
+    if (!wasConnectedRef.current || roomEnded) return;
+
+    let cancelled = false;
+    const checkRoomStatus = async () => {
+      try {
+        const response = await fetchRoomDetails(roomId);
+        if (cancelled) return;
+        const status = response.data?.data?.room?.status;
+        if (status === 'ended') {
+          console.log("[Conference] Agora disconnected and room is ended, showing end screen");
+          setRoomEnded(true);
+        }
+      } catch (err) {
+        // Network error — don't trigger end screen on connectivity issues
+        console.warn("[Conference] Failed to check room status after disconnect:", err);
+      }
+    };
+
+    checkRoomStatus();
+    return () => { cancelled = true; };
+  }, [isConnected, roomEnded, roomId]);
 
   useEffect(() => {
     async function getRoomDetails() {

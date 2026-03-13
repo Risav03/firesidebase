@@ -105,6 +105,14 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
       setAction('end');
       setIsLoading(true);
 
+      // Broadcast ENDED_REWARD event BEFORE ending the room so participants
+      // still have an active Agora connection and can receive the event via polling.
+      endRoomReward('Room has been ended by the host.');
+
+      // Wait for at least one poll cycle (polling is every 1.5s) so remote
+      // participants pick up the event before the backend kills the Agora channel.
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       // Call our API to end the room
       const response = await endProtectedRoom(roomId, user._id, token);
 
@@ -117,7 +125,7 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
 
       console.log("ROOM ENDED REWARDS", JSON.stringify( response.data.data.rewards))
       
-      // Send room ended event with reward data
+      // Set reward data for host's RoomEndScreen
       setRewardData(rewardData);
       onClose();
       try {
