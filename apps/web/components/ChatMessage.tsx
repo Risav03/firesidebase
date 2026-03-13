@@ -1,6 +1,5 @@
 'use client'
 
-import { HMSMessage } from "@100mslive/react-sdk";
 import { formatDistanceToNow } from "./utils/timeUtils";
 import { ReplyPreview } from "./ReplyPreview";
 import { useRef, useState, ReactNode } from "react";
@@ -136,7 +135,7 @@ function renderMessageWithMentions(text: string, isBot: boolean = false): ReactN
 }
 
 interface ChatMessageProps {
-  message: HMSMessage | RedisChatMessage;
+  message: RedisChatMessage;
   isOwnMessage: boolean;
   onSelectForReply?: (message: RedisChatMessage) => void;
   onScrollToMessage?: (messageId: string) => void;
@@ -153,49 +152,28 @@ export function ChatMessage({ message, isOwnMessage, onSelectForReply, onScrollT
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isLongPressing, setIsLongPressing] = useState(false);
   
-  const isRedisMessage = 'userId' in message;
+  const isRedisMessage = true; // All messages are now RedisChatMessage
   
   // Check if this is a bot message
-  const isBotMessage = isRedisMessage && (message as RedisChatMessage).isBot === true;
-  const botStatus = isRedisMessage ? (message as RedisChatMessage).status : undefined;
+  const isBotMessage = message.isBot === true;
+  const botStatus = message.status;
   
   // Get transactions if present (only for bot messages)
-  const transactions = isRedisMessage ? (message as RedisChatMessage).transactions : undefined;
-  const prompterFid = isRedisMessage ? (message as RedisChatMessage).prompterFid : undefined;
+  const transactions = message.transactions;
+  const prompterFid = message.prompterFid;
   const isPrompter = !!(currentUserFid && prompterFid && currentUserFid === prompterFid);
 
-  // Get sender name based on message type
-  const getSenderName = () => {
-    if (isRedisMessage) {
-      const redisMsg = message as RedisChatMessage;
-      return redisMsg.displayName || 'Anonymous';
-    } else {
-      const hmsMsg = message as HMSMessage;
-      return hmsMsg.senderName || 
-             hmsMsg.sender || 
-             (hmsMsg as any).senderUserId ||
-             'Anonymous';
-    }
-  };
-  
-  const senderName = getSenderName();
+  // Get sender name
+  const senderName = message.displayName || 'Anonymous';
   
   // Get message text
   const getMessageText = () => {
-    if (isRedisMessage) {
-      return (message as RedisChatMessage).message;
-    } else {
-      return (message as HMSMessage).message;
-    }
+    return message.message;
   };
   
   // Get timestamp
   const getTimestamp = () => {
-    if (isRedisMessage) {
-      return new Date((message as RedisChatMessage).timestamp);
-    } else {
-      return (message as HMSMessage).time;
-    }
+    return new Date(message.timestamp);
   };
   
   const getInitials = (name: string) => {
@@ -226,56 +204,14 @@ export function ChatMessage({ message, isOwnMessage, onSelectForReply, onScrollT
 
   // Get profile picture URL
   const getPfpUrl = () => {
-    if (isRedisMessage) {
-      return (message as RedisChatMessage).pfp_url || '';
-    } else {
-      // For HMS messages, try to extract pfp_url from parsed metadata
-      const hmsMsg = message as HMSMessage;
-      try {
-        const parsedMsg = JSON.parse(hmsMsg.message);
-        return parsedMsg.pfp_url || '';
-      } catch (e) {
-        return '';
-      }
-    }
+    return message.pfp_url || '';
   };
 
   const pfpUrl = getPfpUrl();
 
-  // Convert HMS message to RedisChatMessage format for selection
-  const convertToRedisFormat = (): RedisChatMessage => {
-    if (isRedisMessage) {
-      return message as RedisChatMessage;
-    }
-    
-    const hmsMsg = message as HMSMessage;
-    let messageText = hmsMsg.message;
-    let messageFid = '';
-    let messagePfpUrl = '';
-    let messageUsername = '';
-    let messageDisplayName = '';
-    
-    try {
-      const parsedMsg = JSON.parse(hmsMsg.message);
-      messageText = parsedMsg.text;
-      messageFid = parsedMsg.userFid || '';
-      messagePfpUrl = parsedMsg.pfp_url || '';
-      messageUsername = parsedMsg.username || '';
-      messageDisplayName = parsedMsg.displayName || '';
-    } catch (e) {
-      messageText = hmsMsg.message;
-    }
-    
-    return {
-      id: `hms_${hmsMsg.id}`,
-      roomId: '',
-      userId: messageFid,
-      username: messageUsername || hmsMsg.senderName || 'Unknown',
-      displayName: messageDisplayName || hmsMsg.senderName || 'Unknown',
-      pfp_url: messagePfpUrl,
-      message: messageText,
-      timestamp: hmsMsg.time.toISOString()
-    };
+  // Get message as RedisChatMessage (it already is)
+  const getRedisMessage = (): RedisChatMessage => {
+    return message;
   };
 
   // Long press handlers
@@ -283,7 +219,7 @@ export function ChatMessage({ message, isOwnMessage, onSelectForReply, onScrollT
     setIsLongPressing(true);
     longPressTimerRef.current = setTimeout(() => {
       if (onSelectForReply) {
-        onSelectForReply(convertToRedisFormat());
+        onSelectForReply(getRedisMessage());
         // Haptic feedback on mobile
         if (navigator.vibrate) {
           navigator.vibrate(50);

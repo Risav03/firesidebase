@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react';
-import { useHMSActions, useHMSStore, selectLocalPeer } from '@100mslive/react-sdk';
+import { useAgoraContext } from '@/contexts/AgoraContext';
 import { useRoomEndedEvent } from '@/utils/events';
 import { useRouter } from 'next/navigation';
 import { useGlobalContext } from '@/utils/providers/globalContext';
@@ -23,10 +23,9 @@ export default function RoomEndModal({ isVisible, onClose, roomId }: RoomEndModa
   const [error, setError] = useState<string | null>(null);
   const [showEndConfirmation, setShowEndConfirmation] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
-  const hmsActions = useHMSActions();
+  const { localPeer } = useAgoraContext();
   const router = useRouter();
   const { user } = useGlobalContext();
-  const localPeer = useHMSStore(selectLocalPeer);
   const { setRewardData } = useRewardContext();
 
    // Use the utility function for room ended events

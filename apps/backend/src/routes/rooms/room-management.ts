@@ -9,7 +9,7 @@ import {
 } from "../../schemas";
 import { errorResponse, successResponse, isValidRoomStatus } from "../../utils";
 import { authMiddleware } from "../../middleware/auth";
-import { HMSAPI } from "../../services/hmsAPI";
+import { AgoraAPI } from "../../services/agoraAPI";
 import { RedisRoomParticipantsService } from "../../services/redis";
 import { RedisTippingService } from "../../services/redis/tippingDetails";
 import { trackViewerJoin } from "../../services/ads/viewTracking";
@@ -43,7 +43,7 @@ const RoomResponseSchema = t.Object({
   name: t.String({ description: 'Room name' }),
   description: t.Optional(t.String({ description: 'Room description' })),
   host: RoomHostSchema,
-  roomId: t.String({ description: '100ms room ID' }),
+  roomId: t.String({ description: 'Agora channel name' }),
   status: t.Union([t.Literal('upcoming'), t.Literal('ongoing'), t.Literal('ended')]),
   startTime: t.String({ description: 'ISO date string of room start time' }),
   endTime: t.Optional(t.String({ description: 'ISO date string of room end time' })),
@@ -142,8 +142,8 @@ export const roomManagementRoutes = new Elysia()
             }
           }
 
-          // Get the active participants count for each room using HMS API
-          const hmsAPI = new HMSAPI();
+          // Get the active participants count for each room using Agora API
+          const agoraAPI = new AgoraAPI();
 
           console.log("HOST MAP", hostMap);
 
@@ -152,8 +152,8 @@ export const roomManagementRoutes = new Elysia()
             rooms.map(async (room: any) => {
               try {
                 console.log("Fetching peers for room:", room.roomId);
-                // Call HMS API to get peers for this room
-                const peersData = await hmsAPI.listRoomPeers(room.roomId);
+                // Call Agora API to get users for this channel
+                const peersData = await agoraAPI.listChannelUsers(room.roomId);
                 console.log("This is peers data", peersData, room.roomId);
                 // Add strength field and host details
                 return {
@@ -200,7 +200,7 @@ Retrieves all enabled/active rooms with their current participant counts.
 **Features:**
 - Returns rooms sorted by creation date (newest first)
 - Includes host profile information from Farcaster
-- Includes real-time participant count (strength) from 100ms
+- Includes real-time participant count (strength) from Agora
 - Only returns rooms where \`enabled: true\`
 
 **Note:** This is a public endpoint and does not require authentication.
@@ -382,8 +382,8 @@ Retrieves multiple rooms by their MongoDB ObjectIds in a single request.
             return successResponse({ recordings: [], message: "Recording was not enabled for this room" });
           }
 
-          const hmsAPI = new HMSAPI();
-          const recordingsData = await hmsAPI.getRecordingAssets(room.roomId);
+          const agoraAPI = new AgoraAPI();
+          const recordingsData = await agoraAPI.getRecordingAssets(room.roomId);
 
           return successResponse({ recordings: recordingsData });
         } catch (error) {
@@ -396,7 +396,7 @@ Retrieves multiple rooms by their MongoDB ObjectIds in a single request.
         }
       }, {
         params: t.Object({
-          id: t.String({ description: '100ms room ID' })
+          id: t.String({ description: 'Agora channel name / room ID' })
         }),
         response: {
           200: GetRecordingsResponseSchema,
@@ -407,9 +407,9 @@ Retrieves multiple rooms by their MongoDB ObjectIds in a single request.
           tags: ['Rooms'],
           summary: 'Get Room Recordings',
           description: `
-Retrieves recording assets for a room from 100ms.
+Retrieves recording assets for a room from Agora Cloud Recording / S3.
 
-**Note:** The \`id\` parameter should be the 100ms room ID, not the MongoDB ObjectId.
+**Note:** The \`id\` parameter should be the Agora channel name (stored as roomId), not the MongoDB ObjectId.
 
 **Returns:**
 - List of available recording assets
@@ -568,7 +568,7 @@ Retrieves rooms that match any of the provided topics.
                 
                 return {
                   roomId: room._id.toString(),
-                  hmsRoomId: room.roomId,
+                  channelName: room.roomId,
                   name: room.name,
                   description: room.description,
                   host: room.host,
@@ -586,7 +586,7 @@ Retrieves rooms that match any of the provided topics.
                 console.error(`Error fetching tips for room ${room.roomId}:`, error);
                 return {
                   roomId: room._id.toString(),
-                  hmsRoomId: room.roomId,
+                  channelName: room.roomId,
                   name: room.name,
                   description: room.description,
                   host: room.host,
@@ -630,7 +630,7 @@ Retrieves rooms that match any of the provided topics.
             data: t.Object({
               rooms: t.Array(t.Object({
                 roomId: t.String({ description: 'MongoDB ObjectId' }),
-                hmsRoomId: t.String({ description: '100ms room ID' }),
+                channelName: t.String({ description: 'Agora channel name' }),
                 name: t.String({ description: 'Room name' }),
                 description: t.Optional(t.String({ description: 'Room description' })),
                 host: RoomHostSchema,
@@ -762,7 +762,7 @@ Retrieves all upcoming rooms hosted by the authenticated user.
           "/",
           async ({ headers, body, set }: any) => {
             let savedRoom: any = null;
-            let hmsRoom: any = null;
+            let channelName: string = "";
 
             try {
               const { name, description, startTime, topics, adsEnabled, isRecurring, recurrenceType, recordingEnabled } = body;
@@ -778,8 +778,6 @@ Retrieves all upcoming rooms hosted by the authenticated user.
                   ? adsEnabled
                   : Boolean((hostUser as any).autoAdsEnabled);
 
-              const hmsAPI = new HMSAPI();
-
               //trim the name off any symbols or digits and append Date.now() to ensure uniqueness
               const trimmedName = name.replace(/[^\w\s]/gi, "").trim();
               const uniqueName = `${trimmedName}-${Date.now()}`;
@@ -787,27 +785,10 @@ Retrieves all upcoming rooms hosted by the authenticated user.
               const currentTime = new Date();
               const roomStartTime = new Date(startTime);
 
+              // Agora channels are dynamic — no need to create room via API
+              // Just generate a unique channel name
               if (currentTime > roomStartTime) {
-                try {
-                  hmsRoom = await hmsAPI.createRoom(
-                    uniqueName,
-                    description || ""
-                  );
-                } catch (error) {
-                  console.error("Error creating room in 100ms:", error);
-                  set.status = 500;
-                  return errorResponse(
-                    "Failed to create room in 100ms service"
-                  );
-                }
-
-                try {
-                  await hmsAPI.generateRoomCodes(hmsRoom.id);
-                } catch (error) {
-                  console.error("Error generating room codes:", error);
-                  set.status = 500;
-                  return errorResponse("Failed to generate room codes");
-                }
+                channelName = uniqueName;
               }
 
               const calculatedRecurrenceDay = isRecurring && recurrenceType === 'weekly' 
@@ -819,7 +800,7 @@ Retrieves all upcoming rooms hosted by the authenticated user.
                 description: description || "",
                 host: hostUser._id,
                 startTime: roomStartTime,
-                roomId: hmsRoom ? hmsRoom.id : "",
+                roomId: channelName,
                 status: currentTime < roomStartTime ? "upcoming" : "ongoing",
                 enabled: true,
                 topics,
@@ -920,8 +901,8 @@ Retrieves all upcoming rooms hosted by the authenticated user.
 Creates a new audio room.
 
 **Behavior:**
-- If \`startTime\` is in the future, creates an "upcoming" room without 100ms room
-- If \`startTime\` is now or past, creates an "ongoing" room with 100ms integration
+- If \`startTime\` is in the future, creates an "upcoming" room without Agora channel
+- If \`startTime\` is now or past, creates an "ongoing" room with Agora channel
 - Automatically adds the authenticated user as the host
 - Tracks the host as a viewer for ad analytics
 
@@ -987,22 +968,25 @@ Creates a new audio room.
               return errorResponse("Recording is already enabled for this room");
             }
 
-            // Check if room has an HMS room ID
+            // Check if room has an Agora channel name
             if (!room.roomId) {
               set.status = 400;
               return errorResponse("Room must be started before recording can begin");
             }
 
-            const hmsAPI = new HMSAPI();
+            const agoraAPI = new AgoraAPI();
 
-            // Start recording using HMS API
+            // Start recording using Agora Cloud Recording API
             try {
-              await hmsAPI.startRecording(room.roomId);
+              const recordingUid = 10000; // dedicated UID for recording bot
+              const token = agoraAPI.generateToken(room.roomId, recordingUid, 'host');
+              const resourceId = await agoraAPI.acquireRecordingResource(room.roomId, recordingUid);
+              await agoraAPI.startRecording(room.roomId, recordingUid, resourceId, token);
             } catch (error) {
-              console.error("Error starting HMS recording:", error);
+              console.error("Error starting Agora recording:", error);
               set.status = 500;
               return errorResponse(
-                "Failed to start recording in HMS",
+                "Failed to start recording",
                 error instanceof Error ? error.message : "Unknown error"
               );
             }
@@ -1054,13 +1038,13 @@ Creates a new audio room.
 Starts recording for an ongoing room and updates the recordingEnabled flag.
 
 **Prerequisites:**
-- Room must be in "ongoing" status with an active HMS room
+- Room must be in "ongoing" status with an active Agora channel
 - Recording must not already be enabled
 - User must be the host or a co-host
 
 **Actions Performed:**
 1. Validates user permissions (host or co-host only)
-2. Starts recording via HMS API
+2. Starts recording via Agora Cloud Recording API
 3. Updates room document to set \`recordingEnabled: true\`
 
 **Authorization:** Only the room host or co-hosts can start recording.
@@ -1071,7 +1055,7 @@ Starts recording for an ongoing room and updates the recordingEnabled flag.
           }
         })
 
-        // Start a room - create HMS room and update room info
+        // Start a room - create Agora channel and update room info
         .post("/start/:roomId", async ({ headers, params, set }: any) => {
           try {
             const userFid = headers["x-user-fid"] as string;
@@ -1102,43 +1086,29 @@ Starts recording for an ongoing room and updates the recordingEnabled flag.
               return errorResponse("Only the room host can start the room");
             }
 
-            // Check if room already has an HMS room ID
+            // Check if room already has a channel name
             if (room.roomId) {
               set.status = 400;
               return errorResponse("Room has already been started");
             }
 
-            const hmsAPI = new HMSAPI();
-            let hmsRoom: any = null;
+            const agoraAPI = new AgoraAPI();
 
             // Trim the name off any symbols or digits and append Date.now() to ensure uniqueness
             const trimmedName = room.name.replace(/[^\w\s]/gi, "").trim();
             const uniqueName = `${trimmedName}-${Date.now()}`;
 
-            try {
-              hmsRoom = await hmsAPI.createRoom(
-                uniqueName,
-                room.description || ""
-              );
-            } catch (error) {
-              console.error("Error creating room in 100ms:", error);
-              set.status = 500;
-              return errorResponse("Failed to create room in 100ms service");
-            }
-
-            try {
-              await hmsAPI.generateRoomCodes(hmsRoom.id);
-            } catch (error) {
-              console.error("Error generating room codes:", error);
-              set.status = 500;
-              return errorResponse("Failed to generate room codes");
-            }
+            // Agora channels are dynamic — just use the unique name as channel name
+            const channelName = uniqueName;
 
             // Start recording if enabled
             if (room.recordingEnabled) {
               try {
-                await hmsAPI.startRecording(hmsRoom.id);
-                console.log(`[Recording] Started recording for room ${hmsRoom.id}`);
+                const recordingUid = 10000;
+                const recToken = agoraAPI.generateToken(channelName, recordingUid, 'host');
+                const resourceId = await agoraAPI.acquireRecordingResource(channelName, recordingUid);
+                await agoraAPI.startRecording(channelName, recordingUid, resourceId, recToken);
+                console.log(`[Recording] Started recording for channel ${channelName}`);
               } catch (recordingError) {
                 console.error("Error starting recording:", recordingError);
                 // Don't fail room start if recording fails
@@ -1154,18 +1124,18 @@ Starts recording for an ongoing room and updates the recordingEnabled flag.
               })
             );
 
-            // Update the room with HMS room ID and set status to ongoing
+            // Update the room with Agora channel name and set status to ongoing
             const updatedRoom = await Room.findByIdAndUpdate(
               params.roomId,
               {
-                roomId: hmsRoom.id,
+                roomId: channelName,
                 status: "ongoing",
               },
               { new: true }
             ).populate("host", "fid username displayName pfp_url");
 
             console.log(
-              `[Room Start] Successfully started room ${params.roomId} with HMS ID: ${hmsRoom.id}`
+              `[Room Start] Successfully started room ${params.roomId} with channel: ${channelName}`
             );
 
             const res1 = await fetch(
@@ -1252,17 +1222,17 @@ Starts recording for an ongoing room and updates the recordingEnabled flag.
             tags: ['Rooms'],
             summary: 'Start Scheduled Room',
             description: `
-Starts a scheduled (upcoming) room by creating the 100ms room and sending notifications.
+Starts a scheduled (upcoming) room by creating the Agora channel and sending notifications.
 
 **Actions Performed:**
-1. Creates room in 100ms platform
+1. Creates Agora channel name
 2. Generates room codes for all roles
 3. Updates room status to "ongoing"
 4. Sends push notifications to interested users via Farcaster and Neynar
 
 **Prerequisites:**
 - Room must be in "upcoming" status
-- Room must not have an existing 100ms room ID
+- Room must not have an existing Agora channel name
 - User must be the room host
 
 **Authorization:** Only the room host can start the room.

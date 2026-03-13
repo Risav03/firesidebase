@@ -493,7 +493,7 @@ export async function updateRoom(
 }
 
 /**
- * Start a room (create HMS room and set status to ongoing)
+ * Start a room (create Agora channel and set status to ongoing)
  */
 export async function startRoom(roomId: string, token: string | null = null) {
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
@@ -504,95 +504,26 @@ export async function startRoom(roomId: string, token: string | null = null) {
 }
 
 /**
- * Fetch active peers in an HMS room using 100ms Management API
+ * Fetch active peers in a room via backend API (Agora)
  */
-export async function fetchHMSActivePeers(hmsRoomId: string, role?:string) {
-  const HMS_MANAGEMENT_TOKEN = process.env.HMS_MANAGEMENT_TOKEN;
-  
-  if (!HMS_MANAGEMENT_TOKEN) {
-    console.error('HMS_MANAGEMENT_TOKEN not found in environment variables');
-    return { 
-      data: { success: false, error: 'HMS token not configured' }, 
-      status: 500, 
-      ok: false 
-    };
-  }
-
-  try {
-    const response = await fetch(`https://api.100ms.live/v2/active-rooms/${hmsRoomId}/peers${role ? `?role=${role}` : ''}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${HMS_MANAGEMENT_TOKEN}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    const data = await response.json();
-    
-    return {
-      data,
-      status: response.status,
-      ok: response.ok
-    };
-  } catch (error) {
-    console.error('Error fetching HMS active peers:', error);
-    return {
-      data: { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to fetch HMS peers' 
-      },
-      status: 500,
-      ok: false
-    };
-  }
+export async function fetchActivePeers(roomId: string) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/rooms/public/${roomId}/participants-live`);
 }
 
 /**
- * Remove a peer from an HMS room using 100ms Management API
+ * Remove a peer from a room via backend API (Agora)
  */
-export async function removeHMSPeer(hmsRoomId: string, peerId: string, role: string, reason: string = '') {
-  const HMS_MANAGEMENT_TOKEN = process.env.HMS_MANAGEMENT_TOKEN;
-  
-  if (!HMS_MANAGEMENT_TOKEN) {
-    console.error('HMS_MANAGEMENT_TOKEN not found in environment variables');
-    return { 
-      data: { success: false, error: 'HMS token not configured' }, 
-      status: 500, 
-      ok: false 
-    };
-  }
-
-  try {
-    const response = await fetch(`https://api.100ms.live/v2/active-rooms/${hmsRoomId}/remove-peers`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${HMS_MANAGEMENT_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        peer_id: peerId,
-        reason: reason
-      })
-    });
-
-    const data = await response.json();
-    
-    return {
-      data,
-      status: response.status,
-      ok: response.ok
-    };
-  } catch (error) {
-    console.error('Error removing HMS peer:', error);
-    return {
-      data: { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to remove HMS peer' 
-      },
-      status: 500,
-      ok: false
-    };
-  }
+export async function removeActivePeer(roomId: string, userFid: string, reason: string = '') {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/rooms/protected/${roomId}/leave`, {
+    method: 'POST',
+    body: {
+      userFid,
+      reason,
+      kicked: true,
+    }
+  });
 }
 
 /**

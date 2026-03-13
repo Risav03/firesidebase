@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { useHMSActions, useHMSStore, selectIsConnectedToRoom } from "@100mslive/react-sdk";
+import { useAgoraContext } from "@/contexts/AgoraContext";
 
 /**
  * AudioTrackItem represents a sound to be played
@@ -63,8 +63,7 @@ export function useCustomAudioTrack(options: UseCustomAudioTrackOptions = {}): U
     onError,
   } = options;
 
-  const hmsActions = useHMSActions();
-  const isConnected = useHMSStore(selectIsConnectedToRoom);
+  const { isConnected } = useAgoraContext();
 
   // State
   const [isPlaying, setIsPlaying] = useState(false);
@@ -72,19 +71,15 @@ export function useCustomAudioTrack(options: UseCustomAudioTrackOptions = {}): U
 
   // Refs for cleanup
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const mediaTrackRef = useRef<MediaStreamTrack | null>(null);
   const currentItemRef = useRef<AudioTrackItem | null>(null);
-  const isCleaningUpRef = useRef(false); // Flag to prevent error callbacks during cleanup
+  const isCleaningUpRef = useRef(false);
 
   /**
-   * Cleanup function to stop audio and remove track
+   * Cleanup function to stop audio
    */
   const cleanup = useCallback(async () => {
-    // Set flag to prevent error handlers from firing
     isCleaningUpRef.current = true;
 
-    // Remove event handlers first to prevent callbacks
     if (audioRef.current) {
       audioRef.current.onended = null;
       audioRef.current.onerror = null;
@@ -92,41 +87,10 @@ export function useCustomAudioTrack(options: UseCustomAudioTrackOptions = {}): U
       audioRef.current = null;
     }
 
-    // Remove the track from HMS using the actual MediaStreamTrack
-    if (mediaTrackRef.current) {
-      try {
-        // Stop the MediaStreamTrack itself
-        mediaTrackRef.current.stop();
-        
-        // Try to remove from HMS (may not always work, but that's okay)
-        try {
-          await hmsActions.removeTrack(mediaTrackRef.current.id);
-          console.log("[useCustomAudioTrack] Track removed");
-        } catch (e) {
-          // HMS might have already cleaned it up, that's fine
-          console.log("[useCustomAudioTrack] Track cleanup (may already be removed)");
-        }
-      } catch (e) {
-        // Ignore errors
-      }
-      mediaTrackRef.current = null;
-    }
-
-    // Close audio context
-    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-      try {
-        await audioContextRef.current.close();
-      } catch (e) {
-        // Ignore close errors
-      }
-      audioContextRef.current = null;
-    }
-
-    // Reset cleanup flag after a short delay
     setTimeout(() => {
       isCleaningUpRef.current = false;
     }, 100);
-  }, [hmsActions]);
+  }, []);
 
   /**
    * Play an audio item
@@ -144,56 +108,9 @@ export function useCustomAudioTrack(options: UseCustomAudioTrackOptions = {}): U
 
       // Create audio element
       const audio = new Audio(item.url);
-      audio.crossOrigin = 'anonymous';
       audio.volume = defaultVolume;
       audioRef.current = audio;
       currentItemRef.current = item;
-
-      // Create AudioContext to get MediaStreamTrack
-      const audioContext = new AudioContext();
-      audioContextRef.current = audioContext;
-
-      // Wait for audio to be loaded enough to play
-      await new Promise<void>((resolve, reject) => {
-        const onCanPlay = () => {
-          audio.removeEventListener('canplaythrough', onCanPlay);
-          audio.removeEventListener('error', onLoadError);
-          resolve();
-        };
-        const onLoadError = () => {
-          audio.removeEventListener('canplaythrough', onCanPlay);
-          audio.removeEventListener('error', onLoadError);
-          reject(new Error(`Failed to load audio: ${item.url}`));
-        };
-        audio.addEventListener('canplaythrough', onCanPlay);
-        audio.addEventListener('error', onLoadError);
-        audio.load();
-      });
-
-      // Create audio graph: audio element -> destination (for HMS)
-      const source = audioContext.createMediaElementSource(audio);
-      const destination = audioContext.createMediaStreamDestination();
-      
-      // Connect to destination for HMS broadcast
-      source.connect(destination);
-      
-      // Also connect to speakers so the person playing can hear it
-      source.connect(audioContext.destination);
-
-      // Get the audio track
-      const mediaStreamTrack = destination.stream.getAudioTracks()[0];
-      
-      if (!mediaStreamTrack) {
-        throw new Error("Failed to create audio track");
-      }
-
-      // Store the actual track reference for cleanup
-      mediaTrackRef.current = mediaStreamTrack;
-
-      // Add the track to HMS
-      await hmsActions.addTrack(mediaStreamTrack, 'regular');
-
-      console.log("[useCustomAudioTrack] Track added:", mediaStreamTrack.id);
 
       // Update state
       setIsPlaying(true);
@@ -201,7 +118,6 @@ export function useCustomAudioTrack(options: UseCustomAudioTrackOptions = {}): U
 
       // Handle playback end
       audio.onended = async () => {
-        // Skip if we're already cleaning up
         if (isCleaningUpRef.current) return;
         
         console.log("[useCustomAudioTrack] Playback ended:", item.name);
@@ -218,9 +134,8 @@ export function useCustomAudioTrack(options: UseCustomAudioTrackOptions = {}): U
         }
       };
 
-      // Handle errors during playback (not during cleanup)
+      // Handle errors during playback
       audio.onerror = async () => {
-        // Skip if we're cleaning up (this fires when we clear the audio)
         if (isCleaningUpRef.current) return;
         
         console.error("[useCustomAudioTrack] Playback error");
@@ -245,7 +160,7 @@ export function useCustomAudioTrack(options: UseCustomAudioTrackOptions = {}): U
       onError?.(error as Error);
       throw error;
     }
-  }, [isConnected, hmsActions, defaultVolume, cleanup, onPlaybackStart, onPlaybackEnd, onError]);
+  }, [isConnected, defaultVolume, cleanup, onPlaybackStart, onPlaybackEnd, onError]);
 
   /**
    * Stop current playback

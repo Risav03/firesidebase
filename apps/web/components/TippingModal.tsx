@@ -15,11 +15,10 @@ import {
 } from "@/components/UI/drawer";
 import Button from "@/components/UI/Button";
 import Input from "@/components/UI/Input";
-import { fetchRoomParticipants, fetchRoomParticipantsByRole, sendChatMessage, fetchHMSActivePeers, fetchRoomDetails, saveTipRecord } from "@/utils/serverActions";
+import { fetchRoomParticipants, fetchRoomParticipantsByRole, sendChatMessage, fetchActivePeers, fetchRoomDetails, saveTipRecord } from "@/utils/serverActions";
 import { useGlobalContext } from "@/utils/providers/globalContext";
 import { useAccount, useSendCalls, useSignTypedData, useWriteContract } from "wagmi";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
-import { useHMSActions } from "@100mslive/react-sdk";
 import { encodeFunctionData, numberToHex } from "viem";
 import { contractAdds } from "@/utils/contract/contractAdds";
 import { firebaseTipsAbi } from "@/utils/contract/abis/firebaseTipsAbi";
@@ -81,7 +80,6 @@ export default function TippingModal({
   const { writeContractAsync } = useWriteContract();
   const { context } = useMiniKit();
   const { address } = useAccount();
-  const hmsActions = useHMSActions();
   const { sendCalls, isSuccess, status  } = useSendCalls();
   const { sendTipNotification } = useTipEvent();
   const { addTipNotification } = useTipNotificationContext();
@@ -187,34 +185,19 @@ export default function TippingModal({
     // if (showUserDropdown) {
       console.log("Dropdown opened, fetching participants...");
       setIsLoadingUsers(true);
-      fetchRoomDetails(roomId)
-        .then(async (roomData) => {
-          if (roomData.data.success && roomData.data.data.room.roomId) {
-            const hmsData = await fetchHMSActivePeers(roomData.data.data.room.roomId);
-            console.log("HMS Active Peers:", hmsData);
+      fetchRoomParticipants(roomId)
+        .then(async (response) => {
+          if (response.ok && response.data?.data?.participants) {
+            const activeParticipants: Participant[] = response.data.data.participants
+              .map((p: any) => ({
+                userId: String(p.fid),
+                username: p.username || 'Anonymous',
+                pfp_url: p.avatar || '/default-avatar.png',
+                wallet: p.wallet || '',
+                status: 'active',
+                role: p.role
+              }));
             
-            if (hmsData.ok && hmsData.data.peers) {
-              // Map HMS peers to participant format
-              const activeParticipants: Participant[] = Object.values(hmsData.data.peers)
-                .filter((peer: any) => !peer.role.startsWith('__internal_'))
-                .map((peer: any) => {
-                  let metadata = {};
-                  try {
-                    metadata = peer.metadata ? JSON.parse(peer.metadata) : {};
-                  } catch (e) {
-                    console.error('Error parsing peer metadata:', e);
-                  }
-                  
-                  return {
-                    userId: peer.id,
-                    username: peer.name || 'Anonymous',
-                    pfp_url: (metadata as any).avatar || '/default-avatar.png',
-                    wallet: (metadata as any).wallet || '',
-                    status: 'active',
-                    role: peer.role
-                  };
-                });
-              
               setParticipants(activeParticipants);
 
               const rolePresence: Record<string, boolean> = {
@@ -231,7 +214,6 @@ export default function TippingModal({
               });
 
               setAvailableRoles(rolePresence);
-            }
           }
         })
         .catch((error) => console.error("Error fetching participants:", error))
@@ -249,7 +231,7 @@ export default function TippingModal({
     const emoji = amount >= 100 ? "💸" : amount >= 25 ? "🎉" : "👍";
     const message = `${emoji} ${tipper} tipped ${recipients} $${amount} in ${currency}!`;
 
-    hmsActions.sendBroadcastMessage(message);
+    // No longer broadcasting via HMS — tip messages are stored via Redis chat
 
     try {
       const { token } = await sdk.quickAuth.getToken();
@@ -350,26 +332,14 @@ export default function TippingModal({
         usersToSend = selectedUsers.map((user) => user.wallet).filter((wallet: string) => wallet !== '' && wallet !== undefined && wallet !== null);
       } else {
         try {
-        const roomData = await fetchRoomDetails(roomId);
-        if (roomData.data.success && roomData.data.data.room.roomId) {
-          const hmsData = await fetchHMSActivePeers(roomData.data.data.room.roomId);
-          
-          if (hmsData.ok && hmsData.data.peers) {
-            const activePeers = Object.values(hmsData.data.peers)
-              .filter((peer: any) => !peer.role.startsWith('__internal_') && selectedRoles.includes(peer.role))
-              .map((peer: any) => {
-                let metadata = {};
-                try {
-                  metadata = peer.metadata ? JSON.parse(peer.metadata) : {};
-                } catch (e) {
-                  console.error('Error parsing peer metadata:', e);
-                }
-                return (metadata as any).wallet || '';
-              })
+        const response = await fetchRoomParticipants(roomId);
+        if (response.ok && response.data?.data?.participants) {
+            const activePeers = response.data.data.participants
+              .filter((p: any) => selectedRoles.includes(p.role))
+              .map((p: any) => p.wallet || '')
               .filter((wallet: string) => wallet !== '' && wallet !== undefined && wallet !== null);
             
             usersToSend.push(...activePeers);
-          }
           }
         } catch (err) {
           console.error('Error fetching room participants:', err);
@@ -468,26 +438,14 @@ export default function TippingModal({
         usersToSend = selectedUsers.map((user) => user.wallet).filter((wallet: string) => wallet !== '' && wallet !== undefined && wallet !== null);
       } else {
         try {
-        const roomData = await fetchRoomDetails(roomId);
-        if (roomData.data.success && roomData.data.data.room.roomId) {
-          const hmsData = await fetchHMSActivePeers(roomData.data.data.room.roomId);
-          
-          if (hmsData.ok && hmsData.data.peers) {
-            const activePeers = Object.values(hmsData.data.peers)
-              .filter((peer: any) => !peer.role.startsWith('__internal_') && selectedRoles.includes(peer.role))
-              .map((peer: any) => {
-                let metadata = {};
-                try {
-                  metadata = peer.metadata ? JSON.parse(peer.metadata) : {};
-                } catch (e) {
-                  console.error('Error parsing peer metadata:', e);
-                }
-                return (metadata as any).wallet || '';
-              })
+        const response = await fetchRoomParticipants(roomId);
+        if (response.ok && response.data?.data?.participants) {
+            const activePeers = response.data.data.participants
+              .filter((p: any) => selectedRoles.includes(p.role))
+              .map((p: any) => p.wallet || '')
               .filter((wallet: string) => wallet !== '' && wallet !== undefined && wallet !== null);
             
             usersToSend.push(...activePeers);
-          }
           }
         } catch (err) {
           console.error('Error fetching room participants:', err);

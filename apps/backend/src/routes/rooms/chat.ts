@@ -5,6 +5,7 @@ import { RedisChatService, RedisRoomParticipantsService } from '../../services/r
 import { BankrAgentService, BANKR_BOT_USER, MentionResolverService } from '../../services/agent';
 import { errorResponse, successResponse } from '../../utils';
 import { authMiddleware } from '../../middleware/auth';
+import { wsManager } from '../../services/websocket/manager';
 import { 
   GetMessagesResponseSchema, 
   SendMessageResponseSchema,
@@ -145,6 +146,9 @@ Retrieves chat messages for a room with pagination support.
             replyToId
           );
 
+          // Broadcast new message via WebSocket
+          wsManager.broadcastToRoom(params.id, 'new_message', { message: chatMessage });
+
           // Check if replying to a bot message (for conversation continuation)
           let isBotReply = false;
           let existingThreadId: string | undefined;
@@ -175,18 +179,21 @@ Retrieves chat messages for a room with pagination support.
                 chatMessage.id  // Reply to the user's message
               );
 
+              // Broadcast pending bot message via WebSocket
+              wsManager.broadcastToRoom(params.id, 'new_message', { message: botMessage });
+
               // Get room to access HMS roomId for mention resolution
               const room = await Room.findById(params.id);
-              const hmsRoomId = room?.roomId;
+              const channelName = room?.roomId;
 
               // Process Bankr AI request asynchronously (don't block the response)
               (async () => {
                 try {
-                  // Resolve @mentions to wallet addresses if HMS room is active
+                  // Resolve @mentions to wallet addresses if Agora channel is active
                   let enrichedPrompt = prompt;
-                  if (hmsRoomId && MentionResolverService.hasMentions(prompt)) {
+                  if (channelName && MentionResolverService.hasMentions(prompt)) {
                     try {
-                      const mentionResult = await MentionResolverService.resolveMentions(prompt, hmsRoomId);
+                      const mentionResult = await MentionResolverService.resolveMentions(prompt, channelName);
                       if (mentionResult.mentions.length > 0) {
                         enrichedPrompt = mentionResult.enrichedPrompt;
                         console.log(`[Bankr AI] Resolved ${mentionResult.mentions.length} mentions with wallet context`);
@@ -231,6 +238,13 @@ Retrieves chat messages for a room with pagination support.
                     }
                     
                     await RedisChatService.updateMessage(botMessage.id, updateData);
+
+                    // Broadcast updated bot message via WebSocket
+                    const updatedMsg = await RedisChatService.getMessage(botMessage.id);
+                    if (updatedMsg) {
+                      wsManager.broadcastToRoom(params.id, 'message_updated', { message: updatedMsg });
+                    }
+
                     console.log(`[Bankr AI] Response stored for message ${botMessage.id}${result.threadId ? ` (threadId: ${result.threadId})` : ''}`);
                   } else {
                     // Update with error message
@@ -238,6 +252,12 @@ Retrieves chat messages for a room with pagination support.
                       message: `❌ ${result.error || 'Sorry, I encountered an error processing your request.'}`,
                       status: 'failed'
                     });
+
+                    const failedMsg = await RedisChatService.getMessage(botMessage.id);
+                    if (failedMsg) {
+                      wsManager.broadcastToRoom(params.id, 'message_updated', { message: failedMsg });
+                    }
+
                     console.error(`[Bankr AI] Error: ${result.error}`);
                   }
                 } catch (error) {
@@ -246,6 +266,11 @@ Retrieves chat messages for a room with pagination support.
                     message: '❌ Sorry, something went wrong. Please try again.',
                     status: 'failed'
                   });
+
+                  const errorMsg = await RedisChatService.getMessage(botMessage.id);
+                  if (errorMsg) {
+                    wsManager.broadcastToRoom(params.id, 'message_updated', { message: errorMsg });
+                  }
                 }
               })();
 
@@ -341,6 +366,10 @@ Sends a chat message to a room.
           }
 
           await RedisChatService.deleteMessages(params.id);
+
+          // Broadcast messages deleted via WebSocket
+          wsManager.broadcastToRoom(params.id, 'messages_deleted', { roomId: params.id });
+
           return successResponse(undefined, 'Messages deleted successfully');
         } catch (error) {
           console.error('Error deleting messages:', error);
@@ -420,23 +449,31 @@ Deletes all chat messages for a room.
             transactions: updatedTransactions
           });
 
+          // Broadcast updated transaction message via WebSocket
+          const updatedTxMessage = await RedisChatService.getMessage(params.messageId);
+          if (updatedTxMessage) {
+            wsManager.broadcastToRoom(params.id, 'message_updated', { message: updatedTxMessage });
+          }
+
           // If transaction confirmed, optionally post a follow-up from Bankr
           if (status === 'confirmed' && txHash) {
-            await RedisChatService.storeBotMessage(
+            const confirmMsg = await RedisChatService.storeBotMessage(
               params.id,
               BANKR_BOT_USER,
               `✅ Transaction confirmed! [View on BaseScan](https://basescan.org/tx/${txHash})`,
               'completed',
               params.messageId
             );
+            wsManager.broadcastToRoom(params.id, 'new_message', { message: confirmMsg });
           } else if (status === 'failed') {
-            await RedisChatService.storeBotMessage(
+            const failMsg = await RedisChatService.storeBotMessage(
               params.id,
               BANKR_BOT_USER,
               '❌ Transaction failed. Please try again or check your wallet balance.',
               'completed',
               params.messageId
             );
+            wsManager.broadcastToRoom(params.id, 'new_message', { message: failMsg });
           }
 
           return successResponse({ 

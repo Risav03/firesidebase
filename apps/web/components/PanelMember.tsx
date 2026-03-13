@@ -1,10 +1,5 @@
 import { ScrollingName } from "./experimental";
-import {
-  selectIsPeerAudioEnabled,
-  selectPeerAudioByID,
-  useHMSStore,
-  selectHasPeerHandRaised,
-} from "@100mslive/react-sdk";
+import { useAgoraContext } from "@/contexts/AgoraContext";
 import { useEffect, useState } from "react";
 
 interface PanelMemberProps {
@@ -15,16 +10,23 @@ interface PanelMemberProps {
   speaking: boolean;
   muted: boolean;
   onClick: (id: string) => void;
+  isHandRaised?: boolean;
 }
 
-export default function PanelMember({ id, name, img, role, onClick }: PanelMemberProps) {
-  const isPeerAudioEnabled = useHMSStore(selectIsPeerAudioEnabled(id));
-  const isHandRaised = useHMSStore(selectHasPeerHandRaised(id));
-  const peerAudioLevel = useHMSStore(selectPeerAudioByID(id));
+export default function PanelMember({ id, name, img, role, onClick, isHandRaised }: PanelMemberProps) {
+  const { audioLevels, remotePeers, localPeer, isLocalAudioEnabled } = useAgoraContext();
+  
+  // Find peer by id to get audio state
+  const isLocalUser = id === localPeer?.id;
+  const peer = isLocalUser ? localPeer : remotePeers.get(parseInt(id));
+  // For local peer, use the authoritative isLocalAudioEnabled state.
+  // For remote peers, use the audioTrack presence (set/cleared by Agora events).
+  const isPeerAudioEnabled = isLocalUser ? isLocalAudioEnabled : !!peer?.audioTrack;
+  const peerAudioLevel = audioLevels.get(parseInt(id)) || 0;
   const [showSpeakingRing, setShowSpeakingRing] = useState(false);
 
   // Check if this peer is currently speaking
-  const isSpeaking = isPeerAudioEnabled && peerAudioLevel > 0;
+  const isSpeaking = isPeerAudioEnabled && peerAudioLevel > 5;
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
@@ -72,7 +74,7 @@ export default function PanelMember({ id, name, img, role, onClick }: PanelMembe
       onClick={() => onClick(id)}
     >
       <div
-        className={`relative rounded-xl overflow-hidden transition-all duration-200 border-b-4 ${getBorderClass()} ${getRingClass()}`}
+        className={`relative rounded-xl transition-all duration-200 border-b-4 ${getBorderClass()} ${getRingClass()}`}
         style={{
           width: '80px',
           height: '80px'
@@ -81,7 +83,7 @@ export default function PanelMember({ id, name, img, role, onClick }: PanelMembe
         <img
           src={img || `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`}
           alt={name}
-          className={`w-full h-full object-cover transition-all duration-300 ease-in-out ${!isPeerAudioEnabled ? "opacity-70" : ""}`}
+          className={`w-full h-full rounded-xl object-cover transition-all duration-300 ease-in-out ${!isPeerAudioEnabled ? "opacity-70" : ""}`}
         />
         {!isPeerAudioEnabled && (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -96,9 +98,10 @@ export default function PanelMember({ id, name, img, role, onClick }: PanelMembe
             </div>
           </div>
         )}
+        {/* Hand raise indicator */}
         {isHandRaised && (
-          <div className="absolute z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11 rounded-full flex items-center justify-center bg-fireside-orange border-[1px] border-white">
-            <span className="text-white text-sm">✋</span>
+          <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-white flex items-center justify-center text-sm z-10 animate-bounce shadow-lg">
+            ✋
           </div>
         )}
       </div>

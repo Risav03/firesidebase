@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useHMSActions, useHMSStore, selectIsConnectedToRoom, HMSPlaylistType } from "@100mslive/react-sdk";
+import { useAgoraContext } from "@/contexts/AgoraContext";
 
 /**
  * PlaylistItem represents a single audio/video item that can be played
@@ -89,8 +89,7 @@ export function usePlaylist(options: UsePlaylistOptions = {}): UsePlaylistReturn
     onError,
   } = options;
 
-  const hmsActions = useHMSActions();
-  const isConnected = useHMSStore(selectIsConnectedToRoom);
+  const { isConnected } = useAgoraContext();
 
   // Internal state
   const [playbackState, setPlaybackState] = useState<PlaybackState>({
@@ -146,11 +145,10 @@ export function usePlaylist(options: UsePlaylistOptions = {}): UsePlaylistReturn
           clearInterval(playbackTimerRef.current);
         }
         
-        // IMPORTANT: Stop the HMS playlist to prevent auto-advance to next track
-        try {
-          await hmsActions.audioPlaylist.stop();
-        } catch (e) {
-          // Ignore stop errors
+        // Stop the audio element
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current = null;
         }
         
         setPlaybackState(prev => ({
@@ -166,7 +164,10 @@ export function usePlaylist(options: UsePlaylistOptions = {}): UsePlaylistReturn
         currentTrackRef.current = null;
       }
     }, 100);
-  }, [onPlaybackProgress, onPlaybackEnd, hmsActions]);
+  }, [onPlaybackProgress, onPlaybackEnd]);
+
+  // Audio element ref for Web Audio playback
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   /**
    * Play a playlist item
@@ -185,18 +186,10 @@ export function usePlaylist(options: UsePlaylistOptions = {}): UsePlaylistReturn
         playbackTimerRef.current = null;
       }
 
-      // ALWAYS stop and clear the playlist first to prevent auto-advance issues
-      try {
-        await hmsActions.audioPlaylist.stop();
-      } catch (e) {
-        // Ignore stop errors
-      }
-
-      // Clear the playlist completely
-      try {
-        await hmsActions.audioPlaylist.setList([]);
-      } catch (e) {
-        // Ignore clear errors
+      // Stop any currently playing audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
       }
 
       // Update state before playing
@@ -210,23 +203,28 @@ export function usePlaylist(options: UsePlaylistOptions = {}): UsePlaylistReturn
         currentTime: 0,
       }));
 
-      // Create playlist item in HMS format with unique ID to prevent conflicts
-      const uniqueId = `${item.id}-${Date.now()}`;
-      const hmsPlaylistItem = {
-        id: uniqueId,
-        name: item.name,
-        url: item.url,
-        type: HMSPlaylistType.audio,
-        metadata: item.metadata || {},
-        playing: false,
-        selected: false,
+      // Create and play audio element
+      const audio = new Audio(item.url);
+      audio.volume = playbackState.volume / 100;
+      audioRef.current = audio;
+      
+      audio.onended = () => {
+        if (playbackTimerRef.current) {
+          clearInterval(playbackTimerRef.current);
+        }
+        setPlaybackState(prev => ({
+          ...prev,
+          isPlaying: false,
+          isPaused: false,
+          currentTrack: null,
+          progress: 0,
+          currentTime: 0,
+        }));
+        onPlaybackEnd?.(item);
+        currentTrackRef.current = null;
       };
 
-      // Set the list with ONLY this single item
-      await hmsActions.audioPlaylist.setList([hmsPlaylistItem]);
-      
-      // Play by the unique ID
-      await hmsActions.audioPlaylist.play(uniqueId);
+      await audio.play();
 
       // Start progress tracking
       startProgressTracking(item);
@@ -252,7 +250,7 @@ export function usePlaylist(options: UsePlaylistOptions = {}): UsePlaylistReturn
       onError?.(error as Error);
       throw error;
     }
-  }, [isConnected, hmsActions, onPlaybackStart, onError, startProgressTracking]);
+  }, [isConnected, onPlaybackStart, onError, startProgressTracking, playbackState.volume]);
 
   /**
    * Stop playback
@@ -261,7 +259,10 @@ export function usePlaylist(options: UsePlaylistOptions = {}): UsePlaylistReturn
     if (!isConnected) return;
 
     try {
-      await hmsActions.audioPlaylist.stop();
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
       
       if (playbackTimerRef.current) {
         clearInterval(playbackTimerRef.current);
@@ -288,7 +289,7 @@ export function usePlaylist(options: UsePlaylistOptions = {}): UsePlaylistReturn
       console.error("[usePlaylist] Error stopping:", error);
       onError?.(error as Error);
     }
-  }, [isConnected, hmsActions, onPlaybackEnd, onError]);
+  }, [isConnected, onPlaybackEnd, onError]);
 
   /**
    * Pause playback
@@ -297,7 +298,9 @@ export function usePlaylist(options: UsePlaylistOptions = {}): UsePlaylistReturn
     if (!isConnected || !playbackState.isPlaying) return;
 
     try {
-      await hmsActions.audioPlaylist.pause();
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
       
       if (playbackTimerRef.current) {
         clearInterval(playbackTimerRef.current);
@@ -314,7 +317,7 @@ export function usePlaylist(options: UsePlaylistOptions = {}): UsePlaylistReturn
       console.error("[usePlaylist] Error pausing:", error);
       onError?.(error as Error);
     }
-  }, [isConnected, hmsActions, playbackState.isPlaying, onError]);
+  }, [isConnected, playbackState.isPlaying, onError]);
 
   /**
    * Resume playback
@@ -323,8 +326,9 @@ export function usePlaylist(options: UsePlaylistOptions = {}): UsePlaylistReturn
     if (!isConnected || !playbackState.isPaused || !currentTrackRef.current) return;
 
     try {
-      // Resume by playing the track ID again
-      await hmsActions.audioPlaylist.play(currentTrackRef.current.id);
+      if (audioRef.current) {
+        await audioRef.current.play();
+      }
       
       // Resume progress tracking from where we left off
       const track = currentTrackRef.current;
@@ -346,18 +350,18 @@ export function usePlaylist(options: UsePlaylistOptions = {}): UsePlaylistReturn
       console.error("[usePlaylist] Error resuming:", error);
       onError?.(error as Error);
     }
-  }, [isConnected, hmsActions, playbackState, onError, startProgressTracking]);
+  }, [isConnected, playbackState, onError, startProgressTracking]);
 
   /**
    * Set volume (0-100)
    */
   const setVolume = useCallback(async (volume: number): Promise<void> => {
-    if (!isConnected) return;
-
     const clampedVolume = Math.max(0, Math.min(100, volume));
 
     try {
-      await hmsActions.audioPlaylist.setVolume(clampedVolume);
+      if (audioRef.current) {
+        audioRef.current.volume = clampedVolume / 100;
+      }
       
       setPlaybackState(prev => ({
         ...prev,
@@ -369,7 +373,7 @@ export function usePlaylist(options: UsePlaylistOptions = {}): UsePlaylistReturn
       console.error("[usePlaylist] Error setting volume:", error);
       onError?.(error as Error);
     }
-  }, [isConnected, hmsActions, onError]);
+  }, [onError]);
 
   /**
    * Seek to a specific time (in milliseconds)
@@ -378,10 +382,9 @@ export function usePlaylist(options: UsePlaylistOptions = {}): UsePlaylistReturn
     if (!isConnected || !currentTrackRef.current) return;
 
     try {
-      // Note: HMS may not support seeking for short audio clips
-      // This is mainly useful for longer content like music/podcasts
-      const seekTimeSeconds = time / 1000;
-      await hmsActions.audioPlaylist.seekTo(seekTimeSeconds);
+      if (audioRef.current) {
+        audioRef.current.currentTime = time / 1000;
+      }
       
       startTimeRef.current = Date.now() - time;
       
@@ -396,7 +399,7 @@ export function usePlaylist(options: UsePlaylistOptions = {}): UsePlaylistReturn
       console.error("[usePlaylist] Error seeking:", error);
       onError?.(error as Error);
     }
-  }, [isConnected, hmsActions, onError]);
+  }, [isConnected, onError]);
 
   /**
    * Preload audio files for faster playback

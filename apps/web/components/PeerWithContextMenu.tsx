@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react';
-import { useHMSStore, selectLocalPeer } from '@100mslive/react-sdk';
+import { useAgoraContext } from '@/contexts/AgoraContext';
 import Peer from './Peer';
 import UserContextMenu from './UserContextMenu';
 import ViewProfileModal from './ViewProfileModal';
@@ -13,7 +13,7 @@ interface PeerWithContextMenuProps {
 export default function PeerWithContextMenu({ peer }: PeerWithContextMenuProps) {
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const localPeer = useHMSStore(selectLocalPeer);
+  const { localPeer } = useAgoraContext();
   const peerRef = useRef<HTMLDivElement>(null);
 
   // Check if local user is host or co-host

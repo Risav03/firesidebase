@@ -98,23 +98,17 @@ export const RoomSchema = t.Object({
   recordingEnabled: t.Optional(t.Boolean())
 });
 
-// HMS API related schemas
-export const HMSCreateRoomResponseSchema = t.Object({
-  id: t.String(),
-  name: t.String(),
-  description: t.String(),
-  template_id: t.String(),
-  created_at: t.String(),
-  updated_at: t.String()
+// Agora API related schemas
+export const AgoraTokenResponseSchema = t.Object({
+  token: t.String(),
+  channelName: t.String(),
+  uid: t.Number(),
+  role: t.String(),
+  expiry: t.Number()
 });
 
-export const HMSRoomCodeResponseSchema = t.Object({
-  id: t.String(),
-  code: t.String(),
-  role: t.String(),
-  room_id: t.String(),
-  created_at: t.String(),
-  updated_at: t.String()
+export const AgoraChannelUserSchema = t.Object({
+  uid: t.Number()
 });
 
 
@@ -124,5 +118,5 @@ export type RoomParticipant = typeof RoomParticipantSchema.static;
 export type ChatMessage = typeof ChatMessageSchema.static;
 export type BankrChatTransaction = typeof BankrChatTransactionSchema.static;
 export type Room = typeof RoomSchema.static;
-export type HMSCreateRoomResponse = typeof HMSCreateRoomResponseSchema.static;
-export type HMSRoomCodeResponse = typeof HMSRoomCodeResponseSchema.static;
+export type AgoraTokenResponse = typeof AgoraTokenResponseSchema.static;
+export type AgoraChannelUser = typeof AgoraChannelUserSchema.static;

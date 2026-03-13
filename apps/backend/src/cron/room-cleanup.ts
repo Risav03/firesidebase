@@ -1,7 +1,7 @@
 import Room from "../models/Room";
 import User from "../models/User";
 import { RedisRoomParticipantsService } from "../services/redis/room-participants";
-import { HMSAPI } from "../services/hmsAPI";
+import { AgoraAPI } from "../services/agoraAPI";
 import { adRevDistribute } from "../services/ads/adRevDistribute";
 import { flushRoomReservationViews } from "../services/ads/viewTracking";
 
@@ -98,14 +98,14 @@ export const createNextOccurrence = async (endedRoom: any): Promise<void> => {
 /**
  * Room Cleanup Cron Service
  *
- * Handles automated cleanup of rooms that have no participants for 24+ hours
- * Uses 100ms API as the source of truth for participant information
+ * Handles automated cleanup of rooms that have no participants for 5+ minutes
+ * Uses Agora API as the source of truth for participant information
  */
 export class RoomCleanupService {
   /**
-   * Delete rooms that have been empty for more than 24 hours
-   * Checks participant count from 100ms API and deletes rooms with 0 participants
-   * that haven't been updated in the last 24 hours
+   * Delete rooms that have been empty for more than 5 minutes
+   * Checks participant count from Agora API and deletes rooms with 0 participants
+   * that haven't been updated in the last 5 minutes
    */
   static async cleanupEmptyRooms(): Promise<void> {
     try {
@@ -128,11 +128,11 @@ export class RoomCleanupService {
 
       const roomsToDelete: string[] = [];
       const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000);
-      const hmsAPI = new HMSAPI();
+      const agoraAPI = new AgoraAPI();
 
       for (const room of ongoingRooms) {
         try {
-          const peersResponse = await hmsAPI.listRoomPeers(room.roomId);
+          const peersResponse = await agoraAPI.listChannelUsers(room.roomId);
           const participantCount = peersResponse.count;
 
           if (participantCount === 0 && room.updatedAt < fiveMinsAgo) {
@@ -162,12 +162,11 @@ export class RoomCleanupService {
 
         for (const roomId of roomsToDelete) {
           try {
-            await hmsAPI.endRoom(
-              roomId,
-              "Room automatically ended due to inactivity"
+            await agoraAPI.endChannel(
+              roomId
             );
           } catch (err) {
-            console.error(`❌ Error ending room ${roomId} via 100ms API:`, err);
+            console.error(`❌ Error ending room ${roomId} via Agora API:`, err);
           }
           try {
             const updatedRoom = await Room.findOneAndUpdate(

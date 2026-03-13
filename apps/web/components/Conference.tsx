@@ -1,37 +1,27 @@
 "use client";
 
-import {
-  selectPeers,
-  selectPeersScreenSharing,
-  useHMSStore,
-  useHMSActions,
-  selectLocalPeer,
-  selectHasPeerHandRaised,
-  selectIsPeerAudioEnabled,
-} from "@100mslive/react-sdk";
+import { useAgoraContext, AgoraPeer } from "@/contexts/AgoraContext";
 import {
   useSpeakerRequestEvent,
   useSpeakerRejectionEvent,
   useTipEvent,
   useRoomEndedEvent,
+  useHandRaiseEvent,
 } from "@/utils/events";
 import PeerWithContextMenu from "./PeerWithContextMenu";
-import { ScreenTile } from "./ScreenTile";
 import { useEffect, useState, useRef, useCallback } from "react";
 import sdk from "@farcaster/miniapp-sdk";
 import { useRouter } from "next/navigation";
 import { useGlobalContext } from "@/utils/providers/globalContext";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  useHMSNotifications,
-  HMSNotificationTypes,
-} from "@100mslive/react-sdk";
 import RoomEndScreen from "./RoomEndScreen";
 import { toast } from "react-toastify";
 import {
   fetchRoomDetails,
   endRoom,
   startRecording,
+  fetchAPI,
+  updateParticipantRole,
 } from "@/utils/serverActions";
 
 import { HandRaiseSparks, ScrollingName } from "./experimental";
@@ -49,14 +39,16 @@ import { useRewardContext } from "@/contexts/RewardContext";
 // import AudioRecoveryBanner from "./AudioRecoveryBanner";
 
 export default function Conference({ roomId }: { roomId: string }) {
-  const allPeers = useHMSStore(selectPeers);
-  const presenters = useHMSStore(selectPeersScreenSharing);
-  const localPeer = useHMSStore(selectLocalPeer);
-  const hmsActions = useHMSActions();
+  const { localPeer, remotePeers, leave, isConnected, audioLevels, sendCustomEvent } = useAgoraContext();
+  const allPeers = (() => {
+    const peers: AgoraPeer[] = [];
+    if (localPeer) peers.push(localPeer);
+    remotePeers.forEach((p) => peers.push(p));
+    return peers;
+  })();
   const router = useRouter();
   const { user } = useGlobalContext();
   const { rewardData, clearRewardData } = useRewardContext();
-  const notification = useHMSNotifications();
 
   // Audio debugging: Track all peer state changes
   useEffect(() => {
@@ -105,6 +97,7 @@ export default function Conference({ roomId }: { roomId: string }) {
   const [selectedPeer, setSelectedPeer] = useState<any>(null);
   const [showAvatarContextMenu, setShowAvatarContextMenu] = useState(false);
   const [showTippingDrawer, setShowTippingDrawer] = useState(false);
+  const [handRaisedPeers, setHandRaisedPeers] = useState<Set<string>>(new Set());
 
   //function to fetch room details and save name and description in a useState. Call the function in useEffect
   const [roomDetails, setRoomDetails] = useState<{
@@ -204,33 +197,44 @@ export default function Conference({ roomId }: { roomId: string }) {
   });
 
 
-  const handRaise = useHMSNotifications(
-    HMSNotificationTypes.HAND_RAISE_CHANGED
-  );
-  const peer = handRaise?.data;
+  // Hand raise event listener
+  useHandRaiseEvent((msg) => {
+    console.log("[Agora Event - Conference] Hand raise event received", {
+      peerId: msg.peerId,
+      peerName: msg.peerName,
+      raised: msg.raised,
+      timestamp: new Date().toISOString(),
+    });
 
-  useEffect(() => {
-    if (peer && !peer.isLocal && peer.isHandRaised) {
-      toast(`${peer.name} raised their hand.`, {
-        autoClose: 3000,
-        toastId: `hand-raise-${peer.id}-${Date.now()}`,
+    if (msg.raised) {
+      setHandRaisedPeers((prev) => {
+        const next = new Set(prev);
+        next.add(msg.peerId);
+        return next;
+      });
+
+      // Show toast notification for hosts and co-hosts
+      if (localPeer?.roleName === "host" || localPeer?.roleName === "co-host") {
+        toast.info(`✋ ${msg.peerName} raised their hand`, {
+          autoClose: 3000,
+          toastId: `hand-raise-${msg.peerId}-${Date.now()}`,
+        });
+      }
+    } else {
+      setHandRaisedPeers((prev) => {
+        const next = new Set(prev);
+        next.delete(msg.peerId);
+        return next;
       });
     }
-  }, [peer]);
+  });
 
-  useEffect(() => {
-    switch (notification?.type) {
-      case HMSNotificationTypes.ROOM_ENDED:
-        console.log("[HMS Event - Conference] Room ended, showing end screen");
-        setRoomEnded(true);
-        break;
-      // case HMSNotificationTypes.REMOVED_FROM_ROOM:
-      //   setRoomEnded(true);
-      //   break;
-      default:
-        break;
-    }
-  }, [notification, localPeer]);
+  // Hand raise is now handled via custom events (useSpeakerRequestEvent above)
+  // Room ended is handled via useRoomEndedEvent
+  useRoomEndedEvent(() => {
+    console.log("[Agora Event - Conference] Room ended, showing end screen");
+    setRoomEnded(true);
+  });
 
   useEffect(() => {
     async function getRoomDetails() {
@@ -262,7 +266,7 @@ export default function Conference({ roomId }: { roomId: string }) {
       // Call API to end the room (skip if in test mode)
       if (!user?._id) {
         console.log("[Conference] Test mode: skipping room end API call");
-        await hmsActions.leave();
+        await leave();
         router.push("/");
         return;
       }
@@ -275,13 +279,13 @@ export default function Conference({ roomId }: { roomId: string }) {
       }
 
       // Leave the room
-      await hmsActions.leave();
+      await leave();
       router.push("/");
     } catch (error) {
       console.error("Error ending empty room:", error);
       setIsEndingRoom(false);
     }
-  }, [roomId, user, localPeer, isEndingRoom, hmsActions, router]);
+  }, [roomId, user, localPeer, isEndingRoom, leave, router]);
 
   // REMOVED: Problematic iOS WebKit audio fix that manipulated remote peer volumes
   // This was causing the bug where random participants would be muted when others toggled audio
@@ -431,8 +435,24 @@ export default function Conference({ roomId }: { roomId: string }) {
         prevRequests.filter((req) => req.peerId !== request.peerId)
       );
 
-      // Change role to speaker
-      await hmsActions.changeRoleOfPeer(request.peerId, "speaker", true);
+      // Change role via backend API
+      const env = process.env.NEXT_PUBLIC_ENV;
+      let token: any = "";
+      if (env !== "DEV") {
+        token = (await sdk.quickAuth.getToken()).token;
+      }
+
+      await updateParticipantRole(roomId, request.fid, "speaker", token);
+
+      // Clear hand-raised state for this peer
+      setHandRaisedPeers((prev) => {
+        const next = new Set(prev);
+        next.delete(request.fid);
+        return next;
+      });
+
+      // Notify the peer to switch to speaker role
+      sendCustomEvent('ROLE_UPDATED', { targetFid: String(request.fid), newRole: 'speaker' });
 
       console.log(`Approved speaker request for peer: ${request.peerId}`);
     } catch (error) {
@@ -520,7 +540,7 @@ export default function Conference({ roomId }: { roomId: string }) {
     );
 
     // Transform peers to format expected by experimental components
-    const transformPeer = (peer: any, isHandRaised: boolean = false) => ({
+    const transformPeer = (peer: AgoraPeer, isHandRaised: boolean = false) => ({
       id: peer.id,
       name: peer.name,
       img: peer.metadata ? JSON.parse(peer.metadata).avatar : undefined,
@@ -530,8 +550,8 @@ export default function Conference({ roomId }: { roomId: string }) {
           : peer.roleName === "co-host"
           ? "Co-host"
           : "Speaker",
-      speaking: peer.audioTrack && peer.audioLevel > 0,
-      muted: !peer.audioEnabled,
+      speaking: (audioLevels.get(peer.uid) || 0) > 5,
+      muted: !peer.audioTrack,
       handRaised: isHandRaised,
       peer: peer,
     });
@@ -709,6 +729,9 @@ export default function Conference({ roomId }: { roomId: string }) {
                       speaking={p.speaking}
                       muted={p.muted}
                       onClick={handleAvatarClick}
+                      isHandRaised={handRaisedPeers.has(
+                        p.peer?.metadata ? JSON.parse(p.peer.metadata as string).fid : ''
+                      )}
                     />
                   </motion.div>
                 ))}

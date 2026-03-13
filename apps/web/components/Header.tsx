@@ -1,12 +1,7 @@
 'use client'
 
-import { ExitIcon } from "@100mslive/react-icons";
-import {
-  selectIsConnectedToRoom,
-  useHMSActions,
-  useHMSStore,
-  selectLocalPeer,
-} from "@100mslive/react-sdk";
+import { LogOut } from "lucide-react";
+import { useAgoraContext } from "@/contexts/AgoraContext";
 import { useState } from 'react';
 import RoomEndModal from './RoomEndModal';
 import { TbShare3 } from "react-icons/tb";
@@ -27,10 +22,8 @@ import { useRouter } from "next/navigation";
 import FiresideLogo from "./UI/firesideLogo";
 
 export default function Header({ onToggleChat, isChatOpen = false, roomId }: HeaderProps) {
-  const isConnected = useHMSStore(selectIsConnectedToRoom);
-  const hmsActions = useHMSActions();
+  const { isConnected, localPeer, leave } = useAgoraContext();
   const router = useRouter();
-  const localPeer = useHMSStore(selectLocalPeer);
   const [showRoomEndModal, setShowRoomEndModal] = useState(false);
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
 
@@ -41,7 +34,7 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
       setShowRoomEndModal(true);
     } else {
       // Direct leave for other roles
-      hmsActions.leave();
+      leave();
       router.push('/');
     }
   };
@@ -107,7 +100,7 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
                 className="bg-fireside-red px-2 py-1 flex items-center"
                 onClick={handleLeaveClick}
               >
-                <ExitIcon className="w-6 h-6" />
+                <LogOut className="w-6 h-6" />
               </Button>
             </div>
           )}

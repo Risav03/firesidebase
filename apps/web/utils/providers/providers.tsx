@@ -1,6 +1,6 @@
 "use client";
 
-import { HMSRoomProvider } from "@100mslive/react-sdk";
+import { AgoraProvider } from "@/contexts/AgoraContext";
 import { MiniKitProvider } from "@coinbase/onchainkit/minikit";
 import { base } from "wagmi/chains";
 import { ReactNode, useEffect } from "react";
@@ -32,7 +32,7 @@ export default function Providers({ children }: ProvidersProps) {
       >
         <GlobalProvider>
         <WagmiQueryProvider>
-          <HMSRoomProvider>{children}</HMSRoomProvider>
+          <AgoraProvider>{children}</AgoraProvider>
         </WagmiQueryProvider>
         </GlobalProvider>
       </MiniKitProvider>

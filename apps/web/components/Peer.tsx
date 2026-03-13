@@ -1,21 +1,14 @@
 "use client";
 
-import { MicOffIcon, PersonIcon } from "@100mslive/react-icons";
+import { Mic, MicOff, User } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import {
-  selectIsPeerAudioEnabled,
-  selectPeerAudioByID,
-  selectDominantSpeaker,
-  useHMSStore,
-  HMSPeer,
-  selectHasPeerHandRaised,
-} from "@100mslive/react-sdk";
+import { useAgoraContext, AgoraPeer } from "@/contexts/AgoraContext";
 import { Card } from "./UI/Card";
 import { motion } from "framer-motion";
 import { Avatar } from "./experimental";
 
 interface PeerProps {
-  peer: HMSPeer;
+  peer: AgoraPeer;
 }
 function NameDisplay({ name, roleName }: { name: string; roleName?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -75,13 +68,12 @@ function NameDisplay({ name, roleName }: { name: string; roleName?: string }) {
 }
 
 export default function Peer({ peer }: PeerProps) {
-  const isPeerAudioEnabled = useHMSStore(selectIsPeerAudioEnabled(peer.id));
-  const peerAudioLevel = useHMSStore(selectPeerAudioByID(peer.id));
-  const dominantSpeaker = useHMSStore(selectDominantSpeaker);
-  const isHandRaised = useHMSStore(selectHasPeerHandRaised(peer.id));
+  const { audioLevels } = useAgoraContext();
+  const peerAudioLevel = audioLevels.get(peer.uid) || 0;
+  const isPeerAudioEnabled = !!peer.audioTrack;
 
   // Check if this peer is currently speaking
-  const isSpeaking = isPeerAudioEnabled && peerAudioLevel > 0;
+  const isSpeaking = isPeerAudioEnabled && peerAudioLevel > 5;
   
   // Get avatar URL from metadata
   const avatarUrl = peer.metadata ? JSON.parse(peer.metadata).avatar : undefined;

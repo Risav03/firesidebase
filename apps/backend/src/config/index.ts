@@ -18,8 +18,10 @@ interface Config {
 
   // External APIs
   neynarApiKey: string;
-  hundredMsManagementToken: string;
-  hundredMsTemplateId: string;
+  agoraAppId: string;
+  agoraAppCertificate: string;
+  agoraCustomerKey: string;
+  agoraCustomerSecret: string;
   bankrApiKey: string;
 
   // Authentication
@@ -98,8 +100,10 @@ export const config = {
 
   // External APIs
   neynarApiKey: getOptionalEnvVar('NEYNAR_API_KEY', ''),
-  hundredMsManagementToken: getOptionalEnvVar('HUNDRED_MS_MANAGEMENT_TOKEN', ''),
-  hundredMsTemplateId: getOptionalEnvVar('HUNDRED_MS_TEMPLATE_ID', ''),
+  agoraAppId: getOptionalEnvVar('AGORA_APP_ID', ''),
+  agoraAppCertificate: getOptionalEnvVar('AGORA_APP_CERTIFICATE', ''),
+  agoraCustomerKey: getOptionalEnvVar('AGORA_CUSTOMER_KEY', ''),
+  agoraCustomerSecret: getOptionalEnvVar('AGORA_CUSTOMER_SECRET', ''),
   bankrApiKey: getOptionalEnvVar('BANKR_API_KEY', ''),
 
   // Authentication

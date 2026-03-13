@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useHMSStore, selectLocalPeerRoleName, selectLocalPeer } from "@100mslive/react-sdk";
+import { useAgoraContext } from "@/contexts/AgoraContext";
 import { useCustomAudioTrack, AudioTrackItem } from "@/hooks/useCustomAudioTrack";
 import { useSoundPlayedEvent, useSoundStoppedEvent, SoundPlayedMessage } from "@/utils/events";
 import {
@@ -80,8 +80,8 @@ export interface UseSoundboardLogicReturn {
  * @param user - The current user object from global context
  */
 export function useSoundboardLogic(user: any): UseSoundboardLogicReturn {
-  const localPeer = useHMSStore(selectLocalPeer);
-  const localRoleName = useHMSStore(selectLocalPeerRoleName);
+  const { localPeer } = useAgoraContext();
+  const localRoleName = localPeer?.roleName;
   
   // Soundboard state
   const [currentSound, setCurrentSound] = useState<SoundEffect | null>(null);

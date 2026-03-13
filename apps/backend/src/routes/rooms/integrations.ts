@@ -2,25 +2,25 @@ import { Elysia, t } from 'elysia';
 import Room from '../../models/Room';
 import User from '../../models/User';
 import { RedisRoomParticipantsService } from '../../services/redis';
-import { HMSAPI } from '../../services/hmsAPI';
+import { AgoraAPI } from '../../services/agoraAPI';
 import { errorResponse, successResponse } from '../../utils';
 import { authMiddleware } from '../../middleware/auth';
 import { GetRoomCodesResponseSchema, GetMyCodeResponseSchema, ErrorResponse } from '../../schemas/documentation';
+import config from '../../config';
 
 // Documentation schemas
-const RoomCodeSchema = t.Object({
-  id: t.String({ description: 'Room code ID' }),
-  code: t.String({ description: 'The room code for joining' }),
-  role: t.String({ description: 'Role this code grants (host, co-host, speaker, listener)' }),
-  room_id: t.String({ description: '100ms room ID' }),
-  created_at: t.String({ description: 'ISO timestamp of code creation' }),
-  updated_at: t.String({ description: 'ISO timestamp of last update' })
+const AgoraTokenSchema = t.Object({
+  token: t.String({ description: 'Agora RTC token for joining' }),
+  channelName: t.String({ description: 'Agora channel name' }),
+  uid: t.Number({ description: 'Agora user ID (FID)' }),
+  role: t.String({ description: 'Role in the room (host, co-host, speaker, listener)' }),
+  appId: t.String({ description: 'Agora App ID' })
 });
 
 export const integrationRoutes = new Elysia()
   .group('/public', (app) =>
     app
-      // Get all room codes
+      // Get Agora tokens for all roles (for admin/debug)
       .get('/:id/codes', async ({ params, set }) => {
         try {
           const room = await Room.findById(params.id);
@@ -29,14 +29,20 @@ export const integrationRoutes = new Elysia()
             return errorResponse('Room not found');
           }
           
-          const hmsAPI = new HMSAPI();
-          const roomCodes = await hmsAPI.getRoomCodes(room.roomId);
+          const agoraAPI = new AgoraAPI();
+          const roles = ['host', 'co-host', 'speaker', 'listener'] as const;
+          const tokens = roles.map(role => ({
+            role,
+            token: agoraAPI.generateToken(room.roomId, 0, role),
+            channelName: room.roomId,
+            appId: config.agoraAppId
+          }));
           
-          return successResponse({ roomCodes: roomCodes.data });
+          return successResponse({ roomCodes: tokens });
         } catch (error) {
-          console.error('Error fetching room codes:', error);
+          console.error('Error generating Agora tokens:', error);
           set.status = 500;
-          return errorResponse('Failed to fetch room codes');
+          return errorResponse('Failed to generate Agora tokens');
         }
       }, {
         params: t.Object({
@@ -49,21 +55,17 @@ export const integrationRoutes = new Elysia()
         },
         detail: {
           tags: ['Rooms'],
-          summary: 'Get All Room Codes',
+          summary: 'Get Agora Tokens for All Roles',
           description: `
-Retrieves all 100ms room codes for a room.
+Generates Agora RTC tokens for all roles in a room.
 
-**Room Codes:**
-Each room has multiple codes, one for each role:
-- \`host\`: Full control over the room
-- \`co-host\`: Can moderate and manage participants
-- \`speaker\`: Can speak in the room
-- \`listener\`: Can only listen
+**Roles:**
+- \`host\`: Full control over the room (publisher)
+- \`co-host\`: Can moderate and manage participants (publisher)
+- \`speaker\`: Can speak in the room (publisher)
+- \`listener\`: Can only listen (subscriber)
 
-**Use Case:**
-Use this endpoint to get all codes when you need to display options or manage code distribution.
-
-**Note:** This is a public endpoint. For getting a user's specific code, use the /my-code endpoint.
+**Note:** This is a public endpoint. For getting a user's specific token, use the /my-code endpoint.
           `
         }
       })
@@ -74,7 +76,7 @@ Use this endpoint to get all codes when you need to display options or manage co
   })
   .group('/protected', (app) =>
     app
-      // Get user's specific room code based on their role (PROTECTED)
+      // Get user's specific Agora token based on their role (PROTECTED)
       .get('/:id/my-code', async ({ headers, params, set }) => {
         try {
           const userFid = headers['x-user-fid'] as string;
@@ -101,7 +103,7 @@ Use this endpoint to get all codes when you need to display options or manage co
           }
 
           // Determine user's role in the room
-          let role = 'listener';
+          let role: 'host' | 'co-host' | 'speaker' | 'listener' = 'listener';
           
           // Check if user is the host
           if (room.host && (room.host as any).fid === parseInt(userFid)) {
@@ -110,31 +112,28 @@ Use this endpoint to get all codes when you need to display options or manage co
             // Check if user is a participant with a specific role
             const existingParticipant = await RedisRoomParticipantsService.getParticipant(roomId, userFid);
             if (existingParticipant) {
-              role = existingParticipant.role;
+              role = existingParticipant.role as typeof role;
             }
           }
           
-          // Get room codes from HMS API
-          const hmsAPI = new HMSAPI();
-          const roomCodes = await hmsAPI.getRoomCodes(room.roomId);
-          
-          // Find the appropriate code for the user's role
-          const userCode = roomCodes.data.find(code => code.role === role);
-          
-          if (!userCode) {
-            set.status = 404;
-            return errorResponse(`No room code found for role: ${role}`);
-          }
+          // Generate Agora token for this user
+          const agoraAPI = new AgoraAPI();
+          const uid = parseInt(userFid);
+          const token = agoraAPI.generateToken(room.roomId, uid, role);
+
+          console.log(`[Agora Token Generation] User FID: ${userFid}, Role: ${role}, Room ID: ${roomId}, token: ${token}`);
 
           return successResponse({
-            role: role,
-            code: userCode.code,
-            roomCode: userCode
+            role,
+            token,
+            channelName: room.roomId,
+            uid,
+            appId: config.agoraAppId
           });
         } catch (error) {
-          console.error('Error fetching user room code:', error);
+          console.error('Error generating user Agora token:', error);
           set.status = 500;
-          return errorResponse('Failed to fetch user room code');
+          return errorResponse('Failed to generate Agora token');
         }
       }, {
         params: t.Object({
@@ -148,22 +147,21 @@ Use this endpoint to get all codes when you need to display options or manage co
         },
         detail: {
           tags: ['Rooms'],
-          summary: 'Get My Room Code',
+          summary: 'Get My Agora Token',
           description: `
-Retrieves the appropriate 100ms room code for the authenticated user based on their role.
+Generates an Agora RTC token for the authenticated user based on their role.
 
 **Role Detection:**
-1. If user is the room host → returns host code
-2. If user is a participant → returns code matching their role
-3. Default → returns listener code
+1. If user is the room host → generates publisher token
+2. If user is a participant → generates token matching their role
+3. Default → generates subscriber (listener) token
 
 **Response:**
 - \`role\`: The detected role for the user
-- \`code\`: The room code string to use for joining
-- \`roomCode\`: Full room code object with metadata
-
-**Use Case:**
-Use this endpoint when a user needs to join the 100ms room. The code determines their permissions in the audio session.
+- \`token\`: The Agora RTC token for joining
+- \`channelName\`: The Agora channel name
+- \`uid\`: The user's Agora UID (their FID)
+- \`appId\`: The Agora App ID
 
 **Authentication Required:** Yes (Farcaster JWT)
           `,
