@@ -15,6 +15,7 @@ import { rewardRoutes } from './routes/rewards';
 import { roomCleanupCron, adPayoutCron } from './cron';
 import { startWebhookRetryWorker } from './workers/webhookRetryWorker';
 import { websocketRoutes } from './routes/websocket';
+import { wsManager } from './services/websocket/manager';
 
 const app = new Elysia();
 
@@ -231,6 +232,9 @@ const PORT = config.port;
       console.log(`✅ Backend server running on http://localhost:${PORT}`);
       console.log(`📋 Health check: http://localhost:${PORT}/health`);
     });
+
+    // Initialize WebSocket manager with Bun server for pub/sub broadcasting
+    wsManager.setServer(app.server);
     
   } catch (error: any) {
     console.error('❌ Failed to start server:', error);

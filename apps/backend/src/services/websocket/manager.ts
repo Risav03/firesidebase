@@ -1,155 +1,83 @@
 /**
- * Interface for any WebSocket-like connection that can send messages.
- * Works with both Bun's ServerWebSocket and Elysia's WS wrapper.
- */
-interface WSConnection {
-  send(data: string | ArrayBufferLike | Uint8Array): void;
-}
-
-interface ConnectionState {
-  rooms: Set<string>;
-  userFid?: string;
-}
-
-/**
  * WebSocket Connection Manager
  * 
- * Tracks WebSocket connections and their room subscriptions.
- * Provides methods to broadcast messages to all connections in a room.
+ * Uses Bun's native pub/sub for room-based broadcasting.
+ * Elysia creates new ElysiaWS wrapper objects per event, so using
+ * wrapper identity for Map keys is unreliable. Bun's pub/sub operates
+ * at the raw socket level and avoids this issue entirely.
  */
 class WebSocketManager {
-  // roomId -> Set of WebSocket connections
-  private rooms = new Map<string, Set<WSConnection>>();
-  // ws -> connection state
-  private connections = new Map<WSConnection, ConnectionState>();
+  private server: any = null;
+  private connectionCount = 0;
 
   /**
-   * Register a new WebSocket connection
+   * Set the Bun server reference for server-side publishing.
+   * Must be called after app.listen().
    */
-  registerConnection(ws: WSConnection) {
-    this.connections.set(ws, { rooms: new Set() });
+  setServer(server: any) {
+    this.server = server;
   }
 
   /**
-   * Subscribe a connection to a room's messages
+   * Register a new WebSocket connection (for counting)
    */
-  joinRoom(ws: WSConnection, roomId: string) {
-    // Add to room set
-    if (!this.rooms.has(roomId)) {
-      this.rooms.set(roomId, new Set());
-    }
-    this.rooms.get(roomId)!.add(ws);
+  registerConnection(_ws: any) {
+    this.connectionCount++;
+  }
 
-    // Track in connection state
-    const state = this.connections.get(ws);
-    if (state) {
-      state.rooms.add(roomId);
-    }
+  /**
+   * Remove a connection (for counting).
+   * Bun automatically unsubscribes from all topics on close.
+   */
+  removeConnection(_ws: any) {
+    this.connectionCount--;
+  }
 
-    console.log(`[WS] Connection joined room ${roomId} (${this.rooms.get(roomId)!.size} connections)`);
+  /**
+   * Subscribe a connection to a room's messages using Bun native pub/sub
+   */
+  joinRoom(ws: any, roomId: string) {
+    ws.subscribe(`room:${roomId}`);
+    console.log(`[WS] Connection joined room ${roomId}`);
   }
 
   /**
    * Unsubscribe a connection from a room
    */
-  leaveRoom(ws: WSConnection, roomId: string) {
-    const roomConnections = this.rooms.get(roomId);
-    if (roomConnections) {
-      roomConnections.delete(ws);
-      if (roomConnections.size === 0) {
-        this.rooms.delete(roomId);
-      }
-    }
-
-    const state = this.connections.get(ws);
-    if (state) {
-      state.rooms.delete(roomId);
-    }
-
+  leaveRoom(ws: any, roomId: string) {
+    ws.unsubscribe(`room:${roomId}`);
     console.log(`[WS] Connection left room ${roomId}`);
   }
 
   /**
-   * Set the authenticated user FID for a connection
+   * Broadcast a message to all connections in a room via Bun pub/sub.
+   * Uses server.publish() which sends to ALL subscribers (including sender).
    */
-  setUserFid(ws: WSConnection, fid: string) {
-    const state = this.connections.get(ws);
-    if (state) {
-      state.userFid = fid;
+  broadcastToRoom(roomId: string, type: string, data: any) {
+    if (!this.server) {
+      console.error('[WS] Cannot broadcast: server not initialized');
+      return;
     }
-  }
-
-  /**
-   * Get the user FID for a connection
-   */
-  getUserFid(ws: WSConnection): string | undefined {
-    return this.connections.get(ws)?.userFid;
-  }
-
-  /**
-   * Remove a connection and clean up all its room subscriptions
-   */
-  removeConnection(ws: WSConnection) {
-    const state = this.connections.get(ws);
-    if (state) {
-      for (const roomId of state.rooms) {
-        const roomConnections = this.rooms.get(roomId);
-        if (roomConnections) {
-          roomConnections.delete(ws);
-          if (roomConnections.size === 0) {
-            this.rooms.delete(roomId);
-          }
-        }
-      }
-    }
-    this.connections.delete(ws);
-  }
-
-  /**
-   * Broadcast a message to all connections in a room
-   * Optionally exclude a specific connection (e.g., the sender)
-   */
-  broadcastToRoom(roomId: string, type: string, data: any, excludeWs?: WSConnection) {
-    const roomConnections = this.rooms.get(roomId);
-    if (!roomConnections || roomConnections.size === 0) return;
-
     const payload = JSON.stringify({ type, ...data });
-    
-    for (const ws of roomConnections) {
-      if (ws === excludeWs) continue;
-      try {
-        ws.send(payload);
-      } catch (err) {
-        console.error('[WS] Error sending to connection:', err);
-        this.removeConnection(ws);
-      }
-    }
+    this.server.publish(`room:${roomId}`, payload);
   }
 
   /**
    * Send a message to a specific connection
    */
-  sendTo(ws: WSConnection, type: string, data: any) {
+  sendTo(ws: any, type: string, data: any) {
     try {
       ws.send(JSON.stringify({ type, ...data }));
     } catch (err) {
       console.error('[WS] Error sending to connection:', err);
-      this.removeConnection(ws);
     }
-  }
-
-  /**
-   * Get connection count for a room
-   */
-  getRoomConnectionCount(roomId: string): number {
-    return this.rooms.get(roomId)?.size || 0;
   }
 
   /**
    * Get total connection count
    */
   getTotalConnectionCount(): number {
-    return this.connections.size;
+    return this.connectionCount;
   }
 }
 
