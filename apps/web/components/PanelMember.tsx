@@ -100,7 +100,7 @@ export default function PanelMember({ id, name, img, role, onClick, isHandRaised
         )}
         {/* Hand raise indicator */}
         {isHandRaised && (
-          <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-yellow-500 flex items-center justify-center text-sm z-10 animate-bounce shadow-lg">
+          <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-white flex items-center justify-center text-sm z-10 animate-bounce shadow-lg">
             ✋
           </div>
         )}
