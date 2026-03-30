@@ -37,12 +37,20 @@ export const RoomUpdateRequestSchema = t.Object({
   status: t.Optional(RoomStatus),
   endTime: t.Optional(t.String()),
   participants: t.Optional(t.Array(t.String())),
-  interested: t.String(),
+  interested: t.Optional(t.String()),
   action: t.Optional(t.Union([
     t.Literal('add'),
     t.Literal('remove')
   ])),
-  adsEnabled: t.Optional(t.Boolean())
+  adsEnabled: t.Optional(t.Boolean()),
+  name: t.Optional(t.String({ minLength: 1, maxLength: 100 })),
+  description: t.Optional(t.String({ maxLength: 500 })),
+  startTime: t.Optional(t.String()),
+  topics: t.Optional(t.Array(t.String(), { minItems: 1 })),
+  isRecurring: t.Optional(t.Boolean()),
+  recurrenceType: t.Optional(t.Union([t.Literal('daily'), t.Literal('weekly'), t.Null()])),
+  recurrenceDay: t.Optional(t.Union([t.Number({ minimum: 0, maximum: 6 }), t.Null()])),
+  recordingEnabled: t.Optional(t.Boolean())
 });
 
 export const EndRoomRequestSchema = t.Object({

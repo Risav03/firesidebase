@@ -481,6 +481,15 @@ export async function updateRoom(
     endTime?: string;
     participants?: string[];
     action?: 'add' | 'remove';
+    name?: string;
+    description?: string;
+    startTime?: string;
+    topics?: string[];
+    isRecurring?: boolean;
+    recurrenceType?: 'daily' | 'weekly' | null;
+    recurrenceDay?: number | null;
+    recordingEnabled?: boolean;
+    adsEnabled?: boolean;
   }, 
   token: string | null = null
 ) {
@@ -488,6 +497,17 @@ export async function updateRoom(
   return fetchAPI(`${URL}/api/rooms/protected/${roomId}`, {
     method: 'PUT',
     body: updateData,
+    authToken: token
+  });
+}
+
+/**
+ * Delete a scheduled room
+ */
+export async function deleteRoom(roomId: string, token: string | null = null) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/rooms/protected/${roomId}`, {
+    method: 'DELETE',
     authToken: token
   });
 }

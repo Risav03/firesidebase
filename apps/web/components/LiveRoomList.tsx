@@ -20,9 +20,10 @@ import {
   fetchAPI,
   startRoom,
   skipRecurringRoom,
+  deleteRoom,
 } from "@/utils/serverActions";
 import { useNavigateWithLoader } from "@/utils/useNavigateWithLoader";
-import { MdOutlineSchedule } from "react-icons/md";
+import { MdOutlineSchedule, MdEdit, MdDelete } from "react-icons/md";
 import { GoDotFill } from "react-icons/go";
 import {
   Drawer,
@@ -34,6 +35,8 @@ import {
 } from "@/components/UI/drawer";
 import { Card } from "@/components/UI/Card";
 import Button from "@/components/UI/Button";
+import EditRoomDrawer from "./EditRoomDrawer";
+import DeleteConfirmDrawer from "./DeleteConfirmDrawer";
 import { useAccount } from "wagmi";
 
 interface Room {
@@ -85,6 +88,9 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
   const router = useRouter();
 
   const [myUpcomingRooms, setMyUpcomingRooms] = useState<Room[]>([]);
+  const [editingRoom, setEditingRoom] = useState<Room | null>(null);
+  const [deletingRoom, setDeletingRoom] = useState<Room | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const navigate = useNavigateWithLoader()
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
@@ -198,6 +204,34 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
       console.error("Error starting room:", error);
       toast.dismiss("starting-room");
       toast.error("Error starting room?. Please try again.");
+    }
+  };
+
+  const handleDeleteRoom = async (roomId: string) => {
+    try {
+      var token: any = "";
+      const env = process.env.NEXT_PUBLIC_ENV;
+
+      if (env !== "DEV") {
+        token = (await sdk.quickAuth.getToken()).token;
+      }
+
+      setIsDeleting(true);
+
+      const response = await deleteRoom(roomId, token);
+
+      if (response.data.success) {
+        toast.success("Room deleted successfully!");
+        setDeletingRoom(null);
+        await Promise.all([fetchMyUpcomingRooms(), fetchRooms()]);
+      } else {
+        toast.error(response.data.error || "Failed to delete room");
+      }
+    } catch (error) {
+      console.error("Error deleting room:", error);
+      toast.error("Error deleting room. Please try again.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -381,12 +415,30 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                                     <Button
                                       variant="ghost"
                                       onClick={() => handleSkipRoom(room?._id)}
-                                      className="text-sm rounded-lg "
+                                      className="text-sm rounded-lg"
                                     >
                                       Skip
                                     </Button>
                                   </DrawerClose>
                                 )}
+                                <DrawerClose asChild>
+                                  <Button
+                                    variant="ghost"
+                                    onClick={() => setEditingRoom(room)}
+                                    className="text-sm rounded-lg"
+                                  >
+                                    <MdEdit className="text-lg" />
+                                  </Button>
+                                </DrawerClose>
+                                <DrawerClose asChild>
+                                  <Button
+                                    variant="ghost"
+                                    onClick={() => setDeletingRoom(room)}
+                                    className="text-sm rounded-lg text-red-400"
+                                  >
+                                    <MdDelete className="text-lg" />
+                                  </Button>
+                                </DrawerClose>
                                 <DrawerClose asChild>
                                   <Button
                                     variant="default"
@@ -562,6 +614,23 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
             <CreateRoomModal
               isOpen={showCreateModal}
               onClose={() => setShowCreateModal(false)}
+            />
+
+            {/* EditRoomDrawer */}
+            <EditRoomDrawer
+              room={editingRoom}
+              isOpen={!!editingRoom}
+              onClose={() => setEditingRoom(null)}
+              onSaved={() => { fetchMyUpcomingRooms(); fetchRooms(); }}
+            />
+
+            {/* DeleteConfirmDrawer */}
+            <DeleteConfirmDrawer
+              roomName={deletingRoom?.name || ''}
+              isOpen={!!deletingRoom}
+              onClose={() => setDeletingRoom(null)}
+              onConfirm={() => deletingRoom && handleDeleteRoom(deletingRoom._id)}
+              isLoading={isDeleting}
             />
           </div>
         )}

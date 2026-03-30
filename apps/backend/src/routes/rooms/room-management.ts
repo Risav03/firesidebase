@@ -1269,6 +1269,14 @@ Starts a scheduled (upcoming) room by creating the Agora channel and sending not
                 action,
                 interested,
                 adsEnabled,
+                name: newName,
+                description: newDescription,
+                startTime: newStartTime,
+                topics: newTopics,
+                isRecurring: newIsRecurring,
+                recurrenceType: newRecurrenceType,
+                recurrenceDay: newRecurrenceDay,
+                recordingEnabled: newRecordingEnabled,
               } = body;
 
               const updates: any = {};
@@ -1318,6 +1326,31 @@ Starts a scheduled (upcoming) room by creating the Agora channel and sending not
                 updates.adsEnabled = adsEnabled;
                 shouldAutoStart = adsEnabled;
                 shouldAutoStop = !adsEnabled;
+              }
+
+              // Editable fields (only for upcoming rooms)
+              const editableFieldsProvided = newName || newDescription !== undefined || newStartTime || newTopics || newIsRecurring !== undefined || newRecurrenceType !== undefined || newRecurrenceDay !== undefined || newRecordingEnabled !== undefined;
+              if (editableFieldsProvided && room.status !== 'upcoming') {
+                set.status = 400;
+                return errorResponse("Room details can only be edited while the room is upcoming");
+              }
+
+              if (newName) updates.name = newName;
+              if (newDescription !== undefined) updates.description = newDescription;
+              if (newTopics) updates.topics = newTopics;
+              if (typeof newIsRecurring === 'boolean') updates.isRecurring = newIsRecurring;
+              if (newRecurrenceType !== undefined) updates.recurrenceType = newRecurrenceType;
+              if (newRecurrenceDay !== undefined) updates.recurrenceDay = newRecurrenceDay;
+              if (typeof newRecordingEnabled === 'boolean') updates.recordingEnabled = newRecordingEnabled;
+
+              // Handle startTime change + notify interested users
+              let startTimeChanged = false;
+              if (newStartTime) {
+                const newDate = new Date(newStartTime);
+                if (newDate.getTime() !== new Date(room.startTime).getTime()) {
+                  updates.startTime = newDate;
+                  startTimeChanged = true;
+                }
               }
 
               // sponsorship removed
@@ -1371,6 +1404,39 @@ Starts a scheduled (upcoming) room by creating the Agora channel and sending not
                 evaluateAutoAds(params.id).catch((err) =>
                   console.error("[ads] failed to auto-start after toggle", err)
                 );
+              }
+
+              // Notify interested users if start time changed
+              if (startTimeChanged && room.interested && room.interested.length > 0) {
+                const interestedTokens = await Promise.all(
+                  room.interested.map(async (userId: any) => {
+                    const intUser = await User.findById(userId);
+                    return intUser?.token;
+                  })
+                );
+                const validTokens = interestedTokens.filter(Boolean);
+                if (validTokens.length > 0) {
+                  const hostName = user.displayName || user.username;
+                  const roomName = updatedRoom?.name || room.name;
+                  const notifBody = `${hostName} changed the time for ${roomName}`;
+                  const notifPayload = {
+                    notificationId: crypto.randomUUID(),
+                    title: "Time Changed",
+                    body: notifBody,
+                    targetUrl: `https://firesidebase.vercel.app/room/${room._id}`,
+                    tokens: validTokens,
+                  };
+                  fetch("https://api.farcaster.xyz/v1/frame-notifications", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(notifPayload),
+                  }).catch((err) => console.error("FCast time-change notification error:", err));
+                  fetch("https://api.neynar.com/f/app_host/notify", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(notifPayload),
+                  }).catch((err) => console.error("Neynar time-change notification error:", err));
+                }
               }
 
               // Get updated room with participants
@@ -1541,6 +1607,105 @@ Skip the next occurrence of a recurring room and reschedule it to the following 
 - Only the room host can skip occurrences
 
 **Use Case:** Host realizes they can't make the scheduled time and wants to push it to the next occurrence without manual rescheduling.
+
+**Authentication Required:** Yes (Farcaster JWT)
+              `,
+              security: [{ bearerAuth: [] }]
+            }
+          }
+        )
+        // Delete a scheduled room
+        .delete(
+          "/:id",
+          async ({ headers, params, set }: any) => {
+            try {
+              const userFid = headers["x-user-fid"] as string;
+              const user = await User.findOne({ fid: parseInt(userFid) });
+
+              if (!user) {
+                set.status = 404;
+                return errorResponse("User not found");
+              }
+
+              const room = await Room.findById(params.id);
+              if (!room) {
+                set.status = 404;
+                return errorResponse("Room not found");
+              }
+
+              if (room.host.toString() !== user._id.toString()) {
+                set.status = 403;
+                return errorResponse("Only the room host can delete the room");
+              }
+
+              if (room.status !== 'upcoming') {
+                set.status = 400;
+                return errorResponse("Only upcoming rooms can be deleted");
+              }
+
+              // Notify interested users about cancellation
+              if (room.interested && room.interested.length > 0) {
+                const interestedTokens = await Promise.all(
+                  room.interested.map(async (userId: any) => {
+                    const intUser = await User.findById(userId);
+                    return intUser?.token;
+                  })
+                );
+                const validTokens = interestedTokens.filter(Boolean);
+                if (validTokens.length > 0) {
+                  const hostName = user.displayName || user.username;
+                  const notifPayload = {
+                    notificationId: crypto.randomUUID(),
+                    title: "Room Cancelled",
+                    body: `${hostName} cancelled ${room.name}`,
+                    targetUrl: `https://firesidebase.vercel.app`,
+                    tokens: validTokens,
+                  };
+                  fetch("https://api.farcaster.xyz/v1/frame-notifications", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(notifPayload),
+                  }).catch((err) => console.error("FCast delete notification error:", err));
+                  fetch("https://api.neynar.com/f/app_host/notify", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(notifPayload),
+                  }).catch((err) => console.error("Neynar delete notification error:", err));
+                }
+              }
+
+              // Clean up participants and delete room
+              await RoomParticipant.deleteMany({ roomId: room._id });
+              await Room.findByIdAndDelete(params.id);
+
+              return successResponse(null, "Room deleted successfully");
+            } catch (error) {
+              console.error("Error deleting room:", error);
+              set.status = 500;
+              return errorResponse("Failed to delete room");
+            }
+          },
+          {
+            params: t.Object({
+              id: t.String({ description: 'MongoDB ObjectId of the room' })
+            }),
+            response: {
+              200: SimpleSuccessResponseSchema,
+              400: ErrorResponse,
+              403: ErrorResponse,
+              404: ErrorResponse,
+              500: ErrorResponse
+            },
+            detail: {
+              tags: ['Rooms'],
+              summary: 'Delete Scheduled Room',
+              description: `
+Permanently deletes a scheduled (upcoming) room. Only the room host can delete it.
+
+**Behavior:**
+- Hard-deletes the room and all associated participant records
+- Sends push notifications to interested users about the cancellation
+- Only works for rooms with \`upcoming\` status
 
 **Authentication Required:** Yes (Farcaster JWT)
               `,
