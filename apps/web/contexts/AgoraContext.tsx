@@ -120,6 +120,9 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
   const [localAudioTrack, setLocalAudioTrack] =
     useState<IMicrophoneAudioTrack | null>(null);
   const [roomId, setRoomId] = useState<string | null>(null);
+  // Stable ref for roomId so leave() (which is memoized with []) can read
+  // the current value without adding roomId to its dependency array.
+  const roomIdRef = useRef<string | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const participantPollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastEventTsRef = useRef<number>(Date.now());
@@ -311,6 +314,7 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
 
       // Use the explicitly passed room ID instead of parsing from URL
       setRoomId(roomId);
+      roomIdRef.current = roomId;
 
       // Create local audio track if not listener.
       // Publish immediately and mute with setMuted(true) so the mic capture stays
@@ -350,6 +354,21 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
         metadata,
         isLocal: true,
       });
+
+      // Announce presence to other peers (especially important for listeners
+      // who are invisible in Agora "live" mode).
+      // Use roomId parameter directly since state may not be set yet.
+      fetch(`/api/rooms/${roomId}/events`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "PEER_JOINED",
+          data: { uid, name: peerName, roleName: role, metadata },
+          senderId: uid,
+        }),
+      }).catch((err: unknown) =>
+        console.warn("[Agora] Failed to send PEER_JOINED event:", err)
+      );
     },
     [getClient]
   );
@@ -357,6 +376,20 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
   // ── Leave ─────────────────────────────────────────────────────────────────────
 
   const leave = useCallback(async () => {
+    // Notify other peers before disconnecting (use ref for current roomId)
+    const currentRoomId = roomIdRef.current;
+    if (currentRoomId && localUidRef.current != null) {
+      fetch(`/api/rooms/${currentRoomId}/events`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "PEER_LEFT",
+          data: { uid: localUidRef.current },
+          senderId: localUidRef.current,
+        }),
+      }).catch(() => {});
+    }
+
     if (localAudioTrackRef.current) {
       localAudioTrackRef.current.close();
       localAudioTrackRef.current = null;
@@ -376,6 +409,7 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
     setIsLocalAudioEnabledState(false);
     recentlyLeftRef.current.clear();
     setRoomId(null);
+    roomIdRef.current = null;
     localUidRef.current = null;
     isAudioPublishedRef.current = false;
   }, []);
@@ -782,7 +816,87 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
     };
   }, [isConnected, roomId]);
 
-  // Poll backend for participant list to discover audience peers and sync metadata
+  // ── Event-driven participant tracking ─────────────────────────────────────
+  // Replaces the old 3-second participant poll.  Audience members (listeners)
+  // are invisible in Agora "live" mode, so we use custom PEER_JOINED /
+  // PEER_LEFT events delivered via the existing event-relay channel to
+  // discover them.  A single initial fetch bootstraps the list on join, and
+  // a low-frequency 30-second reconciliation sweep catches any missed events.
+
+  // Handle incoming PEER_JOINED events from remote peers
+  useEffect(() => {
+    if (!isConnected) return;
+
+    const cleanup = onCustomEvent("PEER_JOINED", (data: {
+      uid: number;
+      name: string;
+      roleName: string;
+      metadata?: string;
+    }) => {
+      const uid = data.uid;
+      if (uid === localUidRef.current) return; // skip self
+      if (recentlyLeftRef.current.has(uid)) return; // just left
+
+      setRemotePeers((prev) => {
+        const next = new Map(prev);
+        const existing = next.get(uid);
+        next.set(uid, {
+          uid,
+          name: data.name || existing?.name || `User ${uid}`,
+          roleName: data.roleName || existing?.roleName || "listener",
+          id: String(uid),
+          metadata: data.metadata || existing?.metadata,
+          audioTrack: existing?.audioTrack, // preserve if already publishing
+        });
+        return next;
+      });
+    });
+
+    return cleanup;
+  }, [isConnected, onCustomEvent]);
+
+  // Handle incoming PEER_LEFT events from remote peers
+  useEffect(() => {
+    if (!isConnected) return;
+
+    const cleanup = onCustomEvent("PEER_LEFT", (data: { uid: number }) => {
+      const uid = data.uid;
+      if (uid === localUidRef.current) return;
+      recentlyLeftRef.current.set(uid, Date.now());
+      setRemoteUsers((prev) => prev.filter((u) => u.uid !== uid));
+      setRemotePeers((prev) => {
+        const next = new Map(prev);
+        next.delete(uid);
+        return next;
+      });
+    });
+
+    return cleanup;
+  }, [isConnected, onCustomEvent]);
+
+  // Send best-effort PEER_LEFT on tab close / navigation away
+  useEffect(() => {
+    if (!isConnected || !roomId) return;
+
+    const handleBeforeUnload = () => {
+      if (localUidRef.current == null) return;
+      // Use sendBeacon for reliability during page unload
+      const payload = JSON.stringify({
+        type: "PEER_LEFT",
+        data: { uid: localUidRef.current },
+        senderId: localUidRef.current,
+      });
+      navigator.sendBeacon?.(
+        `/api/rooms/${roomId}/events`,
+        new Blob([payload], { type: "application/json" })
+      );
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isConnected, roomId]);
+
+  // Initial fetch on connect + low-frequency reconciliation (every 30s)
   useEffect(() => {
     if (!isConnected || !roomId) {
       if (participantPollTimerRef.current) {
@@ -792,7 +906,7 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
       return;
     }
 
-    const pollParticipants = async () => {
+    const reconcileParticipants = async () => {
       try {
         // Purge recently-left entries older than 15 seconds
         const now = Date.now();
@@ -905,13 +1019,13 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
           return prev;
         });
       } catch {
-        // Network hiccup — will retry on next tick
+        // Network hiccup — will retry on next reconciliation cycle
       }
     };
 
-    // Poll immediately on first connect, then every 3 seconds
-    pollParticipants();
-    participantPollTimerRef.current = setInterval(pollParticipants, 3000);
+    // Fetch once immediately on connect, then reconcile every 30 seconds
+    reconcileParticipants();
+    participantPollTimerRef.current = setInterval(reconcileParticipants, 30_000);
 
     return () => {
       if (participantPollTimerRef.current) {
