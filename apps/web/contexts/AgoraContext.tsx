@@ -57,6 +57,7 @@ interface AgoraContextValue {
     token: string,
     uid: number,
     role: string,
+    roomId: string,
     metadata?: string
   ) => Promise<void>;
   leave: () => Promise<void>;
@@ -288,6 +289,7 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
       token: string,
       uid: number,
       role: string,
+      roomId: string,
       metadata?: string
     ) => {
       const client = await getClient();
@@ -307,11 +309,8 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
       setIsConnected(true);
       localUidRef.current = uid;
 
-      // Derive the room ID from the URL path (last segment)
-      if (typeof window !== "undefined") {
-        const pathParts = window.location.pathname.split("/");
-        setRoomId(pathParts[pathParts.length - 1] || null);
-      }
+      // Use the explicitly passed room ID instead of parsing from URL
+      setRoomId(roomId);
 
       // Create local audio track if not listener.
       // Publish immediately and mute with setMuted(true) so the mic capture stays

@@ -102,6 +102,7 @@ export default function CallClient({ roomId }: CallClientProps) {
           agoraToken,
           uid,
           role,
+          roomId,
           JSON.stringify({
             avatar: user.pfp_url,
             role: role,

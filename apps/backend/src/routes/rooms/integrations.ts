@@ -105,8 +105,8 @@ Generates Agora RTC tokens for all roles in a room.
           // Determine user's role in the room
           let role: 'host' | 'co-host' | 'speaker' | 'listener' = 'listener';
           
-          // Check if user is the host
-          if (room.host && (room.host as any).fid === parseInt(userFid)) {
+          // Check if user is the host (fid is stored as String in MongoDB, compare as strings)
+          if (room.host && String((room.host as any).fid) === String(userFid)) {
             role = 'host';
           } else {
             // Check if user is a participant with a specific role
