@@ -125,11 +125,9 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
   const lastEventTsRef = useRef<number>(Date.now());
   const localUidRef = useRef<number | null>(null);
   const isAudioPublishedRef = useRef(false);
-
-  const BACKEND_URL =
-    typeof window !== "undefined"
-      ? process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"
-      : "";
+  // Track UIDs that Agora told us have left, so the poll doesn't re-add them
+  // before the backend marks them inactive. Entries auto-expire after 15 s.
+  const recentlyLeftRef = useRef<Map<number, number>>(new Map());
 
   // Initialize the client lazily
   const getClient = useCallback(async () => {
@@ -234,6 +232,8 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
       clientRef.current.on(
         "user-left",
         (user: IAgoraRTCRemoteUser) => {
+          // Track this UID so the poll doesn't re-add it before the backend catches up
+          recentlyLeftRef.current.set(user.uid as number, Date.now());
           setRemoteUsers((prev) => prev.filter((u) => u.uid !== user.uid));
           setRemotePeers((prev) => {
             const next = new Map(prev);
@@ -317,6 +317,10 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
       // alive. This prevents stale-track issues where the browser releases the mic
       // between creation and the first unmute, causing audio to not actually flow.
       if (agoraRole === "host") {
+      // Publish immediately and mute with setMuted(true) so the mic capture stays
+      // alive. This prevents stale-track issues where the browser releases the mic
+      // between creation and the first unmute, causing audio to not actually flow.
+      if (agoraRole === "host") {
         try {
           const AgoraRTC = await getAgoraRTC();
           const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
@@ -334,10 +338,17 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
         }
       }
 
-      // Set local peer info
+      // Set local peer info — extract name from metadata if available
+      let peerName = "";
+      if (metadata) {
+        try {
+          const meta = JSON.parse(metadata);
+          peerName = meta.displayName || meta.username || "";
+        } catch {}
+      }
       setLocalPeer({
         uid,
-        name: "", // Will be set via metadata
+        name: peerName,
         roleName: role,
         id: String(uid),
         metadata,
@@ -367,6 +378,7 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
     setAudioLevels(new Map());
     setDominantSpeaker(null);
     setIsLocalAudioEnabledState(false);
+    recentlyLeftRef.current.clear();
     setRoomId(null);
     localUidRef.current = null;
     isAudioPublishedRef.current = false;
@@ -680,9 +692,9 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
       }
 
       // Relay via backend so remote peers receive the event
-      if (roomId && BACKEND_URL) {
+      if (roomId) {
         fetch(
-          `${BACKEND_URL}/api/rooms/public/${roomId}/events`,
+          `/api/rooms/${roomId}/events`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -697,7 +709,7 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
         );
       }
     },
-    [roomId, BACKEND_URL]
+    [roomId]
   );
 
   const onCustomEvent = useCallback(
@@ -723,7 +735,7 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
 
   // Poll backend for incoming custom events from remote peers
   useEffect(() => {
-    if (!isConnected || !roomId || !BACKEND_URL) {
+    if (!isConnected || !roomId) {
       if (pollTimerRef.current) {
         clearInterval(pollTimerRef.current);
         pollTimerRef.current = null;
@@ -737,7 +749,7 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
     const poll = async () => {
       try {
         const res = await fetch(
-          `${BACKEND_URL}/api/rooms/public/${roomId}/events?since=${lastEventTsRef.current}`
+          `/api/rooms/${roomId}/events?since=${lastEventTsRef.current}`
         );
         if (!res.ok) return;
         const json = await res.json();
@@ -772,11 +784,11 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
         pollTimerRef.current = null;
       }
     };
-  }, [isConnected, roomId, BACKEND_URL]);
+  }, [isConnected, roomId]);
 
   // Poll backend for participant list to discover audience peers and sync metadata
   useEffect(() => {
-    if (!isConnected || !roomId || !BACKEND_URL) {
+    if (!isConnected || !roomId) {
       if (participantPollTimerRef.current) {
         clearInterval(participantPollTimerRef.current);
         participantPollTimerRef.current = null;
@@ -786,8 +798,14 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
 
     const pollParticipants = async () => {
       try {
+        // Purge recently-left entries older than 15 seconds
+        const now = Date.now();
+        for (const [uid, ts] of recentlyLeftRef.current) {
+          if (now - ts > 15_000) recentlyLeftRef.current.delete(uid);
+        }
+
         const res = await fetch(
-          `${BACKEND_URL}/api/rooms/public/${roomId}/participants?activeOnly=true`
+          `/api/rooms/${roomId}/participants`
         );
         if (!res.ok) return;
         const json = await res.json();
@@ -799,14 +817,26 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
           role: string;
         }> = json?.data?.participants ?? [];
 
+        // Build a set of active participant UIDs from the backend
+        const activeUids = new Set<number>();
+        for (const p of participants) {
+          const uid = parseInt(p.userId);
+          if (!isNaN(uid) && uid !== localUidRef.current) {
+            activeUids.add(uid);
+          }
+        }
+
         setRemotePeers((prev) => {
           const next = new Map(prev);
           let changed = false;
 
+          // Update / add peers from the backend response
           for (const p of participants) {
             const uid = parseInt(p.userId);
             // Skip local user
             if (uid === localUidRef.current) continue;
+            // Skip peers that Agora told us just left (backend may lag)
+            if (recentlyLeftRef.current.has(uid)) continue;
 
             const existing = next.get(uid);
             const name = p.displayName || p.username || `User ${uid}`;
@@ -846,20 +876,35 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
             }
           }
 
+          // Remove peers that are no longer active in the backend,
+          // unless they have an active audioTrack (Agora publisher that
+          // the backend hasn't caught up with yet).
+          for (const [uid, peer] of next) {
+            if (!activeUids.has(uid) && !peer.audioTrack) {
+              next.delete(uid);
+              changed = true;
+            }
+          }
+
           return changed ? next : prev;
         });
 
-        // Also update localPeer name if not set
+        // Also update localPeer name and role from backend data
         setLocalPeer((prev) => {
-          if (!prev || prev.name) return prev;
+          if (!prev) return prev;
           const localData = participants.find(
             (p) => parseInt(p.userId) === localUidRef.current
           );
           if (localData) {
-            return {
-              ...prev,
-              name: localData.displayName || localData.username || prev.name,
-            };
+            const newName = localData.displayName || localData.username || prev.name;
+            const newRole = localData.role || prev.roleName;
+            if (prev.name !== newName || prev.roleName !== newRole) {
+              return {
+                ...prev,
+                name: newName,
+                roleName: newRole,
+              };
+            }
           }
           return prev;
         });
@@ -878,7 +923,7 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
         participantPollTimerRef.current = null;
       }
     };
-  }, [isConnected, roomId, BACKEND_URL]);
+  }, [isConnected, roomId]);
 
   // Keep localPeer.audioTrack in sync with the actual audio enabled state.
   // PanelMember (and other components) derive the muted indicator from

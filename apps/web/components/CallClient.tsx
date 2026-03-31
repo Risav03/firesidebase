@@ -107,6 +107,8 @@ export default function CallClient({ roomId }: CallClientProps) {
             avatar: user.pfp_url,
             role: role,
             fid: user.fid,
+            displayName: user.displayName || "",
+            username: user.username || "",
             wallet: user.wallet || "0x1ce256752fBa067675F09291d12A1f069f34f5e8",
           })
         );
