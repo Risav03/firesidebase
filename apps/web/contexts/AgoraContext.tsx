@@ -317,10 +317,6 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
       // alive. This prevents stale-track issues where the browser releases the mic
       // between creation and the first unmute, causing audio to not actually flow.
       if (agoraRole === "host") {
-      // Publish immediately and mute with setMuted(true) so the mic capture stays
-      // alive. This prevents stale-track issues where the browser releases the mic
-      // between creation and the first unmute, causing audio to not actually flow.
-      if (agoraRole === "host") {
         try {
           const AgoraRTC = await getAgoraRTC();
           const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
@@ -800,9 +796,9 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
       try {
         // Purge recently-left entries older than 15 seconds
         const now = Date.now();
-        for (const [uid, ts] of recentlyLeftRef.current) {
+        recentlyLeftRef.current.forEach((ts, uid) => {
           if (now - ts > 15_000) recentlyLeftRef.current.delete(uid);
-        }
+        });
 
         const res = await fetch(
           `/api/rooms/${roomId}/participants`
@@ -879,12 +875,12 @@ export function AgoraProvider({ children }: AgoraProviderProps) {
           // Remove peers that are no longer active in the backend,
           // unless they have an active audioTrack (Agora publisher that
           // the backend hasn't caught up with yet).
-          for (const [uid, peer] of next) {
+          next.forEach((peer, uid) => {
             if (!activeUids.has(uid) && !peer.audioTrack) {
               next.delete(uid);
               changed = true;
             }
-          }
+          });
 
           return changed ? next : prev;
         });
