@@ -1,6 +1,20 @@
 import { fetchAPI } from "@/utils/serverActions";
-import { Room } from "../page";
 import RecordingsList from "@/components/Recordings";
+
+interface Room {
+  _id: string;
+  roomId: string;
+  name: string;
+  description: string;
+  host: {
+    fid: string;
+    username: string;
+    displayName: string;
+    pfp_url: string;
+  };
+  status: string;
+  startTime: string;
+}
 import NavigationWrapper from "@/components/NavigationWrapper";
 import MainHeader from "@/components/UI/MainHeader";
 
@@ -26,10 +40,13 @@ async function fetchRooms(): Promise<Room[]> {
   }
 
 export default async function Recordings() {
+
+  const rooms = await fetchRooms();
+
   return (
     <div>
       <MainHeader/>
-      <RecordingsList rooms={await fetchRooms()} />
+      <RecordingsList rooms={rooms || []} />
       <NavigationWrapper />
     </div>
   );
