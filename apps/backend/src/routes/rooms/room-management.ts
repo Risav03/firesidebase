@@ -385,6 +385,8 @@ Retrieves multiple rooms by their MongoDB ObjectIds in a single request.
           const hmsAPI = new HMSAPI();
           const recordingsData = await hmsAPI.getRecordingAssets(room.roomId);
 
+          console.log("Fetched recordings data:", recordingsData);
+
           return successResponse({ recordings: recordingsData });
         } catch (error) {
           console.error("Error fetching recording assets:", error);
@@ -808,6 +810,18 @@ Retrieves all upcoming rooms hosted by the authenticated user.
                   set.status = 500;
                   return errorResponse("Failed to generate room codes");
                 }
+
+                // Start recording if enabled
+                const resolvedRecordingEnabled = recordingEnabled === true;
+                if (resolvedRecordingEnabled) {
+                  try {
+                    await hmsAPI.startRecording(hmsRoom.id);
+                    console.log(`[Recording] Started recording for room ${hmsRoom.id}`);
+                  } catch (recordingError) {
+                    console.error("Error starting recording:", recordingError);
+                    // Don't fail room creation if recording fails
+                  }
+                }
               }
 
               const calculatedRecurrenceDay = isRecurring && recurrenceType === 'weekly' 
@@ -829,7 +843,7 @@ Retrieves all upcoming rooms hosted by the authenticated user.
                 recurrenceDay: calculatedRecurrenceDay,
                 parentRoomId: null,
                 occurrenceNumber: isRecurring ? 1 : null,
-                recordingEnabled: recordingEnabled !== undefined ? recordingEnabled : true,
+                recordingEnabled: recordingEnabled === true,
               });
 
               try {

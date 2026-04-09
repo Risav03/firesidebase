@@ -122,6 +122,8 @@ export class HMSAPI {
       const recordings = recordingAssets.data
         .filter((asset: any) => asset.type === 'room-composite')
         .map((asset: any) => convertS3ToPublicUrl(asset.path));
+
+      console.log("Recording assets fetched:", recordings);
       
       const chats = recordingAssets.data
         .filter((asset: any) => asset.type === 'chat')

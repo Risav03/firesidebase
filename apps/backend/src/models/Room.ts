@@ -27,7 +27,7 @@ const Room: Schema = new Schema({
   parentRoomId: { type: mongoose.Schema.Types.ObjectId, ref: 'Room', default: null },
   occurrenceNumber: { type: Number, default: null },
   // Recording preference
-  recordingEnabled: { type: Boolean, default: true },
+  recordingEnabled: { type: Boolean, default: false },
 }, {
   timestamps: true
 });

@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 
 interface Room {
   _id: string;
+  roomId: string;
   name: string;
   description: string;
   host: {
@@ -99,7 +100,7 @@ export default function Recordings({ rooms }: RecordingsProps) {
                 </div>
                 <Button 
                   variant="default"
-                  onClick={() => { handlePlayRecording(room._id) }} 
+                  onClick={() => { handlePlayRecording(room.roomId) }} 
                   className="w-[15%] aspect-square rounded flex items-center justify-center p-0"
                 >
                   <FaPlay className="" />
