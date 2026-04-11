@@ -682,6 +682,37 @@ export async function skipRecurringRoom(roomId: string, token: string | null = n
   });
 }
 
+export async function editRecurringRoom(
+  roomId: string,
+  editData: {
+    name?: string;
+    description?: string;
+    startTime?: string;
+    topics?: string[];
+    adsEnabled?: boolean;
+    isRecurring?: boolean;
+    recurrenceType?: 'daily' | 'weekly' | null;
+    recordingEnabled?: boolean;
+    editScope: 'this' | 'all';
+  },
+  token: string | null = null
+) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/rooms/protected/${roomId}/edit`, {
+    method: 'PUT',
+    body: editData,
+    authToken: token
+  });
+}
+
+export async function deleteScheduledRoom(roomId: string, token: string | null = null) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/rooms/protected/${roomId}`, {
+    method: 'DELETE',
+    authToken: token
+  });
+}
+
 export async function startRecording(roomId: string, token: string | null = null) {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   

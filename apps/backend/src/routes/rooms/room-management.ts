@@ -6,6 +6,7 @@ import RoomParticipant from "../../models/RoomParticipant";
 import {
   RoomUpdateRequestSchema,
   CreateRoomProtectedRequestSchema,
+  EditRecurringRoomRequestSchema,
 } from "../../schemas";
 import { errorResponse, successResponse, isValidRoomStatus } from "../../utils";
 import { authMiddleware } from "../../middleware/auth";
@@ -1585,6 +1586,233 @@ Skip the next occurrence of a recurring room and reschedule it to the following 
 - Only the room host can skip occurrences
 
 **Use Case:** Host realizes they can't make the scheduled time and wants to push it to the next occurrence without manual rescheduling.
+
+**Authentication Required:** Yes (Farcaster JWT)
+              `,
+              security: [{ bearerAuth: [] }]
+            }
+          }
+        )
+        // Edit a scheduled room
+        .put(
+          "/:id/edit",
+          async ({ headers, params, body, set }: any) => {
+            try {
+              const userFid = headers["x-user-fid"] as string;
+              const user = await User.findOne({ fid: parseInt(userFid) });
+
+              if (!user) {
+                set.status = 404;
+                return errorResponse("User not found");
+              }
+
+              const room = await Room.findById(params.id);
+              if (!room) {
+                set.status = 404;
+                return errorResponse("Room not found");
+              }
+
+              if (room.host.toString() !== user._id.toString()) {
+                set.status = 403;
+                return errorResponse("Only the room host can edit the room");
+              }
+
+              if (room.status !== "upcoming") {
+                set.status = 400;
+                return errorResponse("Only upcoming rooms can be edited");
+              }
+
+              const { name, description, startTime, topics, adsEnabled, isRecurring, recurrenceType, recordingEnabled, editScope } = body;
+
+              const updates: any = {};
+
+              if (name !== undefined) updates.name = name;
+              if (description !== undefined) updates.description = description;
+              if (topics !== undefined) updates.topics = topics;
+              if (typeof adsEnabled === "boolean") updates.adsEnabled = adsEnabled;
+              if (typeof recordingEnabled === "boolean") updates.recordingEnabled = recordingEnabled;
+
+              // Handle startTime change — reset interested users
+              if (startTime !== undefined) {
+                const newStartTime = new Date(startTime);
+                if (newStartTime.toString() === "Invalid Date") {
+                  set.status = 400;
+                  return errorResponse("Invalid start time");
+                }
+                updates.startTime = newStartTime;
+                updates.interested = []; // Reset interested users on date change
+
+                // Recalculate recurrenceDay for weekly recurring rooms
+                const effectiveRecurrenceType = recurrenceType !== undefined ? recurrenceType : room.recurrenceType;
+                const effectiveIsRecurring = isRecurring !== undefined ? isRecurring : room.isRecurring;
+                if (effectiveIsRecurring && effectiveRecurrenceType === "weekly") {
+                  updates.recurrenceDay = newStartTime.getDay();
+                }
+              }
+
+              // Handle recurrence changes
+              if (isRecurring !== undefined) {
+                updates.isRecurring = isRecurring;
+                if (!isRecurring) {
+                  // Turning off recurrence — clear related fields
+                  updates.recurrenceType = null;
+                  updates.recurrenceDay = null;
+                  updates.parentRoomId = null;
+                  updates.occurrenceNumber = null;
+                }
+              }
+
+              if (recurrenceType !== undefined && (isRecurring !== false)) {
+                updates.recurrenceType = recurrenceType;
+                // Recalculate recurrenceDay when switching to weekly
+                if (recurrenceType === "weekly") {
+                  const effectiveStartTime = updates.startTime || room.startTime;
+                  updates.recurrenceDay = new Date(effectiveStartTime).getDay();
+                } else if (recurrenceType === "daily") {
+                  updates.recurrenceDay = null;
+                }
+              }
+
+              const updatedRoom = await Room.findByIdAndUpdate(
+                params.id,
+                updates,
+                { new: true, runValidators: true }
+              ).populate("host", "fid username displayName pfp_url");
+
+              if (!updatedRoom) {
+                set.status = 404;
+                return errorResponse("Room not found");
+              }
+
+              console.log(`[Room Edit] Successfully edited room ${params.id} (scope: ${editScope})`);
+
+              return successResponse(updatedRoom, "Room updated successfully");
+            } catch (error) {
+              console.error("Error editing room:", error);
+              set.status = 500;
+              return errorResponse(
+                "Failed to edit room",
+                error instanceof Error ? error.message : "Unknown error"
+              );
+            }
+          },
+          {
+            body: EditRecurringRoomRequestSchema,
+            params: t.Object({
+              id: t.String({ description: 'MongoDB ObjectId of the room' })
+            }),
+            response: {
+              200: UpdateRoomResponseSchema,
+              400: ErrorResponse,
+              403: ErrorResponse,
+              404: ErrorResponse,
+              500: ErrorResponse
+            },
+            detail: {
+              tags: ['Rooms'],
+              summary: 'Edit Scheduled Room',
+              description: `
+Edit a scheduled (upcoming) room's details.
+
+**Editable Fields:**
+- \`name\`, \`description\`, \`startTime\`, \`topics\`
+- \`adsEnabled\`, \`recordingEnabled\`
+- \`isRecurring\`, \`recurrenceType\`
+
+**Edit Scope:**
+- \`this\`: Edit only this occurrence
+- \`all\`: Edit this and all future auto-created occurrences (changes propagate automatically since future occurrences inherit from the current one)
+
+**Date Change Behavior:**
+- Resets the \`interested\` array (notification subscribers must re-subscribe)
+- Recalculates \`recurrenceDay\` for weekly recurring rooms
+
+**Recurrence Changes:**
+- Setting \`isRecurring: false\` clears all recurrence fields
+- Changing \`recurrenceType\` to \`weekly\` auto-calculates \`recurrenceDay\` from \`startTime\`
+
+**Authentication Required:** Yes (Farcaster JWT)
+              `,
+              security: [{ bearerAuth: [] }]
+            }
+          }
+        )
+        // Delete a scheduled room
+        .delete(
+          "/:id",
+          async ({ headers, params, set }: any) => {
+            try {
+              const userFid = headers["x-user-fid"] as string;
+              const user = await User.findOne({ fid: parseInt(userFid) });
+
+              if (!user) {
+                set.status = 404;
+                return errorResponse("User not found");
+              }
+
+              const room = await Room.findById(params.id);
+              if (!room) {
+                set.status = 404;
+                return errorResponse("Room not found");
+              }
+
+              if (room.host.toString() !== user._id.toString()) {
+                set.status = 403;
+                return errorResponse("Only the room host can delete the room");
+              }
+
+              if (room.status !== "upcoming") {
+                set.status = 400;
+                return errorResponse("Only upcoming rooms can be deleted");
+              }
+
+              // Cancel the entire series by disabling recurrence
+              room.isRecurring = false;
+              room.recurrenceType = null;
+              room.recurrenceDay = null;
+              room.status = "ended";
+              room.enabled = false;
+              room.interested = [];
+
+              await room.save();
+
+              console.log(`[Room Delete] Successfully deleted room ${params.id} (was recurring: ${room.isRecurring})`);
+
+              return successResponse(null, "Room deleted successfully");
+            } catch (error) {
+              console.error("Error deleting room:", error);
+              set.status = 500;
+              return errorResponse(
+                "Failed to delete room",
+                error instanceof Error ? error.message : "Unknown error"
+              );
+            }
+          },
+          {
+            params: t.Object({
+              id: t.String({ description: 'MongoDB ObjectId of the room' })
+            }),
+            response: {
+              200: SimpleSuccessResponseSchema,
+              400: ErrorResponse,
+              403: ErrorResponse,
+              404: ErrorResponse,
+              500: ErrorResponse
+            },
+            detail: {
+              tags: ['Rooms'],
+              summary: 'Delete Scheduled Room',
+              description: `
+Delete a scheduled (upcoming) room and cancel its entire recurring series.
+
+**Actions:**
+- Sets \`isRecurring: false\` to prevent future occurrences from being auto-created
+- Sets \`status: "ended"\` and \`enabled: false\`
+- Clears the \`interested\` array
+
+**Validation:**
+- Room must be in \`upcoming\` status
+- Only the room host can delete
 
 **Authentication Required:** Yes (Farcaster JWT)
               `,

@@ -84,6 +84,18 @@ export const UpdateUserTopicsRequestSchema = t.Object({
   topics: t.Array(t.String())
 });
 
+export const EditRecurringRoomRequestSchema = t.Object({
+  name: t.Optional(t.String({ minLength: 1, maxLength: 100 })),
+  description: t.Optional(t.String({ maxLength: 500 })),
+  startTime: t.Optional(t.String()),
+  topics: t.Optional(t.Array(t.String(), { minItems: 1 })),
+  adsEnabled: t.Optional(t.Boolean()),
+  isRecurring: t.Optional(t.Boolean()),
+  recurrenceType: t.Optional(t.Union([t.Literal('daily'), t.Literal('weekly'), t.Null()])),
+  recordingEnabled: t.Optional(t.Boolean()),
+  editScope: t.Union([t.Literal('this'), t.Literal('all')])
+});
+
 // Type exports
 export type CreateRoomRequest = typeof CreateRoomRequestSchema.static;
 export type CreateRoomProtectedRequest = typeof CreateRoomProtectedRequestSchema.static;
@@ -97,3 +109,4 @@ export type SendChatMessageRequest = typeof SendChatMessageRequestSchema.static;
 export type GetChatMessagesRequest = typeof GetChatMessagesRequestSchema.static;
 export type UpdateUserTopicsRequest = typeof UpdateUserTopicsRequestSchema.static;
 export type CreateAdRequest = typeof CreateAdRequestSchema.static;
+export type EditRecurringRoomRequest = typeof EditRecurringRoomRequestSchema.static;

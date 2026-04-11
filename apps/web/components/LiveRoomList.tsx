@@ -20,9 +20,10 @@ import {
   fetchAPI,
   startRoom,
   skipRecurringRoom,
+  deleteScheduledRoom,
 } from "@/utils/serverActions";
 import { useNavigateWithLoader } from "@/utils/useNavigateWithLoader";
-import { MdOutlineSchedule } from "react-icons/md";
+import { MdOutlineSchedule, MdEdit, MdDelete } from "react-icons/md";
 import { GoDotFill } from "react-icons/go";
 import {
   Drawer,
@@ -34,6 +35,7 @@ import {
 } from "@/components/UI/drawer";
 import { Card } from "@/components/UI/Card";
 import Button from "@/components/UI/Button";
+import EditRoomDrawer from "./EditRoomDrawer";
 import { useAccount } from "wagmi";
 
 interface Room {
@@ -85,6 +87,8 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
   const router = useRouter();
 
   const [myUpcomingRooms, setMyUpcomingRooms] = useState<Room[]>([]);
+  const [editingRoom, setEditingRoom] = useState<Room | null>(null);
+  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
 
   const navigate = useNavigateWithLoader()
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
@@ -198,6 +202,43 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
       console.error("Error starting room:", error);
       toast.dismiss("starting-room");
       toast.error("Error starting room?. Please try again.");
+    }
+  };
+
+  const handleEditRoom = (room: Room) => {
+    setEditingRoom(room);
+    setIsEditDrawerOpen(true);
+  };
+
+  const handleDeleteRoom = async (roomId: string) => {
+    if (!window.confirm('Are you sure you want to delete this room? This will cancel all future occurrences.')) {
+      return;
+    }
+
+    try {
+      var token: any = "";
+      const env = process.env.NEXT_PUBLIC_ENV;
+
+      if (env !== "DEV") {
+        token = (await sdk.quickAuth.getToken()).token;
+      }
+
+      toast.loading("Deleting room...", { toastId: "deleting-room" });
+
+      const response = await deleteScheduledRoom(roomId, token);
+
+      if (response.data.success) {
+        toast.dismiss("deleting-room");
+        toast.success("Room deleted successfully!");
+        await fetchMyUpcomingRooms();
+      } else {
+        toast.dismiss("deleting-room");
+        toast.error(response.data.error || "Failed to delete room");
+      }
+    } catch (error) {
+      console.error("Error deleting room:", error);
+      toast.dismiss("deleting-room");
+      toast.error("Error deleting room. Please try again.");
     }
   };
 
@@ -376,6 +417,24 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                                 </div>
                               </div>
                               <div className="flex gap-2 mt-2">
+                                <DrawerClose asChild>
+                                  <button
+                                    onClick={() => handleEditRoom(room)}
+                                    className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-gray-300 hover:text-white"
+                                    title="Edit"
+                                  >
+                                    <MdEdit size={16} />
+                                  </button>
+                                </DrawerClose>
+                                <DrawerClose asChild>
+                                  <button
+                                    onClick={() => handleDeleteRoom(room?._id)}
+                                    className="p-2 rounded-lg bg-white/10 hover:bg-red-500/30 transition-colors text-gray-300 hover:text-red-400"
+                                    title="Delete"
+                                  >
+                                    <MdDelete size={16} />
+                                  </button>
+                                </DrawerClose>
                                 {room?.isRecurring && (
                                   <DrawerClose asChild>
                                     <Button
@@ -562,6 +621,17 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
             <CreateRoomModal
               isOpen={showCreateModal}
               onClose={() => setShowCreateModal(false)}
+            />
+
+            {/* EditRoomDrawer */}
+            <EditRoomDrawer
+              isOpen={isEditDrawerOpen}
+              onClose={() => {
+                setIsEditDrawerOpen(false);
+                setEditingRoom(null);
+              }}
+              room={editingRoom}
+              onSuccess={() => fetchMyUpcomingRooms()}
             />
           </div>
         )}
