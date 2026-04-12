@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IAdvertisement extends Document {
   title: string;
   imageUrl: string;
+  link?: string;
   minutesPerRoom: number;
   totalRooms: number;
   roomsRemaining: number;
@@ -16,6 +17,7 @@ export interface IAdvertisement extends Document {
 const AdvertisementSchema: Schema = new Schema({
   title: { type: String, required: true },
   imageUrl: { type: String, required: true },
+  link: { type: String },
   minutesPerRoom: { type: Number, required: true, min: 1 },
   totalRooms: { type: Number, required: true, min: 1 },
   roomsRemaining: { type: Number, required: true, min: 0 },

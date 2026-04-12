@@ -39,6 +39,7 @@ interface CurrentAdPayload {
   adId: string;
   title: string;
   imageUrl: string;
+  link?: string;
   durationSec: number;
   startedAt: string;
   sessionId: string;
@@ -53,6 +54,7 @@ function toSnapshotCurrent(current: CurrentAdPayload): AdsCurrentState {
     adId: current.adId,
     title: current.title,
     imageUrl: current.imageUrl,
+    link: current.link,
     durationSec: current.durationSec,
     startedAt: current.startedAt,
     sessionId: current.sessionId,
@@ -267,6 +269,7 @@ async function allocateNextAd(roomId: string, webhookUrl: string, sessionId: str
         adId: String(ad._id),
         title: ad.title,
         imageUrl: ad.imageUrl,
+        link: ad.link,
         durationSec: existing.durationSec,
         startedAt: (existing.reservedAt ?? new Date()).toISOString(),
         sessionId,
@@ -339,6 +342,7 @@ async function allocateNextAd(roomId: string, webhookUrl: string, sessionId: str
     adId: String(ad._id),
     title: ad.title,
     imageUrl: ad.imageUrl,
+    link: ad.link,
     durationSec,
     startedAt: now.toISOString(),
     sessionId,
@@ -358,6 +362,7 @@ async function allocateNextAd(roomId: string, webhookUrl: string, sessionId: str
     adId: currentPayload.adId,
     title: currentPayload.title,
     imageUrl: currentPayload.imageUrl,
+    link: currentPayload.link,
     durationSec: currentPayload.durationSec,
     startedAt: currentPayload.startedAt,
     minParticipants: currentPayload.minParticipants,
@@ -482,6 +487,7 @@ async function recoverRoomAdSession(roomId: string): Promise<{ state: AdsState, 
       adId: String(assignment.adId),
       title: ad.title,
       imageUrl: ad.imageUrl,
+      link: ad.link,
       durationSec: assignment.durationSec,
       startedAt: (assignment.reservedAt ?? new Date()).toISOString(),
       sessionId: assignment.sessionId,
@@ -846,6 +852,7 @@ Testing the payout calculation and distribution logic without ending a room.
           const txHashes = normalizeTxHashes((formData as any).txhashes ?? (formData as any).txHashes);
           const minParticipantsRaw = formData.minParticipants ?? formData.min_participants ?? formData.minparticipants;
           const minParticipants = minParticipantsRaw ? parseInt(String(minParticipantsRaw)) : DEFAULT_MIN_PARTICIPANTS;
+          const link = formData.link as string | undefined;
 
           if (!title || !image || !rooms || !minutes) {
             set.status = 400; return errorResponse('Missing required fields');
@@ -876,6 +883,7 @@ Testing the payout calculation and distribution logic without ending a room.
           const ad = await Advertisement.create({
             title,
             imageUrl,
+            ...(link ? { link } : {}),
             minutesPerRoom: minutes,
             totalRooms: rooms,
             roomsRemaining: rooms,
@@ -888,6 +896,7 @@ Testing the payout calculation and distribution logic without ending a room.
             id: String(ad._id),
             title: ad.title,
             imageUrl: ad.imageUrl,
+            link: ad.link,
             minutesPerRoom: ad.minutesPerRoom,
             totalRooms: ad.totalRooms,
             roomsRemaining: ad.roomsRemaining,

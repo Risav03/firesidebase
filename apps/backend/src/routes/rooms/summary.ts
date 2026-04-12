@@ -3,28 +3,15 @@ import Room from '../../models/Room';
 import { RedisRoomStatisticsService } from '../../services/redis';
 import { RedisTippingService } from '../../services/redis/tippingDetails';
 import { successResponse, errorResponse } from '../../utils';
+import AdPayout from '../../models/AdPayout';
+import AdAssignment from '../../models/AdAssignment';
 
 /**
  * Response schema for room summary
  */
 const RoomSummaryResponseSchema = t.Object({
   success: t.Boolean(),
-  data: t.Object({
-    room: t.Object({
-      name: t.String({ description: 'Room name' }),
-      host: t.Object({
-        name: t.String({ description: 'Host display name' }),
-        username: t.String({ description: 'Host username' }),
-        image: t.String({ description: 'Host profile picture URL' }),
-        fid: t.String({ description: 'Host Farcaster ID' }),
-      }),
-    }),
-    statistics: t.Object({
-      maxSpeakers: t.Number({ description: 'Peak number of speakers (including host and co-hosts)' }),
-      maxListeners: t.Number({ description: 'Peak number of listeners' }),
-      totalTipsUSD: t.Number({ description: 'Total tips in USD' }),
-    }),
-  }),
+  data: t.Any(),
 });
 
 /**
@@ -39,9 +26,10 @@ export const summaryRoutes = new Elysia()
        */
       .get(
         '/:id/summary',
-        async ({ params, set }) => {
+        async ({ params, query, set }) => {
           try {
             const { id: roomId } = params;
+            const fid = query?.fid as string | undefined;
 
             // Fetch room details with host information
             const room = await Room.findById(roomId)
@@ -59,8 +47,53 @@ export const summaryRoutes = new Elysia()
             // Fetch peak participant counts
             const peakStats = await RedisRoomStatisticsService.getRoomStatistics(room.roomId);
 
+            // Fetch ads that played in this room
+            const completedAssignments = await AdAssignment.find({
+              roomId: room._id,
+              status: 'completed',
+            }).populate('adId').lean();
+
+            const ads = completedAssignments
+              .filter((a: any) => a.adId)
+              .map((a: any) => ({
+                title: a.adId.title,
+                imageUrl: a.adId.imageUrl,
+                link: a.adId.link || null,
+              }));
+
+            // Deduplicate ads by adId (same ad may have been assigned multiple times)
+            const uniqueAds = Array.from(
+              new Map(ads.map((ad: any) => [ad.imageUrl, ad])).values()
+            );
+
+            // Fetch per-user ad earnings if fid is provided
+            let userAdEarnings: { fire: number; usd: number } | null = null;
+            if (fid) {
+              const payout = await AdPayout.findOne({
+                roomId: room.roomId,
+                status: 'completed',
+              }).lean();
+
+              if (payout && payout.distributionDetails) {
+                const userDetail = payout.distributionDetails.find(
+                  (d: any) => d.fid === fid
+                );
+                if (userDetail) {
+                  const totalFire = payout.fireAmountToDistribute || 0;
+                  const totalUsd = payout.usdAmountSwapped || 0;
+                  const usdShare = totalFire > 0
+                    ? (userDetail.amount / totalFire) * totalUsd
+                    : 0;
+                  userAdEarnings = {
+                    fire: userDetail.amount,
+                    usd: usdShare,
+                  };
+                }
+              }
+            }
+
             // Build response
-            const summary = {
+            const summary: any = {
               room: {
                 name: room.name,
                 host: {
@@ -75,7 +108,12 @@ export const summaryRoutes = new Elysia()
                 maxListeners: peakStats.maxListeners,
                 totalTipsUSD: tipStats.totalTipsUSD,
               },
+              ads: uniqueAds,
             };
+
+            if (userAdEarnings) {
+              summary.userAdEarnings = userAdEarnings;
+            }
 
             return successResponse(summary);
           } catch (error) {

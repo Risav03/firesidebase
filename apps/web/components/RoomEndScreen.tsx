@@ -22,14 +22,25 @@ interface RoomSummary {
     maxListeners: number;
     totalTipsUSD: number;
   };
+  ads?: Array<{
+    title: string;
+    imageUrl: string;
+    link?: string | null;
+  }>;
+  userAdEarnings?: {
+    fire: number;
+    usd: number;
+  };
 }
 
 interface RoomEndScreenProps {
   onComplete: () => void;
   roomId: string;
+  isHost: boolean;
+  userFid?: string;
 }
 
-export default function RoomEndScreen({onComplete, roomId}: RoomEndScreenProps) {
+export default function RoomEndScreen({onComplete, roomId, isHost, userFid}: RoomEndScreenProps) {
   const { rewardData, clearRewardData } = useRewardContext();
   const navigate = useNavigateWithLoader();
   const [timeLeft, setTimeLeft] = useState(10);
@@ -41,7 +52,7 @@ export default function RoomEndScreen({onComplete, roomId}: RoomEndScreenProps) 
     async function loadRoomSummary() {
       try {
         setIsLoading(true);
-        const response = await fetchRoomSummary(roomId);
+        const response = await fetchRoomSummary(roomId, userFid);
         if (response.ok && response.data.success) {
           setRoomSummary(response.data.data);
         }
@@ -53,7 +64,7 @@ export default function RoomEndScreen({onComplete, roomId}: RoomEndScreenProps) 
     }
 
     loadRoomSummary();
-  }, [roomId]);
+  }, [roomId, userFid]);
 
   console.log("[RoomEndScreen] rewardData:", rewardData);
   console.log("[RoomEndScreen] roomSummary:", roomSummary);
@@ -165,9 +176,9 @@ export default function RoomEndScreen({onComplete, roomId}: RoomEndScreenProps) 
             </div>
           </div>
         )}
-          
-        {/* Reward Display for Host */}
-        {rewardData && rewardData.totalReward > 0 && (
+
+        {/* HOST-ONLY: Reward Display for Host */}
+        {isHost && rewardData && rewardData.totalReward > 0 && (
           <>
             <h2 className="text-neutral-green text-left text-sm mb-2">Hosting Rewards:</h2>
             <div className="mb-6 gradient-green-bg border border-neutral-green/30 rounded-lg p-4">
@@ -191,6 +202,83 @@ export default function RoomEndScreen({onComplete, roomId}: RoomEndScreenProps) 
                   <span className="text-white">{rewardData.participantCount}</span>
                 </div>
               </div>
+            </div>
+          </>
+        )}
+
+        {/* NON-HOST: Ad Earnings and Tips */}
+        {!isHost && !isLoading && roomSummary && (
+          <>
+            {/* Ad Earnings */}
+            {roomSummary.userAdEarnings && roomSummary.userAdEarnings.fire > 0 && (
+              <>
+                <h2 className="text-neutral-green text-left text-sm mb-2">Your Ad Earnings:</h2>
+                <div className="mb-6 gradient-green-bg border border-neutral-green/30 rounded-lg p-4">
+                  <p className="text-yellow-400 font-bold text-3xl mb-2">
+                    +{roomSummary.userAdEarnings.fire.toFixed(2)} FIRE
+                  </p>
+                  <p className="text-sm text-gray-300 mb-1">🎉 Ad Reward Earned!</p>
+                  <p className="text-xs text-gray-400">
+                    ≈ ${roomSummary.userAdEarnings.usd.toFixed(2)} USD
+                  </p>
+                </div>
+              </>
+            )}
+
+            {/* Room Tips */}
+            {roomSummary.statistics.totalTipsUSD > 0 && (
+              <>
+                <h2 className="text-yellow-400 text-left text-sm mb-2">Room Tips:</h2>
+                <div className="mb-6 gradient-orange-bg border border-yellow-400/30 rounded-lg p-4">
+                  <p className="text-yellow-400 font-bold text-2xl mb-1">
+                    ${roomSummary.statistics.totalTipsUSD.toFixed(2)}
+                  </p>
+                  <p className="text-xs text-gray-400">Total tips exchanged in this room</p>
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        {/* Sponsored By — Ad Banners (shown to all non-host users) */}
+        {!isHost && !isLoading && roomSummary?.ads && roomSummary.ads.length > 0 && (
+          <>
+            <h2 className="text-gray-400 text-left text-sm mb-2">Sponsored By:</h2>
+            <div className="mb-6 space-y-3">
+              {roomSummary.ads.map((ad, index) => (
+                <div key={index} className="rounded-lg overflow-hidden border border-white/10">
+                  {ad.link ? (
+                    <a href={ad.link} target="_blank" rel="noopener noreferrer" className="block">
+                      <div className="relative w-full aspect-[5/1]">
+                        <Image
+                          src={ad.imageUrl}
+                          alt={ad.title}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="bg-black/40 px-3 py-2 flex items-center justify-between">
+                        <span className="text-white text-sm font-medium truncate">{ad.title}</span>
+                        <span className="text-fireside-orange text-xs ml-2 flex-shrink-0">Visit →</span>
+                      </div>
+                    </a>
+                  ) : (
+                    <>
+                      <div className="relative w-full aspect-[5/1]">
+                        <Image
+                          src={ad.imageUrl}
+                          alt={ad.title}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="bg-black/40 px-3 py-2">
+                        <span className="text-white text-sm font-medium truncate">{ad.title}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
             </div>
           </>
         )}

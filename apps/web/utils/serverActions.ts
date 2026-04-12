@@ -662,11 +662,12 @@ export async function fetchLiveRoomsTips() {
 }
 
 /**
- * Fetch room summary (room details, host info, peak statistics, and tips)
+ * Fetch room summary (room details, host info, peak statistics, tips, ads, and user ad earnings)
  */
-export async function fetchRoomSummary(roomId: string) {
+export async function fetchRoomSummary(roomId: string, fid?: string) {
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-  return fetchAPI(`${URL}/api/rooms/public/${roomId}/summary`, {
+  const queryStr = fid ? `?fid=${encodeURIComponent(fid)}` : '';
+  return fetchAPI(`${URL}/api/rooms/public/${roomId}/summary${queryStr}`, {
     method: 'GET',
   });
 }

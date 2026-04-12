@@ -5,6 +5,7 @@ export interface AdsCurrentState {
   adId: string;
   title: string;
   imageUrl: string;
+  link?: string;
   durationSec: number;
   startedAt: string;
   sessionId: string;

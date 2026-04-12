@@ -500,7 +500,9 @@ export default function Conference({ roomId }: { roomId: string }) {
   };
 
   if (roomEnded) {
-    return <RoomEndScreen roomId={roomId} onComplete={() => { clearRewardData(); router.push("/"); }} />;
+    const isHost = localPeer?.roleName === "host";
+    const userFid = user?.fid?.toString();
+    return <RoomEndScreen roomId={roomId} isHost={!!isHost} userFid={userFid} onComplete={() => { clearRewardData(); router.push("/"); }} />;
   } else {
     // Only show speaker requests button for hosts and co-hosts
     const canManageSpeakers =

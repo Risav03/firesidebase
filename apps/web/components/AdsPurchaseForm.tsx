@@ -18,6 +18,7 @@ export default function AdsPurchaseForm({ handleERC20Payment, handleETHPayment, 
   const [rooms, setRooms] = useState<string>('1');
   const [minutes, setMinutes] = useState<string>('5');
   const [minParticipants, setMinParticipants] = useState<string>('1');
+  const [link, setLink] = useState<string>('');
   const [price, setPrice] = useState<number | null>(null);
   const [quoting, setQuoting] = useState(false);
 
@@ -84,6 +85,9 @@ export default function AdsPurchaseForm({ handleERC20Payment, handleETHPayment, 
     formData.append('rooms', rooms);
     formData.append('minutes', minutes);
     formData.append('minParticipants', minParticipants);
+    if (link.trim()) {
+      formData.append('link', link.trim());
+    }
     formData.append('paymentMethod', paymentMethod);
     if (selectedImage) {
       formData.append('image', selectedImage);
@@ -185,6 +189,19 @@ export default function AdsPurchaseForm({ handleERC20Payment, handleETHPayment, 
               required
             />
             <p className="text-gray-400 text-xs mt-2">Ads will begin automatically once a room meets this audience size.</p>
+          </div>
+
+          <div>
+            <label htmlFor="ad-link" className="text-gray-300 text-sm block mb-2">Link URL (optional)</label>
+            <input
+              id="ad-link"
+              type="url"
+              value={link}
+              onChange={e => setLink(e.target.value)}
+              placeholder="https://your-website.com"
+              className="w-full px-4 py-3 text-base rounded-md bg-white/5 text-white border border-white/10 focus:border-fireside-orange focus:outline-none focus:ring-2 focus:ring-fireside-orange/50 transition-all"
+            />
+            <p className="text-gray-400 text-xs mt-1">Users can visit this link from the room end screen</p>
           </div>
 
           {price !== null && (
