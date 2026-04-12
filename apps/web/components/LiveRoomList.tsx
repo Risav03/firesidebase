@@ -37,6 +37,16 @@ import { Card } from "@/components/UI/Card";
 import Button from "@/components/UI/Button";
 import EditRoomDrawer from "./EditRoomDrawer";
 import { useAccount } from "wagmi";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/UI/alert-dialog";
 
 interface Room {
   _id: string;
@@ -89,6 +99,8 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
   const [myUpcomingRooms, setMyUpcomingRooms] = useState<Room[]>([]);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [roomToDelete, setRoomToDelete] = useState<string | null>(null);
 
   const navigate = useNavigateWithLoader()
   const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
@@ -210,10 +222,16 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
     setIsEditDrawerOpen(true);
   };
 
-  const handleDeleteRoom = async (roomId: string) => {
-    if (!window.confirm('Are you sure you want to delete this room? This will cancel all future occurrences.')) {
-      return;
-    }
+  const promptDeleteRoom = (roomId: string) => {
+    setRoomToDelete(roomId);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteRoom = async () => {
+    const roomId = roomToDelete;
+    if (!roomId) return;
+    setDeleteConfirmOpen(false);
+    setRoomToDelete(null);
 
     try {
       var token: any = "";
@@ -428,7 +446,7 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
                                 </DrawerClose>
                                 <DrawerClose asChild>
                                   <button
-                                    onClick={() => handleDeleteRoom(room?._id)}
+                                    onClick={() => promptDeleteRoom(room?._id)}
                                     className="p-2 rounded-lg bg-white/10 hover:bg-red-500/30 transition-colors text-gray-300 hover:text-red-400"
                                     title="Delete"
                                   >
@@ -633,6 +651,22 @@ export default function LiveRoomList({ rooms }: LiveRoomListProps) {
               room={editingRoom}
               onSuccess={() => fetchMyUpcomingRooms()}
             />
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Room</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete this room? This will cancel all future occurrences.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setRoomToDelete(null)}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteRoom}>Delete</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         )}
       </div>
