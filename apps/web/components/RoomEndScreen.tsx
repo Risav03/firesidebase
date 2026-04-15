@@ -43,7 +43,7 @@ interface RoomEndScreenProps {
 export default function RoomEndScreen({onComplete, roomId, isHost, userFid}: RoomEndScreenProps) {
   const { rewardData, clearRewardData } = useRewardContext();
   const navigate = useNavigateWithLoader();
-  const [timeLeft, setTimeLeft] = useState(10);
+
   const [roomSummary, setRoomSummary] = useState<RoomSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -66,24 +66,21 @@ export default function RoomEndScreen({onComplete, roomId, isHost, userFid}: Roo
     loadRoomSummary();
   }, [roomId, userFid]);
 
-  console.log("[RoomEndScreen] rewardData:", rewardData);
-  console.log("[RoomEndScreen] roomSummary:", roomSummary);
+  // useEffect(() => {
+  //   const timer = setInterval(() => {
+  //     setTimeLeft((prev) => {
+  //       if (prev <= 1) {
+  //         clearInterval(timer);
+  //         onComplete();
+  //         navigate("/");
+  //         return 0;
+  //       }
+  //       return prev - 1;
+  //     });
+  //   }, 1000);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          onComplete();
-          navigate("/");
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [onComplete, navigate]);
+  //   return () => clearInterval(timer);
+  // }, [onComplete, navigate]);
 
   const handleGoHome = () => {
     clearRewardData();
@@ -283,22 +280,6 @@ export default function RoomEndScreen({onComplete, roomId, isHost, userFid}: Roo
           </>
         )}
 
-        {/* Countdown Message */}
-        <p className="text-gray-400 text-sm mb-4">
-          You will be redirected to home page in{" "}
-          <span className="text-fireside-orange font-bold">{timeLeft}</span>{" "}
-          seconds
-        </p>
-
-        {/* Countdown Progress Bar */}
-        <div className="mb-4">
-          <div className="w-full bg-white/20 rounded-full h-2">
-            <div
-              className="bg-neutral-orange h-2 rounded-full transition-all duration-1000 ease-linear"
-              style={{ width: `${((10 - timeLeft) / 10) * 100}%` }}
-            ></div>
-          </div>
-        </div>
 
         {/* Go Home Button */}
         <button
