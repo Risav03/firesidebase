@@ -123,7 +123,7 @@ export default function AdsOverlay({ roomId }: { roomId: string }) {
   if (!current) return null;
   
   return (
-    <Card className="pointer-events-none border-0 fixed bottom-32 mx-3 w-[calc(100%-1.5rem)] rounded-2xl flex object-cover justify-center bg-fireside-orange/20 border-fireside-orange/20 overflow-hidden">
+    <Card className="pointer-events-none border-0 fixed bottom-32 mx-3 w-[calc(100%-1.5rem)] rounded-2xl flex object-cover justify-center bg-fireside-orange/20 border-fireside-orange/20 overflow-hidden z-[10000]">
       <div className='relative w-full h-full'>
         <div className="aspect-[5/1] w-full object-cover relative">
           <Image width={1500} height={500} src={current.imageUrl} alt={current.title} className="h-full w-full object-cover" />
