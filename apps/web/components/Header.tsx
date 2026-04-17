@@ -25,6 +25,7 @@ interface HeaderProps {
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import FiresideLogo from "./UI/firesideLogo";
+import { Card } from "./UI/Card";
 
 export default function Header({ onToggleChat, isChatOpen = false, roomId }: HeaderProps) {
   const isConnected = useHMSStore(selectIsConnectedToRoom);
@@ -117,7 +118,7 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
       {/* Share Menu Overlay */}
       <div onClick={() => setIsShareMenuOpen(false)} className={`fixed top-0 left-0 h-screen w-screen bg-black/30 duration-200 z-[1000] ${isShareMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
         {isShareMenuOpen && (
-          <div className="absolute right-12 top-[4rem] border border-neutral-green/10 mb-2 w-40 gradient-green-bg bg-black text-white rounded-lg">
+          <Card className="absolute right-12 top-[4rem] border border-neutral-blue/10 mb-2 w-40 gradient-blue-bg bg-black text-white rounded-lg">
             <Button
               variant="ghost"
               onClick={() => {
@@ -151,7 +152,7 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
               <MdCopyAll className="w-5 h-5" />
               <span>Copy URL</span>
             </Button>
-          </div>
+          </Card>
         )}
       </div>
 
