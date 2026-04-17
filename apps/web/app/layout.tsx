@@ -5,6 +5,7 @@ import Providers from "@/utils/providers/providers";
 import Background from "@/components/UI/Background";
 import { DebugLoggerProvider, DebugLoggerDisplay } from "@/components/DebugLogger";
 import RewardClaimDrawer from "@/components/RewardClaimDrawer";
+import WakeLockManager from "@/components/WakeLockManager";
 
 interface RootLayoutProps {
   children: ReactNode;
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
       </head>
       <body className="text-white relative max-h-screen overflow-x-hidden mb-40">
         <DebugLoggerProvider defaultEnabled={isDebugEnabled}>
+          <WakeLockManager />
           <Background />
           <div className="relative z-10 h-full">
             <Providers>{children}</Providers>

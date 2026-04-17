@@ -10,3 +10,6 @@ export { usePlaylist, type PlaylistItem, type PlaybackState, type UsePlaylistOpt
 // Custom Audio Track hook - for one-shot sound effects (soundboard, notifications)
 export { useCustomAudioTrack, type AudioTrackItem, type UseCustomAudioTrackOptions, type UseCustomAudioTrackReturn } from './useCustomAudioTrack';
 
+// Wake Lock hook - keeps the device screen awake while the page is visible
+export { useWakeLock } from './useWakeLock';
+

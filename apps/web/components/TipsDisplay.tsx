@@ -201,8 +201,7 @@ export default function TipsDisplay({ roomId }: TipsDisplayProps) {
                               ${tip.amount.usd.toFixed(2)}
                             </span>
                             <span className="text-white/60 text-xs">
-                              ({tip.amount.native.toFixed(tip.amount.currency === 'USDC' ? 2 : 4)}{' '}
-                              {tip.amount.currency})
+                              ({tip.amount.currency})
                             </span>
                           </div>
                           <p className="text-white/50 text-xs mt-1">
