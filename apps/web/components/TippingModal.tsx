@@ -797,32 +797,55 @@ export default function TippingModal({
         </div>
 
         <DrawerFooter className="border-t border-white/20">
-          <div className="flex gap-3">
-            <Button
-              variant="action"
-              onClick={handleETHTip}
-              disabled={isLoading || (!selectedUsers.length && !selectedRoles.length) || (!selectedTip && !customTip)}
-              className=" gradient-indigo-bg bg-fireside-indigo/10 border-[1px] border-fireside-indigo/10 flex-1 flex items-center justify-center gap-1 text-lg font-bold"
-            >
-              {isLoading ? <RiLoader5Fill className="animate-spin w-6 h-6" /> : <><img src="/ethereum.svg" alt="ETH" className="w-6 h-6" /><span>ETH</span></>}
-            </Button>
-            <Button
-            variant="action"
-              onClick={() => handleUSDCTip(USDC_ADDRESS, "USDC")}
-              disabled={isLoading || (!selectedUsers.length && !selectedRoles.length) || (!selectedTip && !customTip)}
-              className=" flex-1 gradient-blue-bg bg-fireside-blue/30 border-[1px] border-fireside-blue/30 flex items-center justify-center text-lg gap-1 font-bold"
-            >
-              {isLoading ? <RiLoader5Fill className="animate-spin w-6 h-6" /> : <><img src="/usdc.svg" alt="USDC" className="w-6 h-6" /><span>USDC</span></>}
-            </Button>
-            <Button
-            variant="action"
-              onClick={() => handleUSDCTip(FIRE_ADDRESS, "FIRE")}
-              disabled={isLoading || (!selectedUsers.length && !selectedRoles.length) || (!selectedTip && !customTip)}
-              className="flex-1 gradient-orange-bg border-[1px] border-fireside-orange/10 bg-fireside-orange/10 text-white flex items-center justify-center text-lg font-bold"
-            >
-              {isLoading ? <RiLoader5Fill className="animate-spin w-6 h-6" /> : <><img src="/fireside-logo.svg" alt="FIRE" className="w-6 h-6" /><span>$FIRE</span></>}
-            </Button>
-          </div>
+          {isFetchingPrices ? (
+            <div className="flex items-center justify-center gap-2 py-3 text-gray-300">
+              <RiLoader5Fill className="animate-spin text-fireside-green" size={20} />
+              <span className="text-sm">Loading prices...</span>
+            </div>
+          ) : (
+            <div className="flex gap-3">
+              {ethPrice && (
+                <Button
+                  variant="action"
+                  onClick={handleETHTip}
+                  disabled={isLoading || (!selectedUsers.length && !selectedRoles.length) || (!selectedTip && !customTip)}
+                  className=" gradient-indigo-bg bg-fireside-indigo/10 border-[1px] border-fireside-indigo/10 flex-1 flex items-center justify-center gap-1 text-lg font-bold"
+                >
+                  {isLoading ? (
+                    <><RiLoader5Fill className="animate-spin w-6 h-6" /></>
+                  ) : (
+                    <><img src="/ethereum.svg" alt="ETH" className="w-6 h-6" /><span>ETH</span></>
+                  )}
+                </Button>
+              )}
+              <Button
+                variant="action"
+                onClick={() => handleUSDCTip(USDC_ADDRESS, "USDC")}
+                disabled={isLoading || (!selectedUsers.length && !selectedRoles.length) || (!selectedTip && !customTip)}
+                className=" flex-1 gradient-blue-bg bg-fireside-blue/30 border-[1px] border-fireside-blue/30 flex items-center justify-center text-lg gap-1 font-bold"
+              >
+                {isLoading ? (
+                  <><RiLoader5Fill className="animate-spin w-6 h-6" /></>
+                ) : (
+                  <><img src="/usdc.svg" alt="USDC" className="w-6 h-6" /><span>USDC</span></>
+                )}
+              </Button>
+              {firePrice && (
+                <Button
+                  variant="action"
+                  onClick={() => handleUSDCTip(FIRE_ADDRESS, "FIRE")}
+                  disabled={isLoading || (!selectedUsers.length && !selectedRoles.length) || (!selectedTip && !customTip)}
+                  className="flex-1 gradient-orange-bg border-[1px] border-fireside-orange/10 bg-fireside-orange/10 text-white flex items-center justify-center text-lg font-bold"
+                >
+                  {isLoading ? (
+                    <><RiLoader5Fill className="animate-spin w-6 h-6" /></>
+                  ) : (
+                    <><img src="/fireside-logo.svg" alt="FIRE" className="w-6 h-6" /><span>$FIRE</span></>
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
         </DrawerFooter>
       </DrawerContent>
     </Drawer>

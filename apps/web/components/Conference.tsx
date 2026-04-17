@@ -557,7 +557,7 @@ export default function Conference({ roomId }: { roomId: string }) {
     });
 
     return (
-      <div className="relative min-h-screen">
+      <div className="relative min-h-screen pb-10">
         <FirelightField flicker={flicker} />
 
         <Card className="bg-fireside-orange/5 gradient-orange-bg m-3 p-3 rounded-2xl">

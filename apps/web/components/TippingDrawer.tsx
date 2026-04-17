@@ -368,27 +368,29 @@ export default function TippingDrawer({ peer, isOpen, onClose }: TippingDrawerPr
                 <button
                   onClick={handleETHTip}
                   disabled={isTipping || !tipAmount}
-                  className="w-full px-4 py-3 gradient-indigo-bg bg-fireside-indigo/10 border-[1px] border-fireside-indigo/10 text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:cursor-not-allowed"
+                  className="w-full px-4 py-3 flex items-center justify-center gap-2 gradient-indigo-bg bg-fireside-indigo/10 border-[1px] border-fireside-indigo/10 text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:cursor-not-allowed"
                 >
-                  {isTipping ? 'Processing...' : `Tip with ETH (~${tipAmount ? (parseFloat(tipAmount) / ethPrice).toFixed(6) : '0'} ETH)`}
+                  <img src="/ethereum.svg" alt="ETH" className="w-6 h-6" />
+                  {isTipping ? 'Processing...' : `ETH`}
                 </button>
               )}
               
               <button
                 onClick={() => handleTokenTip(USDC_ADDRESS, 'USDC')}
                 disabled={isTipping || !tipAmount}
-                className="w-full px-4 py-3 gradient-blue-bg bg-fireside-blue/30 border-[1px] border-fireside-blue/30 text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:cursor-not-allowed"
+                className="w-full px-4 py-3 flex items-center justify-center gap-2 gradient-blue-bg bg-fireside-blue/30 border-[1px] border-fireside-blue/30 text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:cursor-not-allowed"
               >
-                {isTipping ? 'Processing...' : 'Tip with USDC'}
+                <img src="/usdc.svg" alt="USDC" className="w-6 h-6" />
+                {isTipping ? 'Processing...' : `USDC`}
               </button>
               
               {firePrice && (
                 <button
                   onClick={() => handleTokenTip(FIRE_ADDRESS, 'FIRE')}
                   disabled={isTipping || !tipAmount}
-                  className="w-full px-4 py-3 gradient-orange-bg border-[1px] border-fireside-orange/10 bg-fireside-orange/10 text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:cursor-not-allowed"
-                >
-                  {isTipping ? 'Processing...' : `Tip with FIRE (~${tipAmount ? (parseFloat(tipAmount) / firePrice).toFixed(2) : '0'} FIRE)`}
+                  className="w-full px-4 py-3 flex items-center justify-center gap-2 gradient-orange-bg border-[1px] border-fireside-orange/10 bg-fireside-orange/10 text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:cursor-not-allowed"
+                ><img src="/fireside-logo.svg" alt="FIRE" className="w-6 h-6" />
+                  {isTipping ? 'Processing...' : `FIRE`}
                 </button>
               )}
             </div>

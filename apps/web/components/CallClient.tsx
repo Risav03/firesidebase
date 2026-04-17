@@ -427,7 +427,7 @@ export default function CallClient({ roomId }: CallClientProps) {
 
   return (
     <TipNotificationProvider>
-      <div className="min-h-screen">
+      <div className="min-h-screen pb-20">
         <RoleChangeHandler />
         <Header roomId={roomId} />
         <Overlays roomId={roomId} />
