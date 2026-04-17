@@ -112,7 +112,7 @@ export default function TipsDisplay({ roomId }: TipsDisplayProps) {
         {/* Header - Always Visible */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full p-3 flex items-center justify-between hover:bg-white/5 transition-colors rounded-2xl"
+          className="w-full p-3 flex items-center justify-between hover:bg-white/5 transition-colors rounded-2xl space-x-1"
         >
           <div className="flex items-center gap-3">
             {/* <CiMoneyBill className="text-fireside-orange text-2xl" /> */}
@@ -159,10 +159,8 @@ export default function TipsDisplay({ roomId }: TipsDisplayProps) {
                         )}
                         
                       </div>
-                      <p className="text-white font-bold text-xs">${data.totalUSD.toFixed(2)}</p>
-                      <p className="text-white/60 text-xs">
-                        {data.totalNative.toFixed(currency === 'USDC' ? 2 : 4)} {currency}
-                      </p>
+                      <p className="text-white font-bold text-xs text-center">${data.totalUSD.toFixed(2)}</p>
+                     
                       <p className="text-white absolute bg-fireside-orange -top-3 right-0 font-bold rounded-full aspect-square w-4 text-xs text-center mt-2">{data.count}</p>
                     </div>
                   );

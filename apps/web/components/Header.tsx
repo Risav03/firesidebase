@@ -117,7 +117,7 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
       {/* Share Menu Overlay */}
       <div onClick={() => setIsShareMenuOpen(false)} className={`fixed top-0 left-0 h-screen w-screen bg-black/30 duration-200 z-[1000] ${isShareMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
         {isShareMenuOpen && (
-          <div className="absolute right-4 top-16 border border-white/10 mb-2 w-40 bg-gray-800 text-white rounded-lg ">
+          <div className="absolute right-12 top-[4rem] border border-neutral-green/10 mb-2 w-40 gradient-green-bg bg-black text-white rounded-lg">
             <Button
               variant="ghost"
               onClick={() => {
@@ -127,7 +127,7 @@ export default function Header({ onToggleChat, isChatOpen = false, roomId }: Hea
               className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center space-x-2 rounded-none rounded-t-lg shadow-none"
             >
               <MdOutlineIosShare className="w-5 h-5" />
-              <span>Share on App</span>
+              <span>Share</span>
             </Button>
             <Button
               variant="ghost"

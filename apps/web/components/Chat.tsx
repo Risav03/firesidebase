@@ -225,7 +225,12 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
               prev.map(msg => msg.id === botMessageId ? updatedBotMessage : msg)
             );
             
-            // Broadcast bot message via HMS so all users see it in real-time
+            // Broadcast bot message via HMS so all users see it in real-time.
+            // Always stamp prompterFid with the current user's fid so our own
+            // echo of this broadcast is filtered out on our end (Redis polling
+            // is already the source of truth for the prompter). The backend
+            // only persists prompterFid when transactions are present, so we
+            // fall back to user.fid for plain-text replies too.
             const botMessageWithMetadata = JSON.stringify({
               text: updatedBotMessage.message,
               userFid: updatedBotMessage.userId,
@@ -236,7 +241,7 @@ export default function Chat({ isOpen, setIsChatOpen, roomId }: ChatProps) {
               isBot: true,
               status: updatedBotMessage.status,
               transactions: updatedBotMessage.transactions,
-              prompterFid: updatedBotMessage.prompterFid,
+              prompterFid: updatedBotMessage.prompterFid || user?.fid,
               replyTo: updatedBotMessage.replyTo
             });
 

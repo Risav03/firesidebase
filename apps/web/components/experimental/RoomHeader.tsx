@@ -168,26 +168,26 @@ export function RoomHeader({
       {/* Share Menu Overlay */}
       <div 
         onClick={() => setIsShareMenuOpen(false)} 
-        className={`fixed top-0 left-0 h-screen w-screen z-[1000] transition-all duration-200 ${isShareMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+        className={`fixed top-0 left-0 h-screen w-screen z-[1000] transition-all gradient-fire-bg bg-black/50 duration-200 ${isShareMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
       >
         {isShareMenuOpen && (
-          <div className="absolute right-12 top-[4.5rem] border border-white/10 mb-2 w-40 gradient-green-bg bg-black text-white rounded-lg">
+          <div className="absolute right-12 top-[4.5rem] border border-white/10 mb-2 w-40 gradient-green-bg text-white rounded-lg">
             <button
               onClick={() => {
                 setIsShareMenuOpen(false);
                 composeCast();
               }}
-              className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center space-x-2 rounded-t-lg transition"
+              className="w-full px-4 py-2 text-left flex items-center space-x-2 rounded-t-lg "
             >
               <MdOutlineIosShare className="w-5 h-5" />
-              <span>Share on App</span>
+              <span>Share</span>
             </button>
             <button
               onClick={() => {
                 setIsShareMenuOpen(false);
                 handleShareOnTwitter();
               }}
-              className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center space-x-2 transition"
+              className="w-full px-4 py-2 text-left flex items-center space-x-2 "
             >
               <FaXTwitter className="w-5 h-5" />
               <span>Share on X</span>
@@ -197,7 +197,7 @@ export function RoomHeader({
                 setIsShareMenuOpen(false);
                 handleCopyURL();
               }}
-              className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center space-x-2 rounded-b-lg transition"
+              className="w-full px-4 py-2 text-left flex items-center space-x-2 rounded-b-lg "
             >
               <MdCopyAll className="w-5 h-5" />
               <span>Copy URL</span>
