@@ -41,11 +41,15 @@ export const summaryRoutes = new Elysia()
               return errorResponse('Room not found');
             }
 
+            // Redis tip/peak stats and AdPayout records are keyed by the MongoDB
+            // ObjectId (not the HMS `roomId`), so always use `_id` here.
+            const mongoRoomId = (room as any)._id.toString();
+
             // Fetch tip statistics
-            const tipStats = await RedisTippingService.getTipStatistics(room.roomId);
+            const tipStats = await RedisTippingService.getTipStatistics(mongoRoomId);
 
             // Fetch peak participant counts
-            const peakStats = await RedisRoomStatisticsService.getRoomStatistics(room.roomId);
+            const peakStats = await RedisRoomStatisticsService.getRoomStatistics(mongoRoomId);
 
             // Fetch ads that played in this room
             const completedAssignments = await AdAssignment.find({
@@ -70,7 +74,7 @@ export const summaryRoutes = new Elysia()
             let userAdEarnings: { fire: number; usd: number } | null = null;
             if (fid) {
               const payout = await AdPayout.findOne({
-                roomId: room.roomId,
+                roomId: mongoRoomId,
                 status: 'completed',
               }).lean();
 
