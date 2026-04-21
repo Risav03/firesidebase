@@ -14,6 +14,7 @@ import { useGlobalContext } from "../utils/providers/globalContext";
 import { useHandRaiseLogic } from "./footer/useHandRaiseLogic";
 import { useEmojiReactionLogic } from "./footer/useEmojiReactionLogic";
 import { useSoundboardLogic } from "./footer/useSoundboardLogic";
+import { useIntroOutroLogic } from "./footer/useIntroOutroLogic";
 import { useSpeakerRejectionEvent, useSpeakerRequestEvent } from "../utils/events";
 import { ControlCenterDrawer } from "./experimental";
 import Chat from "./Chat";
@@ -90,6 +91,21 @@ export default function Footer({ roomId }: { roomId: string }) {
   const { handleEmojiSelect, floatingEmojis, isDisabled } = useEmojiReactionLogic({ user });
 
   const soundboardLogic = useSoundboardLogic(user);
+  const introOutroLogic = useIntroOutroLogic(user);
+
+  const handleToggleIntro = async () => {
+    if (soundboardLogic.isPlaying) {
+      try { await soundboardLogic.stopSound(); } catch (e) { /* ignore */ }
+    }
+    await introOutroLogic.toggleIntro();
+  };
+
+  const handleToggleOutro = async () => {
+    if (soundboardLogic.isPlaying) {
+      try { await soundboardLogic.stopSound(); } catch (e) { /* ignore */ }
+    }
+    await introOutroLogic.toggleOutro();
+  };
 
   const isListener = localPeer?.roleName?.toLowerCase() === 'listener';
   
@@ -170,6 +186,13 @@ export default function Footer({ roomId }: { roomId: string }) {
           // cooldownRemaining={cooldownRemaining}
           hmsActions={hmsActions}
           canRequestToSpeak={canRequestToSpeak}
+          canUseIntroOutro={introOutroLogic.canUse}
+          hasIntro={introOutroLogic.hasIntro}
+          hasOutro={introOutroLogic.hasOutro}
+          isIntroPlaying={introOutroLogic.isIntroPlaying}
+          isOutroPlaying={introOutroLogic.isOutroPlaying}
+          onToggleIntro={handleToggleIntro}
+          onToggleOutro={handleToggleOutro}
         />
       </div>
       

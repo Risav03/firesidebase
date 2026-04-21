@@ -15,7 +15,9 @@ export const UserSchema = t.Object({
   topics: t.Optional(t.Array(t.String())),
   token: t.Optional(t.String()),
   socials: t.Optional(t.Record(t.String(), t.String())),
-  autoAdsEnabled: t.Optional(t.Boolean())
+  autoAdsEnabled: t.Optional(t.Boolean()),
+  introAudioUrl: t.Optional(t.String()),
+  outroAudioUrl: t.Optional(t.String())
 });
 
 export const RoomParticipantSchema = t.Object({

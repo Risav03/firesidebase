@@ -608,6 +608,29 @@ export async function updateAdsPreference(autoAdsEnabled: boolean, token: string
 }
 
 /**
+ * Get the current user's intro/outro audio URLs
+ */
+export async function getIntroOutroAudio(token: string | null = null) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/profile/intro-outro`, {
+    method: 'GET',
+    authToken: token,
+    cache: 'no-store'
+  });
+}
+
+/**
+ * Delete the user's intro or outro audio (kind: 'intro' | 'outro')
+ */
+export async function deleteIntroOutroAudio(kind: 'intro' | 'outro', token: string | null = null) {
+  const URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  return fetchAPI(`${URL}/api/profile/intro-outro/${kind}`, {
+    method: 'DELETE',
+    authToken: token
+  });
+}
+
+/**
  * Save a tip record to Redis
  */
 export async function saveTipRecord(

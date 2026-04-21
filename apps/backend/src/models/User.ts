@@ -12,6 +12,8 @@ const User: Schema = new Schema({
   token: { type: String, required: false },
   socials: { type: Map, of: String, required: false },
   autoAdsEnabled: { type: Boolean, default: false },
+  introAudioUrl: { type: String, required: false },
+  outroAudioUrl: { type: String, required: false },
   adEarnings: {
     totalFire: { type: Number, default: 0 },
     totalUsd: { type: Number, default: 0 },

@@ -233,6 +233,24 @@ export default function ProfilePage() {
               
             </Card>
 
+            {/* Intro & Outro Music */}
+            <div className="mt-8">
+              <h2 className="text-xl font-bold text-white mb-4">Audio</h2>
+              <Card
+                variant="ghost"
+                onClick={() => navigate('/settings/audio')}
+                className="flex items-center justify-between p-4 bg-fireside-orange/10 border border-fireside-orange/30 rounded-xl cursor-pointer hover:bg-fireside-orange/20 transition-colors"
+              >
+                <div className="flex-1 pr-4 text-left">
+                  <p className="text-white font-semibold">Intro &amp; outro music</p>
+                  <p className="text-white/70 text-sm">
+                    Upload short clips to play when you start and end your firesides.
+                  </p>
+                </div>
+                <IoIosArrowBack className="w-5 h-5 text-white rotate-180" />
+              </Card>
+            </div>
+
             {/* Statistics Section */}
             <div className="mt-8">
               <h2 className="text-xl font-bold text-white mb-4">Statistics</h2>
@@ -317,6 +335,8 @@ export default function ProfilePage() {
                 )}
               </div>
             </div>
+
+            
 
             {/* Ads Preference */}
             <div className="mt-8">

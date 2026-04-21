@@ -385,6 +385,14 @@ export const GetAdsPreferenceResponseSchema = t.Object({
   })
 });
 
+export const IntroOutroAudioResponseSchema = t.Object({
+  success: t.Boolean(),
+  data: t.Object({
+    introAudioUrl: t.Any({ description: 'Public URL for the intro audio, if set' }),
+    outroAudioUrl: t.Any({ description: 'Public URL for the outro audio, if set' })
+  })
+});
+
 // End Room
 export const EndRoomResponseSchema = t.Object({
   success: t.Boolean(),

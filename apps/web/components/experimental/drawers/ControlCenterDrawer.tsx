@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ChevronDown, MessageCircle, Gift, Mic, MicOff, Hand, Sparkles, Volume2, Coins, SmilePlus } from "lucide-react";
+import { ChevronDown, MessageCircle, Gift, Mic, MicOff, Hand, Sparkles, Volume2, Coins, SmilePlus, Play, Pause } from "lucide-react";
 import { TOKENS } from "../utils";
 import { IconButton } from "../ui";
 import { HMSActions } from "@100mslive/react-sdk";
@@ -22,6 +22,13 @@ export function ControlCenterDrawer(props: {
   isListener: boolean;
   hmsActions: HMSActions;
   canRequestToSpeak: boolean;
+  canUseIntroOutro?: boolean;
+  hasIntro?: boolean;
+  hasOutro?: boolean;
+  isIntroPlaying?: boolean;
+  isOutroPlaying?: boolean;
+  onToggleIntro?: () => void;
+  onToggleOutro?: () => void;
 }) {
   const collapsedH = 118;
   const expandedH = 230;
@@ -206,64 +213,10 @@ export function ControlCenterDrawer(props: {
               transition={{ duration: 0.18 }}
               className="px-3 pt-3"
             >
-              <div className="grid grid-cols-1 gap-2">
-                {/* <div
-                  className="rounded-2xl p-3 backdrop-blur-sm"
-                  style={{
-                    border: `1px solid ${TOKENS.line}`,
-                    background: "rgba(0,0,0,.18)",
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <MessageCircle
-                      className="h-4 w-4"
-                      style={{ color: "rgba(255,255,255,.78)" }}
-                    />
-                    <div
-                      className="text-xs font-semibold"
-                      style={{ color: "rgba(255,255,255,.84)" }}
-                    >
-                      Chat
-                    </div>
-                  </div>
-                  <div
-                    className="mt-1 text-[11px]"
-                    style={{ color: TOKENS.muted }}
-                  >
-                    messages
-                  </div>
-                </div>
-
-                <div
-                  className="rounded-2xl p-3 backdrop-blur-sm"
-                  style={{
-                    border: `1px solid ${TOKENS.line}`,
-                    background: "rgba(0,0,0,.18)",
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <Gift
-                      className="h-4 w-4"
-                      style={{ color: "rgba(255,255,255,.78)" }}
-                    />
-                    <div
-                      className="text-xs font-semibold"
-                      style={{ color: "rgba(255,255,255,.84)" }}
-                    >
-                      Tip
-                    </div>
-                  </div>
-                  <div
-                    className="mt-1 text-[11px]"
-                    style={{ color: TOKENS.muted }}
-                  >
-                    support hosts
-                  </div>
-                </div> */}
-
+              <div className="flex items-stretch gap-2">
                 <button
                   onClick={props.onSoundboard}
-                  className="w-full rounded-2xl p-3 gradient-purple-bg backdrop-blur-sm h-16 flex justify-center transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  className="flex-1 rounded-2xl p-3 gradient-purple-bg backdrop-blur-sm h-16 flex justify-center transition-all hover:scale-[1.02] active:scale-[0.98]"
                   style={{
                     border: `1px solid ${TOKENS.line}`,
                   }}
@@ -280,13 +233,63 @@ export function ControlCenterDrawer(props: {
                       Soundboard
                     </div>
                   </div>
-                  {/* <div
-                    className="mt-1 text-[11px]"
-                    style={{ color: TOKENS.muted }}
-                  >
-                    clips & sfx
-                  </div> */}
                 </button>
+
+                {props.canUseIntroOutro ? (
+                  <>
+                    <button
+                      onClick={props.onToggleIntro}
+                      disabled={!props.hasIntro}
+                      title={props.hasIntro ? "Play/pause intro" : "No intro audio set"}
+                      className="rounded-2xl p-2 backdrop-blur-sm h-16 w-16 flex flex-col items-center justify-center transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{
+                        border: `1px solid ${TOKENS.line}`,
+                        background: props.isIntroPlaying
+                          ? "rgba(255,140,60,.25)"
+                          : "rgba(0,0,0,.22)",
+                      }}
+                      aria-label={props.isIntroPlaying ? "Pause intro" : "Play intro"}
+                    >
+                      {props.isIntroPlaying ? (
+                        <Pause className="h-5 w-5" style={{ color: "rgba(255,255,255,.9)" }} />
+                      ) : (
+                        <Play className="h-5 w-5" style={{ color: "rgba(255,255,255,.9)" }} />
+                      )}
+                      <div
+                        className="mt-0.5 text-[10px] font-semibold"
+                        style={{ color: "rgba(255,255,255,.84)" }}
+                      >
+                        Intro
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={props.onToggleOutro}
+                      disabled={!props.hasOutro}
+                      title={props.hasOutro ? "Play/pause outro" : "No outro audio set"}
+                      className="rounded-2xl p-2 backdrop-blur-sm h-16 w-16 flex flex-col items-center justify-center transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{
+                        border: `1px solid ${TOKENS.line}`,
+                        background: props.isOutroPlaying
+                          ? "rgba(255,140,60,.25)"
+                          : "rgba(0,0,0,.22)",
+                      }}
+                      aria-label={props.isOutroPlaying ? "Pause outro" : "Play outro"}
+                    >
+                      {props.isOutroPlaying ? (
+                        <Pause className="h-5 w-5" style={{ color: "rgba(255,255,255,.9)" }} />
+                      ) : (
+                        <Play className="h-5 w-5" style={{ color: "rgba(255,255,255,.9)" }} />
+                      )}
+                      <div
+                        className="mt-0.5 text-[10px] font-semibold"
+                        style={{ color: "rgba(255,255,255,.84)" }}
+                      >
+                        Outro
+                      </div>
+                    </button>
+                  </>
+                ) : null}
 
                 {/* {Array.from({ length: 3 }, (_, i) => (
                   <div
