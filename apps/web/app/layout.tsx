@@ -28,7 +28,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           <div className="relative z-10 h-full">
             <Providers>{children}</Providers>
           </div>
-          <RewardClaimDrawer />
+          {/* <RewardClaimDrawer /> */}
           {/* <DebugLoggerDisplay /> */}
         </DebugLoggerProvider>
       </body>
