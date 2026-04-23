@@ -22,7 +22,7 @@ import { base } from "viem/chains";
 export async function readContractSetup(contractAddress: string, abi: any) {
   try {
     const provider = new ethers.JsonRpcProvider(
-      "https://base-mainnet.g.alchemy.com/v2/CA4eh0FjTxMenSW3QxTpJ7D-vWMSHVjq"
+      process.env.RPC_URL || "https://base-mainnet.g.alchemy.com/v2/W_VyLLC7juRg_FIot5d6y"
     );
 
     const contract = new ethers.Contract(contractAddress, abi, provider);

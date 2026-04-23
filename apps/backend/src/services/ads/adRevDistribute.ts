@@ -138,7 +138,7 @@ export async function adRevDistribute(input: string | AdRevDistributeOptions): P
     await payoutRecord.save();
 
     const provider = new ethers.JsonRpcProvider(
-      "https://base-mainnet.g.alchemy.com/v2/CA4eh0FjTxMenSW3QxTpJ7D-vWMSHVjq"
+      process.env.RPC_URL || "https://base-mainnet.g.alchemy.com/v2/W_VyLLC7juRg_FIot5d6y"
     );
     console.log('✅ Provider setup complete');
 
